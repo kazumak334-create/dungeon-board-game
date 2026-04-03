@@ -8,6 +8,10 @@ const ENERGY_REGEN: float = 1.0
 
 var deck: Array = []
 
+# 発動チェック間隔（初期値1秒。将来ユニット効果で変更可能）
+var check_interval: float = 1.0
+var _check_timer: float = 0.0
+
 signal card_played(unit: Object)
 signal energy_changed(current: float)
 
@@ -37,8 +41,16 @@ func _build_default_deck() -> void:
 	deck.shuffle()
 
 func process_deck(delta: float, board: Node) -> void:
+	# エネルギー毎フレーム回復
 	energy = min(ENERGY_MAX, energy + ENERGY_REGEN * delta)
 	emit_signal("energy_changed", energy)
+
+	# 発動チェックは check_interval ごと
+	_check_timer -= delta
+	if _check_timer > 0.0:
+		return
+	_check_timer = check_interval
+
 	if deck.is_empty():
 		return
 	var top = deck[0]
