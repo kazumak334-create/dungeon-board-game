@@ -24,6 +24,8 @@ func _setup() -> void:
 
 func place_unit(side: int, unit_data: Object) -> bool:
 	var col: int = unit_data.assigned_col
+	if side == 0:
+		col = 2 - col  # 自陣は前列=col2なのでインデックスを反転
 	var rows: Array = [0, 1, 2]
 	rows.shuffle()
 	for row in rows:
@@ -47,21 +49,24 @@ func remove_unit(side: int, row: int, col: int) -> void:
 func process_combat(delta: float, base_hp: Array) -> void:
 	for side in range(2):
 		var enemy_side: int = 1 - side
+		# 自陣の前列はcol2、敵陣の前列はcol0
+		var front_col: int = 2 if side == 0 else 0
 		for row in range(3):
-			var unit = board[side][row][0]
+			var unit = board[side][row][front_col]
 			if unit == null:
 				continue
-			attack_timers[side][row][0] -= delta
-			if attack_timers[side][row][0] <= 0.0:
-				attack_timers[side][row][0] = unit.attack_interval
-				_do_attack(side, row, unit, enemy_side, base_hp)
+			attack_timers[side][row][front_col] -= delta
+			if attack_timers[side][row][front_col] <= 0.0:
+				attack_timers[side][row][front_col] = unit.attack_interval
+				_do_attack(side, row, front_col, unit, enemy_side, base_hp)
 
-func _do_attack(side: int, row: int, attacker: Object, enemy_side: int, base_hp: Array) -> void:
-	var target = board[enemy_side][row][0]
+func _do_attack(side: int, row: int, col: int, attacker: Object, enemy_side: int, base_hp: Array) -> void:
+	var enemy_front_col: int = 2 if enemy_side == 0 else 0
+	var target = board[enemy_side][row][enemy_front_col]
 	if target != null:
 		target.take_damage(attacker.attack)
 		if not target.is_alive():
-			remove_unit(enemy_side, row, 0)
+			remove_unit(enemy_side, row, enemy_front_col)
 	else:
 		base_hp[enemy_side] = max(0, base_hp[enemy_side] - attacker.attack)
 		emit_signal("base_damaged", enemy_side, attacker.attack)

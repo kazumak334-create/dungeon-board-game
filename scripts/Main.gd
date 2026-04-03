@@ -37,8 +37,8 @@ var base_hp: Array = [30, 30]
 var cell_rects:  Array = []
 var cell_labels: Array = []
 
-var energy_bar_cells: Array = []  # エネルギーバー格子
-var energy_value_label: Label
+var mana_bar_cells: Array = []  # マナバー格子
+var mana_value_label: Label
 var next_card_panel: ColorRect
 var next_card_name_label: Label
 var next_card_detail_label: Label
@@ -181,8 +181,8 @@ func _build_ui() -> void:
 	enemy_base_label.modulate = Color(1.0, 0.45, 0.45)
 	add_child(enemy_base_label)
 
-	# ---- エネルギーバー ----
-	_build_energy_bar()
+	# ---- マナバー ----
+	_build_mana_bar()
 
 	# ---- 次カードパネル ----
 	_build_next_card_panel()
@@ -215,31 +215,31 @@ func _build_ui() -> void:
 	game_over_label.visible  = false
 	add_child(game_over_label)
 
-func _build_energy_bar() -> void:
+func _build_mana_bar() -> void:
 	var bar_y: int = BOARD_TOP + 3 * CELL_H + 42
 	var bar_x: int = _cell_x(0, 0)
 
 	var bar_title := Label.new()
-	bar_title.text     = "Energy"
+	bar_title.text     = "Mana"
 	bar_title.position = Vector2(bar_x, bar_y - 18)
 	bar_title.add_theme_font_size_override("font_size", 12)
 	bar_title.modulate = Color(1.0, 0.85, 0.2)
 	add_child(bar_title)
 
-	energy_bar_cells = []
+	mana_bar_cells = []
 	for i in range(10):
 		var cell := ColorRect.new()
 		cell.size     = Vector2(22, 18)
 		cell.position = Vector2(bar_x + i * 25, bar_y)
 		cell.color    = Color(0.2, 0.2, 0.1)
 		add_child(cell)
-		energy_bar_cells.append(cell)
+		mana_bar_cells.append(cell)
 
-	energy_value_label = Label.new()
-	energy_value_label.position = Vector2(bar_x + 10 * 25 + 6, bar_y)
-	energy_value_label.add_theme_font_size_override("font_size", 13)
-	energy_value_label.modulate = Color(1.0, 0.9, 0.3)
-	add_child(energy_value_label)
+	mana_value_label = Label.new()
+	mana_value_label.position = Vector2(bar_x + 10 * 25 + 6, bar_y)
+	mana_value_label.add_theme_font_size_override("font_size", 13)
+	mana_value_label.modulate = Color(1.0, 0.9, 0.3)
+	add_child(mana_value_label)
 
 func _build_next_card_panel() -> void:
 	# 次カードパネル：盤面下部中央
@@ -338,7 +338,7 @@ func _check_game_over() -> void:
 func _update_ui() -> void:
 	_update_cells()
 	_update_base_hp()
-	_update_energy()
+	_update_mana()
 	_update_next_card()
 
 func _update_cells() -> void:
@@ -369,15 +369,15 @@ func _update_base_hp() -> void:
 	player_base_label.text = "自陣 本体HP: %d / 30" % base_hp[0]
 	enemy_base_label.text  = "敵陣 本体HP: %d / 30" % base_hp[1]
 
-func _update_energy() -> void:
-	var filled: int = int(deck_manager.energy)
+func _update_mana() -> void:
+	var filled: int = int(deck_manager.mana)
 	for i in range(10):
-		var cell: ColorRect = energy_bar_cells[i]
+		var cell: ColorRect = mana_bar_cells[i]
 		if i < filled:
 			cell.color = Color(1.0, 0.85, 0.1)
 		else:
 			cell.color = Color(0.18, 0.17, 0.07)
-	energy_value_label.text = "%.1f / 10" % deck_manager.energy
+	mana_value_label.text = "%.1f / 10" % deck_manager.mana
 
 func _update_next_card() -> void:
 	var next = deck_manager.get_next_card()
@@ -395,7 +395,7 @@ func _update_next_card() -> void:
 
 	# コスト表示：足りているかで色変化
 	next_card_cost_label.text = "Cost %d" % next.cost
-	if deck_manager.energy >= next.cost:
+	if deck_manager.mana >= next.cost:
 		next_card_cost_label.modulate = Color(0.3, 1.0, 0.4)   # 緑=発動可能
 	else:
 		next_card_cost_label.modulate = Color(1.0, 0.85, 0.1)  # 黄=待機中
@@ -412,8 +412,10 @@ func _update_next_card() -> void:
 # ---- シグナルハンドラ ----
 func _on_unit_died(side: int, row: int, col: int) -> void:
 	var side_name: String = "自陣" if side == 0 else "敵陣"
+	# 自陣はcol2=前列なので表示用インデックスに変換
+	var display_col: int = (2 - col) if side == 0 else col
 	var col_names: Array  = ["前列", "中列", "後列"]
-	_add_log("倒 %s %d行%s" % [side_name, row + 1, col_names[col]])
+	_add_log("倒 %s %d行%s" % [side_name, row + 1, col_names[display_col]])
 
 func _on_base_damaged(side: int, amount: int) -> void:
 	var side_name: String = "自陣" if side == 0 else "敵陣"

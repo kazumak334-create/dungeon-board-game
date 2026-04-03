@@ -2,9 +2,9 @@
 class_name DeckManager
 extends Node
 
-var energy: float = 3.0
-const ENERGY_MAX: float = 10.0
-const ENERGY_REGEN: float = 1.0
+var mana: float = 3.0
+const MANA_MAX: float = 10.0
+const MANA_REGEN: float = 1.0
 
 var deck: Array = []
 
@@ -13,7 +13,7 @@ var check_interval: float = 1.0
 var _check_timer: float = 0.0
 
 signal card_played(unit: Object)
-signal energy_changed(current: float)
+signal mana_changed(current: float)
 
 func _ready() -> void:
 	_build_default_deck()
@@ -41,9 +41,9 @@ func _build_default_deck() -> void:
 	deck.shuffle()
 
 func process_deck(delta: float, board: Node) -> void:
-	# エネルギー毎フレーム回復
-	energy = min(ENERGY_MAX, energy + ENERGY_REGEN * delta)
-	emit_signal("energy_changed", energy)
+	# マナ毎フレーム回復
+	mana = min(MANA_MAX, mana + MANA_REGEN * delta)
+	emit_signal("mana_changed", mana)
 
 	# 発動チェックは check_interval ごと
 	_check_timer -= delta
@@ -54,12 +54,16 @@ func process_deck(delta: float, board: Node) -> void:
 	if deck.is_empty():
 		return
 	var top = deck[0]
-	if energy >= top.cost:
-		energy -= top.cost
+	if mana < top.cost:
+		# マナ不足：消費せずに捨て札（末尾）へ送る
 		deck.remove_at(0)
-		board.place_unit(0, top)
-		emit_signal("card_played", top)
 		deck.append(top)
+		return
+	mana -= top.cost
+	deck.remove_at(0)
+	board.place_unit(0, top)
+	emit_signal("card_played", top)
+	deck.append(top)
 
 func get_next_card() -> Object:
 	if deck.is_empty():
