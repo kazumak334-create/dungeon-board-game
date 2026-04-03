@@ -1,0 +1,17 @@
+# Godot
+.godot/
+*.import
+export_presets.cfg
+
+# SNS poster
+sns-poster/node_modules/
+sns-poster/.twitter-session.json
+sns-poster/.note-session.json
+
+# Secrets
+*.env
+.env*
+
+# OS
+.DS_Store
+Thumbs.db
