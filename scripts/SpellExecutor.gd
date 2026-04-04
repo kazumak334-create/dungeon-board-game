@@ -236,9 +236,9 @@ func _apply_self_status(side: int, bm: Node, eq: Node, status: String, stacks: i
 	var units = _get_all_units_with_pos(side, bm)
 	if units.is_empty():
 		return
-	# スライム優先：スライムがいればスライムから選ぶ
-	var slimes: Array = units.filter(func(u): return u["unit"].race == "スライム")
-	var pool: Array = slimes if not slimes.is_empty() else units
+	# アクティブスキルに「異常状態カード」優先指定を持つユニットを優先
+	var priority: Array = units.filter(func(u): return "異常状態カード" in u["unit"].active_skill)
+	var pool: Array = priority if not priority.is_empty() else units
 	var pick = pool[randi() % pool.size()]
 	eq.push(EventQueue.PRIORITY_ACTIVE, null, pick["unit"], "status_apply", 0.0,
 		{"status": status, "stacks": stacks, "side": side, "row": pick["row"], "col": pick["col"],
