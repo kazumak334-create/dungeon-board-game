@@ -73,10 +73,13 @@ func _ready() -> void:
 	board_manager.set_script(BoardManagerScript)
 	add_child(board_manager)
 	board_manager.event_queue = event_queue
+	board_manager.base_hp_ref = base_hp
 	board_manager.unit_died.connect(_on_unit_died)
 	board_manager.unit_revived.connect(_on_unit_revived)
 	board_manager.base_damaged.connect(_on_base_damaged)
 	board_manager.active_skill_used.connect(_on_active_skill_used)
+	board_manager.status_damage.connect(_on_status_damage)
+	board_manager.status_cleared.connect(_on_status_cleared)
 
 	deck_manager = Node.new()
 	deck_manager.set_script(DeckManagerScript)
@@ -584,6 +587,12 @@ func _log_support_effects() -> void:
 					if eff_name.is_empty(): continue
 					for t in targets:
 						_add_log("[サポート] %s → %s に %s" % [unit.unit_name, t.unit_name, eff_name])
+
+func _on_status_damage(unit_name: String, status: String, damage: int, stacks: int) -> void:
+	_add_log("[状態異常] %s: %s -%d (スタック:%d)" % [unit_name, status, damage, stacks])
+
+func _on_status_cleared(unit_name: String, status: String) -> void:
+	_add_log("[状態解除] %s の %s が解除" % [unit_name, status])
 
 func _add_log(text: String) -> void:
 	var ms: float = float(Time.get_ticks_msec()) * 0.001

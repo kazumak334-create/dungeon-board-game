@@ -3,6 +3,15 @@
 ## [Unreleased]
 
 ### Added
+- **EventQueue 最適化・状態異常システム完成** (`BoardManager.gd`, `EventQueue.gd`, `Main.gd`)
+  - **サポート効果の再計算を盤面変化時のみに限定**: `_board_dirty` フラグ + `on_board_changed()` で毎フレーム呼び出しを廃止。place_unit/remove_unit/promote 時のみ再計算
+  - **状態異常管理を Timer ノードに移行**: `_status_timer`（1秒ごと）で poison_stacks ダメージ・frozen/fear/stun カウントダウンを処理。毎フレームのスタックチェックを廃止
+  - **毒ダメージを EventQueue 経由に**: `poison_damage` イベントタイプを追加。ダメージ後に `status_damage` シグナルを発火。毒で死亡したユニットは death_events 経由で `remove_unit`
+  - **恐怖中の ATK 半減**: `_do_attack` 冒頭で `fear_turns > 0` のとき `effective_atk = max(1, effective_atk / 2)`
+  - **凍結・石化中の攻撃スキップ**: `process_combat` で前列・後列ループに `frozen_turns > 0 or stun_turns > 0` チェックを追加
+  - **状態異常シグナルをログ表示**: `status_damage` / `status_cleared` を Main.gd に接続しログへ出力
+  - `base_hp_ref` を BoardManager に追加して Main.gd から参照を渡すことで Timer tick の flush が base_hp にアクセス可能に
+
 - **優先度付きチェーンイベントキューを実装** (`scripts/EventQueue.gd` 新規作成)
   - 優先度定数: IMMEDIATE(1) / STATUS(2) / SUPPORT(3) / ACTIVE(4) / ARTIFACT(5) / BOARD(6) / MERGE(7)
   - イベント構造: priority, source, target, effect_type, value, extra, timestamp

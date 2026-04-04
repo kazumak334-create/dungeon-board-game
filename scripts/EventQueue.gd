@@ -76,6 +76,19 @@ func flush(board_manager: Node, base_hp: Array) -> void:
 				if not tgt.is_alive():
 					death_events.append(event["extra"])
 
+			"poison_damage":
+				var tgt = event["target"]
+				if tgt == null or not tgt.is_alive():
+					continue
+				var dmg: int = int(event["value"])
+				tgt.take_damage(dmg)
+				var ex: Dictionary = event["extra"]
+				board_manager.status_damage.emit(
+					ex.get("unit_name", "?"), "毒", dmg, tgt.poison_stacks
+				)
+				if not tgt.is_alive():
+					death_events.append(ex)
+
 			"heal":
 				var tgt = event["target"]
 				if tgt != null and tgt.is_alive():

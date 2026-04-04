@@ -4,14 +4,19 @@ extends Node
 
 var board: Array = []
 var attack_timers: Array = []
-var _regen_timer: float = 1.0
-var event_queue: Node = null  # EventQueue（Main.gd が設定）
+var event_queue: Node = null   # EventQueue（Main.gd が設定）
+var base_hp_ref: Array = []    # Main.gd の base_hp への参照（Timer tick 用）
+var _board_dirty: bool = true  # true のときのみサポート効果を再計算
+var _status_timer: Timer = null
 
 signal unit_placed(side: int, row: int, col: int, unit: Object)
 signal unit_died(side: int, row: int, col: int)
 signal unit_revived(side: int, row: int, col: int)
 signal base_damaged(side: int, amount: int)
 signal active_skill_used(side: int, row: int, col: int, skill_name: String)
+signal status_damage(unit_name: String, status: String, damage: int, stacks: int)
+signal status_applied(unit_name: String, status: String, stacks: int)
+signal status_cleared(unit_name: String, status: String)
 
 func _ready() -> void:
 	_setup()
@@ -25,6 +30,12 @@ func _setup() -> void:
 		for r in range(3):
 			board[s].append([null, null, null])
 			attack_timers[s].append([0.0, 0.0, 0.0])
+	# 状態異常・HP回復を1秒ごとに処理するTimerノード
+	_status_timer = Timer.new()
+	_status_timer.wait_time  = 1.0
+	_status_timer.autostart  = true
+	_status_timer.timeout.connect(_on_status_tick)
+	add_child(_status_timer)
 
 func place_unit(side: int, unit_data: Object) -> bool:
 	var col: int = unit_data.assigned_col
@@ -38,6 +49,7 @@ func place_unit(side: int, unit_data: Object) -> bool:
 			board[side][row][col] = placed
 			attack_timers[side][row][col] = placed.attack_interval
 			emit_signal("unit_placed", side, row, col, placed)
+			on_board_changed()
 			return true
 	print("[BoardManager] 配置失敗: side=%d col=%d は満杯" % [side, col])
 	return false
@@ -60,16 +72,13 @@ func remove_unit(side: int, row: int, col: int) -> void:
 	attack_timers[side][row][col] = 0.0
 	emit_signal("unit_died", side, row, col)
 	_try_promote(side, row, col)
+	on_board_changed()
 
 func process_combat(delta: float, base_hp: Array) -> void:
-	# サポート効果ボーナスを毎フレーム再計算
-	_apply_support_effects()
-
-	# HP回復ティック（1秒ごと）
-	_regen_timer -= delta
-	if _regen_timer <= 0.0:
-		_regen_timer += 1.0
-		_apply_regen()
+	# 盤面変化があったときのみサポート効果を再計算
+	if _board_dirty:
+		_board_dirty = false
+		_apply_support_effects()
 
 	# 前列が空なら中列を繰り上げ（毎フレーム確認）
 	for side in range(2):
@@ -85,6 +94,9 @@ func process_combat(delta: float, base_hp: Array) -> void:
 			var unit = board[side][row][front_col]
 			if unit == null:
 				continue
+			# 凍結・石化中は攻撃不能
+			if unit.frozen_turns > 0 or unit.stun_turns > 0:
+				continue
 			attack_timers[side][row][front_col] -= delta
 			if attack_timers[side][row][front_col] <= 0.0:
 				var eff_interval: float = max(0.3, unit.attack_interval - unit._interval_bonus)
@@ -99,6 +111,8 @@ func process_combat(delta: float, base_hp: Array) -> void:
 			var unit = board[side][row][back_col]
 			if unit == null or not unit._can_attack_from_back:
 				continue
+			if unit.frozen_turns > 0 or unit.stun_turns > 0:
+				continue
 			attack_timers[side][row][back_col] -= delta
 			if attack_timers[side][row][back_col] <= 0.0:
 				var eff_interval: float = max(0.3, unit.attack_interval - unit._interval_bonus)
@@ -112,6 +126,9 @@ func process_combat(delta: float, base_hp: Array) -> void:
 
 func _do_attack(side: int, row: int, col: int, attacker: Object, enemy_side: int, base_hp: Array, atk_override: int = -1) -> void:
 	var effective_atk: int = atk_override if atk_override >= 0 else attacker.attack + attacker._atk_bonus
+	# 恐怖中はATK半減
+	if attacker.fear_turns > 0:
+		effective_atk = max(1, effective_atk / 2)
 	var target_rows: Array = _get_target_rows(row, attacker.attack_range)
 	var hit_any: bool = false
 	for target_row in target_rows:
@@ -168,6 +185,7 @@ func _try_promote(side: int, row: int, col: int) -> void:
 	attack_timers[side][row][front_col] = mid_unit.attack_interval
 	board[side][row][1] = null
 	attack_timers[side][row][1] = 0.0
+	on_board_changed()
 
 func _get_frontmost_col(side: int, row: int) -> int:
 	# 前列→中列→後列の順で最初にユニットがいる列を返す（-1=なし）
@@ -288,6 +306,38 @@ func _get_support_targets(side: int, row: int, col: int, target_desc: String) ->
 			continue
 		result.append(u)
 	return result
+
+func on_board_changed() -> void:
+	_board_dirty = true
+
+func _on_status_tick() -> void:
+	if event_queue == null:
+		return
+	# HP回復（サポート効果の _regen を1秒ごとに適用）
+	_apply_regen()
+	# 状態異常処理
+	for s in range(2):
+		for r in range(3):
+			for c in range(3):
+				var u = board[s][r][c]
+				if u == null:
+					continue
+				# 毒ダメージ
+				if u.poison_stacks > 0:
+					event_queue.push(
+						EventQueue.PRIORITY_STATUS, null, u, "poison_damage",
+						float(u.poison_stacks),
+						{"enemy_side": s, "row": r, "col": c, "unit_name": u.unit_name}
+					)
+				# 状態異常カウントダウン
+				for status_pair in [["frozen_turns", "凍結"], ["fear_turns", "恐怖"], ["stun_turns", "石化"]]:
+					var val: int = u.get(status_pair[0])
+					if val > 0:
+						u.set(status_pair[0], val - 1)
+						if val - 1 == 0:
+							emit_signal("status_cleared", u.unit_name, status_pair[1])
+	# Timer ティックで flush（regen + 毒ダメージをまとめて処理）
+	event_queue.flush(self, base_hp_ref)
 
 func _apply_regen() -> void:
 	for s in range(2):
