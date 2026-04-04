@@ -14,6 +14,13 @@ var attack_range: String = "1行"
 var support_effect: String = ""   # サポート効果（常時発動/召喚時/条件達成時）
 var active_skill: String = ""     # アクティブスキル（命中時/撃破時/HP閾値時/時間経過/その他）
 
+# ランタイムサポートボーナス（毎フレームBoardManagerが再計算・cloneには引き継がない）
+var _atk_bonus: int = 0
+var _interval_bonus: float = 0.0
+var _regen: float = 0.0
+var _can_attack_from_back: bool = false
+var _back_atk_factor: float = 1.0
+
 func is_alive() -> bool:
 	return current_hp > 0
 

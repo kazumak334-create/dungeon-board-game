@@ -4,6 +4,7 @@ extends Node
 
 var board: Array = []
 var attack_timers: Array = []
+var _regen_timer: float = 1.0
 
 signal unit_placed(side: int, row: int, col: int, unit: Object)
 signal unit_died(side: int, row: int, col: int)
@@ -48,15 +49,24 @@ func remove_unit(side: int, row: int, col: int) -> void:
 	_try_promote(side, row, col)
 
 func process_combat(delta: float, base_hp: Array) -> void:
+	# サポート効果ボーナスを毎フレーム再計算
+	_apply_support_effects()
+
+	# HP回復ティック（1秒ごと）
+	_regen_timer -= delta
+	if _regen_timer <= 0.0:
+		_regen_timer += 1.0
+		_apply_regen()
+
 	# 前列が空なら中列を繰り上げ（毎フレーム確認）
 	for side in range(2):
 		var front_col: int = 2 if side == 0 else 0
 		for row in range(3):
 			_try_promote(side, row, front_col)
 
+	# 前列ユニットの攻撃
 	for side in range(2):
 		var enemy_side: int = 1 - side
-		# 自陣の前列はcol2、敵陣の前列はcol0
 		var front_col: int = 2 if side == 0 else 0
 		for row in range(3):
 			var unit = board[side][row][front_col]
@@ -64,10 +74,27 @@ func process_combat(delta: float, base_hp: Array) -> void:
 				continue
 			attack_timers[side][row][front_col] -= delta
 			if attack_timers[side][row][front_col] <= 0.0:
-				attack_timers[side][row][front_col] = unit.attack_interval
+				var eff_interval: float = max(0.3, unit.attack_interval - unit._interval_bonus)
+				attack_timers[side][row][front_col] = eff_interval
 				_do_attack(side, row, front_col, unit, enemy_side, base_hp)
 
-func _do_attack(side: int, row: int, col: int, attacker: Object, enemy_side: int, base_hp: Array) -> void:
+	# 後列ユニットの攻撃（後列攻撃サポート効果を持つ場合）
+	for side in range(2):
+		var enemy_side: int = 1 - side
+		var back_col: int = 0 if side == 0 else 2
+		for row in range(3):
+			var unit = board[side][row][back_col]
+			if unit == null or not unit._can_attack_from_back:
+				continue
+			attack_timers[side][row][back_col] -= delta
+			if attack_timers[side][row][back_col] <= 0.0:
+				var eff_interval: float = max(0.3, unit.attack_interval - unit._interval_bonus)
+				attack_timers[side][row][back_col] = eff_interval
+				var back_atk: int = max(1, int(unit.attack * unit._back_atk_factor) + unit._atk_bonus)
+				_do_attack(side, row, back_col, unit, enemy_side, base_hp, back_atk)
+
+func _do_attack(side: int, row: int, col: int, attacker: Object, enemy_side: int, base_hp: Array, atk_override: int = -1) -> void:
+	var effective_atk: int = atk_override if atk_override >= 0 else attacker.attack + attacker._atk_bonus
 	var target_rows: Array = _get_target_rows(row, attacker.attack_range)
 	var hit_any: bool = false
 	for target_row in target_rows:
@@ -76,12 +103,12 @@ func _do_attack(side: int, row: int, col: int, attacker: Object, enemy_side: int
 		if target_col != -1:
 			hit_any = true
 			var target = board[enemy_side][target_row][target_col]
-			target.take_damage(attacker.attack)
+			target.take_damage(effective_atk)
 			if not target.is_alive():
 				remove_unit(enemy_side, target_row, target_col)
 	if not hit_any:
-		base_hp[enemy_side] = max(0, base_hp[enemy_side] - attacker.attack)
-		emit_signal("base_damaged", enemy_side, attacker.attack)
+		base_hp[enemy_side] = max(0, base_hp[enemy_side] - effective_atk)
+		emit_signal("base_damaged", enemy_side, effective_atk)
 
 func _try_promote(side: int, row: int, col: int) -> void:
 	var front_col: int = 2 if side == 0 else 0
@@ -121,3 +148,104 @@ func _get_target_rows(attacker_row: int, attack_range: String) -> Array:
 			return [0, 1, 2]
 		_:
 			return [attacker_row]
+
+# ---- サポート効果システム ----
+
+func _apply_support_effects() -> void:
+	# ボーナスをリセット
+	for s in range(2):
+		for r in range(3):
+			for c in range(3):
+				var u = board[s][r][c]
+				if u != null:
+					u._atk_bonus = 0
+					u._interval_bonus = 0.0
+					u._regen = 0.0
+					u._can_attack_from_back = false
+					u._back_atk_factor = 1.0
+	# 各ユニットのサポート効果を適用
+	for s in range(2):
+		for r in range(3):
+			for c in range(3):
+				var u = board[s][r][c]
+				if u != null:
+					_process_unit_support(s, r, c, u)
+
+func _process_unit_support(side: int, row: int, col: int, unit: Object) -> void:
+	for entry in unit.support_effect.split(" / "):
+		if "常時発動" not in entry:
+			continue
+		# 後列攻撃は自ユニットへの自己効果
+		if "後列攻撃" in entry:
+			unit._can_attack_from_back = true
+			unit._back_atk_factor = 0.3 if "極低ATK" in entry else 1.0
+			continue
+		# 〈〉内のターゲット記述を取得
+		var bs: int = entry.find("〈")
+		var be: int = entry.find("〉")
+		if bs == -1 or be == -1:
+			continue
+		var parts: Array = entry.substr(bs + 1, be - bs - 1).split("・")
+		var target_desc: String = parts[1] if parts.size() > 1 else ""
+		var targets: Array = _get_support_targets(side, row, col, target_desc)
+		if "ATKバフ" in entry:
+			for t in targets:
+				t._atk_bonus += 2
+		elif "SPDバフ" in entry:
+			for t in targets:
+				t._interval_bonus += 0.3
+		elif "HPバフ" in entry:
+			for t in targets:
+				t._regen += 1.0
+
+func _get_support_targets(side: int, row: int, col: int, target_desc: String) -> Array:
+	var positions: Array = []
+	if "隣接" in target_desc:
+		for d in [[-1, 0], [1, 0], [0, -1], [0, 1]]:
+			var r2: int = row + d[0]
+			var c2: int = col + d[1]
+			if r2 >= 0 and r2 < 3 and c2 >= 0 and c2 < 3:
+				positions.append([r2, c2])
+	elif "同行前列" in target_desc:
+		var front: int = 2 if side == 0 else 0
+		positions.append([row, front])
+	elif "前列" in target_desc:
+		var front: int = 2 if side == 0 else 0
+		for r2 in range(3):
+			positions.append([r2, front])
+	elif "同行" in target_desc:
+		for c2 in range(3):
+			if c2 != col:
+				positions.append([row, c2])
+	elif "同列" in target_desc:
+		for r2 in range(3):
+			if r2 != row:
+				positions.append([r2, col])
+	elif "全体" in target_desc:
+		for r2 in range(3):
+			for c2 in range(3):
+				if not (r2 == row and c2 == col):
+					positions.append([r2, c2])
+	# 種族フィルタ
+	var race_filter: String = ""
+	for race in ["獣", "スライム", "アンデッド"]:
+		if race in target_desc:
+			race_filter = race
+			break
+	var result: Array = []
+	for pos in positions:
+		var u = board[side][pos[0]][pos[1]]
+		if u == null:
+			continue
+		if race_filter != "" and u.race != race_filter:
+			continue
+		result.append(u)
+	return result
+
+func _apply_regen() -> void:
+	for s in range(2):
+		for r in range(3):
+			for c in range(3):
+				var u = board[s][r][c]
+				if u != null and u._regen > 0.0:
+					u.current_hp = min(u.max_hp, u.current_hp + roundi(u._regen))
