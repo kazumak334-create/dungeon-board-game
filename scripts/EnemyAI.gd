@@ -6,9 +6,11 @@ var spawn_timer: float = 3.0
 const SPAWN_INTERVAL: float = 3.5
 
 var enemy_deck: Array = []
+var next_card: Object = null  # 次に召喚するカード（表示用に事前決定）
 
 func _ready() -> void:
 	_build_enemy_deck()
+	_pick_next_card()
 
 func _build_enemy_deck() -> void:
 	var definitions: Array = [
@@ -33,11 +35,19 @@ func _build_enemy_deck() -> void:
 		enemy_deck.append(u)
 	enemy_deck.shuffle()
 
+func _pick_next_card() -> void:
+	if not enemy_deck.is_empty():
+		next_card = enemy_deck[randi() % enemy_deck.size()]
+	else:
+		next_card = null
+
+func get_next_card() -> Object:
+	return next_card
+
 func process_ai(delta: float, board: Node) -> void:
 	spawn_timer -= delta
 	if spawn_timer <= 0.0:
 		spawn_timer = SPAWN_INTERVAL
-		if not enemy_deck.is_empty():
-			var idx: int = randi() % enemy_deck.size()
-			var unit = enemy_deck[idx]
-			board.place_unit(1, unit)
+		if next_card != null:
+			board.place_unit(1, next_card)
+		_pick_next_card()  # 次の召喚カードを事前決定

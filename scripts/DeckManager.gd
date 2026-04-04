@@ -77,10 +77,7 @@ func process_deck(delta: float, board: Node) -> void:
 		return
 	var top = deck[0]
 	if mana < top.cost:
-		# マナ不足：消費せずに捨て札（末尾）へ送る
-		deck.remove_at(0)
-		deck.append(top)
-		return
+		return  # マナが足りるまで先頭で待機
 	mana -= top.cost
 	deck.remove_at(0)
 	board.place_unit(0, top)

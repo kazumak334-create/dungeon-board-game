@@ -44,6 +44,7 @@ var next_card_name_label: Label
 var next_card_detail_label: Label
 var next_card_cost_label: Label
 var next_card_timer_label: Label
+var enemy_next_label: Label
 
 var player_base_label: Label
 var enemy_base_label:  Label
@@ -297,6 +298,13 @@ func _build_next_card_panel() -> void:
 	next_card_timer_label.modulate = Color(0.55, 0.55, 0.7)
 	add_child(next_card_timer_label)
 
+	# 次の敵カード表示（パネル右側）
+	enemy_next_label = Label.new()
+	enemy_next_label.position = Vector2(panel_x + panel_w + 8, panel_y + 20)
+	enemy_next_label.add_theme_font_size_override("font_size", 13)
+	enemy_next_label.modulate = Color(1.0, 0.5, 0.5)
+	add_child(enemy_next_label)
+
 # ---- セルのX座標計算 ----
 # 自陣: col0=後列(最左), col1=中列, col2=前列(中央寄り右)
 # 敵陣: col0=前列(中央寄り左), col1=中列, col2=後列(最右)
@@ -408,6 +416,13 @@ func _update_next_card() -> void:
 	var remain: float = deck_manager._check_timer
 	var interval: float = deck_manager.check_interval
 	next_card_timer_label.text = "発動チェック: %.1fs 後（間隔 %.1fs）" % [remain, interval]
+
+	# 次の敵カード
+	var enemy_next = enemy_ai.get_next_card()
+	if enemy_next != null:
+		enemy_next_label.text = "次の敵：%s\n(%.1fs後)" % [enemy_next.unit_name, enemy_ai.spawn_timer]
+	else:
+		enemy_next_label.text = ""
 
 # ---- シグナルハンドラ ----
 func _on_unit_died(side: int, row: int, col: int) -> void:

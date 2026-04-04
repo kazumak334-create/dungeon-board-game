@@ -2,6 +2,16 @@
 
 ## [Unreleased]
 
+### Changed
+- **マナ不足時のカード挙動をスタック待機に変更** (`DeckManager.gd`)
+  - 変更前：マナ不足→マナ消費なしで捨て札（デッキ末尾）へ送る
+  - 変更後：マナが足りるまで先頭のカードで待機し、足りたら即発動
+
+### Added
+- **敵の次召喚カードをUI上に表示** (`EnemyAI.gd`, `Main.gd`)
+  - EnemyAI にスポーン時点で次のカードを事前決定する `_pick_next_card()` と `get_next_card()` を追加
+  - 次の敵カード名とスポーンまでの残り時間を「次の敵：〇〇 (X.Xs後)」形式で次カードパネル右横に表示
+
 ### Added
 - **UnitData に `race` / `attack_range` フィールドを追加** (`UnitData.gd`)
   - `race: String`（"スライム" / "アンデッド" / "獣"）
