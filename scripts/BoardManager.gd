@@ -12,6 +12,7 @@ var _status_timer: Timer = null
 signal unit_placed(side: int, row: int, col: int, unit: Object)
 signal unit_died(side: int, row: int, col: int)
 signal unit_revived(side: int, row: int, col: int)
+signal unit_damaged(side: int, row: int, col: int)
 signal base_damaged(side: int, amount: int)
 signal active_skill_used(side: int, row: int, col: int, skill_name: String)
 signal status_damage(unit_name: String, status: String, damage: int, stacks: int)
@@ -50,6 +51,11 @@ func place_unit(side: int, unit_data: Object) -> bool:
 			attack_timers[side][row][col] = placed.attack_interval
 			emit_signal("unit_placed", side, row, col, placed)
 			on_board_changed()
+			# 中列に配置されたとき前列が空なら promote_check を積む（遅延1フレーム）
+			if col == 1 and event_queue != null:
+				var front_col: int = 2 if side == 0 else 0
+				event_queue.push(EventQueue.PRIORITY_BOARD, null, null, "promote_check", 0.0,
+					{"side": side, "row": row, "col": front_col})
 			return true
 	print("[BoardManager] 配置失敗: side=%d col=%d は満杯" % [side, col])
 	return false
@@ -71,20 +77,18 @@ func remove_unit(side: int, row: int, col: int) -> void:
 	board[side][row][col] = null
 	attack_timers[side][row][col] = 0.0
 	emit_signal("unit_died", side, row, col)
-	_try_promote(side, row, col)
+	# 前列が空になったら promote_check を遅延キューに積む（イベント駆動・1フレームラグ）
+	var front_col_ref: int = 2 if side == 0 else 0
+	if col == front_col_ref and event_queue != null:
+		event_queue.push(EventQueue.PRIORITY_BOARD, null, null, "promote_check", 0.0,
+			{"side": side, "row": row, "col": col})
 	on_board_changed()
 
 func process_combat(delta: float, base_hp: Array) -> void:
-	# 盤面変化があったときのみサポート効果を再計算
+	# フォールバック：event_queue 未設定時のみサポート効果を再計算
 	if _board_dirty:
 		_board_dirty = false
 		_apply_support_effects()
-
-	# 前列が空なら中列を繰り上げ（毎フレーム確認）
-	for side in range(2):
-		var front_col: int = 2 if side == 0 else 0
-		for row in range(3):
-			_try_promote(side, row, front_col)
 
 	# 前列ユニットの攻撃
 	for side in range(2):
@@ -146,15 +150,9 @@ func _do_attack(side: int, row: int, col: int, attacker: Object, enemy_side: int
 					attacker, target, "damage", float(actual_damage),
 					{"enemy_side": enemy_side, "row": target_row, "col": target_col}
 				)
-				# 吸血（命中時）：回復イベントをキューに積む
-				var lifesteal_pct: float = _get_lifesteal_pct(attacker.active_skill)
-				if lifesteal_pct > 0.0:
-					var heal: int = max(1, int(actual_damage * lifesteal_pct))
-					event_queue.push(
-						EventQueue.PRIORITY_IMMEDIATE,
-						target, attacker, "heal", float(heal),
-						{"src_side": side, "src_row": row, "src_col": col, "skill_name": "吸血"}
-					)
+				# 命中時アクティブスキル（PRIORITY_ACTIVE）
+				_push_on_hit_effects(side, row, col, attacker, target,
+					enemy_side, target_row, target_col, actual_damage)
 	if not hit_any:
 		# 本体ダメージイベントをキューに積む
 		event_queue.push(
@@ -169,6 +167,40 @@ func _get_lifesteal_pct(active_skill: String) -> float:
 			if "30%" in entry: return 0.30
 			if "25%" in entry: return 0.25
 	return 0.0
+
+func _push_on_hit_effects(side: int, row: int, col: int, attacker: Object, target: Object,
+		enemy_side: int, target_row: int, target_col: int, damage: int) -> void:
+	for entry in attacker.active_skill.split(" / "):
+		if "命中時" not in entry:
+			continue
+		# 吸血（PRIORITY_ACTIVE：ダメージ確定後に回復）
+		if "吸血" in entry:
+			var pct: float = 0.0
+			if "30%" in entry: pct = 0.30
+			elif "25%" in entry: pct = 0.25
+			if pct > 0.0:
+				var heal: int = max(1, int(damage * pct))
+				event_queue.push(
+					EventQueue.PRIORITY_ACTIVE,
+					target, attacker, "heal", float(heal),
+					{"src_side": side, "src_row": row, "src_col": col, "skill_name": "吸血"}
+				)
+		# 恐怖付与（PRIORITY_ACTIVE）
+		elif "恐怖付与" in entry:
+			event_queue.push(
+				EventQueue.PRIORITY_ACTIVE,
+				attacker, target, "status_apply", 0.0,
+				{"status": "恐怖", "side": enemy_side, "row": target_row, "col": target_col,
+				 "src_side": side, "src_row": row, "src_col": col, "skill_name": "恐怖付与"}
+			)
+		# 毒付与（PRIORITY_ACTIVE）
+		elif "毒付与" in entry:
+			event_queue.push(
+				EventQueue.PRIORITY_ACTIVE,
+				attacker, target, "status_apply", 0.0,
+				{"status": "毒", "stacks": 1, "side": enemy_side, "row": target_row, "col": target_col,
+				 "src_side": side, "src_row": row, "src_col": col, "skill_name": "毒付与"}
+			)
 
 func _try_promote(side: int, row: int, col: int) -> void:
 	var front_col: int = 2 if side == 0 else 0
@@ -308,7 +340,11 @@ func _get_support_targets(side: int, row: int, col: int, target_desc: String) ->
 	return result
 
 func on_board_changed() -> void:
-	_board_dirty = true
+	if event_queue != null:
+		# PRIORITY_SUPPORT：盤面変化後にサポート効果を再計算
+		event_queue.push(EventQueue.PRIORITY_SUPPORT, null, null, "support_apply", 0.0)
+	else:
+		_board_dirty = true  # フォールバック（event_queue 未設定時）
 
 func _on_status_tick() -> void:
 	if event_queue == null:
@@ -335,7 +371,11 @@ func _on_status_tick() -> void:
 					if val > 0:
 						u.set(status_pair[0], val - 1)
 						if val - 1 == 0:
-							emit_signal("status_cleared", u.unit_name, status_pair[1])
+							# status_clear イベントを PRIORITY_STATUS でキューに積む
+							event_queue.push(
+								EventQueue.PRIORITY_STATUS, null, u, "status_clear", 0.0,
+								{"unit_name": u.unit_name, "status": status_pair[1]}
+							)
 	# Timer ティックで flush（regen + 毒ダメージをまとめて処理）
 	event_queue.flush(self, base_hp_ref)
 
@@ -347,5 +387,6 @@ func _apply_regen() -> void:
 				if u != null and u._regen > 0.0:
 					event_queue.push(
 						EventQueue.PRIORITY_IMMEDIATE,
-						null, u, "heal", float(roundi(u._regen))
+						null, u, "heal", float(roundi(u._regen)),
+						{"src_side": s, "src_row": r, "src_col": c}
 					)

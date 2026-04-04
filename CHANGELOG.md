@@ -2,6 +2,29 @@
 
 ## [Unreleased]
 
+### Added / Changed — チェーン処理システム実装
+
+#### 実装1：状態異常・サポート・アクティブをEventQueue経由に変更
+- **状態異常付与 (PRIORITY_STATUS)**: `status_apply` イベントタイプを追加。恐怖・毒・凍結・石化の付与をEventQueue経由に統一。`マッドスライム`/`バンシー`の 恐怖付与（命中時）が実際に動作するようになった
+- **状態異常解除 (PRIORITY_STATUS)**: `_on_status_tick` 内の `status_cleared` 直接 emit を廃止。`status_clear` イベントをキューに積む方式に変更
+- **サポート効果 (PRIORITY_SUPPORT)**: `on_board_changed()` が `_board_dirty` フラグではなく `support_apply` イベントをキューに push するよう変更。`_apply_support_effects()` はFlush内で優先度順に呼ばれる
+- **アクティブスキル (PRIORITY_ACTIVE)**: 吸血ヒールの優先度を PRIORITY_IMMEDIATE→PRIORITY_ACTIVE に変更。命中時スキルを `_push_on_hit_effects()` に集約（吸血・恐怖付与・毒付与）
+- `_apply_regen` のhealイベントに位置情報 (src_side/src_row/src_col) を追加
+
+#### 実装2：盤面条件チェックをイベント駆動型に変更
+- **毎フレームの `_try_promote` スキャンを廃止**: `process_combat` から繰り上げループを削除
+- **イベント駆動型promote_check**: 前列ユニット死亡時・中列ユニット配置時に `PRIORITY_BOARD` の `promote_check` イベントをキューに積む
+- **1フレームタイムラグ**: 遅延キュー (`_deferred_pending`) 経由で次フラッシュ時に `_try_promote` を実行
+- **チェーン処理 (multi-pass flush)**: `EventQueue.flush()` を while ループ化（最大20パス）。死亡後処理をループ内で実行し、`remove_unit` が push したイベントを次パスで処理可能に
+
+#### 実装3：デバッグUIの更新を軽量化
+- `_cell_dirty[side][row][col]` フラグを追加。変化のあったセルのみ `_render_cell()` を呼ぶ
+- `_update_cells()` は dirty フラグまたはフラッシュタイマーが有効なセルのみ更新
+- フラッシュ終了時に dirty フラグをセット（通常色への戻し描画を保証）
+- `unit_damaged` シグナルを BoardManager に追加。EventQueue が damage/heal/poison_damage 処理時に emit
+- `unit_placed` シグナル接続を追加。配置・死亡時に `_mark_all_cells_dirty()` を呼び全セルを再描画
+- `_render_cell()` に状態異常（恐怖・凍結・石化・毒）のスタック数表示を追加
+
 ### Added
 - **マルチエージェント体制を構築**
   - `.claude/agents/checker.md` を新規作成。実装完了後に呼び出す CheckAgent を定義

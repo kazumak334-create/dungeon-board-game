@@ -61,6 +61,7 @@ var log_lines: Array  = []
 
 var skill_flash_timers: Array = []  # [side][row][col] -> float
 var skill_flash_names:  Array = []  # [side][row][col] -> String
+var _cell_dirty:        Array = []  # [side][row][col] -> bool（UI更新フラグ）
 var _support_log_timer: float = 5.0
 
 # ---- 初期化 ----
@@ -74,8 +75,10 @@ func _ready() -> void:
 	add_child(board_manager)
 	board_manager.event_queue = event_queue
 	board_manager.base_hp_ref = base_hp
+	board_manager.unit_placed.connect(_on_unit_placed)
 	board_manager.unit_died.connect(_on_unit_died)
 	board_manager.unit_revived.connect(_on_unit_revived)
+	board_manager.unit_damaged.connect(_on_unit_damaged)
 	board_manager.base_damaged.connect(_on_base_damaged)
 	board_manager.active_skill_used.connect(_on_active_skill_used)
 	board_manager.status_damage.connect(_on_status_damage)
@@ -98,6 +101,11 @@ func _ready() -> void:
 	skill_flash_names = [
 		[["", "", ""], ["", "", ""], ["", "", ""]],
 		[["", "", ""], ["", "", ""], ["", "", ""]]
+	]
+	# 全セル初回描画
+	_cell_dirty = [
+		[[true, true, true], [true, true, true], [true, true, true]],
+		[[true, true, true], [true, true, true], [true, true, true]]
 	]
 	_add_log("=== Dungeon Board Game 起動 ===")
 
@@ -385,6 +393,8 @@ func _process(delta: float) -> void:
 			for c in range(3):
 				if skill_flash_timers[s][r][c] > 0.0:
 					skill_flash_timers[s][r][c] = max(0.0, skill_flash_timers[s][r][c] - delta)
+					if skill_flash_timers[s][r][c] == 0.0:
+						_cell_dirty[s][r][c] = true  # フラッシュ終了→通常色に戻す
 
 	if game_over:
 		return
@@ -430,52 +440,64 @@ func _update_cells() -> void:
 	for side in range(2):
 		for r in range(3):
 			for c in range(3):
-				var unit   = board_manager.get_unit(side, r, c)
-				var rect: ColorRect = cell_rects[side][r][c]
-				var lbl:  Label     = cell_labels[side][r][c]
-				if unit != null:
-					var hp_ratio: float = float(unit.current_hp) / float(unit.max_hp)
-					# スキル発動フラッシュ or 通常色
-					if skill_flash_timers[side][r][c] > 0.0:
-						var f: float = skill_flash_timers[side][r][c]
-						rect.color = Color(0.9, 0.75 * f + 0.1, 0.0)
-					elif side == 0:
-						rect.color = Color(0.08, 0.22 * hp_ratio + 0.04, 0.45 * hp_ratio + 0.08)
-					else:
-						rect.color = Color(0.45 * hp_ratio + 0.08, 0.06, 0.06)
-					# 列マーカー
-					var col_mark: String
-					if side == 0:
-						col_mark = "【前】" if c == 2 else ("【中】" if c == 1 else "【後】")
-					else:
-						col_mark = "【前】" if c == 0 else ("【中】" if c == 1 else "【後】")
-					# HPバー（8ブロック）
-					var bar_filled: int = int(hp_ratio * 8)
-					var hp_bar: String = "█".repeat(bar_filled) + "░".repeat(8 - bar_filled)
-					# アクティブバフ略称
-					var buffs: Array = []
-					if unit._atk_bonus > 0:        buffs.append("ATK+%d" % unit._atk_bonus)
-					if unit._interval_bonus > 0.0:  buffs.append("SPD+")
-					if unit._regen > 0.0:           buffs.append("HP回")
-					if unit._damage_reduction > 0:  buffs.append("障壁")
-					if unit._can_attack_from_back:  buffs.append("後列↑")
-					var buff_line: String = (" ".join(buffs)) if not buffs.is_empty() else ""
-					# スキルフラッシュ
-					var flash_line: String = ""
-					if skill_flash_timers[side][r][c] > 0.0:
-						flash_line = "★" + skill_flash_names[side][r][c] + "!"
-					# 組み立て
-					var lines: Array = [
-						"%s%s" % [col_mark, unit.unit_name],
-						"HP %d/%d ATK %d" % [unit.current_hp, unit.max_hp, unit.attack],
-						hp_bar,
-					]
-					if buff_line != "": lines.append(buff_line)
-					if flash_line != "": lines.append(flash_line)
-					lbl.text = "\n".join(lines)
-				else:
-					rect.color = Color(0.11, 0.11, 0.17)
-					lbl.text   = ""
+				var has_flash: bool = skill_flash_timers[side][r][c] > 0.0
+				if not _cell_dirty[side][r][c] and not has_flash:
+					continue  # 変化なし・フラッシュなし → スキップ
+				_render_cell(side, r, c)
+				if not has_flash:
+					_cell_dirty[side][r][c] = false
+
+func _render_cell(side: int, r: int, c: int) -> void:
+	var unit   = board_manager.get_unit(side, r, c)
+	var rect: ColorRect = cell_rects[side][r][c]
+	var lbl:  Label     = cell_labels[side][r][c]
+	if unit != null:
+		var hp_ratio: float = float(unit.current_hp) / float(unit.max_hp)
+		# スキル発動フラッシュ or 通常色
+		if skill_flash_timers[side][r][c] > 0.0:
+			var f: float = skill_flash_timers[side][r][c]
+			rect.color = Color(0.9, 0.75 * f + 0.1, 0.0)
+		elif side == 0:
+			rect.color = Color(0.08, 0.22 * hp_ratio + 0.04, 0.45 * hp_ratio + 0.08)
+		else:
+			rect.color = Color(0.45 * hp_ratio + 0.08, 0.06, 0.06)
+		# 列マーカー
+		var col_mark: String
+		if side == 0:
+			col_mark = "【前】" if c == 2 else ("【中】" if c == 1 else "【後】")
+		else:
+			col_mark = "【前】" if c == 0 else ("【中】" if c == 1 else "【後】")
+		# HPバー（8ブロック）
+		var bar_filled: int = int(hp_ratio * 8)
+		var hp_bar: String = "█".repeat(bar_filled) + "░".repeat(8 - bar_filled)
+		# アクティブバフ略称
+		var buffs: Array = []
+		if unit._atk_bonus > 0:        buffs.append("ATK+%d" % unit._atk_bonus)
+		if unit._interval_bonus > 0.0:  buffs.append("SPD+")
+		if unit._regen > 0.0:           buffs.append("HP回")
+		if unit._damage_reduction > 0:  buffs.append("障壁")
+		if unit._can_attack_from_back:  buffs.append("後列↑")
+		if unit.fear_turns > 0:         buffs.append("恐怖%d" % unit.fear_turns)
+		if unit.frozen_turns > 0:       buffs.append("凍結%d" % unit.frozen_turns)
+		if unit.stun_turns > 0:         buffs.append("石化%d" % unit.stun_turns)
+		if unit.poison_stacks > 0:      buffs.append("毒%d" % unit.poison_stacks)
+		var buff_line: String = (" ".join(buffs)) if not buffs.is_empty() else ""
+		# スキルフラッシュ
+		var flash_line: String = ""
+		if skill_flash_timers[side][r][c] > 0.0:
+			flash_line = "★" + skill_flash_names[side][r][c] + "!"
+		# 組み立て
+		var lines: Array = [
+			"%s%s" % [col_mark, unit.unit_name],
+			"HP %d/%d ATK %d" % [unit.current_hp, unit.max_hp, unit.attack],
+			hp_bar,
+		]
+		if buff_line != "": lines.append(buff_line)
+		if flash_line != "": lines.append(flash_line)
+		lbl.text = "\n".join(lines)
+	else:
+		rect.color = Color(0.11, 0.11, 0.17)
+		lbl.text   = ""
 
 func _update_base_hp() -> void:
 	player_base_label.text = "自陣 本体HP: %d / 30" % base_hp[0]
@@ -540,11 +562,19 @@ func _update_deck_counts() -> void:
 	]
 
 # ---- シグナルハンドラ ----
+func _on_unit_placed(side: int, row: int, col: int, _unit: Object) -> void:
+	_mark_all_cells_dirty()  # サポート効果が全体に波及する可能性
+
 func _on_unit_died(side: int, row: int, col: int) -> void:
 	var side_name: String = "自陣" if side == 0 else "敵陣"
 	var display_col: int = (2 - col) if side == 0 else col
 	var col_names: Array  = ["前列", "中列", "後列"]
 	_add_log("倒 %s %d行%s" % [side_name, row + 1, col_names[display_col]])
+	_mark_all_cells_dirty()
+
+func _on_unit_damaged(side: int, row: int, col: int) -> void:
+	if side >= 0 and row >= 0 and col >= 0:
+		_cell_dirty[side][row][col] = true
 
 func _on_unit_revived(side: int, row: int, col: int) -> void:
 	var unit = board_manager.get_unit(side, row, col)
@@ -552,6 +582,7 @@ func _on_unit_revived(side: int, row: int, col: int) -> void:
 	_add_log("[アクティブ] %s の 自己再起 発動（撃破時）HP5で復活" % name)
 	skill_flash_timers[side][row][col] = 1.0
 	skill_flash_names[side][row][col]  = "再起"
+	_cell_dirty[side][row][col] = true
 
 func _on_base_damaged(side: int, amount: int) -> void:
 	var side_name: String = "自陣" if side == 0 else "敵陣"
@@ -563,6 +594,7 @@ func _on_active_skill_used(side: int, row: int, col: int, skill_name: String) ->
 	_add_log("[アクティブ] %s の %s 発動（命中時）" % [name, skill_name])
 	skill_flash_timers[side][row][col] = 0.6
 	skill_flash_names[side][row][col]  = skill_name
+	_cell_dirty[side][row][col] = true
 
 func _log_support_effects() -> void:
 	for side in range(2):
@@ -587,6 +619,12 @@ func _log_support_effects() -> void:
 					if eff_name.is_empty(): continue
 					for t in targets:
 						_add_log("[サポート] %s → %s に %s" % [unit.unit_name, t.unit_name, eff_name])
+
+func _mark_all_cells_dirty() -> void:
+	for s in range(2):
+		for r in range(3):
+			for c in range(3):
+				_cell_dirty[s][r][c] = true
 
 func _on_status_damage(unit_name: String, status: String, damage: int, stacks: int) -> void:
 	_add_log("[状態異常] %s: %s -%d (スタック:%d)" % [unit_name, status, damage, stacks])
