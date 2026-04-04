@@ -2,20 +2,36 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-## エージェント運用ルール
+## エージェント体制
 
-### 実装後の必須フロー
-実装プロンプトを受け取って実装が完了したら、
-必ずcheckerエージェントに同じ実装プロンプトを渡して検証を実行すること。
+### Agent一覧
+| Agent | 役割 |
+|---|---|
+| ceo | 統括・振り分け |
+| planning | 企画・仕様設計 |
+| marketing | 市場調査・競合分析 |
+| implementer | 機能実装 |
+| ui | UI/UX実装（箱のみ） |
+| checker | コード検証・修正 |
+| pmo | 進捗管理 |
+| pr | X・note投稿生成 |
 
-### checkerエージェントへの渡し方
-実装完了後に以下を自動実行する：
-「checkerエージェントで上記の実装プロンプトを検証してください」
+全Agent：Sonnet統一
 
-### 例外
-- CLAUDE.mdの更新のみの場合はchecker不要
-- ドキュメントのみの変更はchecker不要
-- コードの変更を伴う全ての実装はchecker必須
+### 連携パターン
+- A（仕様決定）：CEO → planning ←→ marketing → CLAUDE.md更新 → implementer
+- B（実装）：CEO → implementer → checker → pmo → pr
+- C（発信）：pmo → pr → ユーザー確認 → 投稿
+- D（戦略）：marketing → planning → CEO → ユーザー報告
+
+### 運用ルール
+- 全指示はCEOを通す
+- コード変更を伴う実装は全てchecker必須
+- CLAUDE.md更新・ドキュメントのみの変更はchecker不要
+
+### 現在のフェーズ
+Phase 1・2.5合目
+次のマイルストーン：効果システム・チェーン処理完成（3合目）
 
 ## Running the Game
 

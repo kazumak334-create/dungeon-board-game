@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+### Changed — マルチエージェント体制の再構築
+- `~/.claude/CLAUDE.md` を新規作成（対話・出力ルール・トークン節約ルール）
+- `.claude/agents/` に8Agent定義ファイルを作成（ceo・planning・marketing・implementer・checker・ui・pmo・pr）
+- `CLAUDE.md` 冒頭のエージェント運用ルールをAgent一覧・連携パターン・フェーズ定義に全面刷新
+- 全AgentをSonnet統一・checker.mdを新フォーマットに更新
+
 ### Added / Changed — チェーン処理システム実装
 
 #### 実装1：状態異常・サポート・アクティブをEventQueue経由に変更
