@@ -50,6 +50,7 @@ var player_base_label: Label
 var enemy_base_label:  Label
 var log_label:         Label
 var game_over_label:   Label
+var restart_button:    Button
 
 var game_over: bool = false
 var log_lines: Array  = []
@@ -216,6 +217,15 @@ func _build_ui() -> void:
 	game_over_label.visible  = false
 	add_child(game_over_label)
 
+	restart_button = Button.new()
+	restart_button.text     = "もう一度"
+	restart_button.position = Vector2(540, 380)
+	restart_button.size     = Vector2(200, 56)
+	restart_button.add_theme_font_size_override("font_size", 26)
+	restart_button.visible  = false
+	restart_button.pressed.connect(_on_restart_pressed)
+	add_child(restart_button)
+
 func _build_mana_bar() -> void:
 	var bar_y: int = BOARD_TOP + 3 * CELL_H + 42
 	var bar_x: int = _cell_x(0, 0)
@@ -333,14 +343,19 @@ func _process(delta: float) -> void:
 func _check_game_over() -> void:
 	if base_hp[0] <= 0:
 		game_over = true
-		game_over_label.text    = "GAME OVER"
+		game_over_label.text     = "GAME OVER"
 		game_over_label.modulate = Color(1.0, 0.3, 0.3)
-		game_over_label.visible = true
+		game_over_label.visible  = true
+		restart_button.visible   = true
 	elif base_hp[1] <= 0:
 		game_over = true
-		game_over_label.text    = "YOU WIN!"
+		game_over_label.text     = "YOU WIN!"
 		game_over_label.modulate = Color(0.3, 1.0, 0.5)
-		game_over_label.visible = true
+		game_over_label.visible  = true
+		restart_button.visible   = true
+
+func _on_restart_pressed() -> void:
+	get_tree().reload_current_scene()
 
 # ---- UI更新 ----
 func _update_ui() -> void:
