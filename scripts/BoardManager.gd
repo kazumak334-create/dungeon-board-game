@@ -45,6 +45,7 @@ func remove_unit(side: int, row: int, col: int) -> void:
 	board[side][row][col] = null
 	attack_timers[side][row][col] = 0.0
 	emit_signal("unit_died", side, row, col)
+	_try_promote(side, row, col)
 
 func process_combat(delta: float, base_hp: Array) -> void:
 	for side in range(2):
@@ -71,9 +72,29 @@ func _do_attack(side: int, row: int, col: int, attacker: Object, enemy_side: int
 			target.take_damage(attacker.attack)
 			if not target.is_alive():
 				remove_unit(enemy_side, target_row, enemy_front_col)
+		else:
+			# 前列が空でも同行に1体でもユニットがいれば本体ダメージなし
+			for c in range(3):
+				if board[enemy_side][target_row][c] != null:
+					hit_any = true
+					break
 	if not hit_any:
 		base_hp[enemy_side] = max(0, base_hp[enemy_side] - attacker.attack)
 		emit_signal("base_damaged", enemy_side, attacker.attack)
+
+func _try_promote(side: int, row: int, col: int) -> void:
+	var front_col: int = 2 if side == 0 else 0
+	# 前列が空になった場合のみ中列（col=1）を繰り上げ
+	if col != front_col:
+		return
+	var mid_unit = board[side][row][1]
+	if mid_unit == null:
+		return
+	# 中列ユニットを前列に移動（HPそのまま・タイマーは新規設定）
+	board[side][row][front_col] = mid_unit
+	attack_timers[side][row][front_col] = mid_unit.attack_interval
+	board[side][row][1] = null
+	attack_timers[side][row][1] = 0.0
 
 func _get_target_rows(attacker_row: int, attack_range: String) -> Array:
 	match attack_range:
