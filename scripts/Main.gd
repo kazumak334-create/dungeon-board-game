@@ -451,7 +451,7 @@ func _cell_x(side: int, col: int) -> int:
 		return CENTER_X + GAP / 2 + col * CELL_W
 
 # ---- 入力処理（開発者モード用） ----
-func _unhandled_input(event: InputEvent) -> void:
+func _input(event: InputEvent) -> void:
 	if not dev_mode or dev_ui == null:
 		return
 	# ドラッグ中のマウスリリース → セル判定

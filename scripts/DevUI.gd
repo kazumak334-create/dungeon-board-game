@@ -72,6 +72,16 @@ func _build_all_cards() -> void:
 	for d in spell_defs:
 		_all_cards.append({"name": d["name"], "data": d, "type": "spell"})
 
+	# 異常状態カード
+	var status_defs: Array = [
+		{"name": "毒カード",   "cost": 0, "target": "single_ally", "effect": "味方ランダム1体に毒2付与"},
+		{"name": "凍結カード", "cost": 0, "target": "single_ally", "effect": "味方ランダム1体に凍結2付与"},
+		{"name": "火傷カード", "cost": 0, "target": "single_ally", "effect": "味方ランダム1体に火傷2付与"},
+		{"name": "麻痺カード", "cost": 0, "target": "single_ally", "effect": "味方ランダム1体に麻痺2付与"},
+	]
+	for d in status_defs:
+		_all_cards.append({"name": d["name"], "data": d, "type": "status_spell"})
+
 func _build_dev_panel() -> void:
 	var panel := ColorRect.new()
 	panel.position = Vector2(1020, 0)
@@ -163,6 +173,12 @@ func _build_dev_panel() -> void:
 		if card["data"]["target"] == "enemy_queue":
 			_add_card_button(i, "%s (%d)" % [card["name"], card["data"]["cost"]], Color(1.0, 0.8, 0.4))
 
+	_add_section_header("── 異常状態カード ──")
+	for i in range(_all_cards.size()):
+		var card = _all_cards[i]
+		if card["type"] == "status_spell":
+			_add_card_button(i, card["name"], Color(0.8, 0.3, 0.8))
+
 	# ドラッグ用ラベル（非表示で待機）
 	_drag_label = Label.new()
 	_drag_label.add_theme_font_size_override("font_size", 14)
@@ -208,14 +224,15 @@ func _on_card_drag_start(index: int) -> void:
 		selected_card.attack_range = d["range"]
 		selected_card.support_effect = d["support"]
 		selected_card.active_skill = d["active"]
-	elif card["type"] == "spell":
+	elif card["type"] in ["spell", "status_spell"]:
 		var d: Dictionary = card["data"]
 		selected_card.unit_name = d["name"]
-		selected_card.card_type = "spell"
+		selected_card.card_type = card["type"]
 		selected_card.spell_id = d["name"]
 		selected_card.cost = d["cost"]
 		selected_card.spell_target = d["target"]
 		selected_card.spell_effect = d["effect"]
+		selected_card.is_consumable = (card["type"] == "status_spell")
 
 	_dragging = true
 	_drag_label.text = selected_card.unit_name
@@ -243,7 +260,7 @@ func on_cell_dropped(side: int, row: int, col: int) -> void:
 		board_manager.on_board_changed()
 		var side_name = "自陣" if side == 0 else "敵陣"
 		main._add_log("[DEV] %s → %s %d行col%d" % [placed.unit_name, side_name, row, col])
-	elif selected_card.card_type == "spell":
+	elif selected_card.card_type in ["spell", "status_spell"]:
 		var spell = selected_card.clone()
 		var cast_side: int = side  # ドロップ先のサイドで発動
 		var executor = deck_manager.spell_executor
