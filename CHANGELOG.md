@@ -2,6 +2,13 @@
 
 ## [Unreleased]
 
+### Changed
+- **攻撃対象を「前列優先・貫通なし（案A）」に変更** (`BoardManager.gd`)
+  - `_do_attack`: 固定 `enemy_front_col` を廃止し `_get_frontmost_col()` で前列→中列→後列の順に最初のユニットを攻撃
+  - `_get_frontmost_col(side, row)` を追加（-1=行にユニットなし）
+  - `_try_promote`: 前列が既に埋まっている場合は何もしないガードを追加
+  - `process_combat`: 毎フレームの先頭で全行の繰り上がりチェックを実行（中列→前列の自動昇格により中列ユニットも攻撃に参加）
+
 ### Fixed
 - **本体ダメージ判定を全列チェックに修正** (`BoardManager.gd`)
   - 変更前：前列が空なら同行の中列・後列にユニットがいても本体ダメージが入っていた

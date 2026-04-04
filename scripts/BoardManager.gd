@@ -48,6 +48,12 @@ func remove_unit(side: int, row: int, col: int) -> void:
 	_try_promote(side, row, col)
 
 func process_combat(delta: float, base_hp: Array) -> void:
+	# 前列が空なら中列を繰り上げ（毎フレーム確認）
+	for side in range(2):
+		var front_col: int = 2 if side == 0 else 0
+		for row in range(3):
+			_try_promote(side, row, front_col)
+
 	for side in range(2):
 		var enemy_side: int = 1 - side
 		# 自陣の前列はcol2、敵陣の前列はcol0
@@ -62,22 +68,17 @@ func process_combat(delta: float, base_hp: Array) -> void:
 				_do_attack(side, row, front_col, unit, enemy_side, base_hp)
 
 func _do_attack(side: int, row: int, col: int, attacker: Object, enemy_side: int, base_hp: Array) -> void:
-	var enemy_front_col: int = 2 if enemy_side == 0 else 0
 	var target_rows: Array = _get_target_rows(row, attacker.attack_range)
 	var hit_any: bool = false
 	for target_row in target_rows:
-		var target = board[enemy_side][target_row][enemy_front_col]
-		if target != null:
+		# 前列→中列→後列の順で最初にいるユニットを攻撃（案A）
+		var target_col: int = _get_frontmost_col(enemy_side, target_row)
+		if target_col != -1:
 			hit_any = true
+			var target = board[enemy_side][target_row][target_col]
 			target.take_damage(attacker.attack)
 			if not target.is_alive():
-				remove_unit(enemy_side, target_row, enemy_front_col)
-		else:
-			# 前列が空でも同行に1体でもユニットがいれば本体ダメージなし
-			for c in range(3):
-				if board[enemy_side][target_row][c] != null:
-					hit_any = true
-					break
+				remove_unit(enemy_side, target_row, target_col)
 	if not hit_any:
 		base_hp[enemy_side] = max(0, base_hp[enemy_side] - attacker.attack)
 		emit_signal("base_damaged", enemy_side, attacker.attack)
@@ -87,6 +88,8 @@ func _try_promote(side: int, row: int, col: int) -> void:
 	# 前列が空になった場合のみ中列（col=1）を繰り上げ
 	if col != front_col:
 		return
+	if board[side][row][front_col] != null:
+		return  # 前列が既に埋まっている場合は何もしない
 	var mid_unit = board[side][row][1]
 	if mid_unit == null:
 		return
@@ -95,6 +98,14 @@ func _try_promote(side: int, row: int, col: int) -> void:
 	attack_timers[side][row][front_col] = mid_unit.attack_interval
 	board[side][row][1] = null
 	attack_timers[side][row][1] = 0.0
+
+func _get_frontmost_col(side: int, row: int) -> int:
+	# 前列→中列→後列の順で最初にユニットがいる列を返す（-1=なし）
+	var col_order: Array = [2, 1, 0] if side == 0 else [0, 1, 2]
+	for c in col_order:
+		if board[side][row][c] != null:
+			return c
+	return -1
 
 func _get_target_rows(attacker_row: int, attack_range: String) -> Array:
 	match attack_range:
