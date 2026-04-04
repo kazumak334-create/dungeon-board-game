@@ -50,7 +50,6 @@ func place_unit(side: int, unit_data: Object) -> bool:
 		col = 2 - col  # 自陣は前列=col2なのでインデックスを反転
 	var rows: Array = [0, 1, 2]
 	rows.shuffle()
-	# まず空きマスを探して通常配置を優先する
 	for row in rows:
 		if board[side][row][col] == null:
 			# 空きマス → 通常配置
@@ -66,15 +65,13 @@ func place_unit(side: int, unit_data: Object) -> bool:
 			_init_skill_timers(placed)
 			_push_summon_effects(side, row, col, placed)
 			return true
-	# 列が満杯の場合のみ盤面合成チェック
-	for row in rows:
-		var existing = board[side][row][col]
-		if existing == null:
-			continue
-		var result = _check_synthesis(existing.unit_name, unit_data)
-		if result != null:
-			_execute_synthesis(side, row, col, existing, result)
-			return true
+		else:
+			# マスが埋まっている → 盤面合成チェック
+			var existing = board[side][row][col]
+			var result = _check_synthesis(existing.unit_name, unit_data)
+			if result != null:
+				_execute_synthesis(side, row, col, existing, result)
+				return true
 	print("[BoardManager] 配置失敗: side=%d col=%d は満杯" % [side, col])
 	return false
 
