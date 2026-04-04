@@ -3,6 +3,11 @@
 ## [Unreleased]
 
 ### Added
+- **マルチエージェント体制を構築**
+  - `.claude/agents/checker.md` を新規作成。実装完了後に呼び出す CheckAgent を定義
+  - `CLAUDE.md` 冒頭に「エージェント運用ルール」セクションを追加。コード変更を伴う全実装でchecker必須のフローを明記
+
+### Added
 - **EventQueue コメント修正**: effect_type 一覧に `"poison_damage"` を追記（実装済みだが未記載だった）
 
 - **EventQueue 最適化・状態異常システム完成** (`BoardManager.gd`, `EventQueue.gd`, `Main.gd`)

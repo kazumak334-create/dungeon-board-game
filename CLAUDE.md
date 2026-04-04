@@ -2,6 +2,21 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## エージェント運用ルール
+
+### 実装後の必須フロー
+実装プロンプトを受け取って実装が完了したら、
+必ずcheckerエージェントに同じ実装プロンプトを渡して検証を実行すること。
+
+### checkerエージェントへの渡し方
+実装完了後に以下を自動実行する：
+「checkerエージェントで上記の実装プロンプトを検証してください」
+
+### 例外
+- CLAUDE.mdの更新のみの場合はchecker不要
+- ドキュメントのみの変更はchecker不要
+- コードの変更を伴う全ての実装はchecker必須
+
 ## Running the Game
 
 ```bash
