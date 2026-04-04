@@ -40,16 +40,40 @@ func _build_all_cards() -> void:
 	for d in unit_defs:
 		_all_cards.append({"name": d["name"], "data": d, "type": "unit"})
 
-	# 呪文カード
+	# 呪文カード（SpellExecutorの全呪文）
 	var spell_defs: Array = [
-		{"name": "召喚加速",   "cost": 1, "target": "self",        "effect": "マナ即時+3回復"},
-		{"name": "生命の雫",   "cost": 2, "target": "single_ally", "effect": "対象ユニットHP15%回復"},
-		{"name": "盤面強化",   "cost": 3, "target": "all_allies",  "effect": "全味方HP+10・ATK+2"},
-		{"name": "毒霧",       "cost": 2, "target": "column",      "effect": "敵ランダム列に毒5＋自デッキに毒カード"},
-		{"name": "寒波",       "cost": 2, "target": "front_all",   "effect": "前列全体に凍結＋両デッキに凍結カード"},
-		{"name": "山火事",     "cost": 2, "target": "front_all",   "effect": "前列全体に火傷＋両デッキに火傷カード"},
-		{"name": "落雷",       "cost": 3, "target": "front_all",   "effect": "前列全体に10dmg＋麻痺＋両デッキに麻痺カード"},
-		{"name": "烈風斬",     "cost": 3, "target": "all_enemies", "effect": "敵全体に中ダメージ"},
+		# 自己強化系
+		{"name": "召喚加速",     "cost": 1, "target": "self",        "effect": "マナ即時+3回復"},
+		{"name": "血の契約",     "cost": 2, "target": "single_ally", "effect": "対象1体に吸血付与"},
+		{"name": "戦場の鼓動",   "cost": 2, "target": "all_allies",  "effect": "全味方SPD+50%（5s）"},
+		{"name": "急召",         "cost": 1, "target": "self",        "effect": "低コストユニット1体即時召喚"},
+		{"name": "連鎖の触媒",   "cost": 2, "target": "self",        "effect": "次の3枚コスト-1"},
+		{"name": "強化の儀式",   "cost": 3, "target": "single_ally", "effect": "対象1体ATK+5・HP+10"},
+		{"name": "盤面強化",     "cost": 3, "target": "all_allies",  "effect": "全味方HP+10・ATK+2"},
+		{"name": "圧縮の書",     "cost": 2, "target": "self",        "effect": "山札から異常状態カード除去"},
+		{"name": "再召喚",       "cost": -1,"target": "self",        "effect": "捨て札からコストXのユニット召喚"},
+		{"name": "先読みの書",   "cost": 3, "target": "self",        "effect": "次の2枚を即時発動"},
+		{"name": "召喚の呼び声", "cost": 2, "target": "self",        "effect": "最低コストユニットをデッキ先頭に"},
+		{"name": "怒涛の展開",   "cost": 4, "target": "self",        "effect": "次の3枚を即時発動"},
+		{"name": "生命の雫",     "cost": 2, "target": "single_ally", "effect": "対象1体HP15%回復"},
+		# 相手弱体・環境操作系
+		{"name": "泥の鎧",       "cost": 1, "target": "single_ally", "effect": "対象1体に鎧付与"},
+		{"name": "結晶化",       "cost": 3, "target": "single_ally", "effect": "対象1体に呪文無効（1回）"},
+		{"name": "毒霧",         "cost": 2, "target": "column",      "effect": "敵ランダム列に毒5＋自デッキに毒カード"},
+		{"name": "寒波",         "cost": 2, "target": "front_all",   "effect": "前列全体に凍結＋両デッキに凍結カード"},
+		{"name": "山火事",       "cost": 2, "target": "front_all",   "effect": "前列全体に火傷＋両デッキに火傷カード"},
+		{"name": "落雷",         "cost": 3, "target": "front_all",   "effect": "前列全体に10dmg＋麻痺＋両デッキに麻痺カード"},
+		{"name": "烈風斬",       "cost": 3, "target": "all_enemies", "effect": "敵全体に中ダメージ"},
+		{"name": "弱体の呪詛",   "cost": 3, "target": "all_enemies", "effect": "敵全体ATK-30%（20s）"},
+		{"name": "盤面凍結",     "cost": 4, "target": "all_enemies", "effect": "敵全体を8s間凍結"},
+		# 位置変化系
+		{"name": "混沌の手",     "cost": 2, "target": "single_enemy","effect": "敵1体をランダム行に移動"},
+		{"name": "反転の波",     "cost": 3, "target": "all_enemies", "effect": "敵前列と後列を入れ替え"},
+		{"name": "押し込み",     "cost": 2, "target": "single_enemy","effect": "敵前列1体を後列に移動"},
+		# キュー干渉系
+		{"name": "召喚妨害",     "cost": 1, "target": "enemy_queue", "effect": "敵の次の召喚を3s遅延"},
+		{"name": "配置崩し",     "cost": 2, "target": "enemy_queue", "effect": "敵の次の召喚列をランダム化"},
+		{"name": "魔力断絶",     "cost": 3, "target": "enemy_queue", "effect": "敵マナ回復-30%（10s）"},
 	]
 	for d in spell_defs:
 		_all_cards.append({"name": d["name"], "data": d, "type": "spell"})
@@ -93,28 +117,40 @@ func _build_dev_panel() -> void:
 	side_btn.pressed.connect(_toggle_side)
 	main.add_child(side_btn)
 
-	# ツールボタン
+	# ツールボタン（2列配置）
 	var btn_y: int = 72
-	var tools: Array = [
+	var tools_left: Array = [
 		["マナ+10", _on_add_mana],
 		["全味方回復", _on_heal_all],
+		["呪文発動", _on_cast_spell],
+	]
+	var tools_right: Array = [
 		["敵全滅", _on_kill_enemies],
 		["選択解除", _on_deselect],
+		["モード選択に戻る", _on_back_to_menu],
 	]
-	for t in tools:
-		var btn := Button.new()
-		btn.text = t[0]
-		btn.position = Vector2(1030, btn_y)
-		btn.size = Vector2(120, 26)
-		btn.add_theme_font_size_override("font_size", 11)
-		btn.pressed.connect(t[1])
-		main.add_child(btn)
-		btn_y += 30
+	for i in range(tools_left.size()):
+		var btn_l := Button.new()
+		btn_l.text = tools_left[i][0]
+		btn_l.position = Vector2(1025, btn_y + i * 28)
+		btn_l.size = Vector2(120, 24)
+		btn_l.add_theme_font_size_override("font_size", 10)
+		btn_l.pressed.connect(tools_left[i][1])
+		main.add_child(btn_l)
+	for i in range(tools_right.size()):
+		var btn_r := Button.new()
+		btn_r.text = tools_right[i][0]
+		btn_r.position = Vector2(1150, btn_y + i * 28)
+		btn_r.size = Vector2(120, 24)
+		btn_r.add_theme_font_size_override("font_size", 10)
+		btn_r.pressed.connect(tools_right[i][1])
+		main.add_child(btn_r)
+	btn_y += tools_left.size() * 28 + 8
 
 	# カードリスト（スクロール）
 	var scroll := ScrollContainer.new()
-	scroll.position = Vector2(1020, btn_y + 10)
-	scroll.size = Vector2(260, 720 - btn_y - 20)
+	scroll.position = Vector2(1020, btn_y)
+	scroll.size = Vector2(260, 720 - btn_y - 10)
 	main.add_child(scroll)
 
 	card_list_container = VBoxContainer.new()
@@ -130,12 +166,32 @@ func _build_dev_panel() -> void:
 		_add_card_button(i, card["name"], Color(0.7, 0.85, 1.0))
 
 	# 呪文ヘッダー
-	_add_section_header("── 呪文 ──")
+	_add_section_header("── 呪文（自己強化） ──")
 	for i in range(_all_cards.size()):
 		var card = _all_cards[i]
 		if card["type"] != "spell":
 			continue
-		_add_card_button(i, card["name"], Color(0.8, 0.6, 1.0))
+		var d = card["data"]
+		if d["target"] == "self" or d["target"] == "single_ally" or d["target"] == "all_allies":
+			_add_card_button(i, "%s (%d)" % [card["name"], d["cost"]], Color(0.5, 0.8, 0.5))
+
+	_add_section_header("── 呪文（弱体・環境） ──")
+	for i in range(_all_cards.size()):
+		var card = _all_cards[i]
+		if card["type"] != "spell":
+			continue
+		var d = card["data"]
+		if d["target"] in ["column", "front_all", "all_enemies", "single_enemy"]:
+			_add_card_button(i, "%s (%d)" % [card["name"], d["cost"]], Color(1.0, 0.5, 0.5))
+
+	_add_section_header("── 呪文（キュー干渉） ──")
+	for i in range(_all_cards.size()):
+		var card = _all_cards[i]
+		if card["type"] != "spell":
+			continue
+		var d = card["data"]
+		if d["target"] == "enemy_queue":
+			_add_card_button(i, "%s (%d)" % [card["name"], d["cost"]], Color(1.0, 0.8, 0.4))
 
 func _add_section_header(text: String) -> void:
 	var lbl := Label.new()
@@ -148,8 +204,8 @@ func _add_card_button(index: int, card_name: String, color: Color) -> void:
 	var btn := Button.new()
 	btn.text = card_name
 	btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	btn.custom_minimum_size = Vector2(240, 28)
-	btn.add_theme_font_size_override("font_size", 12)
+	btn.custom_minimum_size = Vector2(240, 26)
+	btn.add_theme_font_size_override("font_size", 11)
 	btn.modulate = color
 	btn.pressed.connect(_on_card_selected.bind(index))
 	card_list_container.add_child(btn)
@@ -201,12 +257,18 @@ func on_cell_clicked(side: int, row: int, col: int) -> void:
 		board_manager.on_board_changed()
 		main._add_log("[DEV] %s を %s %d行col%d に配置" % [placed.unit_name, "自陣" if target_side == 0 else "敵陣", row, col])
 	elif selected_card.card_type == "spell":
-		# 呪文発動
-		var spell = selected_card.clone()
-		var executor = deck_manager.spell_executor
-		if executor != null:
-			executor.execute(spell, selected_side, board_manager, deck_manager, enemy_ai)
-			main._add_log("[DEV] 呪文 %s を発動" % spell.spell_id)
+		_cast_selected_spell()
+	main._mark_all_cells_dirty()
+
+func _cast_selected_spell() -> void:
+	if selected_card == null or selected_card.card_type != "spell":
+		main._add_log("[DEV] 呪文が選択されていません")
+		return
+	var spell = selected_card.clone()
+	var executor = deck_manager.spell_executor
+	if executor != null:
+		executor.execute(spell, selected_side, board_manager, deck_manager, enemy_ai)
+		main._add_log("[DEV] 呪文 %s を発動（%s）" % [spell.spell_id, "自陣" if selected_side == 0 else "敵陣"])
 	main._mark_all_cells_dirty()
 
 func _toggle_side() -> void:
@@ -234,6 +296,12 @@ func _on_kill_enemies() -> void:
 				board_manager.remove_unit(1, r, c)
 	main._add_log("[DEV] 敵全滅")
 
+func _on_cast_spell() -> void:
+	_cast_selected_spell()
+
 func _on_deselect() -> void:
 	selected_card = null
 	selected_label.text = "選択: なし"
+
+func _on_back_to_menu() -> void:
+	main.get_tree().reload_current_scene()
