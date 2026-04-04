@@ -11,6 +11,8 @@ var cost: int = 2
 var assigned_col: int = 0
 var race: String = ""
 var attack_range: String = "1行"
+var support_effect: String = ""   # サポート効果（常時発動/召喚時/条件達成時）
+var active_skill: String = ""     # アクティブスキル（命中時/撃破時/HP閾値時/時間経過/その他）
 
 func is_alive() -> bool:
 	return current_hp > 0
@@ -30,4 +32,6 @@ func clone() -> RefCounted:
 	d.assigned_col = assigned_col
 	d.race = race
 	d.attack_range = attack_range
+	d.support_effect = support_effect
+	d.active_skill = active_skill
 	return d

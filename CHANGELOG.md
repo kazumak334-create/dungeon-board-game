@@ -3,6 +3,32 @@
 ## [Unreleased]
 
 ### Changed
+- **効果構造を2層化** (`UnitData.gd`, `DeckManager.gd`, `EnemyAI.gd`, `docs/card_database.md`)
+  - 旧構造：サポート効果・攻撃時効果・固有スキルの3層
+  - 新構造：サポート効果（常時発動/召喚時/条件達成時）＋アクティブスキル（命中時/撃破時/HP閾値時/時間経過/召喚時/その他）の2層
+  - 攻撃時効果 → アクティブスキル（命中時）に統合
+  - 固有スキル → アクティブスキルに【固有】プレフィックス付きで統合
+  - `UnitData` フィールド: `attack_effect` を廃止し `active_skill` に一本化（`support_effect` は据え置き）
+
+- **card_database.md を2層効果構造で全面書き直し**（`docs/card_database.md`）
+  - 全28ユニット（プレイヤー14枚・敵14枚）のサポート効果／アクティブスキルを〈発動タイプ・対象・詳細〉形式に統一
+  - 攻撃時効果欄を削除し、命中時発動としてアクティブスキル欄に移行
+  - 固有スキルをアクティブスキル内【固有】エントリとして統合
+
+- **プレイヤーデッキをcard_database.md準拠9枚構成に再構築** (`DeckManager.gd`)
+  - 旧構成：アメーバ/マッドスライム/ゼリーフィッシュ（スライム）・スケルトン/グール/バンシー（アンデッド）・ゴブリン/ウルフ/コカトリス（獣）
+  - 新構成：アメーバ・マッドスライム・ブラッドスライム（スライム）／スケルトン・グール・バンシー（アンデッド）／ゴブリン・ウルフ・タイガー（獣）
+  - 全カードに card_database.md 準拠の `support_effect` / `active_skill` データを追加
+
+- **敵デッキをcard_database.md準拠9枚構成に再構築** (`EnemyAI.gd`)
+  - 新構成：ゼリーフィッシュ・ミミック・アビスゼリー（スライム）／シャドウ・ヴリコラカス・ワイト（アンデッド）／コカトリス・ケットシー・マンティコア（獣）
+  - 全カードに card_database.md 準拠の `support_effect` / `active_skill` データを追加
+  - プレイヤーと異なるカードセットで差別化
+
+- **CLAUDE.md にユニット効果構造表を追加**（`CLAUDE.md`）
+  - 2層効果（support_effect / active_skill）の発動タイプ一覧と説明を追記
+
+### Changed
 - **攻撃対象を「前列優先・貫通なし（案A）」に変更** (`BoardManager.gd`)
   - `_do_attack`: 固定 `enemy_front_col` を廃止し `_get_frontmost_col()` で前列→中列→後列の順に最初のユニットを攻撃
   - `_get_frontmost_col(side, row)` を追加（-1=行にユニットなし）

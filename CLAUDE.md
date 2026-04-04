@@ -37,7 +37,8 @@ UnitData.gd      — RefCounted value object; clone() resets HP on placement
 - `board[side][row][col]` — row 0–2 (top/mid/bot), col 0–2
 - Player: col 2 = front (center side), col 0 = back
 - Enemy: col 0 = front (center side), col 2 = back
-- **Only col 0 units participate in combat** — `process_combat` always checks `board[side][row][0]`
+- **Front-col units attack**; when front is empty the next available col is targeted (`_get_frontmost_col`)
+- `_try_promote` moves mid-col (col 1) → front-col when front is empty (called every frame + on death)
 
 ### Key Signals (BoardManager)
 
@@ -45,16 +46,30 @@ UnitData.gd      — RefCounted value object; clone() resets HP on placement
 - `unit_died(side, row, col)` — after removal
 - `base_damaged(side, amount)` — when front row attacks with no target
 
-### Energy & Deck Loop (DeckManager)
+### Mana & Deck Loop (DeckManager)
 
-- Energy regenerates at 1.0/s up to max 10
-- Every `check_interval` seconds (default 1.0s), if `energy >= deck[0].cost`, the card is played and re-queued at the back
+- Mana regenerates at 1.0/s up to max 10
+- Every `check_interval` seconds (default 1.0s), if `mana >= deck[0].cost` the card is played and moved to `discard`
+- When `deck` is empty, `discard` is shuffled back into `deck` (infinite cycling)
 - `get_next_card()` peeks `deck[0]` without consuming
 
 ### Enemy AI (EnemyAI)
 
-- Spawns a random unit from its shuffled deck every 3.5s
-- No energy system — pure timer-based
+- Spawns from a 9-card shuffled deck every 3.5s (sequential draw, not random)
+- Played cards go to `enemy_discard`; when empty, discard is reshuffled into deck
+- `get_next_card()` returns the pre-selected top-of-deck card for UI display
+
+### Unit Effect Structure
+
+Each `UnitData` carries two effect layers (data only; logic is future work):
+
+| Layer | Field | Trigger types |
+|-------|-------|--------------|
+| サポート効果 | `support_effect: String` | 常時発動 / 召喚時 / 条件達成時 |
+| アクティブスキル | `active_skill: String` | 命中時 / 撃破時 / HP閾値時 / 時間経過 / その他 |
+
+- 旧「攻撃時効果」は **アクティブスキル（命中時）** に統合
+- 効果の実装は未着手。フィールドはデータ保持専用
 
 ## GDScript Conventions
 
