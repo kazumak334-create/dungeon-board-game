@@ -2,6 +2,17 @@
 
 ## [Unreleased]
 
+### CheckAgent: 確認完了・修正なし（2026-04-04）
+- 対象: 状態異常名称変更・凍結効果変更の実装検証
+- UnitData.gd: `burn_turns`/`paralysis_turns` フィールド名 ✅
+- BoardManager.gd: 凍結を攻撃スキップから速度ペナルティに変更（前列・後列両方） ✅
+- BoardManager.gd: 麻痺チェックに旧凍結スキップなし ✅
+- EventQueue.gd: status_apply で「火傷」「麻痺」ブランチ ✅
+- Main.gd: UI表示「火傷」「麻痺」「凍結」正常 ✅
+- DeckManager.gd / EnemyAI.gd: スキル文字列「火傷付与」正常 ✅
+- card_database.md: 「火傷付与」「麻痺付与」あり・旧名称なし ✅
+- 旧名称（恐怖/石化/fear_turns/stun_turns）スクリプト全体に残存なし ✅
+
 ### Changed — マルチエージェント体制の再構築
 - `~/.claude/CLAUDE.md` を新規作成（対話・出力ルール・トークン節約ルール）
 - `.claude/agents/` に8Agent定義ファイルを作成（ceo・planning・marketing・implementer・checker・ui・pmo・pr）
