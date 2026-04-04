@@ -92,6 +92,7 @@ func _ready() -> void:
 	board_manager.status_cleared.connect(_on_status_cleared)
 	board_manager.draw_cards_requested.connect(_on_draw_cards_requested)
 	board_manager.spell_cast.connect(_on_spell_cast)
+	board_manager.synthesis_done.connect(_on_synthesis_done)
 
 	deck_manager = Node.new()
 	deck_manager.set_script(DeckManagerScript)
@@ -108,6 +109,7 @@ func _ready() -> void:
 	enemy_ai.spell_executor = spell_executor
 	enemy_ai.deck_manager_ref = deck_manager
 
+	_build_synthesis_registry()
 	_build_ui()
 	_build_mode_select()
 	# スキルフラッシュタイマー初期化
@@ -126,7 +128,45 @@ func _ready() -> void:
 	]
 	_add_log("=== Dungeon Board Game 起動 ===")
 
-# ---- モード選択 ----
+# ---- 盤面合成レジストリ ----
+func _build_synthesis_registry() -> void:
+	var UnitDataScript = preload("res://scripts/UnitData.gd")
+	# {base: 盤面ユニット名, card: 発動カード名, result: 合成結果UnitData}
+	var recipes: Array = [
+		# スライム合成チェーン
+		{"base": "スライム",       "card": "スライム",       "result": {"name": "ラージスライム",   "hp": 25, "atk": 2, "interval": 3.8, "cost": 2, "col": 1}},
+		{"base": "ラージスライム", "card": "ラージスライム", "result": {"name": "ファットスライム", "hp": 50, "atk": 3, "interval": 6.0, "cost": 3, "col": 0}},
+		{"base": "ファットスライム","card": "ファットスライム","result": {"name": "キングスライム",   "hp":100, "atk": 5, "interval": 6.0, "cost":10, "col": 2}},
+		# スライム＋呪文合成
+		{"base": "スライム", "card": "泥の鎧",   "result": {"name": "マッドスライム",     "hp": 40, "atk": 2, "interval": 3.8, "cost": 3, "col": 1, "active": "鎧〈常時〉"}},
+		{"base": "スライム", "card": "火傷カード","result": {"name": "ヒートスライム",     "hp": 25, "atk": 2, "interval": 3.8, "cost": 3, "col": 0, "active": "火傷付与〈命中時〉"}},
+		{"base": "スライム", "card": "凍結カード","result": {"name": "フロストスライム",   "hp": 25, "atk": 2, "interval": 3.8, "cost": 3, "col": 0, "active": "凍結付与〈命中時〉"}},
+		{"base": "スライム", "card": "麻痺カード","result": {"name": "パラライズスライム", "hp": 25, "atk": 2, "interval": 3.0, "cost": 3, "col": 0, "active": "麻痺付与〈命中時〉"}},
+		{"base": "スライム", "card": "毒カード",  "result": {"name": "ポイズンスライム",   "hp": 25, "atk": 2, "interval": 3.0, "cost": 3, "col": 0, "active": "毒付与〈命中時〉"}},
+		{"base": "スライム", "card": "結晶化",   "result": {"name": "クリスタルスライム", "hp": 10, "atk": 1, "interval": 2.0, "cost": 4, "col": 2}},
+		{"base": "スライム", "card": "血の契約", "result": {"name": "ブラッドスライム",   "hp": 25, "atk": 2, "interval": 3.8, "cost": 4, "col": 0}},
+		{"base": "スライム", "card": "生命の雫", "result": {"name": "ゼリーフィッシュ",   "hp": 10, "atk": 1, "interval": 5.0, "cost": 3, "col": 2}},
+	]
+	for recipe in recipes:
+		var r: Dictionary = recipe["result"]
+		var u = UnitDataScript.new()
+		u.unit_name = r["name"]
+		u.max_hp = r["hp"]
+		u.current_hp = r["hp"]
+		u.attack = r["atk"]
+		u.attack_interval = r["interval"]
+		u.cost = r["cost"]
+		u.assigned_col = r["col"]
+		u.race = "スライム"
+		u.attack_range = "1行"
+		u.active_skill = r.get("active", "")
+		board_manager.synthesis_registry.append({
+			"base": recipe["base"],
+			"card": recipe["card"],
+			"result": u,
+		})
+
+
 func _build_mode_select() -> void:
 	mode_select_panel = Control.new()
 	add_child(mode_select_panel)
@@ -465,11 +505,11 @@ func _input(event: InputEvent) -> void:
 					for c in range(3):
 						var rect: ColorRect = cell_rects[side][r][c]
 						if Rect2(rect.position, rect.size).has_point(pos):
-							dev_ui.on_cell_dropped(side, r, c)
+							dev_ui.on_drop(side, r, c)
 							dropped = true
-			dev_ui._stop_drag()
 			if not dropped:
-				_add_log("[DEV] セル外にドロップ")
+				dev_ui.on_drop_outside()
+			dev_ui._stop_drag()
 
 func _dev_update_drag() -> void:
 	if dev_ui != null and dev_ui._dragging and dev_ui._drag_label != null:
@@ -742,6 +782,13 @@ func _on_status_damage(unit_name: String, status: String, damage: int, stacks: i
 
 func _on_status_cleared(unit_name: String, status: String) -> void:
 	_add_log("[状態解除] %s の %s が解除" % [unit_name, status])
+
+func _on_synthesis_done(side: int, row: int, col: int, base_name: String, result_name: String) -> void:
+	var side_name: String = "自陣" if side == 0 else "敵陣"
+	_add_log("[合成] %s %s → %s" % [side_name, base_name, result_name])
+	skill_flash_timers[side][row][col] = 1.0
+	skill_flash_names[side][row][col] = "合成"
+	_cell_dirty[side][row][col] = true
 
 func _on_spell_cast(side: int, spell_name: String) -> void:
 	var side_name: String = "自陣" if side == 0 else "敵陣"
