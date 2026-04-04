@@ -3,6 +3,28 @@
 ## [Unreleased]
 
 ### CheckAgent: 確認完了・修正なし（2026-04-04）
+- 対象: 開発者モード実装（モード選択画面・手動カード配置・呪文発動）
+- Main.gd: `dev_mode` / `dev_ui` / `mode_select_panel` / `game_started` 変数追加 OK
+- Main.gd: `_build_mode_select()` PLAYボタン・開発者モードボタンのオーバーレイ実装 OK
+- Main.gd: `_on_mode_play()` オーバーレイ削除・`game_started=true` 設定 OK
+- Main.gd: `_on_mode_dev()` オーバーレイ削除・`dev_mode=true`・DevUI.gd ロード・setup 呼び出し OK
+- Main.gd: `_process` で `not game_started` ならreturn OK
+- Main.gd: `_process` で `dev_mode` 時に `deck_manager.process_deck` / `enemy_ai.process_ai` をスキップ OK
+- Main.gd: `_process` で `dev_mode` 時も `board_manager.process_combat` は動作 OK
+- Main.gd: `_unhandled_input` で `dev_mode=false` の場合は早期return OK
+- Main.gd: `_unhandled_input` で左クリック時にセル位置を検出し `dev_ui.on_cell_clicked()` を呼び出し OK
+- DevUI.gd: `class_name DevUI extends RefCounted` OK
+- DevUI.gd: `setup(main, board, deck, enemy)` 初期化 OK
+- DevUI.gd: UIノードは `main.add_child()` で追加（RefCounted のため自身はノードでない） OK
+- DevUI.gd: 画面右側（x=1020〜）に開発者パネル・選択中カード表示・自陣/敵陣切替・ツールボタン・カードリスト（スクロール）OK
+- DevUI.gd: `_on_card_selected(index)` UnitData インスタンス生成・`selected_card` 設定 OK
+- DevUI.gd: `on_cell_clicked` ユニット配置時に `selected_side` を使用（クリック側ではない） OK
+- DevUI.gd: `on_cell_clicked` ユニット配置時に `board` 直接操作・`_init_skill_timers` 呼び出し・`unit_placed emit`・`on_board_changed` 呼び出し OK
+- DevUI.gd: `on_cell_clicked` 呪文発動時に `spell_executor.execute` を使用 OK
+- DevUI.gd: `_toggle_side()` `selected_side` を 0/1 切替 OK
+- DevUI.gd: ツールボタン4種（マナ+10・全味方回復・敵全滅・選択解除）実装 OK
+
+### CheckAgent: 確認完了・修正なし（2026-04-04）
 - 対象: 呪文カードシステム基盤（Phase 1）+ 基本呪文3枚（Phase 2）
 - UnitData.gd: card_type / spell_id / spell_target / spell_effect / is_consumable フィールド追加 OK
 - UnitData.gd: clone() で5フィールドをコピー OK
