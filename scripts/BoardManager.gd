@@ -98,12 +98,17 @@ func process_combat(delta: float, base_hp: Array) -> void:
 			var unit = board[side][row][front_col]
 			if unit == null:
 				continue
-			# 凍結・石化中は攻撃不能
-			if unit.frozen_turns > 0 or unit.stun_turns > 0:
+			# 麻痺中は攻撃不能
+			if unit.paralysis_turns > 0:
 				continue
 			attack_timers[side][row][front_col] -= delta
 			if attack_timers[side][row][front_col] <= 0.0:
-				var eff_interval: float = max(0.3, unit.attack_interval - unit._interval_bonus)
+				# 凍結中は攻撃速度低下（逓減・最大80%）: reduction = 0.8 * stacks / (stacks + 2)
+				var freeze_penalty: float = 0.0
+				if unit.frozen_turns > 0:
+					var freeze_reduction: float = 0.8 * float(unit.frozen_turns) / float(unit.frozen_turns + 2)
+					freeze_penalty = unit.attack_interval * freeze_reduction
+				var eff_interval: float = max(0.3, unit.attack_interval - unit._interval_bonus + freeze_penalty)
 				attack_timers[side][row][front_col] = eff_interval
 				_do_attack(side, row, front_col, unit, enemy_side, base_hp)
 
@@ -115,11 +120,15 @@ func process_combat(delta: float, base_hp: Array) -> void:
 			var unit = board[side][row][back_col]
 			if unit == null or not unit._can_attack_from_back:
 				continue
-			if unit.frozen_turns > 0 or unit.stun_turns > 0:
+			if unit.paralysis_turns > 0:
 				continue
 			attack_timers[side][row][back_col] -= delta
 			if attack_timers[side][row][back_col] <= 0.0:
-				var eff_interval: float = max(0.3, unit.attack_interval - unit._interval_bonus)
+				var freeze_penalty: float = 0.0
+				if unit.frozen_turns > 0:
+					var freeze_reduction: float = 0.8 * float(unit.frozen_turns) / float(unit.frozen_turns + 2)
+					freeze_penalty = unit.attack_interval * freeze_reduction
+				var eff_interval: float = max(0.3, unit.attack_interval - unit._interval_bonus + freeze_penalty)
 				attack_timers[side][row][back_col] = eff_interval
 				var back_atk: int = max(1, int(unit.attack * unit._back_atk_factor) + unit._atk_bonus)
 				_do_attack(side, row, back_col, unit, enemy_side, base_hp, back_atk)
@@ -130,9 +139,16 @@ func process_combat(delta: float, base_hp: Array) -> void:
 
 func _do_attack(side: int, row: int, col: int, attacker: Object, enemy_side: int, base_hp: Array, atk_override: int = -1) -> void:
 	var effective_atk: int = atk_override if atk_override >= 0 else attacker.attack + attacker._atk_bonus
-	# 恐怖中はATK半減
-	if attacker.fear_turns > 0:
-		effective_atk = max(1, effective_atk / 2)
+	# 火傷中はATK低下（逓減・最大80%）: reduction = 0.8 * stacks / (stacks + 2)
+	if attacker.burn_turns > 0:
+		var burn_reduction: float = 0.8 * float(attacker.burn_turns) / float(attacker.burn_turns + 2)
+		effective_atk = max(1, int(float(effective_atk) * (1.0 - burn_reduction)))
+	# クリティカル（初撃ATK×2）
+	var is_critical: bool = false
+	if attacker._first_attack and "クリティカル" in attacker.active_skill:
+		effective_atk *= 2
+		attacker._first_attack = false
+		is_critical = true
 	var target_rows: Array = _get_target_rows(row, attacker.attack_range)
 	var hit_any: bool = false
 	for target_row in target_rows:
@@ -153,6 +169,8 @@ func _do_attack(side: int, row: int, col: int, attacker: Object, enemy_side: int
 				# 命中時アクティブスキル（PRIORITY_ACTIVE）
 				_push_on_hit_effects(side, row, col, attacker, target,
 					enemy_side, target_row, target_col, actual_damage)
+	if is_critical:
+		active_skill_used.emit(side, row, col, "クリティカル")
 	if not hit_any:
 		# 本体ダメージイベントをキューに積む
 		event_queue.push(
@@ -178,22 +196,63 @@ func _push_on_hit_effects(side: int, row: int, col: int, attacker: Object, targe
 					target, attacker, "heal", float(heal),
 					{"src_side": side, "src_row": row, "src_col": col, "skill_name": "吸血"}
 				)
-		# 恐怖付与（PRIORITY_ACTIVE）
-		elif "恐怖付与" in entry:
+		# 火傷付与（PRIORITY_ACTIVE）
+		if "火傷付与" in entry:
 			event_queue.push(
 				EventQueue.PRIORITY_ACTIVE,
 				attacker, target, "status_apply", 0.0,
-				{"status": "恐怖", "side": enemy_side, "row": target_row, "col": target_col,
-				 "src_side": side, "src_row": row, "src_col": col, "skill_name": "恐怖付与"}
+				{"status": "火傷", "side": enemy_side, "row": target_row, "col": target_col,
+				 "src_side": side, "src_row": row, "src_col": col, "skill_name": "火傷付与"}
 			)
 		# 毒付与（PRIORITY_ACTIVE）
-		elif "毒付与" in entry:
+		if "毒付与" in entry:
 			event_queue.push(
 				EventQueue.PRIORITY_ACTIVE,
 				attacker, target, "status_apply", 0.0,
 				{"status": "毒", "stacks": 1, "side": enemy_side, "row": target_row, "col": target_col,
 				 "src_side": side, "src_row": row, "src_col": col, "skill_name": "毒付与"}
 			)
+		# 凍結付与（PRIORITY_ACTIVE）
+		if "凍結付与" in entry:
+			event_queue.push(
+				EventQueue.PRIORITY_ACTIVE,
+				attacker, target, "status_apply", 0.0,
+				{"status": "凍結", "stacks": 3, "side": enemy_side, "row": target_row, "col": target_col,
+				 "src_side": side, "src_row": row, "src_col": col, "skill_name": "凍結付与"}
+			)
+		# 麻痺付与（PRIORITY_ACTIVE）
+		if "麻痺付与" in entry:
+			event_queue.push(
+				EventQueue.PRIORITY_ACTIVE,
+				attacker, target, "status_apply", 0.0,
+				{"status": "麻痺", "stacks": 1, "side": enemy_side, "row": target_row, "col": target_col,
+				 "src_side": side, "src_row": row, "src_col": col, "skill_name": "麻痺付与"}
+			)
+		# 貫通（PRIORITY_ACTIVE：前列の後ろにも50%ダメージ）
+		if "貫通" in entry:
+			var behind_col: int = _get_behind_col(enemy_side, target_row, target_col)
+			if behind_col != -1:
+				var behind_target = board[enemy_side][target_row][behind_col]
+				var pen_damage: int = max(1, damage / 2)
+				event_queue.push(
+					EventQueue.PRIORITY_ACTIVE,
+					attacker, behind_target, "damage", float(pen_damage),
+					{"enemy_side": enemy_side, "row": target_row, "col": behind_col}
+				)
+				active_skill_used.emit(side, row, col, "貫通")
+		# 連鎖（PRIORITY_ACTIVE：隣接行の敵に50%ダメージ波及）
+		if "連鎖" in entry:
+			var chain_damage: int = max(1, damage / 2)
+			for adj_row in _get_adjacent_rows(target_row):
+				var adj_col: int = _get_frontmost_col(enemy_side, adj_row)
+				if adj_col != -1:
+					var adj_target = board[enemy_side][adj_row][adj_col]
+					event_queue.push(
+						EventQueue.PRIORITY_ACTIVE,
+						attacker, adj_target, "damage", float(chain_damage),
+						{"enemy_side": enemy_side, "row": adj_row, "col": adj_col}
+					)
+			active_skill_used.emit(side, row, col, "連鎖")
 
 func _try_promote(side: int, row: int, col: int) -> void:
 	var front_col: int = 2 if side == 0 else 0
@@ -219,6 +278,24 @@ func _get_frontmost_col(side: int, row: int) -> int:
 		if board[side][row][c] != null:
 			return c
 	return -1
+
+func _get_behind_col(side: int, row: int, front_col: int) -> int:
+	# front_col の後ろにいるユニットの列を返す（-1=なし）
+	var col_order: Array = [2, 1, 0] if side == 0 else [0, 1, 2]
+	var found_front: bool = false
+	for c in col_order:
+		if c == front_col:
+			found_front = true
+			continue
+		if found_front and board[side][row][c] != null:
+			return c
+	return -1
+
+func _get_adjacent_rows(row: int) -> Array:
+	var rows: Array = []
+	if row > 0: rows.append(row - 1)
+	if row < 2: rows.append(row + 1)
+	return rows
 
 func _get_target_rows(attacker_row: int, attack_range: String) -> Array:
 	match attack_range:
@@ -359,7 +436,7 @@ func _on_status_tick() -> void:
 						{"enemy_side": s, "row": r, "col": c, "unit_name": u.unit_name}
 					)
 				# 状態異常カウントダウン
-				for status_pair in [["frozen_turns", "凍結"], ["fear_turns", "恐怖"], ["stun_turns", "石化"]]:
+				for status_pair in [["frozen_turns", "凍結"], ["burn_turns", "火傷"], ["paralysis_turns", "麻痺"]]:
 					var val: int = u.get(status_pair[0])
 					if val > 0:
 						u.set(status_pair[0], val - 1)

@@ -2,6 +2,18 @@
 
 ## [Unreleased]
 
+### CheckAgent: 修正あり（2026-04-04）
+- 対象: 命中時アクティブスキル5種追加（クリティカル・貫通・連鎖・凍結付与・麻痺付与）実装検証
+- UnitData.gd: `_first_attack: bool = true` フィールド追加 OK
+- UnitData.gd: clone() に `_first_attack` 代入なし（デフォルトtrue維持） OK
+- BoardManager.gd `_do_attack`: 火傷ATK低下 → クリティカル2倍 の順序 OK
+- BoardManager.gd `_do_attack`: クリティカル発動時に `active_skill_used` emit OK
+- BoardManager.gd `_push_on_hit_effects`: 凍結付与 stacks: 3 OK
+- BoardManager.gd `_push_on_hit_effects`: 麻痺付与 stacks: 1 OK
+- BoardManager.gd `_get_behind_col`: side 0/1 それぞれ前列→後列方向に正しく探索 OK
+- BoardManager.gd `_get_adjacent_rows`: 自身の行を含まない OK
+- BoardManager.gd `_push_on_hit_effects`: 複合スキル対応のため `elif` チェーンを `if` チェーンに修正（「連鎖＋毒付与」等で2つ目以降のスキルがスキップされる問題を修正）
+
 ### CheckAgent: 確認完了・修正なし（2026-04-04）
 - 対象: 火傷・凍結・毒のスタックによる効果スケーリング実装検証
 - EventQueue.gd: 火傷 `+=` 加算スタック（デフォルト+2） OK
