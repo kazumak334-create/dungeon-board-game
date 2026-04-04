@@ -2,8 +2,11 @@
 class_name EnemyAI
 extends Node
 
-var spawn_timer: float = 3.0
-const SPAWN_INTERVAL: float = 3.5
+var mana: float = 3.0
+const MANA_MAX: float = 10.0
+const MANA_REGEN: float = 1.0
+var check_interval: float = 1.0
+var _check_timer: float = 0.0
 
 var enemy_deck: Array = []
 var enemy_discard: Array = []
@@ -112,11 +115,20 @@ func get_next_card() -> Object:
 	return next_card
 
 func process_ai(delta: float, board: Node) -> void:
-	spawn_timer -= delta
-	if spawn_timer <= 0.0:
-		spawn_timer = SPAWN_INTERVAL
-		if next_card != null:
-			board.place_unit(1, next_card)
-			enemy_deck.remove_at(0)          # 山札から消費
-			enemy_discard.append(next_card)  # 捨て札へ
-		_pick_next_card()  # 次の召喚カードを事前決定
+	mana = min(MANA_MAX, mana + MANA_REGEN * delta)
+
+	_check_timer -= delta
+	if _check_timer > 0.0:
+		return
+	_check_timer = check_interval
+
+	if next_card == null:
+		return
+	if mana < next_card.cost:
+		return  # マナが足りるまで先頭で待機
+
+	mana -= next_card.cost
+	board.place_unit(1, next_card)
+	enemy_deck.remove_at(0)
+	enemy_discard.append(next_card)
+	_pick_next_card()

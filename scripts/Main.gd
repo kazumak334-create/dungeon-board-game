@@ -515,7 +515,11 @@ func _update_next_card() -> void:
 	# 次の敵カード
 	var enemy_next = enemy_ai.get_next_card()
 	if enemy_next != null:
-		enemy_next_label.text = "次の敵：%s\n(%.1fs後)" % [enemy_next.unit_name, enemy_ai.spawn_timer]
+		var cost_ok: bool = enemy_ai.mana >= enemy_next.cost
+		enemy_next_label.modulate = Color(0.3, 1.0, 0.4) if cost_ok else Color(1.0, 0.5, 0.5)
+		enemy_next_label.text = "次の敵：%s\nマナ %.1f/10  Cost %d" % [
+			enemy_next.unit_name, enemy_ai.mana, enemy_next.cost
+		]
 	else:
 		enemy_next_label.text = ""
 
