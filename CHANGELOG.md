@@ -29,6 +29,18 @@
 - ATK累積（グール）: 撃破時ATK+2（上限+10）
 - 敵SPD低下（バンシー）: 撃破時に全敵に凍結+4
 
+### CheckAgent: 修正あり（2026-04-05）
+- 対象: 撃破時スキル追加・リッチ/ヴリコラカス追加
+- BoardManager.gd `_steal_buffs`: `stealer._atk_bonus += ...` を削除（二重加算バグ修正）
+  - 原因: `_atk_bonus`はサポート再計算でフレームごとにリセットされるため、`stealer.attack`のみを変更すべきところ両方に加算していた
+  - 修正: `stealer.attack += int(victim._atk_bonus * multiplier)` のみ残し、`stealer._atk_bonus +=` を削除
+- BoardManager.gd `_process_on_kill`: `ally != killer` の除外条件あり OK
+- BoardManager.gd `_fire_timed_skill`: 全バフ奪取・呪い付与・全体凍結・強力な毒・全体麻痺 elif チェーン OK
+- BoardManager.gd `_push_on_hit_effects`: バフ奪取は`命中時`フィルタ後のためentryに`"全バフ奪取〈時間経過〉"`は到達しない OK
+- DeckManager.gd: リッチ/ヴリコラカス card_pool キー・deck_list name 一致 OK
+- EnemyAI.gd: リッチ/ヴリコラカス card_pool キー・deck_list name 一致 OK
+- active_skill " / " パース: 全エントリ統一 OK
+
 ### CheckAgent: 確認完了・修正なし（2026-04-04）
 - 対象: 開発者モード実装（モード選択画面・手動カード配置・呪文発動）
 - Main.gd: `dev_mode` / `dev_ui` / `mode_select_panel` / `game_started` 変数追加 OK

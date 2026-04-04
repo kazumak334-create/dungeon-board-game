@@ -294,6 +294,10 @@ func _push_on_hit_effects(side: int, row: int, col: int, attacker: Object, targe
 				{"status": "麻痺", "stacks": 1, "side": enemy_side, "row": target_row, "col": target_col,
 				 "src_side": side, "src_row": row, "src_col": col, "skill_name": "麻痺付与"}
 			)
+		# バフ奪取（命中時・敵のバフを自分に移す・効果1.5倍）
+		if "バフ奪取" in entry:
+			_steal_buffs(attacker, target, 1.5)
+			active_skill_used.emit(side, row, col, "バフ奪取")
 		# 連鎖（PRIORITY_ACTIVE：隣接行の敵に50%ダメージ波及）
 		if "連鎖" in entry:
 			var chain_damage: int = max(1, damage / 2)
@@ -688,6 +692,95 @@ func _fire_timed_skill(side: int, row: int, col: int, unit: Object, entry: Strin
 			event_queue.push(EventQueue.PRIORITY_ACTIVE, unit, best_target, "damage", float(big_dmg),
 				best_info)
 			active_skill_used.emit(side, row, col, "単体大ダメージ")
+	# 全バフ奪取（敵1体の全バフを自分に移す・効果1.5倍）
+	elif "全バフ奪取" in entry:
+		var best_target: Object = null
+		var best_info: Dictionary = {}
+		var best_buff_count: int = 0
+		for r2 in range(3):
+			for c2 in range(3):
+				var target = board[enemy_side][r2][c2]
+				if target != null and target.is_alive():
+					var buff_count: int = 0
+					if target._atk_bonus > 0: buff_count += 1
+					if target._interval_bonus > 0.0: buff_count += 1
+					if target._has_lifesteal: buff_count += 1
+					if target._has_penetrate: buff_count += 1
+					if target._regen_stacks > 0: buff_count += 1
+					if target._damage_reduction > 0: buff_count += 1
+					if buff_count > best_buff_count:
+						best_buff_count = buff_count
+						best_target = target
+						best_info = {"enemy_side": enemy_side, "row": r2, "col": c2}
+		if best_target != null and best_buff_count > 0:
+			_steal_buffs(unit, best_target, 1.5)
+			active_skill_used.emit(side, row, col, "全バフ奪取")
+	# 呪い付与（敵全体）
+	elif "呪い付与" in entry:
+		for r2 in range(3):
+			for c2 in range(3):
+				var target = board[enemy_side][r2][c2]
+				if target != null and target.is_alive():
+					event_queue.push(EventQueue.PRIORITY_ACTIVE, unit, target, "status_apply", 0.0,
+						{"status": "毒", "stacks": 3, "side": enemy_side, "row": r2, "col": c2,
+						 "src_side": side, "src_row": row, "src_col": col, "skill_name": "呪い付与"})
+		active_skill_used.emit(side, row, col, "呪い付与")
+	# 全体凍結（同行の敵全体に凍結付与）
+	elif "全体凍結" in entry:
+		for c2 in range(3):
+			var target = board[enemy_side][row][c2]
+			if target != null and target.is_alive():
+				event_queue.push(EventQueue.PRIORITY_ACTIVE, unit, target, "status_apply", 0.0,
+					{"status": "凍結", "stacks": 4, "side": enemy_side, "row": row, "col": c2,
+					 "src_side": side, "src_row": row, "src_col": col, "skill_name": "全体凍結"})
+		active_skill_used.emit(side, row, col, "全体凍結")
+	# 強力な毒（同行の敵全体に毒付与）
+	elif "強力な毒" in entry:
+		for c2 in range(3):
+			var target = board[enemy_side][row][c2]
+			if target != null and target.is_alive():
+				event_queue.push(EventQueue.PRIORITY_ACTIVE, unit, target, "status_apply", 0.0,
+					{"status": "毒", "stacks": 5, "side": enemy_side, "row": row, "col": c2,
+					 "src_side": side, "src_row": row, "src_col": col, "skill_name": "強力な毒"})
+		active_skill_used.emit(side, row, col, "強力な毒")
+	# 全体麻痺（同行の敵全体に麻痺付与）
+	elif "全体麻痺" in entry:
+		for c2 in range(3):
+			var target = board[enemy_side][row][c2]
+			if target != null and target.is_alive():
+				event_queue.push(EventQueue.PRIORITY_ACTIVE, unit, target, "status_apply", 0.0,
+					{"status": "麻痺", "stacks": 2, "side": enemy_side, "row": row, "col": c2,
+					 "src_side": side, "src_row": row, "src_col": col, "skill_name": "全体麻痺"})
+		active_skill_used.emit(side, row, col, "全体麻痺")
+
+# ---- バフ奪取ヘルパー ----
+
+func _steal_buffs(stealer: Object, victim: Object, multiplier: float) -> void:
+	# ATKボーナス奪取（baseATKに永続加算・_atk_bonusはサポート再計算でリセットされるため変更しない）
+	if victim._atk_bonus > 0:
+		stealer.attack += int(victim._atk_bonus * multiplier)
+		victim.attack -= victim._atk_bonus
+		victim._atk_bonus = 0
+	# SPDボーナス奪取
+	if victim._interval_bonus > 0.0:
+		stealer._interval_bonus += victim._interval_bonus * multiplier
+		victim._interval_bonus = 0.0
+	# 吸血奪取
+	if victim._has_lifesteal:
+		stealer._has_lifesteal = true
+		victim._has_lifesteal = false
+	# 貫通奪取
+	if victim._has_penetrate:
+		stealer._has_penetrate = true
+		victim._has_penetrate = false
+	# リジェネ奪取
+	if victim._regen_stacks > 0:
+		stealer._regen_stacks += int(victim._regen_stacks * multiplier)
+		victim._regen_stacks = 0
+	# 鎧奪取
+	if victim._damage_reduction > 0:
+		stealer._damage_reduction += int(victim._damage_reduction * multiplier)
+		victim._damage_reduction = 0
 
 # ---- 撃破時スキルシステム ----
 
@@ -724,6 +817,23 @@ func _process_on_kill(killer: Object) -> void:
 							{"status": "凍結", "stacks": 4, "side": enemy_side, "row": r2, "col": c2,
 							 "src_side": k_side, "src_row": k_row, "src_col": k_col, "skill_name": "敵SPD低下"})
 			active_skill_used.emit(k_side, k_row, k_col, "敵SPD低下")
+		# 魂の器（撃破時・自分以外のアンデッド1体を完全回復）
+		if "魂の器" in entry:
+			var best_ally: Object = null
+			var best_info: Dictionary = {}
+			var lowest_ratio: float = 1.0
+			for r2 in range(3):
+				for c2 in range(3):
+					var ally = board[k_side][r2][c2]
+					if ally != null and ally.is_alive() and ally != killer and ally.race == "アンデッド":
+						var ratio: float = float(ally.current_hp) / float(ally.max_hp)
+						if ratio < lowest_ratio:
+							lowest_ratio = ratio
+							best_ally = ally
+							best_info = {"src_side": k_side, "src_row": r2, "src_col": c2}
+			if best_ally != null and lowest_ratio < 1.0:
+				best_ally.current_hp = best_ally.max_hp
+				active_skill_used.emit(k_side, k_row, k_col, "魂の器")
 
 # ---- HP閾値スキルシステム ----
 
