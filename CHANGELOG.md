@@ -3,6 +3,18 @@
 ## [Unreleased]
 
 ### CheckAgent: 確認完了・修正なし（2026-04-04）
+- 対象: 火傷・凍結・毒のスタックによる効果スケーリング実装検証
+- EventQueue.gd: 火傷 `+=` 加算スタック（デフォルト+2） OK
+- EventQueue.gd: 凍結 `+=` 加算スタック（デフォルト+2） OK
+- EventQueue.gd: 毒 `+=` 加算スタック（既存） OK
+- BoardManager.gd _do_attack: 火傷逓減公式 `0.8 * stacks / (stacks + 2)` ATK低下 OK
+- BoardManager.gd process_combat 前列: 凍結逓減公式 freeze_penalty 加算 OK
+- BoardManager.gd process_combat 後列: 凍結逓減公式 freeze_penalty 加算 OK
+- UnitData.gd: frozen_turns「攻撃速度低下（逓減・最大80%）」コメント OK
+- UnitData.gd: burn_turns「ATK低下（逓減・最大80%）」コメント OK
+- UnitData.gd: poison_stacks「毎秒スタック数分ダメージ（線形）」コメント OK
+
+### CheckAgent: 確認完了・修正なし（2026-04-04）
 - 対象: 状態異常名称変更・凍結効果変更の実装検証
 - UnitData.gd: `burn_turns`/`paralysis_turns` フィールド名 ✅
 - BoardManager.gd: 凍結を攻撃スキップから速度ペナルティに変更（前列・後列両方） ✅
