@@ -108,10 +108,10 @@ func process_combat(delta: float, base_hp: Array) -> void:
 				continue
 			attack_timers[side][row][front_col] -= delta
 			if attack_timers[side][row][front_col] <= 0.0:
-				# 凍結中は攻撃速度低下（逓減・最大80%）: reduction = 0.8 * stacks / (stacks + 2)
+				# 凍結中は攻撃速度低下（逓減・最大50%）: reduction = 0.5 * stacks / (stacks + 2)
 				var freeze_penalty: float = 0.0
 				if unit.frozen_turns > 0:
-					var freeze_reduction: float = 0.8 * float(unit.frozen_turns) / float(unit.frozen_turns + 2)
+					var freeze_reduction: float = 0.5 * float(unit.frozen_turns) / float(unit.frozen_turns + 2)
 					freeze_penalty = unit.attack_interval * freeze_reduction
 				var eff_interval: float = max(0.3, unit.attack_interval - unit._interval_bonus - unit._temp_spd_bonus + freeze_penalty)
 				attack_timers[side][row][front_col] = eff_interval
@@ -131,7 +131,7 @@ func process_combat(delta: float, base_hp: Array) -> void:
 			if attack_timers[side][row][back_col] <= 0.0:
 				var freeze_penalty: float = 0.0
 				if unit.frozen_turns > 0:
-					var freeze_reduction: float = 0.8 * float(unit.frozen_turns) / float(unit.frozen_turns + 2)
+					var freeze_reduction: float = 0.5 * float(unit.frozen_turns) / float(unit.frozen_turns + 2)
 					freeze_penalty = unit.attack_interval * freeze_reduction
 				var eff_interval: float = max(0.3, unit.attack_interval - unit._interval_bonus - unit._temp_spd_bonus + freeze_penalty)
 				attack_timers[side][row][back_col] = eff_interval
@@ -162,8 +162,9 @@ func _do_attack(side: int, row: int, col: int, attacker: Object, enemy_side: int
 		if target_col != -1:
 			hit_any = true
 			var target = board[enemy_side][target_row][target_col]
-			# 障壁による軽減
-			var actual_damage: int = max(0, effective_atk - target._damage_reduction)
+			# 鎧による軽減（1スタック=10%軽減・最大100%）
+			var armor_pct: float = min(1.0, target._damage_reduction * 0.1)
+			var actual_damage: int = max(0, int(float(effective_atk) * (1.0 - armor_pct)))
 			if actual_damage > 0:
 				# ダメージイベントをキューに積む
 				event_queue.push(
@@ -185,7 +186,8 @@ func _do_attack(side: int, row: int, col: int, attacker: Object, enemy_side: int
 					if behind_col != -1:
 						var behind_target = board[enemy_side][target_row][behind_col]
 						if behind_target != null:
-							var pen_dmg: int = max(0, actual_damage - behind_target._damage_reduction)
+							var pen_armor: float = min(1.0, behind_target._damage_reduction * 0.1)
+							var pen_dmg: int = max(0, int(float(actual_damage) * (1.0 - pen_armor)))
 							if pen_dmg > 0:
 								event_queue.push(
 									EventQueue.PRIORITY_IMMEDIATE,
@@ -358,7 +360,7 @@ func _apply_support_effects() -> void:
 				var u = board[s][r][c]
 				if u != null:
 					_process_unit_support(s, r, c, u)
-	# アクティブスキル由来のバフ（吸血・貫通は常時バフとして処理）
+	# アクティブスキル由来のバフ + ATKバフ上限適用
 	for s in range(2):
 		for r in range(3):
 			for c in range(3):
@@ -369,6 +371,7 @@ func _apply_support_effects() -> void:
 					u._has_lifesteal = true
 				if "貫通" in u.active_skill:
 					u._has_penetrate = true
+				u._atk_bonus = min(u._atk_bonus, 10)  # ATKバフ重複上限+10
 
 func _process_unit_support(side: int, row: int, col: int, unit: Object) -> void:
 	for entry in unit.support_effect.split(" / "):

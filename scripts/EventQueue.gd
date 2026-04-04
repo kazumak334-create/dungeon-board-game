@@ -91,7 +91,7 @@ func flush(board_manager: Node, base_hp: Array) -> void:
 						ex.get("enemy_side", -1), ex.get("row", -1), ex.get("col", -1)
 					)
 					if not tgt.is_alive():
-						death_events.append(ex)
+						death_events.append({"pos": ex, "killer": event["source"]})
 
 				"poison_damage":
 					var tgt = event["target"]
@@ -107,7 +107,7 @@ func flush(board_manager: Node, base_hp: Array) -> void:
 						ex.get("unit_name", "?"), "毒", dmg, tgt.poison_stacks
 					)
 					if not tgt.is_alive():
-						death_events.append(ex)
+						death_events.append({"pos": ex, "killer": null})
 
 				"heal":
 					var tgt = event["target"]
@@ -148,7 +148,7 @@ func flush(board_manager: Node, base_hp: Array) -> void:
 							tgt.frozen_turns += ex.get("stacks", 2)
 							stacks = tgt.frozen_turns
 						"麻痺":
-							tgt.paralysis_turns = max(tgt.paralysis_turns, 1)
+							tgt.paralysis_turns = min(3, tgt.paralysis_turns + ex.get("stacks", 1))
 							stacks = tgt.paralysis_turns
 					if stacks > 0:
 						board_manager.status_applied.emit(tgt.unit_name, status, stacks)
@@ -230,12 +230,16 @@ func flush(board_manager: Node, base_hp: Array) -> void:
 						board_manager._apply_support_effects()
 
 		# 死亡後処理（while ループ内で実行：remove_unit がさらにイベントを push する場合に対応）
-		for ex in death_events:
-			var s: int = ex.get("enemy_side", -1)
-			var r: int = ex.get("row", -1)
-			var c: int = ex.get("col", -1)
+		for death in death_events:
+			var pos: Dictionary = death["pos"]
+			var s: int = pos.get("enemy_side", -1)
+			var r: int = pos.get("row", -1)
+			var c: int = pos.get("col", -1)
 			if s >= 0 and r >= 0 and c >= 0:
 				board_manager.remove_unit(s, r, c)
+				var killer = death.get("killer")
+				if killer != null and killer.is_alive():
+					board_manager._process_on_kill(killer)
 
 	# 遅延キュー（priority 6–7）：1フレーム（≈0.016s）待ち後に promote_check を実行
 	if _deferred_pending:

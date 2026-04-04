@@ -52,6 +52,7 @@ func _build_all_cards() -> void:
 		{"name": "召喚の呼び声", "cost": 2, "target": "self",        "effect": "最低コストユニットをデッキ先頭に"},
 		{"name": "怒涛の展開",   "cost": 4, "target": "self",        "effect": "次の3枚を即時発動"},
 		{"name": "生命の雫",     "cost": 2, "target": "single_ally", "effect": "対象1体HP15%回復"},
+		{"name": "全体再生",     "cost": 4, "target": "all_allies",  "effect": "全味方にリジェネ+1"},
 		{"name": "泥の鎧",       "cost": 1, "target": "single_ally", "effect": "対象1体に鎧付与"},
 		{"name": "結晶化",       "cost": 3, "target": "single_ally", "effect": "対象1体に呪文無効（1回）"},
 		{"name": "毒霧",         "cost": 2, "target": "column",      "effect": "敵ランダム列に毒5＋自デッキに毒カード"},

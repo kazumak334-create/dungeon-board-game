@@ -77,6 +77,10 @@ func execute(spell: Object, side: int, board_manager: Node,
 				var heal: int = max(1, target.max_hp * 15 / 100)
 				target.current_hp = min(target.max_hp, target.current_hp + heal)
 
+		"全体再生":
+			for u in _get_all_units(side, board_manager):
+				u._regen_stacks += 1
+
 		# ---- 相手弱体・環境操作系 ----
 		"泥の鎧":
 			var target = _pick_ally_by(side, board_manager, "random")
