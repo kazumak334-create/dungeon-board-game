@@ -110,6 +110,22 @@
 - BoardManager.gd `_process_on_kill` SPD低下: 全敵ユニットに凍結+4スタック付与・active_skill_used emit OK
 - ❌ 修正: ATK累積の上限処理に問題あり。`_kill_atk_bonus += 2` してから `min(, 10)` でクランプ後に `attack += 2` していたため、`_kill_atk_bonus = 9` 時に実ATKが仕様より1多く増加するバグを修正。`prev_bonus` を保存し `attack += (_kill_atk_bonus - prev_bonus)` で実際に増加したボーナス分だけ attack に加算するよう変更。
 
+### CheckAgent: 修正あり（2026-04-04）
+- 対象: 盤面合成システム実装検証
+- UnitData.gd: `synthesis_base` / `synthesis_card` フィールド追加 OK
+- UnitData.gd: clone() で両フィールドをコピー OK
+- BoardManager.gd: `synthesis_registry: Array` フィールド追加 OK
+- BoardManager.gd: `synthesis_done` シグナル定義 OK
+- BoardManager.gd: `_check_synthesis()` synthesis_registry を検索して合成結果を返す OK
+- BoardManager.gd: `_execute_synthesis()` バフ継続・デバフ10スタック解除・タイマー比率継続・unit_placed emit・on_board_changed・_init_skill_timers・_push_summon_effects・synthesis_done emit OK
+- BoardManager.gd: ❌ `place_unit` の合成分岐が不正。シャッフルされた行順で空きマスより先に合成マスを見つけると、空きマスが残っているのに合成を実行してしまう問題。空きマス探索ループと合成探索ループを分離して修正（空きマス優先・列満杯時のみ合成）
+- DeckManager.gd: `process_deck` で呪文/異常状態カード発動前に `_try_spell_synthesis` チェック OK
+- DeckManager.gd: `_try_spell_synthesis` 合成成立時に spell_executor.execute を呼ばない OK
+- EnemyAI.gd: `process_ai` で呪文合成チェック（`_try_spell_synthesis`）実装 OK
+- EnemyAI.gd: `_try_spell_synthesis` DeckManager と同じロジックで実装 OK
+- Main.gd: `_build_synthesis_registry` レシピ11件（スライム系チェーン3件＋呪文合成8件）登録 OK
+- Main.gd: `synthesis_done` シグナル接続・`_on_synthesis_done` でログ出力とフラッシュ表示 OK
+
 ### Added — アクティブスキル全面実装（効果システム完成・3合目到達）
 
 #### 命中時スキル拡張

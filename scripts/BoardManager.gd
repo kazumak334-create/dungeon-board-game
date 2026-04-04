@@ -21,6 +21,7 @@ signal status_applied(unit_name: String, status: String, stacks: int)
 signal status_cleared(unit_name: String, status: String)
 signal draw_cards_requested(side: int, count: int)
 signal spell_cast(side: int, spell_name: String)
+signal synthesis_done(side: int, row: int, col: int, base_name: String, result_name: String)
 
 func _ready() -> void:
 	_setup()
@@ -41,20 +42,23 @@ func _setup() -> void:
 	_status_timer.timeout.connect(_on_status_tick)
 	add_child(_status_timer)
 
+var synthesis_registry: Array = []  # [{base, card, result_name, result_data}] Main.gdで設定
+
 func place_unit(side: int, unit_data: Object) -> bool:
 	var col: int = unit_data.assigned_col
 	if side == 0:
 		col = 2 - col  # 自陣は前列=col2なのでインデックスを反転
 	var rows: Array = [0, 1, 2]
 	rows.shuffle()
+	# まず空きマスを探して通常配置を優先する
 	for row in rows:
 		if board[side][row][col] == null:
+			# 空きマス → 通常配置
 			var placed = unit_data.clone()
 			board[side][row][col] = placed
 			attack_timers[side][row][col] = placed.attack_interval
 			emit_signal("unit_placed", side, row, col, placed)
 			on_board_changed()
-			# 中列に配置されたとき前列が空なら promote_check を積む（遅延1フレーム）
 			if col == 1 and event_queue != null:
 				var front_col: int = 2 if side == 0 else 0
 				event_queue.push(EventQueue.PRIORITY_BOARD, null, null, "promote_check", 0.0,
@@ -62,8 +66,55 @@ func place_unit(side: int, unit_data: Object) -> bool:
 			_init_skill_timers(placed)
 			_push_summon_effects(side, row, col, placed)
 			return true
+	# 列が満杯の場合のみ盤面合成チェック
+	for row in rows:
+		var existing = board[side][row][col]
+		if existing == null:
+			continue
+		var result = _check_synthesis(existing.unit_name, unit_data)
+		if result != null:
+			_execute_synthesis(side, row, col, existing, result)
+			return true
 	print("[BoardManager] 配置失敗: side=%d col=%d は満杯" % [side, col])
 	return false
+
+func _check_synthesis(base_name: String, card: Object) -> Object:
+	# 発動カード名を決定（ユニットならunit_name、呪文ならspell_id）
+	var card_name: String = card.spell_id if card.card_type != "unit" else card.unit_name
+	for entry in synthesis_registry:
+		if entry["base"] == base_name and entry["card"] == card_name:
+			return entry["result"]
+	return null
+
+func _execute_synthesis(side: int, row: int, col: int, existing: Object, result_data: Object) -> void:
+	var synthesized = result_data.clone()
+	# バフ継続
+	synthesized._atk_bonus = existing._atk_bonus
+	synthesized._interval_bonus = existing._interval_bonus
+	synthesized._has_lifesteal = existing._has_lifesteal
+	synthesized._has_penetrate = existing._has_penetrate
+	synthesized._regen_stacks = existing._regen_stacks
+	synthesized._temp_atk_bonus = existing._temp_atk_bonus
+	synthesized._temp_atk_timer = existing._temp_atk_timer
+	synthesized._temp_spd_bonus = existing._temp_spd_bonus
+	synthesized._temp_spd_timer = existing._temp_spd_timer
+	# デバフ10スタック解除
+	synthesized.burn_turns = max(0, existing.burn_turns - 10)
+	synthesized.frozen_turns = max(0, existing.frozen_turns - 10)
+	synthesized.paralysis_turns = max(0, existing.paralysis_turns - 10)
+	synthesized.poison_stacks = max(0, existing.poison_stacks - 10)
+	# 攻撃タイマー継続
+	synthesized.attack_interval = result_data.attack_interval
+	var timer_ratio: float = attack_timers[side][row][col] / max(0.01, existing.attack_interval)
+	attack_timers[side][row][col] = synthesized.attack_interval * timer_ratio
+	# 盤面に配置
+	board[side][row][col] = synthesized
+	_init_skill_timers(synthesized)
+	emit_signal("unit_placed", side, row, col, synthesized)
+	on_board_changed()
+	_push_summon_effects(side, row, col, synthesized)
+	synthesis_done.emit(side, row, col, existing.unit_name, synthesized.unit_name)
+	print("[BoardManager] 盤面合成: %s → %s (side=%d row=%d col=%d)" % [existing.unit_name, synthesized.unit_name, side, row, col])
 
 func get_unit(side: int, row: int, col: int) -> Object:
 	return board[side][row][col]
