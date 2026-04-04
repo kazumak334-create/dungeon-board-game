@@ -1,5 +1,5 @@
 # DevUI.gd
-# 開発者モードのUI・ロジック
+# 開発者モードのUI・ロジック（ドラッグ&ドロップでカード配置）
 class_name DevUI
 extends RefCounted
 
@@ -9,12 +9,11 @@ var deck_manager: Node
 var enemy_ai: Node
 
 var selected_card: Object = null  # 選択中のカード
-var selected_side: int = 0        # 配置先サイド（0=自陣, 1=敵陣）
+var _dragging: bool = false
+var _drag_label: Label = null
 var card_list_container: VBoxContainer
 var selected_label: Label
-var side_label: Label
-var card_buttons: Array = []
-var _all_cards: Array = []  # {name, data, type} の配列
+var _all_cards: Array = []
 
 func setup(p_main: Node, p_board: Node, p_deck: Node, p_enemy: Node) -> void:
 	main = p_main
@@ -25,7 +24,6 @@ func setup(p_main: Node, p_board: Node, p_deck: Node, p_enemy: Node) -> void:
 	_build_dev_panel()
 
 func _build_all_cards() -> void:
-	# ユニットカード
 	var unit_defs: Array = [
 		{"name": "アメーバ",       "hp": 5,  "atk": 1, "interval": 0.5, "cost": 1, "race": "スライム",   "range": "1行",       "col": 0, "support": "HPバフ〈常時発動・前列の味方のみ・微回復〉", "active": "追加召喚〈召喚時・隣接マスに同種を1体〉"},
 		{"name": "マッドスライム", "hp": 10, "atk": 2, "interval": 1.0, "cost": 1, "race": "スライム",   "range": "1行",       "col": 1, "support": "障壁付与〈常時発動・同行前列の味方・物理軽減〉", "active": "火傷付与〈命中時・敵ATK低下〉 / SPD低下〈時間経過10s・同行の敵全体〉"},
@@ -40,9 +38,7 @@ func _build_all_cards() -> void:
 	for d in unit_defs:
 		_all_cards.append({"name": d["name"], "data": d, "type": "unit"})
 
-	# 呪文カード（SpellExecutorの全呪文）
 	var spell_defs: Array = [
-		# 自己強化系
 		{"name": "召喚加速",     "cost": 1, "target": "self",        "effect": "マナ即時+3回復"},
 		{"name": "血の契約",     "cost": 2, "target": "single_ally", "effect": "対象1体に吸血付与"},
 		{"name": "戦場の鼓動",   "cost": 2, "target": "all_allies",  "effect": "全味方SPD+50%（5s）"},
@@ -56,7 +52,6 @@ func _build_all_cards() -> void:
 		{"name": "召喚の呼び声", "cost": 2, "target": "self",        "effect": "最低コストユニットをデッキ先頭に"},
 		{"name": "怒涛の展開",   "cost": 4, "target": "self",        "effect": "次の3枚を即時発動"},
 		{"name": "生命の雫",     "cost": 2, "target": "single_ally", "effect": "対象1体HP15%回復"},
-		# 相手弱体・環境操作系
 		{"name": "泥の鎧",       "cost": 1, "target": "single_ally", "effect": "対象1体に鎧付与"},
 		{"name": "結晶化",       "cost": 3, "target": "single_ally", "effect": "対象1体に呪文無効（1回）"},
 		{"name": "毒霧",         "cost": 2, "target": "column",      "effect": "敵ランダム列に毒5＋自デッキに毒カード"},
@@ -66,11 +61,9 @@ func _build_all_cards() -> void:
 		{"name": "烈風斬",       "cost": 3, "target": "all_enemies", "effect": "敵全体に中ダメージ"},
 		{"name": "弱体の呪詛",   "cost": 3, "target": "all_enemies", "effect": "敵全体ATK-30%（20s）"},
 		{"name": "盤面凍結",     "cost": 4, "target": "all_enemies", "effect": "敵全体を8s間凍結"},
-		# 位置変化系
 		{"name": "混沌の手",     "cost": 2, "target": "single_enemy","effect": "敵1体をランダム行に移動"},
 		{"name": "反転の波",     "cost": 3, "target": "all_enemies", "effect": "敵前列と後列を入れ替え"},
 		{"name": "押し込み",     "cost": 2, "target": "single_enemy","effect": "敵前列1体を後列に移動"},
-		# キュー干渉系
 		{"name": "召喚妨害",     "cost": 1, "target": "enemy_queue", "effect": "敵の次の召喚を3s遅延"},
 		{"name": "配置崩し",     "cost": 2, "target": "enemy_queue", "effect": "敵の次の召喚列をランダム化"},
 		{"name": "魔力断絶",     "cost": 3, "target": "enemy_queue", "effect": "敵マナ回復-30%（10s）"},
@@ -79,7 +72,6 @@ func _build_all_cards() -> void:
 		_all_cards.append({"name": d["name"], "data": d, "type": "spell"})
 
 func _build_dev_panel() -> void:
-	# 開発者パネル（画面右側）
 	var panel := ColorRect.new()
 	panel.position = Vector2(1020, 0)
 	panel.size = Vector2(260, 720)
@@ -87,116 +79,101 @@ func _build_dev_panel() -> void:
 	main.add_child(panel)
 
 	var title := Label.new()
-	title.text = "開発者モード"
+	title.text = "開発者モード（D&D）"
 	title.position = Vector2(1030, 4)
-	title.add_theme_font_size_override("font_size", 15)
+	title.add_theme_font_size_override("font_size", 14)
 	title.modulate = Color(1.0, 0.4, 0.4)
 	main.add_child(title)
 
-	# 選択中カード表示
 	selected_label = Label.new()
-	selected_label.text = "選択: なし"
-	selected_label.position = Vector2(1030, 28)
-	selected_label.add_theme_font_size_override("font_size", 12)
-	selected_label.modulate = Color(1.0, 1.0, 0.5)
+	selected_label.text = "カードをドラッグ → セルにドロップ"
+	selected_label.position = Vector2(1030, 24)
+	selected_label.add_theme_font_size_override("font_size", 11)
+	selected_label.modulate = Color(0.7, 0.7, 0.5)
 	main.add_child(selected_label)
 
-	# サイド切替
-	side_label = Label.new()
-	side_label.text = "配置先: 自陣"
-	side_label.position = Vector2(1030, 48)
-	side_label.add_theme_font_size_override("font_size", 12)
-	side_label.modulate = Color(0.4, 0.9, 1.0)
-	main.add_child(side_label)
-
-	var side_btn := Button.new()
-	side_btn.text = "自陣/敵陣 切替"
-	side_btn.position = Vector2(1140, 44)
-	side_btn.size = Vector2(130, 24)
-	side_btn.add_theme_font_size_override("font_size", 11)
-	side_btn.pressed.connect(_toggle_side)
-	main.add_child(side_btn)
-
-	# ツールボタン（2列配置）
-	var btn_y: int = 72
-	var tools_left: Array = [
-		["マナ+10", _on_add_mana],
-		["全味方回復", _on_heal_all],
-		["呪文発動", _on_cast_spell],
+	# ツールボタン（3列×N行）
+	var btn_y: int = 44
+	var col_w: int = 82
+	var tools: Array = [
+		# row 1
+		[{"text": "マナ+10",   "cb": _on_add_mana},
+		 {"text": "マナMAX",   "cb": _on_max_mana},
+		 {"text": "戻る",      "cb": _on_back_to_menu}],
+		# row 2
+		[{"text": "味方全滅",  "cb": _on_kill_allies},
+		 {"text": "敵全滅",    "cb": _on_kill_enemies},
+		 {"text": "全回復",    "cb": _on_heal_all}],
+		# row 3
+		[{"text": "味方10dmg", "cb": _on_damage_allies},
+		 {"text": "敵10dmg",   "cb": _on_damage_enemies},
+		 {"text": "デバフ解除","cb": _on_clear_debuffs}],
 	]
-	var tools_right: Array = [
-		["敵全滅", _on_kill_enemies],
-		["選択解除", _on_deselect],
-		["モード選択に戻る", _on_back_to_menu],
-	]
-	for i in range(tools_left.size()):
-		var btn_l := Button.new()
-		btn_l.text = tools_left[i][0]
-		btn_l.position = Vector2(1025, btn_y + i * 28)
-		btn_l.size = Vector2(120, 24)
-		btn_l.add_theme_font_size_override("font_size", 10)
-		btn_l.pressed.connect(tools_left[i][1])
-		main.add_child(btn_l)
-	for i in range(tools_right.size()):
-		var btn_r := Button.new()
-		btn_r.text = tools_right[i][0]
-		btn_r.position = Vector2(1150, btn_y + i * 28)
-		btn_r.size = Vector2(120, 24)
-		btn_r.add_theme_font_size_override("font_size", 10)
-		btn_r.pressed.connect(tools_right[i][1])
-		main.add_child(btn_r)
-	btn_y += tools_left.size() * 28 + 8
+	for row in tools:
+		for i in range(row.size()):
+			var btn := Button.new()
+			btn.text = row[i]["text"]
+			btn.position = Vector2(1022 + i * (col_w + 2), btn_y)
+			btn.size = Vector2(col_w, 24)
+			btn.add_theme_font_size_override("font_size", 10)
+			btn.pressed.connect(row[i]["cb"])
+			main.add_child(btn)
+		btn_y += 26
+	btn_y += 4
 
 	# カードリスト（スクロール）
 	var scroll := ScrollContainer.new()
 	scroll.position = Vector2(1020, btn_y)
-	scroll.size = Vector2(260, 720 - btn_y - 10)
+	scroll.size = Vector2(260, 720 - btn_y - 6)
 	main.add_child(scroll)
 
 	card_list_container = VBoxContainer.new()
 	card_list_container.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	scroll.add_child(card_list_container)
 
-	# ユニットヘッダー
-	_add_section_header("── ユニット ──")
+	_add_section_header("── ユニット（ドラッグ→セル） ──")
 	for i in range(_all_cards.size()):
 		var card = _all_cards[i]
-		if card["type"] != "unit":
-			continue
-		_add_card_button(i, card["name"], Color(0.7, 0.85, 1.0))
+		if card["type"] == "unit":
+			_add_card_button(i, card["name"], Color(0.7, 0.85, 1.0))
 
-	# 呪文ヘッダー
 	_add_section_header("── 呪文（自己強化） ──")
 	for i in range(_all_cards.size()):
 		var card = _all_cards[i]
-		if card["type"] != "spell":
-			continue
-		var d = card["data"]
-		if d["target"] == "self" or d["target"] == "single_ally" or d["target"] == "all_allies":
-			_add_card_button(i, "%s (%d)" % [card["name"], d["cost"]], Color(0.5, 0.8, 0.5))
+		if card["type"] != "spell": continue
+		var t = card["data"]["target"]
+		if t in ["self", "single_ally", "all_allies"]:
+			var c = card["data"]["cost"]
+			var cost_str = "X" if c == -1 else str(c)
+			_add_card_button(i, "%s (%s)" % [card["name"], cost_str], Color(0.5, 0.8, 0.5))
 
 	_add_section_header("── 呪文（弱体・環境） ──")
 	for i in range(_all_cards.size()):
 		var card = _all_cards[i]
-		if card["type"] != "spell":
-			continue
-		var d = card["data"]
-		if d["target"] in ["column", "front_all", "all_enemies", "single_enemy"]:
-			_add_card_button(i, "%s (%d)" % [card["name"], d["cost"]], Color(1.0, 0.5, 0.5))
+		if card["type"] != "spell": continue
+		var t = card["data"]["target"]
+		if t in ["column", "front_all", "all_enemies", "single_enemy"]:
+			_add_card_button(i, "%s (%d)" % [card["name"], card["data"]["cost"]], Color(1.0, 0.5, 0.5))
 
 	_add_section_header("── 呪文（キュー干渉） ──")
 	for i in range(_all_cards.size()):
 		var card = _all_cards[i]
-		if card["type"] != "spell":
-			continue
-		var d = card["data"]
-		if d["target"] == "enemy_queue":
-			_add_card_button(i, "%s (%d)" % [card["name"], d["cost"]], Color(1.0, 0.8, 0.4))
+		if card["type"] != "spell": continue
+		if card["data"]["target"] == "enemy_queue":
+			_add_card_button(i, "%s (%d)" % [card["name"], card["data"]["cost"]], Color(1.0, 0.8, 0.4))
+
+	# ドラッグ用ラベル（非表示で待機）
+	_drag_label = Label.new()
+	_drag_label.add_theme_font_size_override("font_size", 14)
+	_drag_label.modulate = Color(1.0, 1.0, 0.3)
+	_drag_label.visible = false
+	_drag_label.z_index = 100
+	main.add_child(_drag_label)
 
 func _add_section_header(text: String) -> void:
 	var lbl := Label.new()
 	lbl.text = text
-	lbl.add_theme_font_size_override("font_size", 11)
+	lbl.add_theme_font_size_override("font_size", 10)
 	lbl.modulate = Color(0.6, 0.6, 0.5)
 	card_list_container.add_child(lbl)
 
@@ -204,14 +181,15 @@ func _add_card_button(index: int, card_name: String, color: Color) -> void:
 	var btn := Button.new()
 	btn.text = card_name
 	btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	btn.custom_minimum_size = Vector2(240, 26)
+	btn.custom_minimum_size = Vector2(240, 24)
 	btn.add_theme_font_size_override("font_size", 11)
 	btn.modulate = color
-	btn.pressed.connect(_on_card_selected.bind(index))
+	btn.button_down.connect(_on_card_drag_start.bind(index))
 	card_list_container.add_child(btn)
-	card_buttons.append(btn)
 
-func _on_card_selected(index: int) -> void:
+# ---- ドラッグ&ドロップ ----
+
+func _on_card_drag_start(index: int) -> void:
 	var card = _all_cards[index]
 	var UnitDataScript = load("res://scripts/UnitData.gd")
 	selected_card = UnitDataScript.new()
@@ -229,7 +207,6 @@ func _on_card_selected(index: int) -> void:
 		selected_card.attack_range = d["range"]
 		selected_card.support_effect = d["support"]
 		selected_card.active_skill = d["active"]
-		selected_label.text = "選択: %s (ユニット)" % d["name"]
 	elif card["type"] == "spell":
 		var d: Dictionary = card["data"]
 		selected_card.unit_name = d["name"]
@@ -238,46 +215,65 @@ func _on_card_selected(index: int) -> void:
 		selected_card.cost = d["cost"]
 		selected_card.spell_target = d["target"]
 		selected_card.spell_effect = d["effect"]
-		selected_label.text = "選択: %s (呪文)" % d["name"]
 
-func on_cell_clicked(side: int, row: int, col: int) -> void:
+	_dragging = true
+	_drag_label.text = selected_card.unit_name
+	_drag_label.visible = true
+	selected_label.text = "ドラッグ中: " + selected_card.unit_name
+
+func _stop_drag() -> void:
+	_dragging = false
+	if _drag_label != null:
+		_drag_label.visible = false
+	selected_label.text = "カードをドラッグ → セルにドロップ"
+
+func on_cell_dropped(side: int, row: int, col: int) -> void:
 	if selected_card == null:
 		return
 	if selected_card.card_type == "unit":
-		# ユニット配置（指定セルに直接配置）
-		var target_side: int = selected_side
-		if board_manager.board[target_side][row][col] != null:
+		if board_manager.board[side][row][col] != null:
 			main._add_log("[DEV] セルが埋まっています")
 			return
 		var placed = selected_card.clone()
-		board_manager.board[target_side][row][col] = placed
-		board_manager.attack_timers[target_side][row][col] = placed.attack_interval
+		board_manager.board[side][row][col] = placed
+		board_manager.attack_timers[side][row][col] = placed.attack_interval
 		board_manager._init_skill_timers(placed)
-		board_manager.emit_signal("unit_placed", target_side, row, col, placed)
+		board_manager.emit_signal("unit_placed", side, row, col, placed)
 		board_manager.on_board_changed()
-		main._add_log("[DEV] %s を %s %d行col%d に配置" % [placed.unit_name, "自陣" if target_side == 0 else "敵陣", row, col])
+		var side_name = "自陣" if side == 0 else "敵陣"
+		main._add_log("[DEV] %s → %s %d行col%d" % [placed.unit_name, side_name, row, col])
 	elif selected_card.card_type == "spell":
-		_cast_selected_spell()
+		var spell = selected_card.clone()
+		var cast_side: int = side  # ドロップ先のサイドで発動
+		var executor = deck_manager.spell_executor
+		if executor != null:
+			executor.execute(spell, cast_side, board_manager, deck_manager, enemy_ai)
+			main._add_log("[DEV] 呪文 %s 発動（%s側）" % [spell.spell_id, "自陣" if cast_side == 0 else "敵陣"])
 	main._mark_all_cells_dirty()
 
-func _cast_selected_spell() -> void:
-	if selected_card == null or selected_card.card_type != "spell":
-		main._add_log("[DEV] 呪文が選択されていません")
-		return
-	var spell = selected_card.clone()
-	var executor = deck_manager.spell_executor
-	if executor != null:
-		executor.execute(spell, selected_side, board_manager, deck_manager, enemy_ai)
-		main._add_log("[DEV] 呪文 %s を発動（%s）" % [spell.spell_id, "自陣" if selected_side == 0 else "敵陣"])
-	main._mark_all_cells_dirty()
-
-func _toggle_side() -> void:
-	selected_side = 1 - selected_side
-	side_label.text = "配置先: %s" % ("自陣" if selected_side == 0 else "敵陣")
+# ---- ツールボタン ----
 
 func _on_add_mana() -> void:
 	deck_manager.mana = min(deck_manager.MANA_MAX, deck_manager.mana + 10.0)
 	main._add_log("[DEV] マナ+10")
+
+func _on_max_mana() -> void:
+	deck_manager.mana = deck_manager.MANA_MAX
+	main._add_log("[DEV] マナMAX")
+
+func _on_kill_allies() -> void:
+	for r in range(3):
+		for c in range(3):
+			if board_manager.board[0][r][c] != null:
+				board_manager.remove_unit(0, r, c)
+	main._add_log("[DEV] 味方全滅")
+
+func _on_kill_enemies() -> void:
+	for r in range(3):
+		for c in range(3):
+			if board_manager.board[1][r][c] != null:
+				board_manager.remove_unit(1, r, c)
+	main._add_log("[DEV] 敵全滅")
 
 func _on_heal_all() -> void:
 	for s in range(2):
@@ -289,19 +285,40 @@ func _on_heal_all() -> void:
 	main._add_log("[DEV] 全ユニット全回復")
 	main._mark_all_cells_dirty()
 
-func _on_kill_enemies() -> void:
+func _on_damage_allies() -> void:
 	for r in range(3):
 		for c in range(3):
-			if board_manager.board[1][r][c] != null:
-				board_manager.remove_unit(1, r, c)
-	main._add_log("[DEV] 敵全滅")
+			var u = board_manager.board[0][r][c]
+			if u != null:
+				u.take_damage(10)
+				if not u.is_alive():
+					board_manager.remove_unit(0, r, c)
+	main._add_log("[DEV] 全味方に10ダメージ")
+	main._mark_all_cells_dirty()
 
-func _on_cast_spell() -> void:
-	_cast_selected_spell()
+func _on_damage_enemies() -> void:
+	for r in range(3):
+		for c in range(3):
+			var u = board_manager.board[1][r][c]
+			if u != null:
+				u.take_damage(10)
+				if not u.is_alive():
+					board_manager.remove_unit(1, r, c)
+	main._add_log("[DEV] 全敵に10ダメージ")
+	main._mark_all_cells_dirty()
 
-func _on_deselect() -> void:
-	selected_card = null
-	selected_label.text = "選択: なし"
+func _on_clear_debuffs() -> void:
+	for s in range(2):
+		for r in range(3):
+			for c in range(3):
+				var u = board_manager.board[s][r][c]
+				if u != null:
+					u.burn_turns = 0
+					u.frozen_turns = 0
+					u.paralysis_turns = 0
+					u.poison_stacks = 0
+	main._add_log("[DEV] 全デバフ解除")
+	main._mark_all_cells_dirty()
 
 func _on_back_to_menu() -> void:
 	main.get_tree().reload_current_scene()

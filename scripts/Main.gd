@@ -454,19 +454,31 @@ func _cell_x(side: int, col: int) -> int:
 func _unhandled_input(event: InputEvent) -> void:
 	if not dev_mode or dev_ui == null:
 		return
-	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
-		var pos: Vector2 = event.position
-		for side in range(2):
-			for r in range(3):
-				for c in range(3):
-					var rect: ColorRect = cell_rects[side][r][c]
-					var cell_rect := Rect2(rect.position, rect.size)
-					if cell_rect.has_point(pos):
-						dev_ui.on_cell_clicked(side, r, c)
-						return
+	# ドラッグ中のマウスリリース → セル判定
+	if event is InputEventMouseButton and not event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
+		if dev_ui._dragging:
+			var pos: Vector2 = event.position
+			var dropped: bool = false
+			for side in range(2):
+				for r in range(3):
+					for c in range(3):
+						var rect: ColorRect = cell_rects[side][r][c]
+						if Rect2(rect.position, rect.size).has_point(pos):
+							dev_ui.on_cell_dropped(side, r, c)
+							dropped = true
+			dev_ui._stop_drag()
+			if not dropped:
+				_add_log("[DEV] セル外にドロップ")
+
+func _dev_update_drag() -> void:
+	if dev_ui != null and dev_ui._dragging and dev_ui._drag_label != null:
+		dev_ui._drag_label.position = get_viewport().get_mouse_position() + Vector2(12, -8)
 
 # ---- ゲームループ ----
 func _process(delta: float) -> void:
+	# ドラッグ中のラベル追従
+	if dev_mode:
+		_dev_update_drag()
 	# フラッシュタイマー更新（game_over中も継続）
 	for s in range(2):
 		for r in range(3):
