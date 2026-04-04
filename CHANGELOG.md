@@ -3,6 +3,25 @@
 ## [Unreleased]
 
 ### CheckAgent: 確認完了・修正なし（2026-04-04）
+- 対象: HP閾値アクティブスキルフレームワーク＋4スキル実装検証
+- UnitData.gd: `_hp_threshold_triggered: Dictionary = {}`・`_invincible_timer: float = 0.0`・`_temp_spd_bonus: float = 0.0`・`_temp_spd_timer: float = 0.0` フィールド追加 OK
+- UnitData.gd: clone() にこれら4フィールドの引き継ぎなし OK
+- EventQueue.gd "damage" ハンドラ: `_invincible_timer > 0.0` チェックで無敵中ダメージ無効 OK
+- EventQueue.gd "poison_damage" ハンドラ: `_invincible_timer` チェックなし（毒は無敵貫通）OK
+- BoardManager.gd process_combat 前列: `attack_interval - _interval_bonus - _temp_spd_bonus + freeze_penalty` OK
+- BoardManager.gd process_combat 後列: 同上 OK
+- BoardManager.gd `_on_status_tick`: `_process_timed_skills()` → `_check_hp_thresholds()` の順序 OK
+- BoardManager.gd `_process_timed_skills`: `_temp_spd_timer` 減衰・0以下で `_temp_spd_bonus = 0.0` リセット OK
+- BoardManager.gd `_process_timed_skills`: `_invincible_timer` 減衰 OK
+- BoardManager.gd `_check_hp_thresholds`: `_hp_threshold_triggered[entry] = true` で1回限り発動保証 OK
+- BoardManager.gd `_parse_hp_threshold`: `idx + 2` で "HP" をスキップ・"%" までの数値抽出 OK
+- BoardManager.gd `_fire_hp_threshold_skill` 後退: side 0=col 0, side 1=col 2 OK
+- BoardManager.gd `_fire_hp_threshold_skill` 結晶化: `_invincible_timer = 3.0` OK
+- BoardManager.gd `_fire_hp_threshold_skill` 前列強制突撃: side 0=col 2, side 1=col 0 OK
+- BoardManager.gd `_fire_hp_threshold_skill` ATK/SPD2倍: `_temp_atk_bonus=unit.attack`・`_temp_atk_timer=10.0`・`_temp_spd_bonus=attack_interval*0.5`・`_temp_spd_timer=10.0` OK
+- Main.gd: 「無敵」「ATK↑N」「SPD↑」のUI表示 OK
+
+### CheckAgent: 確認完了・修正なし（2026-04-04）
 - 対象: 時間経過アクティブスキル5種実装検証
 - UnitData.gd: `_skill_timers: Dictionary = {}`・`_temp_atk_bonus: int = 0`・`_temp_atk_timer: float = 0.0` フィールド追加 OK
 - UnitData.gd: `clone()` にこれら3フィールドの引き継ぎなし OK
