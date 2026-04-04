@@ -72,6 +72,17 @@
 - Main.gd: SpellExecutorScript preload OK
 - Main.gd: SpellExecutor インスタンス化・DeckManager/EnemyAI へ注入 OK
 - Main.gd: spell_cast シグナル接続 + _on_spell_cast ハンドラ（ログ出力）OK
+
+### CheckAgent: 確認完了・修正なし（2026-04-04）
+- 対象: 企画Agentバランス調整提言（セクション3・4）
+- BoardManager.gd: 凍結ペナルティ 0.8→0.5、前列・後列の2箇所ともに適用済み OK
+- BoardManager.gd: 鎧スケーリング型（1スタック=10%軽減）に変更済み OK
+- BoardManager.gd: 貫通バフの後ろダメージも同じスケーリング計算を適用済み OK
+- BoardManager.gd: ATKバフ重複上限 `min(_atk_bonus, 10)` がサポート効果+アクティブスキル適用後に実装済み OK
+- EventQueue.gd: 麻痺がスタック加算式（`min(3, paralysis_turns + stacks)`）で上限3秒に変更済み OK
+- SpellExecutor.gd: 「全体再生」ケース追加・全味方に `_regen_stacks += 1` 適用済み OK
+- DevUI.gd: spell_defs に「全体再生」エントリ（cost:4, target:all_allies）追加済み OK
+- docs/card_database.md: 鎧説明「1スタック=10%軽減」、凍結「最大50%」、麻痺「最大3秒」、全体再生エントリ 全て更新済み OK
 - Main.gd: 次カードパネルで呪文時に【呪文】プレフィックス・紫色・spell_effect 表示 OK
 - Main.gd: 呪文カード時に HP/ATK/配置列を表示しない OK
 - BoardManager.gd: spell_cast シグナル定義 OK
