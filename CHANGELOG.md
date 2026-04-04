@@ -3,6 +3,19 @@
 ## [Unreleased]
 
 ### CheckAgent: 修正あり（2026-04-04）
+- 対象: 召喚時アクティブスキル3種実装（追加召喚・2枚ドロー・最前列突撃）検証
+- BoardManager.gd `draw_cards_requested` シグナル宣言 OK
+- BoardManager.gd `place_unit` 内の `_push_summon_effects` 呼び出し OK
+- BoardManager.gd `_push_summon_effects`: "追加召喚" / "ドロー" / "最前列"+"突撃" 検出・イベント積み OK
+- EventQueue.gd "extra_summon" ハンドラ: 隣接空きマスへclone直接配置・`active_skill = ""`で連鎖防止・`unit_placed` emit・`on_board_changed`・`active_skill_used` emit OK
+- EventQueue.gd "draw_cards" ハンドラ: `draw_cards_requested` emit・`active_skill_used` emit OK
+- EventQueue.gd "force_move_front" ハンドラ: 前列col(side 0=2, side 1=0)正確・既前列/前列埋まりスキップ・タイマー移動・`on_board_changed`・`active_skill_used` emit OK
+- DeckManager.gd `force_play_card`: マナ不要・タイマー無視・デッキ空時リシャッフル OK
+- EnemyAI.gd `force_play_card`: マナ不要・デッキ空時リシャッフル・`_pick_next_card` 呼び出し OK
+- Main.gd `draw_cards_requested` 接続・`_on_draw_cards_requested` ハンドラ OK
+- ❌ 修正: EventQueue.gd effect_type コメント（20-21行）に "extra_summon" / "draw_cards" / "force_move_front" が未追記 → 追記済み
+
+### CheckAgent: 修正あり（2026-04-04）
 - 対象: 命中時アクティブスキル5種追加（クリティカル・貫通・連鎖・凍結付与・麻痺付与）実装検証
 - UnitData.gd: `_first_attack: bool = true` フィールド追加 OK
 - UnitData.gd: clone() に `_first_attack` 代入なし（デフォルトtrue維持） OK

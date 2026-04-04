@@ -18,7 +18,8 @@ const PRIORITY_MERGE     = 7  # 合体判定・位置変化
 #   source:      Object,     # 発生源ユニット（null 可）
 #   target:      Object,     # 対象ユニット（null 可）
 #   effect_type: String,     # "damage" / "poison_damage" / "heal" / "base_damage" /
-#                            # "status_apply" / "status_clear" / "support_apply" / "promote_check"
+#                            # "status_apply" / "status_clear" / "support_apply" / "promote_check" /
+#                            # "extra_summon" / "draw_cards" / "force_move_front"
 #   value:       float,
 #   extra:       Dictionary, # 追加情報（位置など）
 #   timestamp:   float,
@@ -134,18 +135,18 @@ func flush(board_manager: Node, base_hp: Array) -> void:
 					var status: String = ex.get("status", "")
 					var stacks: int = 0
 					match status:
-						"恐怖":
-							tgt.fear_turns = max(tgt.fear_turns, 2)
-							stacks = tgt.fear_turns
+						"火傷":
+							tgt.burn_turns += ex.get("stacks", 2)
+							stacks = tgt.burn_turns
 						"毒":
 							tgt.poison_stacks += ex.get("stacks", 1)
 							stacks = tgt.poison_stacks
 						"凍結":
-							tgt.frozen_turns = max(tgt.frozen_turns, 2)
+							tgt.frozen_turns += ex.get("stacks", 2)
 							stacks = tgt.frozen_turns
-						"石化":
-							tgt.stun_turns = max(tgt.stun_turns, 1)
-							stacks = tgt.stun_turns
+						"麻痺":
+							tgt.paralysis_turns = max(tgt.paralysis_turns, 1)
+							stacks = tgt.paralysis_turns
 					if stacks > 0:
 						board_manager.status_applied.emit(tgt.unit_name, status, stacks)
 						if ex.has("skill_name"):
@@ -159,6 +160,65 @@ func flush(board_manager: Node, base_hp: Array) -> void:
 					board_manager.status_cleared.emit(
 						ex.get("unit_name", "?"), ex.get("status", "")
 					)
+
+				"extra_summon":
+					var src = event["source"]
+					var ex: Dictionary = event["extra"]
+					var s: int = ex.get("side", -1)
+					var sr: int = ex.get("row", -1)
+					var sc: int = ex.get("col", -1)
+					if src == null or s < 0:
+						continue
+					# 隣接空きマスを探す
+					var adj: Array = []
+					for d in [[-1, 0], [1, 0], [0, -1], [0, 1]]:
+						var r2: int = sr + d[0]
+						var c2: int = sc + d[1]
+						if r2 >= 0 and r2 < 3 and c2 >= 0 and c2 < 3:
+							if board_manager.board[s][r2][c2] == null:
+								adj.append([r2, c2])
+					if not adj.is_empty():
+						adj.shuffle()
+						var pos = adj[0]
+						var clone = src.clone()
+						clone.active_skill = ""  # 追加召喚の連鎖防止
+						board_manager.board[s][pos[0]][pos[1]] = clone
+						board_manager.attack_timers[s][pos[0]][pos[1]] = clone.attack_interval
+						board_manager.emit_signal("unit_placed", s, pos[0], pos[1], clone)
+						board_manager.on_board_changed()
+					board_manager.active_skill_used.emit(s, sr, sc, "追加召喚")
+
+				"draw_cards":
+					var ex: Dictionary = event["extra"]
+					var s: int = ex.get("side", -1)
+					var count: int = int(event["value"])
+					if s >= 0 and count > 0:
+						board_manager.draw_cards_requested.emit(s, count)
+					if ex.has("skill_name"):
+						board_manager.active_skill_used.emit(
+							ex.get("src_side", -1), ex.get("src_row", -1),
+							ex.get("src_col", -1), ex["skill_name"])
+
+				"force_move_front":
+					var ex: Dictionary = event["extra"]
+					var s: int = ex.get("side", -1)
+					var sr: int = ex.get("row", -1)
+					var sc: int = ex.get("col", -1)
+					var front: int = 2 if s == 0 else 0
+					if sc == front:
+						continue  # 既に前列
+					var unit = board_manager.board[s][sr][sc] if s >= 0 else null
+					if unit == null:
+						continue
+					if board_manager.board[s][sr][front] != null:
+						continue  # 前列が埋まっている
+					board_manager.board[s][sr][front] = unit
+					board_manager.attack_timers[s][sr][front] = unit.attack_interval
+					board_manager.board[s][sr][sc] = null
+					board_manager.attack_timers[s][sr][sc] = 0.0
+					board_manager.on_board_changed()
+					if ex.has("skill_name"):
+						board_manager.active_skill_used.emit(s, sr, front, ex["skill_name"])
 
 				"support_apply":
 					# 同パス内で1回のみ実行（複数 board_change が重なる場合に重複防止）
