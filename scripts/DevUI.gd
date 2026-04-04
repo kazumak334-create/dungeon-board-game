@@ -108,7 +108,7 @@ func _build_dev_panel() -> void:
 	var col_w: int = 82
 	var tools: Array = [
 		# row 1
-		[{"text": "マナ+10",   "cb": _on_add_mana},
+		[{"text": "一時停止",   "cb": _on_toggle_pause},
 		 {"text": "マナMAX",   "cb": _on_max_mana},
 		 {"text": "戻る",      "cb": _on_back_to_menu}],
 		# row 2
@@ -271,9 +271,10 @@ func on_cell_dropped(side: int, row: int, col: int) -> void:
 
 # ---- ツールボタン ----
 
-func _on_add_mana() -> void:
-	deck_manager.mana = min(deck_manager.MANA_MAX, deck_manager.mana + 10.0)
-	main._add_log("[DEV] マナ+10")
+func _on_toggle_pause() -> void:
+	main.game_paused = not main.game_paused
+	var state: String = "一時停止" if main.game_paused else "再開"
+	main._add_log("[DEV] %s" % state)
 
 func _on_max_mana() -> void:
 	deck_manager.mana = deck_manager.MANA_MAX

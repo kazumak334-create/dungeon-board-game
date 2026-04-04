@@ -61,6 +61,7 @@ var dev_mode: bool = false
 var dev_ui: RefCounted = null  # DevUI インスタンス
 var mode_select_panel: Control = null  # モード選択画面
 var game_started: bool = false
+var game_paused: bool = false
 
 var game_over: bool = false
 var log_lines: Array  = []
@@ -490,11 +491,14 @@ func _process(delta: float) -> void:
 
 	if not game_started or game_over:
 		return
+	if game_paused:
+		return
 	if not dev_mode:
 		deck_manager.process_deck(delta, board_manager)
 		enemy_ai.process_ai(delta, board_manager)
 	board_manager.process_combat(delta, base_hp)
-	_check_game_over()
+	if not dev_mode:
+		_check_game_over()
 
 	# サポート効果ログ（5秒ごと）
 	_support_log_timer -= delta
