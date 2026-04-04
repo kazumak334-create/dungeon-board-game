@@ -25,20 +25,20 @@ func _ready() -> void:
 func _build_default_deck() -> void:
 	var card_pool: Dictionary = {
 		# ── スライム系 ──
-		"アメーバ": {
-			"hp":  5, "atk": 1, "interval": 0.5, "cost": 1, "race": "スライム", "range": "1行",
-			"support": "HPバフ〈常時発動・前列の味方のみ・微回復〉",
-			"active":  "追加召喚〈召喚時・隣接マスに同種を1体〉",
+		"スライム": {
+			"hp": 15, "atk": 1, "interval": 4.0, "cost": 1, "race": "スライム", "range": "1行",
+			"support": "HP回復〈召喚時・前マスのスライムのHP10%回復〉",
+			"active":  "追加召喚〈召喚時・隣接マスにスライムを1体召喚〉",
 		},
 		"マッドスライム": {
-			"hp": 10, "atk": 2, "interval": 1.0, "cost": 1, "race": "スライム", "range": "1行",
-			"support": "障壁付与〈常時発動・同行前列の味方・物理軽減〉",
-			"active":  "火傷付与〈命中時・敵ATK低下〉 / SPD低下〈時間経過10s・同行の敵全体〉",
+			"hp": 40, "atk": 2, "interval": 3.8, "cost": 3, "race": "スライム", "range": "1行",
+			"support": "",
+			"active":  "鎧〈常時〉",
 		},
 		"ブラッドスライム": {
-			"hp": 12, "atk": 4, "interval": 1.5, "cost": 2, "race": "スライム", "range": "1行",
-			"support": "吸血付与〈常時発動・隣接の味方〉",
-			"active":  "吸血〈命中時・ダメージ30%回復〉 / 全体回復〈時間経過20s・HP20%消費→全味方+10〉",
+			"hp": 25, "atk": 2, "interval": 3.8, "cost": 4, "race": "スライム", "range": "1行",
+			"support": "吸血付与〈召喚時・ランダム前列ユニットへ5秒間吸血付与〉",
+			"active":  "デッキ追加〈召喚時・山札にブラッドスライムを1枚追加〉",
 		},
 		# ── アンデッド系 ──
 		"スケルトン": {
@@ -83,7 +83,7 @@ func _build_default_deck() -> void:
 
 	# 初期デッキ構成（ユニット9枚 + 呪文3枚 = 12枚）
 	var deck_list: Array = [
-		{"name": "アメーバ",       "col": 0},
+		{"name": "スライム",       "col": 1},  # 推奨列: 中
 		{"name": "スケルトン",     "col": 0},
 		{"name": "ゴブリン",       "col": 0},
 		{"name": "マッドスライム", "col": 1},

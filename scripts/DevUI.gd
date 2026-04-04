@@ -25,9 +25,18 @@ func setup(p_main: Node, p_board: Node, p_deck: Node, p_enemy: Node) -> void:
 
 func _build_all_cards() -> void:
 	var unit_defs: Array = [
-		{"name": "アメーバ",       "hp": 5,  "atk": 1, "interval": 0.5, "cost": 1, "race": "スライム",   "range": "1行",       "col": 0, "support": "HPバフ〈常時発動・前列の味方のみ・微回復〉", "active": "追加召喚〈召喚時・隣接マスに同種を1体〉"},
-		{"name": "マッドスライム", "hp": 10, "atk": 2, "interval": 1.0, "cost": 1, "race": "スライム",   "range": "1行",       "col": 1, "support": "障壁付与〈常時発動・同行前列の味方・物理軽減〉", "active": "火傷付与〈命中時・敵ATK低下〉 / SPD低下〈時間経過10s・同行の敵全体〉"},
-		{"name": "ブラッドスライム","hp": 12, "atk": 4, "interval": 1.5, "cost": 2, "race": "スライム",   "range": "1行",       "col": 2, "support": "吸血付与〈常時発動・隣接の味方〉", "active": "吸血〈命中時・ダメージ30%回復〉 / 全体回復〈時間経過20s・HP20%消費→全味方+10〉"},
+		{"name": "スライム",         "hp": 15, "atk": 1, "interval": 4.0, "cost": 1, "race": "スライム", "range": "1行", "col": 1, "support": "", "active": "追加召喚〈召喚時・隣接マスにスライムを1体召喚〉"},
+		{"name": "ラージスライム",   "hp": 25, "atk": 2, "interval": 3.8, "cost": 2, "race": "スライム", "range": "1行", "col": 1, "support": "", "active": ""},
+		{"name": "ファットスライム", "hp": 50, "atk": 3, "interval": 6.0, "cost": 3, "race": "スライム", "range": "1行", "col": 0, "support": "", "active": ""},
+		{"name": "キングスライム",   "hp":100, "atk": 5, "interval": 6.0, "cost":10, "race": "スライム", "range": "1行", "col": 2, "support": "", "active": ""},
+		{"name": "マッドスライム",   "hp": 40, "atk": 2, "interval": 3.8, "cost": 3, "race": "スライム", "range": "1行", "col": 1, "support": "", "active": "鎧〈常時〉"},
+		{"name": "ヒートスライム",   "hp": 25, "atk": 2, "interval": 3.8, "cost": 3, "race": "スライム", "range": "1行", "col": 0, "support": "", "active": "火傷付与〈命中時〉"},
+		{"name": "フロストスライム", "hp": 25, "atk": 2, "interval": 3.8, "cost": 3, "race": "スライム", "range": "1行", "col": 0, "support": "", "active": "凍結付与〈命中時〉"},
+		{"name": "パラライズスライム","hp": 25, "atk": 2, "interval": 3.0, "cost": 3, "race": "スライム", "range": "1行", "col": 0, "support": "", "active": "麻痺付与〈命中時〉"},
+		{"name": "ポイズンスライム", "hp": 25, "atk": 2, "interval": 3.0, "cost": 3, "race": "スライム", "range": "1行", "col": 0, "support": "", "active": "毒付与〈命中時〉"},
+		{"name": "クリスタルスライム","hp": 10, "atk": 1, "interval": 2.0, "cost": 4, "race": "スライム", "range": "1行", "col": 2, "support": "", "active": ""},
+		{"name": "ブラッドスライム", "hp": 25, "atk": 2, "interval": 3.8, "cost": 4, "race": "スライム", "range": "1行", "col": 0, "support": "", "active": ""},
+		{"name": "ゼリーフィッシュ", "hp": 10, "atk": 1, "interval": 5.0, "cost": 3, "race": "スライム", "range": "1行", "col": 2, "support": "", "active": ""},
 		{"name": "スケルトン",     "hp": 20, "atk": 4, "interval": 2.0, "cost": 2, "race": "アンデッド", "range": "1行",       "col": 0, "support": "再起付与〈常時発動・隣接の味方・HP1で1度復活〉", "active": "自己再起〈撃破時・HP5で復活〉"},
 		{"name": "グール",         "hp": 25, "atk": 5, "interval": 2.0, "cost": 2, "race": "アンデッド", "range": "1行",       "col": 1, "support": "デバフ波及〈常時発動・前列の敵・撃破時に周囲の敵にデバフ波及〉", "active": "吸血〈命中時・ダメージ25%回復〉 / ATK累積〈撃破時・+2（上限10）〉"},
 		{"name": "バンシー",       "hp": 10, "atk": 1, "interval": 2.0, "cost": 2, "race": "アンデッド", "range": "上下含む3行","col": 2, "support": "後列攻撃〈常時発動・全行・極低ATK・命中時効果あり〉 / SPDバフ〈常時発動・同列の味方〉", "active": "火傷付与〈命中時・敵ATK低下〉 / 全体ATK低下〈時間経過15s・敵全行〉 / 敵SPD低下〈撃破時・全体30%・30s〉"},

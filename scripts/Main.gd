@@ -491,14 +491,13 @@ func _process(delta: float) -> void:
 
 	if not game_started or game_over:
 		return
-	if game_paused:
-		return
-	if not dev_mode:
-		deck_manager.process_deck(delta, board_manager)
-		enemy_ai.process_ai(delta, board_manager)
-	board_manager.process_combat(delta, base_hp)
-	if not dev_mode:
-		_check_game_over()
+	if not game_paused:
+		if not dev_mode:
+			deck_manager.process_deck(delta, board_manager)
+			enemy_ai.process_ai(delta, board_manager)
+		board_manager.process_combat(delta, base_hp)
+		if not dev_mode:
+			_check_game_over()
 
 	# サポート効果ログ（5秒ごと）
 	_support_log_timer -= delta
