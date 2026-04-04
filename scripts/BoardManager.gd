@@ -50,29 +50,31 @@ func place_unit(side: int, unit_data: Object) -> bool:
 		col = 2 - col  # 自陣は前列=col2なのでインデックスを反転
 	var rows: Array = [0, 1, 2]
 	rows.shuffle()
-	for row in rows:
-		if board[side][row][col] == null:
-			# 空きマス → 通常配置
-			var placed = unit_data.clone()
-			board[side][row][col] = placed
-			attack_timers[side][row][col] = placed.attack_interval
-			emit_signal("unit_placed", side, row, col, placed)
-			on_board_changed()
-			if col == 1 and event_queue != null:
-				var front_col: int = 2 if side == 0 else 0
-				event_queue.push(EventQueue.PRIORITY_BOARD, null, null, "promote_check", 0.0,
-					{"side": side, "row": row, "col": front_col})
-			_init_skill_timers(placed)
-			_push_summon_effects(side, row, col, placed)
+	# 抽選で1行を決定
+	var row: int = rows[0]
+	if board[side][row][col] == null:
+		# 空きマス → 通常配置
+		var placed = unit_data.clone()
+		board[side][row][col] = placed
+		attack_timers[side][row][col] = placed.attack_interval
+		emit_signal("unit_placed", side, row, col, placed)
+		on_board_changed()
+		if col == 1 and event_queue != null:
+			var front_col: int = 2 if side == 0 else 0
+			event_queue.push(EventQueue.PRIORITY_BOARD, null, null, "promote_check", 0.0,
+				{"side": side, "row": row, "col": front_col})
+		_init_skill_timers(placed)
+		_push_summon_effects(side, row, col, placed)
+		return true
+	else:
+		# マスが埋まっている → 盤面合成チェック
+		var existing = board[side][row][col]
+		var result = _check_synthesis(existing.unit_name, unit_data)
+		if result != null:
+			_execute_synthesis(side, row, col, existing, result)
 			return true
-		else:
-			# マスが埋まっている → 盤面合成チェック
-			var existing = board[side][row][col]
-			var result = _check_synthesis(existing.unit_name, unit_data)
-			if result != null:
-				_execute_synthesis(side, row, col, existing, result)
-				return true
-	print("[BoardManager] 配置失敗: side=%d col=%d は満杯" % [side, col])
+	# 合成不成立 → 召喚失敗
+	print("[BoardManager] 召喚失敗: side=%d row=%d col=%d" % [side, row, col])
 	return false
 
 func _check_synthesis(base_name: String, card: Object) -> Object:
