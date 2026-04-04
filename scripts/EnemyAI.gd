@@ -12,11 +12,11 @@ func _ready() -> void:
 
 func _build_enemy_deck() -> void:
 	var definitions: Array = [
-		{"name": "ゴブリン",   "hp": 6,  "atk": 2, "interval": 1.0, "cost": 1, "col": 0},
-		{"name": "オーク",     "hp": 18, "atk": 4, "interval": 2.0, "cost": 3, "col": 0},
-		{"name": "スケルトン", "hp": 8,  "atk": 2, "interval": 1.2, "cost": 2, "col": 0},
-		{"name": "ウルフ",     "hp": 10, "atk": 3, "interval": 1.0, "cost": 2, "col": 0},
-		{"name": "シャーマン", "hp": 10, "atk": 2, "interval": 2.0, "cost": 2, "col": 1},
+		{"name": "ゴブリン",   "hp": 6,  "atk": 2, "interval": 1.0, "cost": 1, "col": 0, "race": "獣",         "range": "1行"},
+		{"name": "オーク",     "hp": 18, "atk": 4, "interval": 2.0, "cost": 3, "col": 0, "race": "獣",         "range": "1行"},
+		{"name": "スケルトン", "hp": 8,  "atk": 2, "interval": 1.2, "cost": 2, "col": 0, "race": "アンデッド", "range": "1行"},
+		{"name": "ウルフ",     "hp": 10, "atk": 3, "interval": 1.0, "cost": 2, "col": 0, "race": "獣",         "range": "1行"},
+		{"name": "シャーマン", "hp": 10, "atk": 2, "interval": 2.0, "cost": 2, "col": 1, "race": "獣",         "range": "1行"},
 	]
 	var UnitDataScript = load("res://scripts/UnitData.gd")
 	for d in definitions:
@@ -28,6 +28,8 @@ func _build_enemy_deck() -> void:
 		u.attack_interval = d["interval"]
 		u.cost = d["cost"]
 		u.assigned_col = d["col"]
+		u.race = d["race"]
+		u.attack_range = d["range"]
 		enemy_deck.append(u)
 	enemy_deck.shuffle()
 

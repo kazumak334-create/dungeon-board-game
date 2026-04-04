@@ -9,6 +9,8 @@ var attack: int = 2
 var attack_interval: float = 1.5
 var cost: int = 2
 var assigned_col: int = 0
+var race: String = ""
+var attack_range: String = "1行"
 
 func is_alive() -> bool:
 	return current_hp > 0
@@ -26,4 +28,6 @@ func clone() -> RefCounted:
 	d.attack_interval = attack_interval
 	d.cost = cost
 	d.assigned_col = assigned_col
+	d.race = race
+	d.attack_range = attack_range
 	return d

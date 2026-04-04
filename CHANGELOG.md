@@ -2,6 +2,28 @@
 
 ## [Unreleased]
 
+### Added
+- **UnitData に `race` / `attack_range` フィールドを追加** (`UnitData.gd`)
+  - `race: String`（"スライム" / "アンデッド" / "獣"）
+  - `attack_range: String`（"1行" / "上含む2行" / "下含む2行" / "上下含む3行"）デフォルト "1行"
+  - `clone()` で両フィールドをコピーするよう対応
+
+- **card_database.md 準拠のカードデータ実装** (`DeckManager.gd`)
+  - スライム系 3 種: アメーバ・マッドスライム・ゼリーフィッシュ
+  - アンデッド系 3 種: スケルトン・グール・バンシー
+  - 獣系 3 種: ゴブリン・ウルフ・コカトリス
+  - 初期デッキ 9 枚構成（cost 1-2 中心、重複あり）
+
+- **攻撃範囲の多行対応** (`BoardManager.gd`)
+  - `_get_target_rows(row, attack_range)` を追加
+  - `_do_attack` が attack_range に応じて複数行を攻撃するよう変更
+    - "1行": 同行のみ（従来どおり）
+    - "上含む2行": 自行＋上行
+    - "下含む2行": 自行＋下行
+    - "上下含む3行": 全行（バンシー・プラズマスライム等）
+
+- **EnemyAI のユニット定義に race / attack_range を追加** (`EnemyAI.gd`)
+
 ### Fixed
 - **自陣の列インデックス逆転を修正** (`BoardManager.gd`)
   - `place_unit` で自陣（side 0）の `assigned_col` を `2 - col` に変換し、前列ユニットが視覚的な前列（col 2）に配置されるよう修正

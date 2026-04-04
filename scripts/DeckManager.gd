@@ -19,24 +19,43 @@ func _ready() -> void:
 	_build_default_deck()
 
 func _build_default_deck() -> void:
-	var definitions: Array = [
-		{"name": "スカウト",   "hp": 8,  "atk": 2, "interval": 1.2, "cost": 1, "col": 0},
-		{"name": "ソードマン", "hp": 15, "atk": 3, "interval": 1.5, "cost": 2, "col": 0},
-		{"name": "アーチャー", "hp": 10, "atk": 2, "interval": 1.0, "cost": 2, "col": 0},
-		{"name": "ナイト",     "hp": 20, "atk": 4, "interval": 2.0, "cost": 3, "col": 0},
-		{"name": "ヒーラー",   "hp": 12, "atk": 1, "interval": 2.0, "cost": 2, "col": 1},
-		{"name": "ウィザード", "hp": 8,  "atk": 5, "interval": 2.5, "cost": 3, "col": 1},
+	# card_database.md 準拠のユニット定義（race・attack_range を含む）
+	var card_pool: Dictionary = {
+		"アメーバ":       {"hp":  5, "atk": 1, "interval": 0.5, "cost": 1, "col": 0, "race": "スライム",   "range": "1行"},
+		"マッドスライム": {"hp": 10, "atk": 2, "interval": 1.0, "cost": 1, "col": 0, "race": "スライム",   "range": "1行"},
+		"ゼリーフィッシュ":{"hp":  8, "atk": 1, "interval": 1.0, "cost": 1, "col": 0, "race": "スライム",   "range": "1行"},
+		"スケルトン":     {"hp": 20, "atk": 4, "interval": 2.0, "cost": 2, "col": 0, "race": "アンデッド", "range": "1行"},
+		"グール":         {"hp": 25, "atk": 5, "interval": 2.0, "cost": 2, "col": 0, "race": "アンデッド", "range": "1行"},
+		"バンシー":       {"hp": 10, "atk": 1, "interval": 2.0, "cost": 2, "col": 0, "race": "アンデッド", "range": "上下含む3行"},
+		"ゴブリン":       {"hp": 15, "atk": 3, "interval": 1.0, "cost": 1, "col": 0, "race": "獣",         "range": "1行"},
+		"ウルフ":         {"hp": 20, "atk": 5, "interval": 1.5, "cost": 2, "col": 0, "race": "獣",         "range": "1行"},
+		"コカトリス":     {"hp": 18, "atk": 4, "interval": 2.0, "cost": 2, "col": 0, "race": "獣",         "range": "上含む2行"},
+	}
+
+	# 初期デッキ構成（9枚：cost 1-2 中心、重複あり）
+	var deck_list: Array = [
+		"アメーバ", "アメーバ",
+		"マッドスライム",
+		"ゴブリン", "ゴブリン",
+		"スケルトン",
+		"グール",
+		"ウルフ",
+		"バンシー",
 	]
+
 	var UnitDataScript = load("res://scripts/UnitData.gd")
-	for d in definitions:
+	for card_name in deck_list:
+		var d: Dictionary = card_pool[card_name]
 		var u = UnitDataScript.new()
-		u.unit_name = d["name"]
+		u.unit_name = card_name
 		u.max_hp = d["hp"]
 		u.current_hp = d["hp"]
 		u.attack = d["atk"]
 		u.attack_interval = d["interval"]
 		u.cost = d["cost"]
 		u.assigned_col = d["col"]
+		u.race = d["race"]
+		u.attack_range = d["range"]
 		deck.append(u)
 	deck.shuffle()
 
