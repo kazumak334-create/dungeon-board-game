@@ -19,41 +19,44 @@ func _ready() -> void:
 	_build_default_deck()
 
 func _build_default_deck() -> void:
-	# card_database.md 準拠のユニット定義（race・attack_range を含む）
+	# card_database.md 準拠のユニット定義（race・attack_range を含む。col は deck_list 側で指定）
 	var card_pool: Dictionary = {
-		"アメーバ":       {"hp":  5, "atk": 1, "interval": 0.5, "cost": 1, "col": 0, "race": "スライム",   "range": "1行"},
-		"マッドスライム": {"hp": 10, "atk": 2, "interval": 1.0, "cost": 1, "col": 0, "race": "スライム",   "range": "1行"},
-		"ゼリーフィッシュ":{"hp":  8, "atk": 1, "interval": 1.0, "cost": 1, "col": 0, "race": "スライム",   "range": "1行"},  # 将来のデッキ構築機能用予備カード
-		"スケルトン":     {"hp": 20, "atk": 4, "interval": 2.0, "cost": 2, "col": 0, "race": "アンデッド", "range": "1行"},
-		"グール":         {"hp": 25, "atk": 5, "interval": 2.0, "cost": 2, "col": 0, "race": "アンデッド", "range": "1行"},
-		"バンシー":       {"hp": 10, "atk": 1, "interval": 2.0, "cost": 2, "col": 0, "race": "アンデッド", "range": "上下含む3行"},
-		"ゴブリン":       {"hp": 15, "atk": 3, "interval": 1.0, "cost": 1, "col": 0, "race": "獣",         "range": "1行"},
-		"ウルフ":         {"hp": 20, "atk": 5, "interval": 1.5, "cost": 2, "col": 0, "race": "獣",         "range": "1行"},
-		"コカトリス":     {"hp": 18, "atk": 4, "interval": 2.0, "cost": 2, "col": 0, "race": "獣",         "range": "上含む2行"},  # 将来のデッキ構築機能用予備カード
+		"アメーバ":        {"hp":  5, "atk": 1, "interval": 0.5, "cost": 1, "race": "スライム",   "range": "1行"},
+		"マッドスライム":  {"hp": 10, "atk": 2, "interval": 1.0, "cost": 1, "race": "スライム",   "range": "1行"},
+		"ゼリーフィッシュ":{"hp":  8, "atk": 1, "interval": 1.0, "cost": 1, "race": "スライム",   "range": "1行"},  # 将来のデッキ構築機能用予備カード
+		"スケルトン":      {"hp": 20, "atk": 4, "interval": 2.0, "cost": 2, "race": "アンデッド", "range": "1行"},
+		"グール":          {"hp": 25, "atk": 5, "interval": 2.0, "cost": 2, "race": "アンデッド", "range": "1行"},
+		"バンシー":        {"hp": 10, "atk": 1, "interval": 2.0, "cost": 2, "race": "アンデッド", "range": "上下含む3行"},
+		"ゴブリン":        {"hp": 15, "atk": 3, "interval": 1.0, "cost": 1, "race": "獣",         "range": "1行"},
+		"ウルフ":          {"hp": 20, "atk": 5, "interval": 1.5, "cost": 2, "race": "獣",         "range": "1行"},
+		"コカトリス":      {"hp": 18, "atk": 4, "interval": 2.0, "cost": 2, "race": "獣",         "range": "上含む2行"},  # 将来のデッキ構築機能用予備カード
 	}
 
-	# 初期デッキ構成（9枚：cost 1-2 中心、重複あり）
+	# 初期デッキ構成（9枚・前列3/中列3/後列3 均等分散）
+	# col: 0=前列 1=中列 2=後列（assigned_col。place_unit で 2-col に変換される）
 	var deck_list: Array = [
-		"アメーバ", "アメーバ",
-		"マッドスライム",
-		"ゴブリン", "ゴブリン",
-		"スケルトン",
-		"グール",
-		"ウルフ",
-		"バンシー",
+		{"name": "アメーバ",       "col": 0},  # 前列
+		{"name": "ゴブリン",       "col": 0},  # 前列
+		{"name": "グール",         "col": 0},  # 前列
+		{"name": "マッドスライム", "col": 1},  # 中列
+		{"name": "ウルフ",         "col": 1},  # 中列
+		{"name": "バンシー",       "col": 1},  # 中列
+		{"name": "スケルトン",     "col": 2},  # 後列
+		{"name": "アメーバ",       "col": 2},  # 後列
+		{"name": "ゴブリン",       "col": 2},  # 後列
 	]
 
 	var UnitDataScript = load("res://scripts/UnitData.gd")
-	for card_name in deck_list:
-		var d: Dictionary = card_pool[card_name]
+	for entry in deck_list:
+		var d: Dictionary = card_pool[entry["name"]]
 		var u = UnitDataScript.new()
-		u.unit_name = card_name
+		u.unit_name = entry["name"]
 		u.max_hp = d["hp"]
 		u.current_hp = d["hp"]
 		u.attack = d["atk"]
 		u.attack_interval = d["interval"]
 		u.cost = d["cost"]
-		u.assigned_col = d["col"]
+		u.assigned_col = entry["col"]
 		u.race = d["race"]
 		u.attack_range = d["range"]
 		deck.append(u)
