@@ -3,6 +3,24 @@
 ## [Unreleased]
 
 ### Added
+- **優先度付きチェーンイベントキューを実装** (`scripts/EventQueue.gd` 新規作成)
+  - 優先度定数: IMMEDIATE(1) / STATUS(2) / SUPPORT(3) / ACTIVE(4) / ARTIFACT(5) / BOARD(6) / MERGE(7)
+  - イベント構造: priority, source, target, effect_type, value, extra, timestamp
+  - 同フレーム内は優先度昇順で処理、同優先度は積まれた順を保持
+  - ループ防止: `_damaged_ids` で同フレーム内に damage を受けたユニットを管理し二重適用をスキップ
+  - 遅延キュー: priority 6–7 は `_deferred_pending` フラグで次フレームに処理（将来の盤面条件チェック/合体判定用）
+  - `flush(board_manager, base_hp)`: ダメージ→死亡後処理→遅延キューの順で実行
+  - Main.gd でインスタンス化し `board_manager.event_queue` にセット
+
+- **BoardManager のダメージ/回復/本体ダメージを EventQueue 経由に変更** (`BoardManager.gd`)
+  - `_do_attack`: `target.take_damage()` の直接呼び出しを廃止し `event_queue.push("damage")` に変更
+  - `_do_attack`: 吸血ヒールも `event_queue.push("heal")` 経由に変更（skill_name 付き extra で `active_skill_used` シグナルを通知）
+  - `_do_attack`: 本体ダメージも `event_queue.push("base_damage")` 経由に変更
+  - `_apply_regen`: HP直接変更を `event_queue.push("heal")` 経由に変更
+  - `process_combat` 末尾に `event_queue.flush(self, base_hp)` を追加
+  - `remove_unit` に null ガードを追加（EventQueue の二重処理対策）
+
+### Added
 - **吸血・再起・障壁付与の実装** (`BoardManager.gd`, `UnitData.gd`)
   - **吸血（命中時）**: `_get_lifesteal_pct()` でactive_skillを解析し命中ダメージの%をHP回復
     - ブラッドスライム: 30%回復 / グール: 25%回復

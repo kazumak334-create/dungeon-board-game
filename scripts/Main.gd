@@ -3,8 +3,9 @@
 extends Node
 
 const BoardManagerScript = preload("res://scripts/BoardManager.gd")
-const DeckManagerScript = preload("res://scripts/DeckManager.gd")
-const EnemyAIScript = preload("res://scripts/EnemyAI.gd")
+const DeckManagerScript  = preload("res://scripts/DeckManager.gd")
+const EnemyAIScript      = preload("res://scripts/EnemyAI.gd")
+const EventQueueScript   = preload("res://scripts/EventQueue.gd")
 
 # ---- レイアウト定数 ----
 const CELL_W    := 115
@@ -64,9 +65,14 @@ var _support_log_timer: float = 5.0
 
 # ---- 初期化 ----
 func _ready() -> void:
+	var event_queue = Node.new()
+	event_queue.set_script(EventQueueScript)
+	add_child(event_queue)
+
 	board_manager = Node.new()
 	board_manager.set_script(BoardManagerScript)
 	add_child(board_manager)
+	board_manager.event_queue = event_queue
 	board_manager.unit_died.connect(_on_unit_died)
 	board_manager.unit_revived.connect(_on_unit_revived)
 	board_manager.base_damaged.connect(_on_base_damaged)

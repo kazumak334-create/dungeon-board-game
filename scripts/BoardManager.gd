@@ -5,6 +5,7 @@ extends Node
 var board: Array = []
 var attack_timers: Array = []
 var _regen_timer: float = 1.0
+var event_queue: Node = null  # EventQueue（Main.gd が設定）
 
 signal unit_placed(side: int, row: int, col: int, unit: Object)
 signal unit_died(side: int, row: int, col: int)
@@ -46,6 +47,8 @@ func get_unit(side: int, row: int, col: int) -> Object:
 
 func remove_unit(side: int, row: int, col: int) -> void:
 	var unit = board[side][row][col]
+	if unit == null:
+		return  # 既に削除済み（EventQueue の二重処理対策）
 	# 自己再起チェック（撃破時・1回限り）
 	if unit != null and "自己再起" in unit.active_skill and not unit._has_revived:
 		unit._has_revived = true
@@ -103,6 +106,10 @@ func process_combat(delta: float, base_hp: Array) -> void:
 				var back_atk: int = max(1, int(unit.attack * unit._back_atk_factor) + unit._atk_bonus)
 				_do_attack(side, row, back_col, unit, enemy_side, base_hp, back_atk)
 
+	# 全イベントを優先度順に一括処理
+	if event_queue != null:
+		event_queue.flush(self, base_hp)
+
 func _do_attack(side: int, row: int, col: int, attacker: Object, enemy_side: int, base_hp: Array, atk_override: int = -1) -> void:
 	var effective_atk: int = atk_override if atk_override >= 0 else attacker.attack + attacker._atk_bonus
 	var target_rows: Array = _get_target_rows(row, attacker.attack_range)
@@ -116,18 +123,28 @@ func _do_attack(side: int, row: int, col: int, attacker: Object, enemy_side: int
 			# 障壁による軽減
 			var actual_damage: int = max(0, effective_atk - target._damage_reduction)
 			if actual_damage > 0:
-				target.take_damage(actual_damage)
-				# 吸血（命中時アクティブスキル）
+				# ダメージイベントをキューに積む
+				event_queue.push(
+					EventQueue.PRIORITY_IMMEDIATE,
+					attacker, target, "damage", float(actual_damage),
+					{"enemy_side": enemy_side, "row": target_row, "col": target_col}
+				)
+				# 吸血（命中時）：回復イベントをキューに積む
 				var lifesteal_pct: float = _get_lifesteal_pct(attacker.active_skill)
 				if lifesteal_pct > 0.0:
 					var heal: int = max(1, int(actual_damage * lifesteal_pct))
-					attacker.current_hp = min(attacker.max_hp, attacker.current_hp + heal)
-					emit_signal("active_skill_used", side, row, col, "吸血")
-			if not target.is_alive():
-				remove_unit(enemy_side, target_row, target_col)
+					event_queue.push(
+						EventQueue.PRIORITY_IMMEDIATE,
+						target, attacker, "heal", float(heal),
+						{"src_side": side, "src_row": row, "src_col": col, "skill_name": "吸血"}
+					)
 	if not hit_any:
-		base_hp[enemy_side] = max(0, base_hp[enemy_side] - effective_atk)
-		emit_signal("base_damaged", enemy_side, effective_atk)
+		# 本体ダメージイベントをキューに積む
+		event_queue.push(
+			EventQueue.PRIORITY_IMMEDIATE,
+			attacker, null, "base_damage", float(effective_atk),
+			{"side": enemy_side}
+		)
 
 func _get_lifesteal_pct(active_skill: String) -> float:
 	for entry in active_skill.split(" / "):
@@ -278,4 +295,7 @@ func _apply_regen() -> void:
 			for c in range(3):
 				var u = board[s][r][c]
 				if u != null and u._regen > 0.0:
-					u.current_hp = min(u.max_hp, u.current_hp + roundi(u._regen))
+					event_queue.push(
+						EventQueue.PRIORITY_IMMEDIATE,
+						null, u, "heal", float(roundi(u._regen))
+					)
