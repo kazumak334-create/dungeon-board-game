@@ -596,6 +596,42 @@ func _fire_timed_skill(side: int, row: int, col: int, unit: Object, entry: Strin
 				best_info)
 			active_skill_used.emit(side, row, col, "単体大ダメージ")
 
+# ---- 撃破時スキルシステム ----
+
+func _process_on_kill(killer: Object) -> void:
+	# killerの盤面位置を探す
+	var k_side: int = -1
+	var k_row: int = -1
+	var k_col: int = -1
+	for s in range(2):
+		for r in range(3):
+			for c in range(3):
+				if board[s][r][c] == killer:
+					k_side = s; k_row = r; k_col = c
+	if k_side == -1:
+		return
+	var enemy_side: int = 1 - k_side
+	for entry in killer.active_skill.split(" / "):
+		if "撃破時" not in entry:
+			continue
+		# ATK累積（撃破時ATK+2・上限+10）
+		if "ATK累積" in entry:
+			if killer._kill_atk_bonus < 10:
+				var prev_bonus: int = killer._kill_atk_bonus
+				killer._kill_atk_bonus = min(killer._kill_atk_bonus + 2, 10)
+				killer.attack += killer._kill_atk_bonus - prev_bonus
+				active_skill_used.emit(k_side, k_row, k_col, "ATK累積")
+		# 敵SPD低下（撃破時・全体に凍結付与）
+		if "SPD低下" in entry:
+			for r2 in range(3):
+				for c2 in range(3):
+					var target = board[enemy_side][r2][c2]
+					if target != null and target.is_alive():
+						event_queue.push(EventQueue.PRIORITY_ACTIVE, killer, target, "status_apply", 0.0,
+							{"status": "凍結", "stacks": 4, "side": enemy_side, "row": r2, "col": c2,
+							 "src_side": k_side, "src_row": k_row, "src_col": k_col, "skill_name": "敵SPD低下"})
+			active_skill_used.emit(k_side, k_row, k_col, "敵SPD低下")
+
 # ---- HP閾値スキルシステム ----
 
 func _check_hp_thresholds() -> void:

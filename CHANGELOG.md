@@ -2,6 +2,18 @@
 
 ## [Unreleased]
 
+### CheckAgent: 修正あり（2026-04-04）
+- 対象: 撃破時アクティブスキル2種（ATK累積・敵SPD低下）実装検証
+- EventQueue.gd "damage" 死亡時: `{"pos": ex, "killer": event["source"]}` 形式 OK
+- EventQueue.gd "poison_damage" 死亡時: `{"pos": ex, "killer": null}` 形式 OK
+- EventQueue.gd 死亡後処理ループ: `death["pos"]` から enemy_side/row/col 取得 OK
+- EventQueue.gd: killer 非null・生存中チェック後に `_process_on_kill(killer)` 呼び出し OK
+- UnitData.gd: `_kill_atk_bonus: int = 0` 追加・clone() に含まれていない OK
+- BoardManager.gd `_process_on_kill`: 3重ループで盤面位置探索・未発見時は早期リターン OK
+- BoardManager.gd `_process_on_kill`: " / " split で撃破時エントリのみ処理 OK
+- BoardManager.gd `_process_on_kill` SPD低下: 全敵ユニットに凍結+4スタック付与・active_skill_used emit OK
+- ❌ 修正: ATK累積の上限処理に問題あり。`_kill_atk_bonus += 2` してから `min(, 10)` でクランプ後に `attack += 2` していたため、`_kill_atk_bonus = 9` 時に実ATKが仕様より1多く増加するバグを修正。`prev_bonus` を保存し `attack += (_kill_atk_bonus - prev_bonus)` で実際に増加したボーナス分だけ attack に加算するよう変更。
+
 ### Added — アクティブスキル全面実装（効果システム完成・3合目到達）
 
 #### 命中時スキル拡張
