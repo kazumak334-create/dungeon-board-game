@@ -3,6 +3,28 @@
 ## [Unreleased]
 
 ### Added
+- **吸血・再起・障壁付与の実装** (`BoardManager.gd`, `UnitData.gd`)
+  - **吸血（命中時）**: `_get_lifesteal_pct()` でactive_skillを解析し命中ダメージの%をHP回復
+    - ブラッドスライム: 30%回復 / グール: 25%回復
+  - **自己再起（撃破時・1回限り）**: `remove_unit` でactive_skillに"自己再起"があれば`_has_revived`フラグを確認してHP5で復活・タイマーリセット
+    - スケルトン: 撃破時HP5で1度だけ復活
+  - **障壁付与（常時発動）**: `_damage_reduction` フィールドを追加。支援元が生存中は対象の受けるダメージを毎フレーム-1軽減
+    - マッドスライム: 同行前列の味方に障壁付与
+  - `UnitData` に `_has_revived: bool`・`_damage_reduction: int` を追加
+
+- **デバッグログ強化** (`Main.gd`, `BoardManager.gd`)
+  - サポート効果ログ（5秒ごと）: `[サポート] source → target に 効果名` 形式
+  - アクティブスキルログ: `[アクティブ] ユニット名 の スキル名 発動（命中時/撃破時）`
+  - 新シグナル `active_skill_used(side, row, col, skill_name)` を追加
+  - 新シグナル `unit_revived(side, row, col)` を追加
+
+- **UIセル表示強化** (`Main.gd`)
+  - HPバー: 各セルに `██████░░` 形式の8ブロックHP可視化
+  - アクティブバフ略称: `ATK+N` / `SPD+` / `HP回` / `障壁` / `後列↑` をセル内に表示
+  - スキルフラッシュ: 吸血発動時0.6秒・再起発動時1秒間セルがオレンジでハイライト + `★スキル名!` 表示
+  - デッキ枚数表示: 自デッキ/捨て札枚数・敵デッキ/捨て札枚数をUIに追加
+
+### Added
 - **常時発動サポート効果を実装** (`BoardManager.gd`, `UnitData.gd`)
   - `UnitData` にランタイムボーナスフィールドを追加: `_atk_bonus`, `_interval_bonus`, `_regen`, `_can_attack_from_back`, `_back_atk_factor`（`clone()` には引き継がない）
   - `BoardManager._apply_support_effects()`: 毎フレーム全ユニットのボーナスをリセット→再計算

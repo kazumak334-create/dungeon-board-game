@@ -20,6 +20,9 @@ var _interval_bonus: float = 0.0
 var _regen: float = 0.0
 var _can_attack_from_back: bool = false
 var _back_atk_factor: float = 1.0
+var _damage_reduction: int = 0
+# アクティブスキル状態（永続・cloneには引き継がない）
+var _has_revived: bool = false
 
 func is_alive() -> bool:
 	return current_hp > 0

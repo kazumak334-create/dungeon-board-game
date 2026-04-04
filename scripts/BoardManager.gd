@@ -8,7 +8,9 @@ var _regen_timer: float = 1.0
 
 signal unit_placed(side: int, row: int, col: int, unit: Object)
 signal unit_died(side: int, row: int, col: int)
+signal unit_revived(side: int, row: int, col: int)
 signal base_damaged(side: int, amount: int)
+signal active_skill_used(side: int, row: int, col: int, skill_name: String)
 
 func _ready() -> void:
 	_setup()
@@ -43,6 +45,14 @@ func get_unit(side: int, row: int, col: int) -> Object:
 	return board[side][row][col]
 
 func remove_unit(side: int, row: int, col: int) -> void:
+	var unit = board[side][row][col]
+	# 自己再起チェック（撃破時・1回限り）
+	if unit != null and "自己再起" in unit.active_skill and not unit._has_revived:
+		unit._has_revived = true
+		unit.current_hp = 5
+		attack_timers[side][row][col] = unit.attack_interval
+		emit_signal("unit_revived", side, row, col)
+		return
 	board[side][row][col] = null
 	attack_timers[side][row][col] = 0.0
 	emit_signal("unit_died", side, row, col)
@@ -103,12 +113,28 @@ func _do_attack(side: int, row: int, col: int, attacker: Object, enemy_side: int
 		if target_col != -1:
 			hit_any = true
 			var target = board[enemy_side][target_row][target_col]
-			target.take_damage(effective_atk)
+			# 障壁による軽減
+			var actual_damage: int = max(0, effective_atk - target._damage_reduction)
+			if actual_damage > 0:
+				target.take_damage(actual_damage)
+				# 吸血（命中時アクティブスキル）
+				var lifesteal_pct: float = _get_lifesteal_pct(attacker.active_skill)
+				if lifesteal_pct > 0.0:
+					var heal: int = max(1, int(actual_damage * lifesteal_pct))
+					attacker.current_hp = min(attacker.max_hp, attacker.current_hp + heal)
+					emit_signal("active_skill_used", side, row, col, "吸血")
 			if not target.is_alive():
 				remove_unit(enemy_side, target_row, target_col)
 	if not hit_any:
 		base_hp[enemy_side] = max(0, base_hp[enemy_side] - effective_atk)
 		emit_signal("base_damaged", enemy_side, effective_atk)
+
+func _get_lifesteal_pct(active_skill: String) -> float:
+	for entry in active_skill.split(" / "):
+		if "吸血" in entry and "命中時" in entry:
+			if "30%" in entry: return 0.30
+			if "25%" in entry: return 0.25
+	return 0.0
 
 func _try_promote(side: int, row: int, col: int) -> void:
 	var front_col: int = 2 if side == 0 else 0
@@ -163,6 +189,7 @@ func _apply_support_effects() -> void:
 					u._regen = 0.0
 					u._can_attack_from_back = false
 					u._back_atk_factor = 1.0
+					u._damage_reduction = 0
 	# 各ユニットのサポート効果を適用
 	for s in range(2):
 		for r in range(3):
@@ -197,6 +224,9 @@ func _process_unit_support(side: int, row: int, col: int, unit: Object) -> void:
 		elif "HPバフ" in entry:
 			for t in targets:
 				t._regen += 1.0
+		elif "障壁付与" in entry:
+			for t in targets:
+				t._damage_reduction += 1
 
 func _get_support_targets(side: int, row: int, col: int, target_desc: String) -> Array:
 	var positions: Array = []

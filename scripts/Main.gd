@@ -51,9 +51,16 @@ var enemy_base_label:  Label
 var log_label:         Label
 var game_over_label:   Label
 var restart_button:    Button
+var deck_count_label:  Label
+var discard_count_label: Label
+var enemy_deck_count_label: Label
 
 var game_over: bool = false
 var log_lines: Array  = []
+
+var skill_flash_timers: Array = []  # [side][row][col] -> float
+var skill_flash_names:  Array = []  # [side][row][col] -> String
+var _support_log_timer: float = 5.0
 
 # ---- 初期化 ----
 func _ready() -> void:
@@ -61,7 +68,9 @@ func _ready() -> void:
 	board_manager.set_script(BoardManagerScript)
 	add_child(board_manager)
 	board_manager.unit_died.connect(_on_unit_died)
+	board_manager.unit_revived.connect(_on_unit_revived)
 	board_manager.base_damaged.connect(_on_base_damaged)
+	board_manager.active_skill_used.connect(_on_active_skill_used)
 
 	deck_manager = Node.new()
 	deck_manager.set_script(DeckManagerScript)
@@ -72,6 +81,15 @@ func _ready() -> void:
 	add_child(enemy_ai)
 
 	_build_ui()
+	# スキルフラッシュタイマー初期化
+	skill_flash_timers = [
+		[[0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0]],
+		[[0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0]]
+	]
+	skill_flash_names = [
+		[["", "", ""], ["", "", ""], ["", "", ""]],
+		[["", "", ""], ["", "", ""], ["", "", ""]]
+	]
 	_add_log("=== Dungeon Board Game 起動 ===")
 
 # ---- UI構築 ----
@@ -315,6 +333,26 @@ func _build_next_card_panel() -> void:
 	enemy_next_label.modulate = Color(1.0, 0.5, 0.5)
 	add_child(enemy_next_label)
 
+	# デッキ・捨て札枚数
+	var deck_y: int = panel_y + panel_h + 6
+	deck_count_label = Label.new()
+	deck_count_label.position = Vector2(panel_x, deck_y)
+	deck_count_label.add_theme_font_size_override("font_size", 12)
+	deck_count_label.modulate = Color(0.6, 0.8, 1.0)
+	add_child(deck_count_label)
+
+	discard_count_label = Label.new()
+	discard_count_label.position = Vector2(panel_x + 130, deck_y)
+	discard_count_label.add_theme_font_size_override("font_size", 12)
+	discard_count_label.modulate = Color(0.5, 0.5, 0.7)
+	add_child(discard_count_label)
+
+	enemy_deck_count_label = Label.new()
+	enemy_deck_count_label.position = Vector2(panel_x + panel_w + 8, panel_y + 60)
+	enemy_deck_count_label.add_theme_font_size_override("font_size", 12)
+	enemy_deck_count_label.modulate = Color(1.0, 0.5, 0.5)
+	add_child(enemy_deck_count_label)
+
 # ---- セルのX座標計算 ----
 # 自陣: col0=後列(最左), col1=中列, col2=前列(中央寄り右)
 # 敵陣: col0=前列(中央寄り左), col1=中列, col2=後列(最右)
@@ -332,12 +370,26 @@ func _cell_x(side: int, col: int) -> int:
 
 # ---- ゲームループ ----
 func _process(delta: float) -> void:
+	# フラッシュタイマー更新（game_over中も継続）
+	for s in range(2):
+		for r in range(3):
+			for c in range(3):
+				if skill_flash_timers[s][r][c] > 0.0:
+					skill_flash_timers[s][r][c] = max(0.0, skill_flash_timers[s][r][c] - delta)
+
 	if game_over:
 		return
 	deck_manager.process_deck(delta, board_manager)
 	enemy_ai.process_ai(delta, board_manager)
 	board_manager.process_combat(delta, base_hp)
 	_check_game_over()
+
+	# サポート効果ログ（5秒ごと）
+	_support_log_timer -= delta
+	if _support_log_timer <= 0.0:
+		_support_log_timer = 5.0
+		_log_support_effects()
+
 	_update_ui()
 
 func _check_game_over() -> void:
@@ -363,6 +415,7 @@ func _update_ui() -> void:
 	_update_base_hp()
 	_update_mana()
 	_update_next_card()
+	_update_deck_counts()
 
 func _update_cells() -> void:
 	for side in range(2):
@@ -373,17 +426,44 @@ func _update_cells() -> void:
 				var lbl:  Label     = cell_labels[side][r][c]
 				if unit != null:
 					var hp_ratio: float = float(unit.current_hp) / float(unit.max_hp)
-					if side == 0:
+					# スキル発動フラッシュ or 通常色
+					if skill_flash_timers[side][r][c] > 0.0:
+						var f: float = skill_flash_timers[side][r][c]
+						rect.color = Color(0.9, 0.75 * f + 0.1, 0.0)
+					elif side == 0:
 						rect.color = Color(0.08, 0.22 * hp_ratio + 0.04, 0.45 * hp_ratio + 0.08)
 					else:
 						rect.color = Color(0.45 * hp_ratio + 0.08, 0.06, 0.06)
-					# 列マーカー（論理col基準）
-					var col_mark: String = "【前】" if c == 2 else ("【中】" if c == 1 else "【後】")
-					if side == 1:
+					# 列マーカー
+					var col_mark: String
+					if side == 0:
+						col_mark = "【前】" if c == 2 else ("【中】" if c == 1 else "【後】")
+					else:
 						col_mark = "【前】" if c == 0 else ("【中】" if c == 1 else "【後】")
-					lbl.text = "%s%s\nHP %d/%d  ATK %d" % [
-						col_mark, unit.unit_name, unit.current_hp, unit.max_hp, unit.attack
+					# HPバー（8ブロック）
+					var bar_filled: int = int(hp_ratio * 8)
+					var hp_bar: String = "█".repeat(bar_filled) + "░".repeat(8 - bar_filled)
+					# アクティブバフ略称
+					var buffs: Array = []
+					if unit._atk_bonus > 0:        buffs.append("ATK+%d" % unit._atk_bonus)
+					if unit._interval_bonus > 0.0:  buffs.append("SPD+")
+					if unit._regen > 0.0:           buffs.append("HP回")
+					if unit._damage_reduction > 0:  buffs.append("障壁")
+					if unit._can_attack_from_back:  buffs.append("後列↑")
+					var buff_line: String = (" ".join(buffs)) if not buffs.is_empty() else ""
+					# スキルフラッシュ
+					var flash_line: String = ""
+					if skill_flash_timers[side][r][c] > 0.0:
+						flash_line = "★" + skill_flash_names[side][r][c] + "!"
+					# 組み立て
+					var lines: Array = [
+						"%s%s" % [col_mark, unit.unit_name],
+						"HP %d/%d ATK %d" % [unit.current_hp, unit.max_hp, unit.attack],
+						hp_bar,
 					]
+					if buff_line != "": lines.append(buff_line)
+					if flash_line != "": lines.append(flash_line)
+					lbl.text = "\n".join(lines)
 				else:
 					rect.color = Color(0.11, 0.11, 0.17)
 					lbl.text   = ""
@@ -439,17 +519,61 @@ func _update_next_card() -> void:
 	else:
 		enemy_next_label.text = ""
 
+func _update_deck_counts() -> void:
+	deck_count_label.text    = "自デッキ: %d枚" % deck_manager.deck.size()
+	discard_count_label.text = "捨て札: %d枚" % deck_manager.discard.size()
+	enemy_deck_count_label.text = "敵デッキ: %d枚\n敵捨て札: %d枚" % [
+		enemy_ai.enemy_deck.size(), enemy_ai.enemy_discard.size()
+	]
+
 # ---- シグナルハンドラ ----
 func _on_unit_died(side: int, row: int, col: int) -> void:
 	var side_name: String = "自陣" if side == 0 else "敵陣"
-	# 自陣はcol2=前列なので表示用インデックスに変換
 	var display_col: int = (2 - col) if side == 0 else col
 	var col_names: Array  = ["前列", "中列", "後列"]
 	_add_log("倒 %s %d行%s" % [side_name, row + 1, col_names[display_col]])
 
+func _on_unit_revived(side: int, row: int, col: int) -> void:
+	var unit = board_manager.get_unit(side, row, col)
+	var name: String = unit.unit_name if unit != null else "?"
+	_add_log("[アクティブ] %s の 自己再起 発動（撃破時）HP5で復活" % name)
+	skill_flash_timers[side][row][col] = 1.0
+	skill_flash_names[side][row][col]  = "再起"
+
 func _on_base_damaged(side: int, amount: int) -> void:
 	var side_name: String = "自陣" if side == 0 else "敵陣"
 	_add_log("! %s本体 -%d (残:%d)" % [side_name, amount, base_hp[side]])
+
+func _on_active_skill_used(side: int, row: int, col: int, skill_name: String) -> void:
+	var unit = board_manager.get_unit(side, row, col)
+	var name: String = unit.unit_name if unit != null else "?"
+	_add_log("[アクティブ] %s の %s 発動（命中時）" % [name, skill_name])
+	skill_flash_timers[side][row][col] = 0.6
+	skill_flash_names[side][row][col]  = skill_name
+
+func _log_support_effects() -> void:
+	for side in range(2):
+		for r in range(3):
+			for c in range(3):
+				var unit = board_manager.get_unit(side, r, c)
+				if unit == null: continue
+				for entry in unit.support_effect.split(" / "):
+					if "常時発動" not in entry or "後列攻撃" in entry: continue
+					var bs: int = entry.find("〈")
+					var be: int = entry.find("〉")
+					if bs == -1 or be == -1: continue
+					var parts: Array = entry.substr(bs + 1, be - bs - 1).split("・")
+					var target_desc: String = parts[1] if parts.size() > 1 else ""
+					var targets: Array = board_manager._get_support_targets(side, r, c, target_desc)
+					if targets.is_empty(): continue
+					var eff_name: String = ""
+					if   "ATKバフ"  in entry: eff_name = "ATKバフ +2"
+					elif "SPDバフ"  in entry: eff_name = "SPDバフ -0.3s"
+					elif "HPバフ"   in entry: eff_name = "HPバフ +1/s"
+					elif "障壁付与" in entry: eff_name = "障壁 -1ダメ"
+					if eff_name.is_empty(): continue
+					for t in targets:
+						_add_log("[サポート] %s → %s に %s" % [unit.unit_name, t.unit_name, eff_name])
 
 func _add_log(text: String) -> void:
 	var ms: float = float(Time.get_ticks_msec()) * 0.001
