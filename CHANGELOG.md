@@ -2,6 +2,17 @@
 
 ## [Unreleased]
 
+### CheckAgent: 確認完了・修正なし（2026-04-04）
+- 対象: 吸血・貫通・鎧をバフとして統一管理（常時バフ化）
+- UnitData.gd: `_has_lifesteal` / `_has_penetrate` フィールド追加・clone() に引き継がない OK
+- BoardManager.gd `_do_attack`: 吸血バフでhealイベント、貫通バフで後ろユニットへのダメージイベントを積む OK
+- BoardManager.gd `_do_attack`: 貫通バフのダメージに `_push_on_hit_effects` を呼ばない OK
+- BoardManager.gd `_do_attack`: 貫通バフのダメージに `_damage_reduction` 軽減を適用 OK
+- BoardManager.gd `_push_on_hit_effects`: 吸血・貫通の処理が削除済み OK
+- BoardManager.gd `_apply_support_effects`: `_has_lifesteal` / `_has_penetrate` をfalseにリセット OK
+- BoardManager.gd `_process_unit_support`: 「吸血付与」「貫通付与」でバフ付与 OK
+- BoardManager.gd `_apply_support_effects`: アクティブスキル由来のバフ適用がサポート効果適用ループの後に配置 OK
+
 ### CheckAgent: 修正あり（2026-04-04）
 - 対象: 撃破時アクティブスキル2種（ATK累積・敵SPD低下）実装検証
 - EventQueue.gd "damage" 死亡時: `{"pos": ex, "killer": event["source"]}` 形式 OK
