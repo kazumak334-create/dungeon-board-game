@@ -2,6 +2,23 @@
 
 ## [Unreleased]
 
+### CheckAgent: 確認完了・修正なし（2026-04-04）
+- 対象: 時間経過アクティブスキル5種実装検証
+- UnitData.gd: `_skill_timers: Dictionary = {}`・`_temp_atk_bonus: int = 0`・`_temp_atk_timer: float = 0.0` フィールド追加 OK
+- UnitData.gd: `clone()` にこれら3フィールドの引き継ぎなし OK
+- BoardManager.gd `_do_attack`: `effective_atk = attacker.attack + attacker._atk_bonus + attacker._temp_atk_bonus` OK
+- BoardManager.gd `place_unit`: `_init_skill_timers(placed)` が `_push_summon_effects` の前に呼ばれている OK
+- BoardManager.gd `_init_skill_timers`: "時間経過"を含むエントリのみタイマー初期化 OK
+- BoardManager.gd `_parse_skill_interval`: `marker.length()` で日本語オフセット計算・"s"の位置まで数値抽出 OK
+- BoardManager.gd `_on_status_tick`: `_apply_regen()` → `_process_timed_skills()` → 状態異常処理の順序 OK
+- BoardManager.gd `_process_timed_skills`: `fired` 配列による Dictionary 反復中の変更回避 OK
+- BoardManager.gd `_fire_timed_skill` SPD低下: 同行敵全体に凍結+2スタック OK
+- BoardManager.gd `_fire_timed_skill` 全体回復: `unit.current_hp > hp_cost` 条件・自己ダメージ `"enemy_side": side`（自side） OK
+- BoardManager.gd `_fire_timed_skill` 全体ATK低下: 敵全行に火傷+2スタック OK
+- BoardManager.gd `_fire_timed_skill` ATKバフ: 同行獣ユニットに `_temp_atk_bonus=3`・`_temp_atk_timer=5.0` OK
+- BoardManager.gd `_fire_timed_skill` 単体大ダメージ: 最大current_hp敵1体にATK×3 OK
+- 追加召喚ユニット（`active_skill=""`）はタイマー初期化されないこと OK
+
 ### CheckAgent: 修正あり（2026-04-04）
 - 対象: 召喚時アクティブスキル3種実装（追加召喚・2枚ドロー・最前列突撃）検証
 - BoardManager.gd `draw_cards_requested` シグナル宣言 OK
