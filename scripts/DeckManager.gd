@@ -32,7 +32,7 @@ func _build_default_deck() -> void:
 		"マッドスライム": {
 			"hp": 10, "atk": 2, "interval": 1.0, "cost": 1, "race": "スライム", "range": "1行",
 			"support": "障壁付与〈常時発動・同行前列の味方・物理軽減〉",
-			"active":  "恐怖付与〈命中時・敵ATK低下〉 / SPD低下〈時間経過10s・同行の敵全体〉",
+			"active":  "火傷付与〈命中時・敵ATK低下〉 / SPD低下〈時間経過10s・同行の敵全体〉",
 		},
 		"ブラッドスライム": {
 			"hp": 12, "atk": 4, "interval": 1.5, "cost": 2, "race": "スライム", "range": "1行",
@@ -53,7 +53,7 @@ func _build_default_deck() -> void:
 		"バンシー": {
 			"hp": 10, "atk": 1, "interval": 2.0, "cost": 2, "race": "アンデッド", "range": "上下含む3行",
 			"support": "後列攻撃〈常時発動・全行・極低ATK・命中時効果あり〉 / SPDバフ〈常時発動・同列の味方〉",
-			"active":  "恐怖付与〈命中時・敵ATK低下〉 / 全体ATK低下〈時間経過15s・敵全行〉 / 敵SPD低下〈撃破時・全体30%・30s〉",
+			"active":  "火傷付与〈命中時・敵ATK低下〉 / 全体ATK低下〈時間経過15s・敵全行〉 / 敵SPD低下〈撃破時・全体30%・30s〉",
 		},
 		# ── 獣系 ──
 		"ゴブリン": {
@@ -127,6 +127,20 @@ func process_deck(delta: float, board: Node) -> void:
 	if mana < top.cost:
 		return  # マナが足りるまで先頭で待機
 	mana -= top.cost
+	deck.remove_at(0)
+	board.place_unit(0, top)
+	emit_signal("card_played", top)
+	discard.append(top)
+
+func force_play_card(board: Node) -> void:
+	# 2枚ドロー等で呼ばれる：マナ不要・タイマー無視で先頭カードを即配置
+	if deck.is_empty():
+		if discard.is_empty():
+			return
+		deck = discard.duplicate()
+		discard.clear()
+		deck.shuffle()
+	var top = deck[0]
 	deck.remove_at(0)
 	board.place_unit(0, top)
 	emit_signal("card_played", top)

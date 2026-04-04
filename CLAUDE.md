@@ -30,8 +30,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - CLAUDE.md更新・ドキュメントのみの変更はchecker不要
 
 ### 現在のフェーズ
-Phase 1・2.5合目
-次のマイルストーン：効果システム・チェーン処理完成（3合目）
+Phase 1・3合目
+次のマイルストーン：撃破時スキル・呪文システム（4合目）
 
 ## Running the Game
 

@@ -28,7 +28,7 @@ func _build_enemy_deck() -> void:
 		"マッドスライム": {
 			"hp": 10, "atk": 2, "interval": 1.0, "cost": 1, "race": "スライム", "range": "1行",
 			"support": "障壁付与〈常時発動・同行前列の味方・物理軽減〉",
-			"active":  "恐怖付与〈命中時・敵ATK低下〉 / SPD低下〈時間経過10s・同行の敵全体〉",
+			"active":  "火傷付与〈命中時・敵ATK低下〉 / SPD低下〈時間経過10s・同行の敵全体〉",
 		},
 		"ブラッドスライム": {
 			"hp": 12, "atk": 4, "interval": 1.5, "cost": 2, "race": "スライム", "range": "1行",
@@ -49,7 +49,7 @@ func _build_enemy_deck() -> void:
 		"バンシー": {
 			"hp": 10, "atk": 1, "interval": 2.0, "cost": 2, "race": "アンデッド", "range": "上下含む3行",
 			"support": "後列攻撃〈常時発動・全行・極低ATK・命中時効果あり〉 / SPDバフ〈常時発動・同列の味方〉",
-			"active":  "恐怖付与〈命中時・敵ATK低下〉 / 全体ATK低下〈時間経過15s・敵全行〉 / 敵SPD低下〈撃破時・全体30%・30s〉",
+			"active":  "火傷付与〈命中時・敵ATK低下〉 / 全体ATK低下〈時間経過15s・敵全行〉 / 敵SPD低下〈撃破時・全体30%・30s〉",
 		},
 		# ── 獣系 ──
 		"ゴブリン": {
@@ -110,6 +110,20 @@ func _pick_next_card() -> void:
 		enemy_discard.clear()
 		enemy_deck.shuffle()
 	next_card = enemy_deck[0]  # 山札先頭を次の召喚カードとして確定
+
+func force_play_card(board: Node) -> void:
+	# 2枚ドロー等で呼ばれる：マナ不要・タイマー無視で先頭カードを即配置
+	if enemy_deck.is_empty():
+		if enemy_discard.is_empty():
+			return
+		enemy_deck = enemy_discard.duplicate()
+		enemy_discard.clear()
+		enemy_deck.shuffle()
+	var top = enemy_deck[0]
+	enemy_deck.remove_at(0)
+	board.place_unit(1, top)
+	enemy_discard.append(top)
+	_pick_next_card()
 
 func get_next_card() -> Object:
 	return next_card

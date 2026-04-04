@@ -23,6 +23,21 @@ var _back_atk_factor: float = 1.0
 var _damage_reduction: int = 0
 # アクティブスキル状態（永続・cloneには引き継がない）
 var _has_revived: bool = false
+var _first_attack: bool = true  # クリティカル用：初撃フラグ
+# 状態異常（Timerノードで1秒ごとに管理・cloneには引き継がない）
+var poison_stacks:    int = 0  # 毒: 毎秒スタック数分ダメージ（線形）
+var frozen_turns:     int = 0  # 凍結: 攻撃速度低下（逓減・最大80%）
+var burn_turns:       int = 0  # 火傷: ATK低下（逓減・最大80%）
+var paralysis_turns:  int = 0  # 麻痺: 行動不能
+# 時間経過スキル（cloneには引き継がない）
+var _skill_timers: Dictionary = {}  # {entry文字列: 残り秒数}
+var _temp_atk_bonus: int = 0        # 一時ATKバフ（時間経過スキル用）
+var _temp_atk_timer: float = 0.0    # 一時ATKバフ残り時間
+var _temp_spd_bonus: float = 0.0    # 一時SPDバフ（攻撃間隔短縮）
+var _temp_spd_timer: float = 0.0    # 一時SPDバフ残り時間
+# HP閾値スキル（cloneには引き継がない）
+var _hp_threshold_triggered: Dictionary = {}  # {entry: true} 発動済みフラグ
+var _invincible_timer: float = 0.0            # 結晶化：無敵残り時間
 
 func is_alive() -> bool:
 	return current_hp > 0

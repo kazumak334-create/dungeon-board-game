@@ -83,6 +83,7 @@ func _ready() -> void:
 	board_manager.active_skill_used.connect(_on_active_skill_used)
 	board_manager.status_damage.connect(_on_status_damage)
 	board_manager.status_cleared.connect(_on_status_cleared)
+	board_manager.draw_cards_requested.connect(_on_draw_cards_requested)
 
 	deck_manager = Node.new()
 	deck_manager.set_script(DeckManagerScript)
@@ -477,10 +478,13 @@ func _render_cell(side: int, r: int, c: int) -> void:
 		if unit._regen > 0.0:           buffs.append("HP回")
 		if unit._damage_reduction > 0:  buffs.append("障壁")
 		if unit._can_attack_from_back:  buffs.append("後列↑")
-		if unit.fear_turns > 0:         buffs.append("恐怖%d" % unit.fear_turns)
+		if unit.burn_turns > 0:         buffs.append("火傷%d" % unit.burn_turns)
 		if unit.frozen_turns > 0:       buffs.append("凍結%d" % unit.frozen_turns)
-		if unit.stun_turns > 0:         buffs.append("石化%d" % unit.stun_turns)
+		if unit.paralysis_turns > 0:    buffs.append("麻痺%d" % unit.paralysis_turns)
 		if unit.poison_stacks > 0:      buffs.append("毒%d" % unit.poison_stacks)
+		if unit._invincible_timer > 0.0: buffs.append("無敵")
+		if unit._temp_atk_bonus > 0:    buffs.append("ATK↑%d" % unit._temp_atk_bonus)
+		if unit._temp_spd_bonus > 0.0:  buffs.append("SPD↑")
 		var buff_line: String = (" ".join(buffs)) if not buffs.is_empty() else ""
 		# スキルフラッシュ
 		var flash_line: String = ""
@@ -631,6 +635,13 @@ func _on_status_damage(unit_name: String, status: String, damage: int, stacks: i
 
 func _on_status_cleared(unit_name: String, status: String) -> void:
 	_add_log("[状態解除] %s の %s が解除" % [unit_name, status])
+
+func _on_draw_cards_requested(side: int, count: int) -> void:
+	for i in range(count):
+		if side == 0:
+			deck_manager.force_play_card(board_manager)
+		else:
+			enemy_ai.force_play_card(board_manager)
 
 func _add_log(text: String) -> void:
 	var ms: float = float(Time.get_ticks_msec()) * 0.001

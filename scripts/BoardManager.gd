@@ -18,6 +18,7 @@ signal active_skill_used(side: int, row: int, col: int, skill_name: String)
 signal status_damage(unit_name: String, status: String, damage: int, stacks: int)
 signal status_applied(unit_name: String, status: String, stacks: int)
 signal status_cleared(unit_name: String, status: String)
+signal draw_cards_requested(side: int, count: int)
 
 func _ready() -> void:
 	_setup()
@@ -56,6 +57,8 @@ func place_unit(side: int, unit_data: Object) -> bool:
 				var front_col: int = 2 if side == 0 else 0
 				event_queue.push(EventQueue.PRIORITY_BOARD, null, null, "promote_check", 0.0,
 					{"side": side, "row": row, "col": front_col})
+			_init_skill_timers(placed)
+			_push_summon_effects(side, row, col, placed)
 			return true
 	print("[BoardManager] 配置失敗: side=%d col=%d は満杯" % [side, col])
 	return false
@@ -108,7 +111,7 @@ func process_combat(delta: float, base_hp: Array) -> void:
 				if unit.frozen_turns > 0:
 					var freeze_reduction: float = 0.8 * float(unit.frozen_turns) / float(unit.frozen_turns + 2)
 					freeze_penalty = unit.attack_interval * freeze_reduction
-				var eff_interval: float = max(0.3, unit.attack_interval - unit._interval_bonus + freeze_penalty)
+				var eff_interval: float = max(0.3, unit.attack_interval - unit._interval_bonus - unit._temp_spd_bonus + freeze_penalty)
 				attack_timers[side][row][front_col] = eff_interval
 				_do_attack(side, row, front_col, unit, enemy_side, base_hp)
 
@@ -128,7 +131,7 @@ func process_combat(delta: float, base_hp: Array) -> void:
 				if unit.frozen_turns > 0:
 					var freeze_reduction: float = 0.8 * float(unit.frozen_turns) / float(unit.frozen_turns + 2)
 					freeze_penalty = unit.attack_interval * freeze_reduction
-				var eff_interval: float = max(0.3, unit.attack_interval - unit._interval_bonus + freeze_penalty)
+				var eff_interval: float = max(0.3, unit.attack_interval - unit._interval_bonus - unit._temp_spd_bonus + freeze_penalty)
 				attack_timers[side][row][back_col] = eff_interval
 				var back_atk: int = max(1, int(unit.attack * unit._back_atk_factor) + unit._atk_bonus)
 				_do_attack(side, row, back_col, unit, enemy_side, base_hp, back_atk)
@@ -138,7 +141,7 @@ func process_combat(delta: float, base_hp: Array) -> void:
 		event_queue.flush(self, base_hp)
 
 func _do_attack(side: int, row: int, col: int, attacker: Object, enemy_side: int, base_hp: Array, atk_override: int = -1) -> void:
-	var effective_atk: int = atk_override if atk_override >= 0 else attacker.attack + attacker._atk_bonus
+	var effective_atk: int = atk_override if atk_override >= 0 else attacker.attack + attacker._atk_bonus + attacker._temp_atk_bonus
 	# 火傷中はATK低下（逓減・最大80%）: reduction = 0.8 * stacks / (stacks + 2)
 	if attacker.burn_turns > 0:
 		var burn_reduction: float = 0.8 * float(attacker.burn_turns) / float(attacker.burn_turns + 2)
@@ -253,6 +256,25 @@ func _push_on_hit_effects(side: int, row: int, col: int, attacker: Object, targe
 						{"enemy_side": enemy_side, "row": adj_row, "col": adj_col}
 					)
 			active_skill_used.emit(side, row, col, "連鎖")
+
+func _push_summon_effects(side: int, row: int, col: int, unit: Object) -> void:
+	if event_queue == null:
+		return
+	for entry in unit.active_skill.split(" / "):
+		if "召喚時" not in entry:
+			continue
+		if "追加召喚" in entry:
+			event_queue.push(EventQueue.PRIORITY_ACTIVE, unit, null, "extra_summon", 0.0,
+				{"side": side, "row": row, "col": col})
+		if "ドロー" in entry:
+			var count: int = 2 if "2枚" in entry else 1
+			event_queue.push(EventQueue.PRIORITY_ACTIVE, unit, null, "draw_cards", float(count),
+				{"side": side, "src_side": side, "src_row": row, "src_col": col,
+				 "skill_name": "2枚ドロー"})
+		if "最前列" in entry and "突撃" in entry:
+			event_queue.push(EventQueue.PRIORITY_ACTIVE, unit, null, "force_move_front", 0.0,
+				{"side": side, "row": row, "col": col,
+				 "src_side": side, "src_row": row, "src_col": col, "skill_name": "最前列突撃"})
 
 func _try_promote(side: int, row: int, col: int) -> void:
 	var front_col: int = 2 if side == 0 else 0
@@ -421,6 +443,10 @@ func _on_status_tick() -> void:
 		return
 	# HP回復（サポート効果の _regen を1秒ごとに適用）
 	_apply_regen()
+	# 時間経過スキル処理
+	_process_timed_skills()
+	# HP閾値スキルチェック
+	_check_hp_thresholds()
 	# 状態異常処理
 	for s in range(2):
 		for r in range(3):
@@ -441,12 +467,11 @@ func _on_status_tick() -> void:
 					if val > 0:
 						u.set(status_pair[0], val - 1)
 						if val - 1 == 0:
-							# status_clear イベントを PRIORITY_STATUS でキューに積む
 							event_queue.push(
 								EventQueue.PRIORITY_STATUS, null, u, "status_clear", 0.0,
 								{"unit_name": u.unit_name, "status": status_pair[1]}
 							)
-	# Timer ティックで flush（regen + 毒ダメージをまとめて処理）
+	# Timer ティックで flush（regen + 毒 + 時間経過スキルをまとめて処理）
 	event_queue.flush(self, base_hp_ref)
 
 func _apply_regen() -> void:
@@ -460,3 +485,179 @@ func _apply_regen() -> void:
 						null, u, "heal", float(roundi(u._regen)),
 						{"src_side": s, "src_row": r, "src_col": c}
 					)
+
+# ---- 時間経過スキルシステム ----
+
+func _init_skill_timers(unit: Object) -> void:
+	unit._skill_timers.clear()
+	for entry in unit.active_skill.split(" / "):
+		if "時間経過" not in entry:
+			continue
+		var interval: float = _parse_skill_interval(entry)
+		if interval > 0.0:
+			unit._skill_timers[entry] = interval
+
+func _parse_skill_interval(entry: String) -> float:
+	var marker: String = "時間経過"
+	var idx: int = entry.find(marker)
+	if idx == -1:
+		return 0.0
+	var after: int = idx + marker.length()
+	var s_idx: int = entry.find("s", after)
+	if s_idx == -1:
+		return 0.0
+	return float(entry.substr(after, s_idx - after))
+
+func _process_timed_skills() -> void:
+	for s in range(2):
+		for r in range(3):
+			for c in range(3):
+				var u = board[s][r][c]
+				if u == null:
+					continue
+				# 一時バフ減衰
+				if u._temp_atk_timer > 0.0:
+					u._temp_atk_timer -= 1.0
+					if u._temp_atk_timer <= 0.0:
+						u._temp_atk_bonus = 0
+				if u._temp_spd_timer > 0.0:
+					u._temp_spd_timer -= 1.0
+					if u._temp_spd_timer <= 0.0:
+						u._temp_spd_bonus = 0.0
+				if u._invincible_timer > 0.0:
+					u._invincible_timer -= 1.0
+				# 時間経過スキルタイマー
+				if u._skill_timers.is_empty():
+					continue
+				var fired: Array = []
+				for entry in u._skill_timers:
+					u._skill_timers[entry] -= 1.0
+					if u._skill_timers[entry] <= 0.0:
+						fired.append(entry)
+				for entry in fired:
+					_fire_timed_skill(s, r, c, u, entry)
+					u._skill_timers[entry] = _parse_skill_interval(entry)
+
+func _fire_timed_skill(side: int, row: int, col: int, unit: Object, entry: String) -> void:
+	var enemy_side: int = 1 - side
+	# SPD低下（同行の敵全体に凍結付与）
+	if "SPD低下" in entry:
+		for c2 in range(3):
+			var target = board[enemy_side][row][c2]
+			if target != null and target.is_alive():
+				event_queue.push(EventQueue.PRIORITY_ACTIVE, unit, target, "status_apply", 0.0,
+					{"status": "凍結", "stacks": 2, "side": enemy_side, "row": row, "col": c2,
+					 "src_side": side, "src_row": row, "src_col": col, "skill_name": "SPD低下"})
+		active_skill_used.emit(side, row, col, "SPD低下")
+	# 全体回復（自HP20%消費→全味方HP+10）
+	elif "全体回復" in entry:
+		var hp_cost: int = max(1, unit.max_hp / 5)
+		if unit.current_hp > hp_cost:
+			event_queue.push(EventQueue.PRIORITY_ACTIVE, unit, unit, "damage", float(hp_cost),
+				{"enemy_side": side, "row": row, "col": col})
+			for r2 in range(3):
+				for c2 in range(3):
+					var ally = board[side][r2][c2]
+					if ally != null and ally.is_alive():
+						event_queue.push(EventQueue.PRIORITY_ACTIVE, unit, ally, "heal", 10.0,
+							{"src_side": side, "src_row": row, "src_col": col, "skill_name": "全体回復"})
+	# 全体ATK低下（敵全行に火傷付与）
+	elif "全体ATK低下" in entry:
+		for r2 in range(3):
+			for c2 in range(3):
+				var target = board[enemy_side][r2][c2]
+				if target != null and target.is_alive():
+					event_queue.push(EventQueue.PRIORITY_ACTIVE, unit, target, "status_apply", 0.0,
+						{"status": "火傷", "stacks": 2, "side": enemy_side, "row": r2, "col": c2,
+						 "src_side": side, "src_row": row, "src_col": col, "skill_name": "全体ATK低下"})
+		active_skill_used.emit(side, row, col, "全体ATK低下")
+	# ATKバフ（同行の獣全員ATK+3・5秒間）
+	elif "ATKバフ" in entry:
+		for c2 in range(3):
+			var ally = board[side][row][c2]
+			if ally != null and ally.is_alive() and ally.race == "獣":
+				ally._temp_atk_bonus = 3
+				ally._temp_atk_timer = 5.0
+		active_skill_used.emit(side, row, col, "ATKバフ")
+	# 単体大ダメージ（最大HP敵1体にATK×3）
+	elif "単体大ダメージ" in entry:
+		var best_target: Object = null
+		var best_info: Dictionary = {}
+		for r2 in range(3):
+			for c2 in range(3):
+				var target = board[enemy_side][r2][c2]
+				if target != null and target.is_alive():
+					if best_target == null or target.current_hp > best_target.current_hp:
+						best_target = target
+						best_info = {"enemy_side": enemy_side, "row": r2, "col": c2}
+		if best_target != null:
+			var big_dmg: int = unit.attack * 3
+			event_queue.push(EventQueue.PRIORITY_ACTIVE, unit, best_target, "damage", float(big_dmg),
+				best_info)
+			active_skill_used.emit(side, row, col, "単体大ダメージ")
+
+# ---- HP閾値スキルシステム ----
+
+func _check_hp_thresholds() -> void:
+	for s in range(2):
+		for r in range(3):
+			for c in range(3):
+				var u = board[s][r][c]
+				if u == null or not u.is_alive():
+					continue
+				for entry in u.active_skill.split(" / "):
+					if "HP閾値時" not in entry:
+						continue
+					if u._hp_threshold_triggered.get(entry, false):
+						continue  # 既に発動済み
+					var threshold: float = _parse_hp_threshold(entry)
+					if threshold <= 0.0:
+						continue
+					var hp_ratio: float = float(u.current_hp) / float(u.max_hp)
+					if hp_ratio <= threshold:
+						u._hp_threshold_triggered[entry] = true
+						_fire_hp_threshold_skill(s, r, c, u, entry)
+
+func _parse_hp_threshold(entry: String) -> float:
+	# "HP30%以下" → 0.3, "HP50%以下" → 0.5
+	var idx: int = entry.find("HP")
+	if idx == -1:
+		return 0.0
+	var after: int = idx + 2  # "HP" = 2 chars
+	var pct_idx: int = entry.find("%", after)
+	if pct_idx == -1:
+		return 0.0
+	return float(entry.substr(after, pct_idx - after)) / 100.0
+
+func _fire_hp_threshold_skill(side: int, row: int, col: int, unit: Object, entry: String) -> void:
+	# 後退（後列に自動退避）
+	if "後退" in entry:
+		var back_col: int = 0 if side == 0 else 2
+		if col != back_col and board[side][row][back_col] == null:
+			board[side][row][back_col] = unit
+			attack_timers[side][row][back_col] = unit.attack_interval
+			board[side][row][col] = null
+			attack_timers[side][row][col] = 0.0
+			on_board_changed()
+			active_skill_used.emit(side, row, back_col, "後退")
+	# 結晶化（完全無敵3s）
+	elif "結晶化" in entry:
+		unit._invincible_timer = 3.0
+		active_skill_used.emit(side, row, col, "結晶化")
+	# 前列強制突撃
+	elif "前列強制突撃" in entry:
+		var front_col: int = 2 if side == 0 else 0
+		if col != front_col and board[side][row][front_col] == null:
+			board[side][row][front_col] = unit
+			attack_timers[side][row][front_col] = unit.attack_interval
+			board[side][row][col] = null
+			attack_timers[side][row][col] = 0.0
+			on_board_changed()
+			active_skill_used.emit(side, row, front_col, "前列強制突撃")
+	# ATK/SPD2倍（10秒間）
+	elif "2倍" in entry:
+		unit._temp_atk_bonus = unit.attack  # ATK2倍 = 現ATK分を加算
+		unit._temp_atk_timer = 10.0
+		unit._temp_spd_bonus = unit.attack_interval * 0.5  # 攻撃間隔半減
+		unit._temp_spd_timer = 10.0
+		active_skill_used.emit(side, row, col, "ATK/SPD2倍")

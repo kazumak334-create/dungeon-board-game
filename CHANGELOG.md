@@ -2,22 +2,41 @@
 
 ## [Unreleased]
 
-### CheckAgent: 確認完了・修正なし（2026-04-04）
-- 対象: HP閾値アクティブスキルフレームワーク＋4スキル実装検証
-- UnitData.gd: `_hp_threshold_triggered: Dictionary = {}`・`_invincible_timer: float = 0.0`・`_temp_spd_bonus: float = 0.0`・`_temp_spd_timer: float = 0.0` フィールド追加 OK
-- UnitData.gd: clone() にこれら4フィールドの引き継ぎなし OK
-- EventQueue.gd "damage" ハンドラ: `_invincible_timer > 0.0` チェックで無敵中ダメージ無効 OK
-- EventQueue.gd "poison_damage" ハンドラ: `_invincible_timer` チェックなし（毒は無敵貫通）OK
-- BoardManager.gd process_combat 前列: `attack_interval - _interval_bonus - _temp_spd_bonus + freeze_penalty` OK
-- BoardManager.gd process_combat 後列: 同上 OK
-- BoardManager.gd `_on_status_tick`: `_process_timed_skills()` → `_check_hp_thresholds()` の順序 OK
-- BoardManager.gd `_process_timed_skills`: `_temp_spd_timer` 減衰・0以下で `_temp_spd_bonus = 0.0` リセット OK
-- BoardManager.gd `_process_timed_skills`: `_invincible_timer` 減衰 OK
-- BoardManager.gd `_check_hp_thresholds`: `_hp_threshold_triggered[entry] = true` で1回限り発動保証 OK
-- BoardManager.gd `_parse_hp_threshold`: `idx + 2` で "HP" をスキップ・"%" までの数値抽出 OK
-- BoardManager.gd `_fire_hp_threshold_skill` 後退: side 0=col 0, side 1=col 2 OK
-- BoardManager.gd `_fire_hp_threshold_skill` 結晶化: `_invincible_timer = 3.0` OK
-- BoardManager.gd `_fire_hp_threshold_skill` 前列強制突撃: side 0=col 2, side 1=col 0 OK
+### Added — アクティブスキル全面実装（効果システム完成・3合目到達）
+
+#### 命中時スキル拡張
+- **クリティカル**（タイガー）: 初撃ATK×2、`_first_attack` フラグで配置ごとにリセット
+- **貫通**: 前列ヒット後、後列ユニットにも50%ダメージ（`_get_behind_col` ヘルパー追加）
+- **連鎖**: 隣接行の最前列敵に50%ダメージ波及（`_get_adjacent_rows` ヘルパー追加）
+- **凍結付与**: 凍結+3スタック付与
+- **麻痺付与**: 麻痺+1スタック付与
+- 複合スキル対応: `elif` → `if` に変更し「連鎖＋毒付与」等で両方発動
+
+#### 召喚時スキル
+- **追加召喚**（アメーバ）: 隣接空きマスに同種1体配置（連鎖防止: clone の active_skill を空に）
+- **2枚ドロー**（ゴブリン）: マナ不要で即座に2枚プレイ（`force_play_card` 追加）
+- **最前列突撃**（タイガー）: 配置後に前列へ強制移動
+- EventQueue に `extra_summon` / `draw_cards` / `force_move_front` ハンドラ追加
+- BoardManager に `draw_cards_requested` シグナル追加
+
+#### 時間経過スキル
+- **SPD低下**（マッドスライム・10s）: 同行敵全体に凍結+2スタック
+- **全体回復**（ブラッドスライム・20s）: 自HP20%消費→全味方HP+10
+- **全体ATK低下**（バンシー・15s）: 敵全行に火傷+2スタック
+- **ATKバフ**（ウルフ・10s）: 同行獣全員ATK+3（5秒間）
+- **単体大ダメージ**（タイガー・20s）: 最大HP敵1体にATK×3
+- `_skill_timers` 辞書で配置時に自動初期化、毎秒減算・発火・リセット（繰り返し発動）
+- `_temp_atk_bonus` / `_temp_atk_timer` で一時バフの減衰管理
+
+#### HP閾値スキル
+- **後退**（HP30%以下）: 後列に自動退避
+- **結晶化**（HP50%以下）: 完全無敵3秒（毒は貫通）
+- **前列強制突撃**（HP50%以下）: 前列に強制移動
+- **ATK/SPD2倍**（HP50%以下）: ATK2倍＋攻撃速度2倍（10秒間）
+- `_hp_threshold_triggered` で1回限り発動保証
+- `_invincible_timer` で無敵管理（EventQueue の damage ハンドラで判定）
+- `_temp_spd_bonus` / `_temp_spd_timer` で一時SPDバフ管理
+- UI表示に「無敵」「ATK↑N」「SPD↑」を追加
 - BoardManager.gd `_fire_hp_threshold_skill` ATK/SPD2倍: `_temp_atk_bonus=unit.attack`・`_temp_atk_timer=10.0`・`_temp_spd_bonus=attack_interval*0.5`・`_temp_spd_timer=10.0` OK
 - Main.gd: 「無敵」「ATK↑N」「SPD↑」のUI表示 OK
 

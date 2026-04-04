@@ -77,6 +77,9 @@ func flush(board_manager: Node, base_hp: Array) -> void:
 					var tgt = event["target"]
 					if tgt == null or not tgt.is_alive():
 						continue
+					# 無敵中はダメージ無効
+					if tgt._invincible_timer > 0.0:
+						continue
 					# ループ防止：同フラッシュ内に既に damage を受けたユニットはスキップ
 					var tid: int = tgt.get_instance_id()
 					if tid in _damaged_ids:
