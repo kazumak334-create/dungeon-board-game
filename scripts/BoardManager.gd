@@ -161,13 +161,6 @@ func _do_attack(side: int, row: int, col: int, attacker: Object, enemy_side: int
 			{"side": enemy_side}
 		)
 
-func _get_lifesteal_pct(active_skill: String) -> float:
-	for entry in active_skill.split(" / "):
-		if "吸血" in entry and "命中時" in entry:
-			if "30%" in entry: return 0.30
-			if "25%" in entry: return 0.25
-	return 0.0
-
 func _push_on_hit_effects(side: int, row: int, col: int, attacker: Object, target: Object,
 		enemy_side: int, target_row: int, target_col: int, damage: int) -> void:
 	for entry in attacker.active_skill.split(" / "):

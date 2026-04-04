@@ -26,6 +26,8 @@
 - `_render_cell()` に状態異常（恐怖・凍結・石化・毒）のスタック数表示を追加
 
 ### Added
+- **CheckAgent相当の確認実施**: `_get_lifesteal_pct` が `_push_on_hit_effects` 移行後に未使用のまま残存 → 削除
+
 - **マルチエージェント体制を構築**
   - `.claude/agents/checker.md` を新規作成。実装完了後に呼び出す CheckAgent を定義
   - `CLAUDE.md` 冒頭に「エージェント運用ルール」セクションを追加。コード変更を伴う全実装でchecker必須のフローを明記
