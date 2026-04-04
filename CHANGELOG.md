@@ -3,6 +3,31 @@
 ## [Unreleased]
 
 ### CheckAgent: 確認完了・修正なし（2026-04-04）
+- 対象: 呪文カードシステム基盤（Phase 1）+ 基本呪文3枚（Phase 2）
+- UnitData.gd: card_type / spell_id / spell_target / spell_effect / is_consumable フィールド追加 OK
+- UnitData.gd: clone() で5フィールドをコピー OK
+- SpellExecutor.gd（新規）: class_name SpellExecutor extends RefCounted OK
+- SpellExecutor.gd: execute() が `not spell.is_consumable` を返す（true=捨て札/false=消滅）OK
+- SpellExecutor.gd: 基本呪文3枚（召喚加速・生命の雫・盤面強化）実装 OK
+- SpellExecutor.gd: board_manager.spell_cast.emit(side, spell.spell_id) 呼び出し OK
+- SpellExecutor.gd: EventQueue.PRIORITY_ACTIVE 等の定数参照 OK
+- DeckManager.gd: spell_executor / enemy_ai_ref / _cost_reduction_remaining フィールド追加 OK
+- DeckManager.gd: spell_pool 定義・spell_list 3枚追加（ユニット9枚+呪文3枚=12枚）OK
+- DeckManager.gd: process_deck で card_type 分岐（unit/spell/status_spell）OK
+- DeckManager.gd: status_spell は捨て札に行かない OK
+- DeckManager.gd: force_play_card で card_type 分岐 OK
+- DeckManager.gd: _cost_reduction_remaining による 1 コスト軽減処理 OK
+- EnemyAI.gd: spell_executor / deck_manager_ref フィールド追加 OK
+- EnemyAI.gd: process_ai で mana チェック後に card_type 分岐 OK
+- EnemyAI.gd: force_play_card で card_type 分岐 OK
+- Main.gd: SpellExecutorScript preload OK
+- Main.gd: SpellExecutor インスタンス化・DeckManager/EnemyAI へ注入 OK
+- Main.gd: spell_cast シグナル接続 + _on_spell_cast ハンドラ（ログ出力）OK
+- Main.gd: 次カードパネルで呪文時に【呪文】プレフィックス・紫色・spell_effect 表示 OK
+- Main.gd: 呪文カード時に HP/ATK/配置列を表示しない OK
+- BoardManager.gd: spell_cast シグナル定義 OK
+
+### CheckAgent: 確認完了・修正なし（2026-04-04）
 - 対象: 吸血・貫通・鎧をバフとして統一管理（常時バフ化）
 - UnitData.gd: `_has_lifesteal` / `_has_penetrate` フィールド追加・clone() に引き継がない OK
 - BoardManager.gd `_do_attack`: 吸血バフでhealイベント、貫通バフで後ろユニットへのダメージイベントを積む OK
