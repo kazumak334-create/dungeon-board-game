@@ -3,6 +3,8 @@
 ## [Unreleased]
 
 ### Added
+- **EventQueue コメント修正**: effect_type 一覧に `"poison_damage"` を追記（実装済みだが未記載だった）
+
 - **EventQueue 最適化・状態異常システム完成** (`BoardManager.gd`, `EventQueue.gd`, `Main.gd`)
   - **サポート効果の再計算を盤面変化時のみに限定**: `_board_dirty` フラグ + `on_board_changed()` で毎フレーム呼び出しを廃止。place_unit/remove_unit/promote 時のみ再計算
   - **状態異常管理を Timer ノードに移行**: `_status_timer`（1秒ごと）で poison_stacks ダメージ・frozen/fear/stun カウントダウンを処理。毎フレームのスタックチェックを廃止

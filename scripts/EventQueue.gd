@@ -17,7 +17,7 @@ const PRIORITY_MERGE     = 7  # 合体判定・位置変化
 #   priority:    int,
 #   source:      Object,     # 発生源ユニット（null 可）
 #   target:      Object,     # 対象ユニット（null 可）
-#   effect_type: String,     # "damage" / "heal" / "base_damage"
+#   effect_type: String,     # "damage" / "poison_damage" / "heal" / "base_damage"
 #   value:       float,
 #   extra:       Dictionary, # 追加情報（位置など）
 #   timestamp:   float,
