@@ -8,6 +8,7 @@ var event_queue: Node = null   # EventQueue（Main.gd が設定）
 var base_hp_ref: Array = []    # Main.gd の base_hp への参照（Timer tick 用）
 var _board_dirty: bool = true  # true のときのみサポート効果を再計算
 var _status_timer: Timer = null
+var _regen_tick: int = 0       # リジェネ用：2秒ごとにカウント
 
 signal unit_placed(side: int, row: int, col: int, unit: Object)
 signal unit_died(side: int, row: int, col: int)
@@ -19,6 +20,7 @@ signal status_damage(unit_name: String, status: String, damage: int, stacks: int
 signal status_applied(unit_name: String, status: String, stacks: int)
 signal status_cleared(unit_name: String, status: String)
 signal draw_cards_requested(side: int, count: int)
+signal spell_cast(side: int, spell_name: String)
 
 func _ready() -> void:
 	_setup()
@@ -169,6 +171,27 @@ func _do_attack(side: int, row: int, col: int, attacker: Object, enemy_side: int
 					attacker, target, "damage", float(actual_damage),
 					{"enemy_side": enemy_side, "row": target_row, "col": target_col}
 				)
+				# 吸血バフ：ダメージの30%をHP回復
+				if attacker._has_lifesteal:
+					var heal: int = max(1, int(actual_damage * 0.3))
+					event_queue.push(
+						EventQueue.PRIORITY_ACTIVE,
+						target, attacker, "heal", float(heal),
+						{"src_side": side, "src_row": row, "src_col": col, "skill_name": "吸血"}
+					)
+				# 貫通バフ：後ろ1マスにも同量ダメージ（攻撃時効果なし）
+				if attacker._has_penetrate:
+					var behind_col: int = _get_behind_col(enemy_side, target_row, target_col)
+					if behind_col != -1:
+						var behind_target = board[enemy_side][target_row][behind_col]
+						if behind_target != null:
+							var pen_dmg: int = max(0, actual_damage - behind_target._damage_reduction)
+							if pen_dmg > 0:
+								event_queue.push(
+									EventQueue.PRIORITY_IMMEDIATE,
+									attacker, behind_target, "damage", float(pen_dmg),
+									{"enemy_side": enemy_side, "row": target_row, "col": behind_col}
+								)
 				# 命中時アクティブスキル（PRIORITY_ACTIVE）
 				_push_on_hit_effects(side, row, col, attacker, target,
 					enemy_side, target_row, target_col, actual_damage)
@@ -187,18 +210,6 @@ func _push_on_hit_effects(side: int, row: int, col: int, attacker: Object, targe
 	for entry in attacker.active_skill.split(" / "):
 		if "命中時" not in entry:
 			continue
-		# 吸血（PRIORITY_ACTIVE：ダメージ確定後に回復）
-		if "吸血" in entry:
-			var pct: float = 0.0
-			if "30%" in entry: pct = 0.30
-			elif "25%" in entry: pct = 0.25
-			if pct > 0.0:
-				var heal: int = max(1, int(damage * pct))
-				event_queue.push(
-					EventQueue.PRIORITY_ACTIVE,
-					target, attacker, "heal", float(heal),
-					{"src_side": side, "src_row": row, "src_col": col, "skill_name": "吸血"}
-				)
 		# 火傷付与（PRIORITY_ACTIVE）
 		if "火傷付与" in entry:
 			event_queue.push(
@@ -231,18 +242,6 @@ func _push_on_hit_effects(side: int, row: int, col: int, attacker: Object, targe
 				{"status": "麻痺", "stacks": 1, "side": enemy_side, "row": target_row, "col": target_col,
 				 "src_side": side, "src_row": row, "src_col": col, "skill_name": "麻痺付与"}
 			)
-		# 貫通（PRIORITY_ACTIVE：前列の後ろにも50%ダメージ）
-		if "貫通" in entry:
-			var behind_col: int = _get_behind_col(enemy_side, target_row, target_col)
-			if behind_col != -1:
-				var behind_target = board[enemy_side][target_row][behind_col]
-				var pen_damage: int = max(1, damage / 2)
-				event_queue.push(
-					EventQueue.PRIORITY_ACTIVE,
-					attacker, behind_target, "damage", float(pen_damage),
-					{"enemy_side": enemy_side, "row": target_row, "col": behind_col}
-				)
-				active_skill_used.emit(side, row, col, "貫通")
 		# 連鎖（PRIORITY_ACTIVE：隣接行の敵に50%ダメージ波及）
 		if "連鎖" in entry:
 			var chain_damage: int = max(1, damage / 2)
@@ -349,6 +348,9 @@ func _apply_support_effects() -> void:
 					u._can_attack_from_back = false
 					u._back_atk_factor = 1.0
 					u._damage_reduction = 0
+					u._has_lifesteal = false
+					u._has_penetrate = false
+					u._regen_stacks = 0
 	# 各ユニットのサポート効果を適用
 	for s in range(2):
 		for r in range(3):
@@ -356,6 +358,17 @@ func _apply_support_effects() -> void:
 				var u = board[s][r][c]
 				if u != null:
 					_process_unit_support(s, r, c, u)
+	# アクティブスキル由来のバフ（吸血・貫通は常時バフとして処理）
+	for s in range(2):
+		for r in range(3):
+			for c in range(3):
+				var u = board[s][r][c]
+				if u == null:
+					continue
+				if "吸血" in u.active_skill:
+					u._has_lifesteal = true
+				if "貫通" in u.active_skill:
+					u._has_penetrate = true
 
 func _process_unit_support(side: int, row: int, col: int, unit: Object) -> void:
 	for entry in unit.support_effect.split(" / "):
@@ -386,6 +399,15 @@ func _process_unit_support(side: int, row: int, col: int, unit: Object) -> void:
 		elif "障壁付与" in entry:
 			for t in targets:
 				t._damage_reduction += 1
+		elif "吸血付与" in entry:
+			for t in targets:
+				t._has_lifesteal = true
+		elif "貫通付与" in entry:
+			for t in targets:
+				t._has_penetrate = true
+		elif "リジェネ付与" in entry:
+			for t in targets:
+				t._regen_stacks += 1
 
 func _get_support_targets(side: int, row: int, col: int, target_desc: String) -> Array:
 	var positions: Array = []
@@ -443,6 +465,11 @@ func _on_status_tick() -> void:
 		return
 	# HP回復（サポート効果の _regen を1秒ごとに適用）
 	_apply_regen()
+	# リジェネバフ（2秒ごとにHP5%×スタック数回復）
+	_regen_tick += 1
+	if _regen_tick >= 2:
+		_regen_tick = 0
+		_apply_regen_buff()
 	# 時間経過スキル処理
 	_process_timed_skills()
 	# HP閾値スキルチェック
@@ -483,6 +510,19 @@ func _apply_regen() -> void:
 					event_queue.push(
 						EventQueue.PRIORITY_IMMEDIATE,
 						null, u, "heal", float(roundi(u._regen)),
+						{"src_side": s, "src_row": r, "src_col": c}
+					)
+
+func _apply_regen_buff() -> void:
+	for s in range(2):
+		for r in range(3):
+			for c in range(3):
+				var u = board[s][r][c]
+				if u != null and u._regen_stacks > 0:
+					var heal: int = max(1, u.max_hp * 5 * u._regen_stacks / 100)
+					event_queue.push(
+						EventQueue.PRIORITY_IMMEDIATE,
+						null, u, "heal", float(heal),
 						{"src_side": s, "src_row": r, "src_col": c}
 					)
 

@@ -6,6 +6,7 @@ const BoardManagerScript = preload("res://scripts/BoardManager.gd")
 const DeckManagerScript  = preload("res://scripts/DeckManager.gd")
 const EnemyAIScript      = preload("res://scripts/EnemyAI.gd")
 const EventQueueScript   = preload("res://scripts/EventQueue.gd")
+const SpellExecutorScript = preload("res://scripts/SpellExecutor.gd")
 
 # ---- レイアウト定数 ----
 const CELL_W    := 115
@@ -56,6 +57,11 @@ var deck_count_label:  Label
 var discard_count_label: Label
 var enemy_deck_count_label: Label
 
+var dev_mode: bool = false
+var dev_ui: RefCounted = null  # DevUI インスタンス
+var mode_select_panel: Control = null  # モード選択画面
+var game_started: bool = false
+
 var game_over: bool = false
 var log_lines: Array  = []
 
@@ -84,6 +90,7 @@ func _ready() -> void:
 	board_manager.status_damage.connect(_on_status_damage)
 	board_manager.status_cleared.connect(_on_status_cleared)
 	board_manager.draw_cards_requested.connect(_on_draw_cards_requested)
+	board_manager.spell_cast.connect(_on_spell_cast)
 
 	deck_manager = Node.new()
 	deck_manager.set_script(DeckManagerScript)
@@ -93,7 +100,15 @@ func _ready() -> void:
 	enemy_ai.set_script(EnemyAIScript)
 	add_child(enemy_ai)
 
+	# SpellExecutor 初期化・注入
+	var spell_executor = SpellExecutorScript.new()
+	deck_manager.spell_executor = spell_executor
+	deck_manager.enemy_ai_ref = enemy_ai
+	enemy_ai.spell_executor = spell_executor
+	enemy_ai.deck_manager_ref = deck_manager
+
 	_build_ui()
+	_build_mode_select()
 	# スキルフラッシュタイマー初期化
 	skill_flash_timers = [
 		[[0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0]],
@@ -109,6 +124,55 @@ func _ready() -> void:
 		[[true, true, true], [true, true, true], [true, true, true]]
 	]
 	_add_log("=== Dungeon Board Game 起動 ===")
+
+# ---- モード選択 ----
+func _build_mode_select() -> void:
+	mode_select_panel = Control.new()
+	add_child(mode_select_panel)
+
+	var overlay := ColorRect.new()
+	overlay.color = Color(0.0, 0.0, 0.0, 0.85)
+	overlay.size = Vector2(1280, 720)
+	mode_select_panel.add_child(overlay)
+
+	var title := Label.new()
+	title.text = "Dungeon Board Game"
+	title.position = Vector2(390, 180)
+	title.add_theme_font_size_override("font_size", 42)
+	title.modulate = Color(0.9, 0.85, 0.55)
+	mode_select_panel.add_child(title)
+
+	var play_btn := Button.new()
+	play_btn.text = "PLAY"
+	play_btn.position = Vector2(440, 320)
+	play_btn.size = Vector2(400, 60)
+	play_btn.add_theme_font_size_override("font_size", 28)
+	play_btn.pressed.connect(_on_mode_play)
+	mode_select_panel.add_child(play_btn)
+
+	var dev_btn := Button.new()
+	dev_btn.text = "開発者モード"
+	dev_btn.position = Vector2(440, 400)
+	dev_btn.size = Vector2(400, 60)
+	dev_btn.add_theme_font_size_override("font_size", 28)
+	dev_btn.pressed.connect(_on_mode_dev)
+	mode_select_panel.add_child(dev_btn)
+
+func _on_mode_play() -> void:
+	mode_select_panel.queue_free()
+	mode_select_panel = null
+	game_started = true
+	_add_log("=== PLAY モード開始 ===")
+
+func _on_mode_dev() -> void:
+	mode_select_panel.queue_free()
+	mode_select_panel = null
+	dev_mode = true
+	game_started = true
+	var DevUIScript = load("res://scripts/DevUI.gd")
+	dev_ui = DevUIScript.new()
+	dev_ui.setup(self, board_manager, deck_manager, enemy_ai)
+	_add_log("=== 開発者モード開始 ===")
 
 # ---- UI構築 ----
 func _build_ui() -> void:
@@ -386,6 +450,21 @@ func _cell_x(side: int, col: int) -> int:
 		# col0のX = CENTER_X + GAP/2
 		return CENTER_X + GAP / 2 + col * CELL_W
 
+# ---- 入力処理（開発者モード用） ----
+func _unhandled_input(event: InputEvent) -> void:
+	if not dev_mode or dev_ui == null:
+		return
+	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
+		var pos: Vector2 = event.position
+		for side in range(2):
+			for r in range(3):
+				for c in range(3):
+					var rect: ColorRect = cell_rects[side][r][c]
+					var cell_rect := Rect2(rect.position, rect.size)
+					if cell_rect.has_point(pos):
+						dev_ui.on_cell_clicked(side, r, c)
+						return
+
 # ---- ゲームループ ----
 func _process(delta: float) -> void:
 	# フラッシュタイマー更新（game_over中も継続）
@@ -397,10 +476,11 @@ func _process(delta: float) -> void:
 					if skill_flash_timers[s][r][c] == 0.0:
 						_cell_dirty[s][r][c] = true  # フラッシュ終了→通常色に戻す
 
-	if game_over:
+	if not game_started or game_over:
 		return
-	deck_manager.process_deck(delta, board_manager)
-	enemy_ai.process_ai(delta, board_manager)
+	if not dev_mode:
+		deck_manager.process_deck(delta, board_manager)
+		enemy_ai.process_ai(delta, board_manager)
 	board_manager.process_combat(delta, base_hp)
 	_check_game_over()
 
@@ -485,6 +565,7 @@ func _render_cell(side: int, r: int, c: int) -> void:
 		if unit._invincible_timer > 0.0: buffs.append("無敵")
 		if unit._temp_atk_bonus > 0:    buffs.append("ATK↑%d" % unit._temp_atk_bonus)
 		if unit._temp_spd_bonus > 0.0:  buffs.append("SPD↑")
+		if unit._regen_stacks > 0:      buffs.append("再生%d" % unit._regen_stacks)
 		var buff_line: String = (" ".join(buffs)) if not buffs.is_empty() else ""
 		# スキルフラッシュ
 		var flash_line: String = ""
@@ -526,20 +607,31 @@ func _update_next_card() -> void:
 		next_card_timer_label.text  = ""
 		return
 
-	var col_names: Array = ["前列", "中列", "後列"]
-	var col_name: String = col_names[next.assigned_col]
-
-	next_card_name_label.text = next.unit_name
-
-	# コスト表示：足りているかで色変化
-	next_card_cost_label.text = "Cost %d" % next.cost
-	if deck_manager.mana >= next.cost:
-		next_card_cost_label.modulate = Color(0.3, 1.0, 0.4)   # 緑=発動可能
+	# 呪文カード表示分岐
+	if next.card_type != "unit":
+		var prefix: String = "【呪文】" if next.card_type == "spell" else "【異常】"
+		next_card_name_label.text = prefix + next.unit_name
+		next_card_name_label.modulate = Color(0.8, 0.6, 1.0)
+		var cost_text: String = "Cost X" if next.cost == -1 else "Cost %d" % next.cost
+		next_card_cost_label.text = cost_text
+		next_card_cost_label.modulate = Color(0.3, 1.0, 0.4) if deck_manager.mana >= next.cost else Color(1.0, 0.85, 0.1)
+		next_card_detail_label.text = next.spell_effect
 	else:
-		next_card_cost_label.modulate = Color(1.0, 0.85, 0.1)  # 黄=待機中
+		next_card_name_label.modulate = Color(1.0, 1.0, 0.85)
+		var col_names: Array = ["前列", "中列", "後列"]
+		var col_name: String = col_names[next.assigned_col]
 
-	next_card_detail_label.text = "HP %d  ATK %d  配置:%s  攻撃間隔:%.1fs" % [
-		next.max_hp, next.attack, col_name, next.attack_interval
+		next_card_name_label.text = next.unit_name
+
+		# コスト表示：足りているかで色変化
+		next_card_cost_label.text = "Cost %d" % next.cost
+		if deck_manager.mana >= next.cost:
+			next_card_cost_label.modulate = Color(0.3, 1.0, 0.4)
+		else:
+			next_card_cost_label.modulate = Color(1.0, 0.85, 0.1)
+
+		next_card_detail_label.text = "HP %d  ATK %d  配置:%s  攻撃間隔:%.1fs" % [
+			next.max_hp, next.attack, col_name, next.attack_interval
 	]
 
 	# 発動チェックまでの残り時間
@@ -635,6 +727,11 @@ func _on_status_damage(unit_name: String, status: String, damage: int, stacks: i
 
 func _on_status_cleared(unit_name: String, status: String) -> void:
 	_add_log("[状態解除] %s の %s が解除" % [unit_name, status])
+
+func _on_spell_cast(side: int, spell_name: String) -> void:
+	var side_name: String = "自陣" if side == 0 else "敵陣"
+	_add_log("[呪文] %s %s 発動" % [side_name, spell_name])
+	_mark_all_cells_dirty()
 
 func _on_draw_cards_requested(side: int, count: int) -> void:
 	for i in range(count):

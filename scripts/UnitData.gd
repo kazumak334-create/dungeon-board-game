@@ -13,6 +13,12 @@ var race: String = ""
 var attack_range: String = "1行"
 var support_effect: String = ""   # サポート効果（常時発動/召喚時/条件達成時）
 var active_skill: String = ""     # アクティブスキル（命中時/撃破時/HP閾値時/時間経過/その他）
+# 呪文カード用フィールド（ユニットカードでは使用しない）
+var card_type: String = "unit"    # "unit" | "spell" | "status_spell"
+var spell_id: String = ""         # 呪文識別子
+var spell_target: String = ""     # "self" | "single_ally" | "all_allies" | "all_enemies" | "front_all" | "column" | "enemy_queue"
+var spell_effect: String = ""     # 効果記述
+var is_consumable: bool = false   # true = 発動後消滅（捨て札に行かない）
 
 # ランタイムサポートボーナス（毎フレームBoardManagerが再計算・cloneには引き継がない）
 var _atk_bonus: int = 0
@@ -20,10 +26,14 @@ var _interval_bonus: float = 0.0
 var _regen: float = 0.0
 var _can_attack_from_back: bool = false
 var _back_atk_factor: float = 1.0
-var _damage_reduction: int = 0
+var _damage_reduction: int = 0  # 鎧バフ：被ダメージ-N
+var _has_lifesteal: bool = false  # 吸血バフ：攻撃時ダメージ30%回復
+var _has_penetrate: bool = false  # 貫通バフ：後ろ1マスにも同量ダメージ（攻撃時効果なし）
+var _regen_stacks: int = 0       # リジェネバフ：2秒ごとにHP5%×スタック数回復（重複可）
 # アクティブスキル状態（永続・cloneには引き継がない）
 var _has_revived: bool = false
 var _first_attack: bool = true  # クリティカル用：初撃フラグ
+var _kill_atk_bonus: int = 0    # ATK累積：撃破時の累積ボーナス（上限10）
 # 状態異常（Timerノードで1秒ごとに管理・cloneには引き継がない）
 var poison_stacks:    int = 0  # 毒: 毎秒スタック数分ダメージ（線形）
 var frozen_turns:     int = 0  # 凍結: 攻撃速度低下（逓減・最大80%）
@@ -59,4 +69,9 @@ func clone() -> RefCounted:
 	d.attack_range = attack_range
 	d.support_effect = support_effect
 	d.active_skill = active_skill
+	d.card_type = card_type
+	d.spell_id = spell_id
+	d.spell_target = spell_target
+	d.spell_effect = spell_effect
+	d.is_consumable = is_consumable
 	return d

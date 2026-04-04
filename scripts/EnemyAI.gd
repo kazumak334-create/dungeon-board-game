@@ -11,6 +11,8 @@ var _check_timer: float = 0.0
 var enemy_deck: Array = []
 var enemy_discard: Array = []
 var next_card: Object = null  # 次に召喚するカード（表示用に事前決定）
+var spell_executor: RefCounted = null  # SpellExecutor（Main.gd が設定）
+var deck_manager_ref: Node = null      # DeckManager参照（Main.gd が設定）
 
 func _ready() -> void:
 	_build_enemy_deck()
@@ -112,7 +114,6 @@ func _pick_next_card() -> void:
 	next_card = enemy_deck[0]  # 山札先頭を次の召喚カードとして確定
 
 func force_play_card(board: Node) -> void:
-	# 2枚ドロー等で呼ばれる：マナ不要・タイマー無視で先頭カードを即配置
 	if enemy_deck.is_empty():
 		if enemy_discard.is_empty():
 			return
@@ -121,8 +122,15 @@ func force_play_card(board: Node) -> void:
 		enemy_deck.shuffle()
 	var top = enemy_deck[0]
 	enemy_deck.remove_at(0)
-	board.place_unit(1, top)
-	enemy_discard.append(top)
+	if top.card_type == "unit":
+		board.place_unit(1, top)
+		enemy_discard.append(top)
+	elif top.card_type == "spell" and spell_executor != null:
+		var to_discard: bool = spell_executor.execute(top, 1, board, deck_manager_ref, self)
+		if to_discard:
+			enemy_discard.append(top)
+	elif top.card_type == "status_spell" and spell_executor != null:
+		spell_executor.execute(top, 1, board, deck_manager_ref, self)
 	_pick_next_card()
 
 func get_next_card() -> Object:
@@ -142,7 +150,14 @@ func process_ai(delta: float, board: Node) -> void:
 		return  # マナが足りるまで先頭で待機
 
 	mana -= next_card.cost
-	board.place_unit(1, next_card)
 	enemy_deck.remove_at(0)
-	enemy_discard.append(next_card)
+	if next_card.card_type == "unit":
+		board.place_unit(1, next_card)
+		enemy_discard.append(next_card)
+	elif next_card.card_type == "spell" and spell_executor != null:
+		var to_discard: bool = spell_executor.execute(next_card, 1, board, deck_manager_ref, self)
+		if to_discard:
+			enemy_discard.append(next_card)
+	elif next_card.card_type == "status_spell" and spell_executor != null:
+		spell_executor.execute(next_card, 1, board, deck_manager_ref, self)
 	_pick_next_card()

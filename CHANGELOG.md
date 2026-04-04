@@ -2,6 +2,33 @@
 
 ## [Unreleased]
 
+### Added — 開発者モード・リジェネバフ・呪文カードシステム・バフ統一化・撃破時スキル
+
+#### 開発者モード（DevUI.gd 新規作成）
+- 起動時にモード選択画面（PLAY / 開発者モード）を表示
+- 開発者モードでは自動デッキ無効・戦闘は動作
+- カードリスト（ユニット9種＋呪文8種）から選択→ボードセルクリックで配置/発動
+- 自陣/敵陣切替・マナ+10・全味方回復・敵全滅のツールボタン
+
+#### 呪文カードシステム（SpellExecutor.gd 新規作成）
+- UnitDataに card_type/spell_id/spell_target/spell_effect/is_consumable フィールド追加
+- DeckManager/EnemyAIに呪文分岐（unit/spell/status_spell）追加
+- 初期デッキに呪文3枚追加（召喚加速・生命の雫・盤面強化）
+- SpellExecutorに31種の呪文ロジック実装済み
+- 異常状態カード（コスト0・発動後消滅）の基盤実装
+
+#### リジェネバフ
+- `_regen_stacks` フィールド追加（重複可・2秒ごとHP5%×スタック回復）
+
+#### バフ統一化（吸血・貫通→常時バフ）
+- `_has_lifesteal`/`_has_penetrate` フラグで管理
+- 命中時スキルから _do_attack 内バフ処理に移行
+- バフ版貫通は攻撃時効果を発動しない
+
+#### 撃破時スキル
+- ATK累積（グール）: 撃破時ATK+2（上限+10）
+- 敵SPD低下（バンシー）: 撃破時に全敵に凍結+4
+
 ### CheckAgent: 確認完了・修正なし（2026-04-04）
 - 対象: 開発者モード実装（モード選択画面・手動カード配置・呪文発動）
 - Main.gd: `dev_mode` / `dev_ui` / `mode_select_panel` / `game_started` 変数追加 OK

@@ -8,6 +8,9 @@ const MANA_REGEN: float = 1.0
 
 var deck: Array = []
 var discard: Array = []
+var spell_executor: RefCounted = null  # SpellExecutor（Main.gd が設定）
+var enemy_ai_ref: Node = null          # EnemyAI参照（Main.gd が設定）
+var _cost_reduction_remaining: int = 0 # 連鎖の触媒：残りコスト軽減枚数
 
 # 発動チェック間隔（初期値1秒。将来ユニット効果で変更可能）
 var check_interval: float = 1.0
@@ -20,8 +23,6 @@ func _ready() -> void:
 	_build_default_deck()
 
 func _build_default_deck() -> void:
-	# card_database.md 準拠のユニット定義
-	# col は deck_list 側で指定。support/active は2層効果構造（実装は将来）
 	var card_pool: Dictionary = {
 		# ── スライム系 ──
 		"アメーバ": {
@@ -73,19 +74,26 @@ func _build_default_deck() -> void:
 		},
 	}
 
-	# 初期デッキ構成（9枚・前列3/中列3/後列3）
-	# スライム3・アンデッド3・獣3
+	# 呪文card_pool
+	var spell_pool: Dictionary = {
+		"召喚加速":   {"cost": 1, "target": "self",         "effect": "マナ即時+3回復"},
+		"生命の雫":   {"cost": 2, "target": "single_ally",  "effect": "対象ユニットHP15%回復"},
+		"盤面強化":   {"cost": 3, "target": "all_allies",   "effect": "全味方HP+10・ATK+2"},
+	}
+
+	# 初期デッキ構成（ユニット9枚 + 呪文3枚 = 12枚）
 	var deck_list: Array = [
-		{"name": "アメーバ",       "col": 0},  # 前列 / スライム
-		{"name": "スケルトン",     "col": 0},  # 前列 / アンデッド
-		{"name": "ゴブリン",       "col": 0},  # 前列 / 獣
-		{"name": "マッドスライム", "col": 1},  # 中列 / スライム
-		{"name": "グール",         "col": 1},  # 中列 / アンデッド
-		{"name": "ウルフ",         "col": 1},  # 中列 / 獣
-		{"name": "ブラッドスライム","col": 2},  # 後列 / スライム
-		{"name": "バンシー",       "col": 2},  # 後列 / アンデッド
-		{"name": "タイガー",       "col": 2},  # 後列 / 獣
+		{"name": "アメーバ",       "col": 0},
+		{"name": "スケルトン",     "col": 0},
+		{"name": "ゴブリン",       "col": 0},
+		{"name": "マッドスライム", "col": 1},
+		{"name": "グール",         "col": 1},
+		{"name": "ウルフ",         "col": 1},
+		{"name": "ブラッドスライム","col": 2},
+		{"name": "バンシー",       "col": 2},
+		{"name": "タイガー",       "col": 2},
 	]
+	var spell_list: Array = ["召喚加速", "生命の雫", "盤面強化"]
 
 	var UnitDataScript = load("res://scripts/UnitData.gd")
 	for entry in deck_list:
@@ -103,20 +111,27 @@ func _build_default_deck() -> void:
 		u.support_effect = d["support"]
 		u.active_skill = d["active"]
 		deck.append(u)
+	for spell_name in spell_list:
+		var d: Dictionary = spell_pool[spell_name]
+		var u = UnitDataScript.new()
+		u.unit_name = spell_name
+		u.card_type = "spell"
+		u.spell_id = spell_name
+		u.cost = d["cost"]
+		u.spell_target = d["target"]
+		u.spell_effect = d["effect"]
+		deck.append(u)
 	deck.shuffle()
 
 func process_deck(delta: float, board: Node) -> void:
-	# マナ毎フレーム回復
 	mana = min(MANA_MAX, mana + MANA_REGEN * delta)
 	emit_signal("mana_changed", mana)
 
-	# 発動チェックは check_interval ごと
 	_check_timer -= delta
 	if _check_timer > 0.0:
 		return
 	_check_timer = check_interval
 
-	# 山札が空なら捨て札をシャッフルして山札に戻す
 	if deck.is_empty():
 		if discard.is_empty():
 			return
@@ -124,16 +139,38 @@ func process_deck(delta: float, board: Node) -> void:
 		discard.clear()
 		deck.shuffle()
 	var top = deck[0]
-	if mana < top.cost:
-		return  # マナが足りるまで先頭で待機
-	mana -= top.cost
+	# コスト計算（連鎖の触媒によるコスト軽減）
+	var effective_cost: int = top.cost
+	if top.cost == -1:
+		effective_cost = int(mana)  # コストXカード：マナ全額
+		if effective_cost <= 0:
+			return
+	elif _cost_reduction_remaining > 0:
+		effective_cost = max(0, top.cost - 1)
+	if mana < effective_cost:
+		return
+	mana -= effective_cost
 	deck.remove_at(0)
-	board.place_unit(0, top)
-	emit_signal("card_played", top)
-	discard.append(top)
+	if _cost_reduction_remaining > 0 and top.cost != -1:
+		_cost_reduction_remaining -= 1
+	# カードタイプ別処理
+	if top.card_type == "unit":
+		board.place_unit(0, top)
+		emit_signal("card_played", top)
+		discard.append(top)
+	elif top.card_type == "spell":
+		if top.cost == -1:
+			top.cost = effective_cost  # 再召喚用：X値をcostに設定
+		emit_signal("card_played", top)
+		var to_discard: bool = spell_executor.execute(top, 0, board, self, enemy_ai_ref)
+		if to_discard:
+			discard.append(top)
+	elif top.card_type == "status_spell":
+		emit_signal("card_played", top)
+		spell_executor.execute(top, 0, board, self, enemy_ai_ref)
+		# 消滅：捨て札に行かない
 
 func force_play_card(board: Node) -> void:
-	# 2枚ドロー等で呼ばれる：マナ不要・タイマー無視で先頭カードを即配置
 	if deck.is_empty():
 		if discard.is_empty():
 			return
@@ -142,9 +179,18 @@ func force_play_card(board: Node) -> void:
 		deck.shuffle()
 	var top = deck[0]
 	deck.remove_at(0)
-	board.place_unit(0, top)
-	emit_signal("card_played", top)
-	discard.append(top)
+	if top.card_type == "unit":
+		board.place_unit(0, top)
+		emit_signal("card_played", top)
+		discard.append(top)
+	elif top.card_type == "spell":
+		emit_signal("card_played", top)
+		var to_discard: bool = spell_executor.execute(top, 0, board, self, enemy_ai_ref)
+		if to_discard:
+			discard.append(top)
+	elif top.card_type == "status_spell":
+		emit_signal("card_played", top)
+		spell_executor.execute(top, 0, board, self, enemy_ai_ref)
 
 func get_next_card() -> Object:
 	if deck.is_empty():
