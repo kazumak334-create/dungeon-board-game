@@ -257,25 +257,42 @@ func _stop_drag() -> void:
 func on_cell_dropped(side: int, row: int, col: int) -> void:
 	if selected_card == null:
 		return
+	var side_name: String = "自陣" if side == 0 else "敵陣"
 	if selected_card.card_type == "unit":
-		if board_manager.board[side][row][col] != null:
-			main._add_log("[DEV] セルが埋まっています")
-			return
-		var placed = selected_card.clone()
-		board_manager.board[side][row][col] = placed
-		board_manager.attack_timers[side][row][col] = placed.attack_interval
-		board_manager._init_skill_timers(placed)
-		board_manager.emit_signal("unit_placed", side, row, col, placed)
-		board_manager.on_board_changed()
-		var side_name = "自陣" if side == 0 else "敵陣"
-		main._add_log("[DEV] %s → %s %d行col%d" % [placed.unit_name, side_name, row, col])
+		var existing = board_manager.board[side][row][col]
+		if existing != null:
+			# マスが埋まっている → 盤面合成チェック
+			var result = board_manager._check_synthesis(existing.unit_name, selected_card)
+			if result != null:
+				board_manager._execute_synthesis(side, row, col, existing, result)
+				main._add_log("[DEV] 合成: %s + %s → %s" % [existing.unit_name, selected_card.unit_name, result.unit_name])
+			else:
+				main._add_log("[DEV] 合成不可・セルが埋まっています")
+		else:
+			# 空きマス → 通常配置
+			var placed = selected_card.clone()
+			board_manager.board[side][row][col] = placed
+			board_manager.attack_timers[side][row][col] = placed.attack_interval
+			board_manager._init_skill_timers(placed)
+			board_manager.emit_signal("unit_placed", side, row, col, placed)
+			board_manager.on_board_changed()
+			main._add_log("[DEV] %s → %s %d行col%d" % [placed.unit_name, side_name, row, col])
 	elif selected_card.card_type in ["spell", "status_spell"]:
+		# 呪文 → まず盤面合成チェック
+		var existing = board_manager.board[side][row][col]
+		if existing != null:
+			var result = board_manager._check_synthesis(existing.unit_name, selected_card)
+			if result != null:
+				board_manager._execute_synthesis(side, row, col, existing, result)
+				main._add_log("[DEV] 合成: %s + %s → %s" % [existing.unit_name, selected_card.spell_id, result.unit_name])
+				main._mark_all_cells_dirty()
+				return
+		# 合成不成立 → 通常呪文発動
 		var spell = selected_card.clone()
-		var cast_side: int = side  # ドロップ先のサイドで発動
 		var executor = deck_manager.spell_executor
 		if executor != null:
-			executor.execute(spell, cast_side, board_manager, deck_manager, enemy_ai)
-			main._add_log("[DEV] 呪文 %s 発動（%s側）" % [spell.spell_id, "自陣" if cast_side == 0 else "敵陣"])
+			executor.execute(spell, side, board_manager, deck_manager, enemy_ai)
+			main._add_log("[DEV] 呪文 %s 発動（%s側）" % [spell.spell_id, side_name])
 	main._mark_all_cells_dirty()
 
 # ---- ツールボタン ----
