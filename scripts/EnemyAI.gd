@@ -14,23 +14,44 @@ func _ready() -> void:
 	_pick_next_card()
 
 func _build_enemy_deck() -> void:
-	var definitions: Array = [
-		{"name": "ゴブリン",   "hp": 6,  "atk": 2, "interval": 1.0, "cost": 1, "col": 0, "race": "獣",         "range": "1行"},
-		{"name": "オーク",     "hp": 18, "atk": 4, "interval": 2.0, "cost": 3, "col": 0, "race": "獣",         "range": "1行"},
-		{"name": "スケルトン", "hp": 8,  "atk": 2, "interval": 1.2, "cost": 2, "col": 0, "race": "アンデッド", "range": "1行"},
-		{"name": "ウルフ",     "hp": 10, "atk": 3, "interval": 1.0, "cost": 2, "col": 0, "race": "獣",         "range": "1行"},
-		{"name": "シャーマン", "hp": 10, "atk": 2, "interval": 2.0, "cost": 2, "col": 1, "race": "獣",         "range": "1行"},
+	# card_database.md 準拠のユニット定義（プレイヤーと同一データ）
+	var card_pool: Dictionary = {
+		"ゼリーフィッシュ":  {"hp":  8, "atk": 1, "interval": 1.0, "cost": 1, "race": "スライム",   "range": "1行"},
+		"クリスタルスライム":{"hp": 15, "atk": 3, "interval": 2.0, "cost": 2, "race": "スライム",   "range": "1行"},
+		"ブラッドスライム":  {"hp": 12, "atk": 4, "interval": 1.5, "cost": 2, "race": "スライム",   "range": "1行"},
+		"シャドウ":          {"hp": 15, "atk": 3, "interval": 1.0, "cost": 2, "race": "アンデッド", "range": "1行"},
+		"グール":            {"hp": 25, "atk": 5, "interval": 2.0, "cost": 2, "race": "アンデッド", "range": "1行"},
+		"ワイト":            {"hp": 35, "atk": 4, "interval": 3.0, "cost": 3, "race": "アンデッド", "range": "1行"},
+		"ゴブリン":          {"hp": 15, "atk": 3, "interval": 1.0, "cost": 1, "race": "獣",         "range": "1行"},
+		"コカトリス":        {"hp": 18, "atk": 4, "interval": 2.0, "cost": 2, "race": "獣",         "range": "上含む2行"},
+		"タイガー":          {"hp": 25, "atk": 8, "interval": 2.0, "cost": 3, "race": "獣",         "range": "下含む2行"},
+	}
+
+	# 敵デッキ構成（9枚・前列3/中列3/後列3 均等分散）
+	# スライム3・アンデッド3・獣3 の種族バランス
+	var deck_list: Array = [
+		{"name": "ゼリーフィッシュ",   "col": 0},  # 前列 / スライム
+		{"name": "シャドウ",           "col": 0},  # 前列 / アンデッド
+		{"name": "ゴブリン",           "col": 0},  # 前列 / 獣
+		{"name": "クリスタルスライム", "col": 1},  # 中列 / スライム
+		{"name": "グール",             "col": 1},  # 中列 / アンデッド
+		{"name": "コカトリス",         "col": 1},  # 中列 / 獣
+		{"name": "ブラッドスライム",   "col": 2},  # 後列 / スライム
+		{"name": "ワイト",             "col": 2},  # 後列 / アンデッド
+		{"name": "タイガー",           "col": 2},  # 後列 / 獣
 	]
+
 	var UnitDataScript = load("res://scripts/UnitData.gd")
-	for d in definitions:
+	for entry in deck_list:
+		var d: Dictionary = card_pool[entry["name"]]
 		var u = UnitDataScript.new()
-		u.unit_name = d["name"]
+		u.unit_name = entry["name"]
 		u.max_hp = d["hp"]
 		u.current_hp = d["hp"]
 		u.attack = d["atk"]
 		u.attack_interval = d["interval"]
 		u.cost = d["cost"]
-		u.assigned_col = d["col"]
+		u.assigned_col = entry["col"]
 		u.race = d["race"]
 		u.attack_range = d["range"]
 		enemy_deck.append(u)
