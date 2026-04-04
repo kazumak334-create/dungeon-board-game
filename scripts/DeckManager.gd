@@ -7,6 +7,7 @@ const MANA_MAX: float = 10.0
 const MANA_REGEN: float = 1.0
 
 var deck: Array = []
+var discard: Array = []
 
 # 発動チェック間隔（初期値1秒。将来ユニット効果で変更可能）
 var check_interval: float = 1.0
@@ -73,8 +74,13 @@ func process_deck(delta: float, board: Node) -> void:
 		return
 	_check_timer = check_interval
 
+	# 山札が空なら捨て札をシャッフルして山札に戻す
 	if deck.is_empty():
-		return
+		if discard.is_empty():
+			return
+		deck = discard.duplicate()
+		discard.clear()
+		deck.shuffle()
 	var top = deck[0]
 	if mana < top.cost:
 		return  # マナが足りるまで先頭で待機
@@ -82,7 +88,7 @@ func process_deck(delta: float, board: Node) -> void:
 	deck.remove_at(0)
 	board.place_unit(0, top)
 	emit_signal("card_played", top)
-	deck.append(top)
+	discard.append(top)
 
 func get_next_card() -> Object:
 	if deck.is_empty():

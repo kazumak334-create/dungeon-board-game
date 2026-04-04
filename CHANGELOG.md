@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+### Added
+- **山札切れ時の捨て札リシャッフル処理を実装** (`DeckManager.gd`, `EnemyAI.gd`)
+  - DeckManager: `discard` 配列を追加。カード発動後は `deck` 末尾でなく `discard` へ移動。`deck` 空時に `discard` をシャッフルして `deck` に戻す
+  - EnemyAI: `enemy_discard` 配列を追加。スポーン時に `enemy_deck[0]` を消費して `enemy_discard` へ移動。`enemy_deck` 空時に `enemy_discard` をシャッフルして `enemy_deck` に戻す
+  - EnemyAI: カード選択を「ランダム参照（消費なし）」から「山札先頭を順番に消費」に変更し、正しい無限巡回を実現
+
 ### Changed
 - **マナ不足時のカード挙動をスタック待機に変更** (`DeckManager.gd`)
   - 変更前：マナ不足→マナ消費なしで捨て札（デッキ末尾）へ送る
