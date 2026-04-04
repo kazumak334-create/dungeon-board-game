@@ -23,13 +23,13 @@ func _build_default_deck() -> void:
 	var card_pool: Dictionary = {
 		"アメーバ":       {"hp":  5, "atk": 1, "interval": 0.5, "cost": 1, "col": 0, "race": "スライム",   "range": "1行"},
 		"マッドスライム": {"hp": 10, "atk": 2, "interval": 1.0, "cost": 1, "col": 0, "race": "スライム",   "range": "1行"},
-		"ゼリーフィッシュ":{"hp":  8, "atk": 1, "interval": 1.0, "cost": 1, "col": 0, "race": "スライム",   "range": "1行"},
+		"ゼリーフィッシュ":{"hp":  8, "atk": 1, "interval": 1.0, "cost": 1, "col": 0, "race": "スライム",   "range": "1行"},  # 将来のデッキ構築機能用予備カード
 		"スケルトン":     {"hp": 20, "atk": 4, "interval": 2.0, "cost": 2, "col": 0, "race": "アンデッド", "range": "1行"},
 		"グール":         {"hp": 25, "atk": 5, "interval": 2.0, "cost": 2, "col": 0, "race": "アンデッド", "range": "1行"},
 		"バンシー":       {"hp": 10, "atk": 1, "interval": 2.0, "cost": 2, "col": 0, "race": "アンデッド", "range": "上下含む3行"},
 		"ゴブリン":       {"hp": 15, "atk": 3, "interval": 1.0, "cost": 1, "col": 0, "race": "獣",         "range": "1行"},
 		"ウルフ":         {"hp": 20, "atk": 5, "interval": 1.5, "cost": 2, "col": 0, "race": "獣",         "range": "1行"},
-		"コカトリス":     {"hp": 18, "atk": 4, "interval": 2.0, "cost": 2, "col": 0, "race": "獣",         "range": "上含む2行"},
+		"コカトリス":     {"hp": 18, "atk": 4, "interval": 2.0, "cost": 2, "col": 0, "race": "獣",         "range": "上含む2行"},  # 将来のデッキ構築機能用予備カード
 	}
 
 	# 初期デッキ構成（9枚：cost 1-2 中心、重複あり）

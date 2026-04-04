@@ -63,15 +63,17 @@ func process_combat(delta: float, base_hp: Array) -> void:
 func _do_attack(side: int, row: int, col: int, attacker: Object, enemy_side: int, base_hp: Array) -> void:
 	var enemy_front_col: int = 2 if enemy_side == 0 else 0
 	var target_rows: Array = _get_target_rows(row, attacker.attack_range)
+	var hit_any: bool = false
 	for target_row in target_rows:
 		var target = board[enemy_side][target_row][enemy_front_col]
 		if target != null:
+			hit_any = true
 			target.take_damage(attacker.attack)
 			if not target.is_alive():
 				remove_unit(enemy_side, target_row, enemy_front_col)
-		else:
-			base_hp[enemy_side] = max(0, base_hp[enemy_side] - attacker.attack)
-			emit_signal("base_damaged", enemy_side, attacker.attack)
+	if not hit_any:
+		base_hp[enemy_side] = max(0, base_hp[enemy_side] - attacker.attack)
+		emit_signal("base_damaged", enemy_side, attacker.attack)
 
 func _get_target_rows(attacker_row: int, attack_range: String) -> Array:
 	match attack_range:
