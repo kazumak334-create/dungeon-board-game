@@ -41,7 +41,12 @@ func _assert_true(condition: bool, msg: String) -> void:
 		_results.append("FAIL: " + msg)
 
 func _assert_eq(actual, expected, msg: String) -> void:
-	if actual == expected:
+	var is_equal: bool = false
+	if actual is float and expected is float:
+		is_equal = absf(actual - expected) < 0.001
+	else:
+		is_equal = actual == expected
+	if is_equal:
 		_pass_count += 1
 	else:
 		_fail_count += 1
