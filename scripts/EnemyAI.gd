@@ -26,7 +26,7 @@ var _UnitDataScript = null
 
 func _ready() -> void:
 	_EDB = load("res://scripts/EffectDB.gd")
-	_CardDB = load("res://scripts/CardDB.gd")
+	_CardDB = load("res://scripts/CardDB.gd").new()
 	_UnitDataScript = load("res://scripts/UnitData.gd")
 	_build_enemy_deck()
 	_pick_next_card()

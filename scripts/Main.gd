@@ -118,7 +118,7 @@ func _ready() -> void:
 
 	# PlayerData 生成（デフォルト: バーサーカー）
 	var PlayerDataScript = load("res://scripts/PlayerData.gd")
-	var _CardDB = load("res://scripts/CardDB.gd")
+	var _CardDB = load("res://scripts/CardDB.gd").new()
 	var player_data = PlayerDataScript.new()
 	var class_def = _CardDB.CLASSES["berserker"]
 	player_data.class_id = "berserker"
@@ -156,13 +156,10 @@ func _ready() -> void:
 		[[true, true, true], [true, true, true], [true, true, true]]
 	]
 	_add_log("=== Dungeon Board Game 起動 ===")
-	# JSON書き出し（1回実行後に削除すること）
-	var _ExportScript = load("res://scripts/ExportCardDB.gd")
-	_ExportScript.export()
 
 # ---- 盤面合成レジストリ ----
 func _build_synthesis_registry() -> void:
-	var _CardDB = load("res://scripts/CardDB.gd")
+	var _CardDB = load("res://scripts/CardDB.gd").new()
 	var UnitDataScript = preload("res://scripts/UnitData.gd")
 	for recipe in _CardDB.SYNTHESIS:
 		var r = _CardDB.UNITS[recipe["result"]]

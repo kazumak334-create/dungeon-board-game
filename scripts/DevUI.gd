@@ -35,7 +35,7 @@ func setup(p_main: Node, p_board: Node, p_deck: Node, p_enemy: Node) -> void:
 	_build_dev_panel()
 
 func _build_all_cards() -> void:
-	var _CardDB = load("res://scripts/CardDB.gd")
+	var _CardDB = load("res://scripts/CardDB.gd").new()
 	for name in _CardDB.UNITS:
 		var d = _CardDB.UNITS[name]
 		_all_cards.append({"name": name, "data": d, "type": "unit"})
@@ -220,7 +220,7 @@ func _build_dev_panel() -> void:
 
 	# クラス選択
 	_add_section_header("── クラス選択 ──")
-	var _CardDB_cls = load("res://scripts/CardDB.gd")
+	var _CardDB_cls = load("res://scripts/CardDB.gd").new()
 	for class_id in _CardDB_cls.CLASSES:
 		var cdef = _CardDB_cls.CLASSES[class_id]
 		var cls_btn := Button.new()
@@ -821,7 +821,7 @@ func _on_equip_clear_all() -> void:
 	main._add_log("[DEV] 装備全解除")
 
 func _on_class_select(class_id: String) -> void:
-	var _CardDB = load("res://scripts/CardDB.gd")
+	var _CardDB = load("res://scripts/CardDB.gd").new()
 	var cdef = _CardDB.CLASSES[class_id]
 	var PlayerDataScript = load("res://scripts/PlayerData.gd")
 	var pdata = PlayerDataScript.new()

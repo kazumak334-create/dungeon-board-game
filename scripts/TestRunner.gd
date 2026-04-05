@@ -65,7 +65,7 @@ func _test_effectdb_integrity() -> void:
 
 # ---- CardDB整合性 ----
 func _test_carddb_integrity() -> void:
-	var _CDB = load("res://scripts/CardDB.gd")
+	var _CDB = load("res://scripts/CardDB.gd").new()
 	# ユニット
 	for name in _CDB.UNITS:
 		var d = _CDB.UNITS[name]
@@ -85,7 +85,7 @@ func _test_carddb_integrity() -> void:
 
 # ---- skills配列のeffect_idがEffectDBに存在するか ----
 func _test_carddb_skills_reference() -> void:
-	var _CDB = load("res://scripts/CardDB.gd")
+	var _CDB = load("res://scripts/CardDB.gd").new()
 	var _EDB = load("res://scripts/EffectDB.gd")
 	# ユニット
 	for name in _CDB.UNITS:
@@ -105,7 +105,7 @@ func _test_carddb_skills_reference() -> void:
 
 # ---- クラス定義 ----
 func _test_class_definitions() -> void:
-	var _CDB = load("res://scripts/CardDB.gd")
+	var _CDB = load("res://scripts/CardDB.gd").new()
 	var _EDB = load("res://scripts/EffectDB.gd")
 	for cid in _CDB.CLASSES:
 		var d = _CDB.CLASSES[cid]
@@ -119,7 +119,7 @@ func _test_class_definitions() -> void:
 
 # ---- 装備定義 ----
 func _test_equipment_definitions() -> void:
-	var _CDB = load("res://scripts/CardDB.gd")
+	var _CDB = load("res://scripts/CardDB.gd").new()
 	var _EDB = load("res://scripts/EffectDB.gd")
 	for name in _CDB.EQUIPMENT:
 		var d = _CDB.EQUIPMENT[name]
@@ -131,7 +131,7 @@ func _test_equipment_definitions() -> void:
 
 # ---- 合成レシピの参照先 ----
 func _test_synthesis_references() -> void:
-	var _CDB = load("res://scripts/CardDB.gd")
+	var _CDB = load("res://scripts/CardDB.gd").new()
 	for recipe in _CDB.SYNTHESIS:
 		var base = recipe.get("base", "")
 		var card = recipe.get("card", "")
@@ -141,7 +141,7 @@ func _test_synthesis_references() -> void:
 # ==== シナリオテスト ====
 
 func _create_unit(unit_name: String) -> Object:
-	var _CDB = load("res://scripts/CardDB.gd")
+	var _CDB = load("res://scripts/CardDB.gd").new()
 	var UDS = load("res://scripts/UnitData.gd")
 	var d = _CDB.UNITS[unit_name]
 	var u = UDS.new()
@@ -242,7 +242,7 @@ func _test_tile_effect_damage() -> void:
 # ---- アーティファクト排他テスト ----
 func _test_artifact_exclusion() -> void:
 	# アーティファクトとユニットの排他はデータレベルで確認
-	var _CDB = load("res://scripts/CardDB.gd")
+	var _CDB = load("res://scripts/CardDB.gd").new()
 	for name in _CDB.ARTIFACTS:
 		var d = _CDB.ARTIFACTS[name]
 		if d.get("card_type", "") == "artifact":

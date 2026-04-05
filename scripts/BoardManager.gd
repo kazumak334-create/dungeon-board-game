@@ -192,7 +192,7 @@ func place_artifact(side: int, row: int, col: int, artifact_data: Dictionary) ->
 	if board[side][row][col] != null:
 		print("[BoardManager] ユニットありのためアーティファクト配置不可: side=%d row=%d col=%d" % [side, row, col])
 		return false
-	var _CDB = load("res://scripts/CardDB.gd")
+	var _CDB = load("res://scripts/CardDB.gd").new()
 	var art_name: String = artifact_data.get("name", "")
 	var art_def: Dictionary = _CDB.ARTIFACTS.get(art_name, artifact_data)
 	var hp: int = art_def.get("hp", 10)
@@ -419,7 +419,7 @@ func clear_tile_effect(side: int, row: int, col: int) -> void:
 
 func _summon_unit_to_random_empty(side: int, unit_id: String) -> void:
 	# 指定サイドのランダムな空きマスにユニットを召喚
-	var _CDB = load("res://scripts/CardDB.gd")
+	var _CDB = load("res://scripts/CardDB.gd").new()
 	if not _CDB.UNITS.has(unit_id):
 		return
 	var ud = _CDB.UNITS[unit_id]
