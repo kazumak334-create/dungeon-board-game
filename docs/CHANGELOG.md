@@ -39,3 +39,26 @@
 - 盤面座標・対象範囲のMECE定義
 - 召喚と復活の定義明確化
 - _skill_timersにsupport_Nプレフィックスで定期サポート統合
+
+---
+
+## 2026-04-05（後半）
+
+### アーキテクチャ（続き）
+- BoardManager分割完了（CombatSystem.gd / SupportSystem.gd / TileSystem.gd / TickSystem.gd）
+- 旧方式文字列パース（match文によるeffect_id文字列分岐）完全削除
+- CardDBデータをJSON外出し（data/cards.json）
+- load()キャッシュ化（同一リソースの重複ロード排除）
+- GameUI.gd分離（Main.gdからUI構築ロジックを独立）
+
+### 新システム
+- アーティファクトシステム実装（永久スロット3 + 盤面スロット4）
+- プレイヤークラス3種実装（召喚士 / 戦術家 / 錬金術師）
+- 装備3種実装（武器 / 防具 / アクセサリ）
+- ゲームスピード変更機能実装（0.5x / 1x / 2x）
+
+### テスト
+- TestRunner.gd によるテスト自動化基盤実装
+
+### ユニット調整
+- キングスライム：auto_promote対応（前列空きで自動昇格）
