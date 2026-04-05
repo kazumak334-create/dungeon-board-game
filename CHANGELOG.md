@@ -2,6 +2,30 @@
 
 ## [Unreleased]
 
+### Added — 2026-04-05: クラススキルロジック実装 + PlayerData統合 + DevUIクラス選択
+
+#### BoardManager.gd
+- `player_data: RefCounted` フィールド追加（Main.gd が設定）
+- `place_unit()` に死霊術師パッシブ「アンデッドHP+10%」適用ロジックを追加（EffectDB type="hp_pct_buff" 判定）
+
+#### SupportSystem.gd
+- `apply_support_effects()` 内でプレイヤークラススキル適用を呼び出す処理を追加
+- `_apply_class_skills()` 新規追加：バーサーカーの前列SPD+20%（spd_pct_buff）・HP50%以下全ATK+3（conditional_buff）を適用
+
+#### DeckManager.gd
+- `process_deck()` 内に錬金術師パッシブ「異常状態カードコスト-1」ロジックを追加（EffectDB type="cost_modifier" 判定）
+
+#### EffectExecutor.gd
+- クラススキル4種（cost_modifier / spd_pct_buff / conditional_buff / hp_pct_buff）のpassブランチを match 文に追加
+
+#### Main.gd
+- `_ready()` 内でPlayerData生成（デフォルト: バーサーカー）、DeckManager/BoardManagerに反映
+- `_on_unit_died()` に死霊術師パッシブ「味方死亡時マナ+1（最大10回）」フックを追加
+
+#### DevUI.gd
+- カードリストにクラス選択セクション追加（CardDB.CLASSESから動的生成）
+- `_on_class_select()` 新規追加：クラス変更時にPlayerData再生成・BoardManager/DeckManagerへ即時反映
+
 ### Fixed — 2026-04-05: CheckAgent確認・R8ハードコード修正
 
 #### DeckManager.gd

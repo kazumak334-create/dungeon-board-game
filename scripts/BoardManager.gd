@@ -13,6 +13,7 @@ var base_hp_ref: Array = []           # Main.gd の base_hp への参照（Timer
 var effect_executor: RefCounted = null  # EffectExecutor（Main.gd が設定）
 var deck_manager_ref: Node = null     # DeckManager（Main.gd が設定）
 var enemy_ai_ref: Node = null         # EnemyAI（Main.gd が設定）
+var player_data: RefCounted = null    # PlayerData（Main.gd が設定）
 var _board_dirty: bool = true       # true のときのみサポート効果を再計算
 var _status_timer: Timer = null
 var _regen_tick: int = 0            # リジェネ用：2秒ごとにカウント
@@ -100,6 +101,20 @@ func place_unit(side: int, unit_data: Object) -> bool:
 				return false
 		# 空きマス → 通常配置
 		var placed = unit_data.clone()
+		# 死霊術師パッシブ: アンデッドHP+10%
+		if player_data != null and side == 0 and placed.race == "アンデッド":
+			var _EDB_hp = load("res://scripts/EffectDB.gd")
+			for sk in player_data.skills:
+				if sk.get("trigger", "") == "always":
+					var edef = _EDB_hp.EFFECTS.get(sk.get("effect_id", ""), {})
+					if edef.get("type", "") == "hp_pct_buff":
+						var race_filter = sk.get("params", {}).get("race", edef.get("race", ""))
+						if race_filter == "" or placed.race == race_filter:
+							var pct = sk.get("params", {}).get("pct", edef.get("pct", 0.1))
+							var bonus = int(float(placed.max_hp) * pct)
+							placed.max_hp += bonus
+							placed.current_hp += bonus
+							print("[BoardManager] 死霊術師HP補正: %s max_hp+%d" % [placed.unit_name, bonus])
 		board[side][row][col] = placed
 		attack_timers[side][row][col] = placed.attack_interval
 		emit_signal("unit_placed", side, row, col, placed)

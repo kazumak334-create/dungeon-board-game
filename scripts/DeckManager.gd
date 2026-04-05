@@ -127,6 +127,16 @@ func process_deck(delta: float, board: Node) -> void:
 			return
 	elif _cost_reduction_remaining > 0:
 		effective_cost = max(0, top.cost - 1)
+	# 錬金術師パッシブ: 異常状態カードコスト軽減
+	if top.card_type == "status_spell" and board != null and board.player_data != null:
+		var _EDB_cost = load("res://scripts/EffectDB.gd")
+		for sk in board.player_data.skills:
+			if sk.get("trigger", "") == "always":
+				var edef = _EDB_cost.EFFECTS.get(sk.get("effect_id", ""), {})
+				if edef.get("type", "") == "cost_modifier" and edef.get("card_type", "") == top.card_type:
+					var amount = sk.get("params", {}).get("amount", edef.get("amount", -1))
+					effective_cost = max(0, effective_cost + amount)
+					print("[DeckManager] 錬金術師コスト軽減: %s %d→%d" % [top.unit_name, top.cost, effective_cost])
 	if mana < effective_cost:
 		return
 	mana -= effective_cost

@@ -92,6 +92,9 @@ func apply_support_effects() -> void:
 					var tile_def_stay = _EDB_stay.EFFECTS.get(te_stay["effect_id"], {})
 					if tile_def_stay.has("atk_bonus") and (not tile_def_stay.has("race") or u.race == tile_def_stay["race"]):
 						u._atk_bonus += tile_def_stay["atk_bonus"]
+	# プレイヤークラススキル適用
+	if bm.player_data != null:
+		_apply_class_skills(0, bm.player_data)
 	# アクティブスキル由来のバフ + ATKバフ上限適用
 	for s in range(2):
 		for r in range(3):
@@ -246,6 +249,40 @@ func push_summon_effects(side: int, row: int, col: int, unit: Object) -> void:
 					"event_queue": bm.event_queue
 				})
 	# 旧方式（active_skill文字列パース）は削除済み。全てskills配列で処理。
+
+func _apply_class_skills(side: int, pdata: RefCounted) -> void:
+	var _EDB = load("res://scripts/EffectDB.gd")
+	for skill in pdata.skills:
+		if skill.get("trigger", "") != "always":
+			continue
+		var eid = skill.get("effect_id", "")
+		var edef = _EDB.EFFECTS.get(eid, {})
+		var etype = edef.get("type", "")
+		# バーサーカー: 前列SPD+20%
+		if etype == "spd_pct_buff":
+			var pct = skill.get("params", {}).get("pct", edef.get("pct", 0.2))
+			var front_col = 2 if side == 0 else 0
+			for r in range(3):
+				var u = bm.board[side][r][front_col]
+				if u != null:
+					u._interval_bonus += u.attack_interval * pct
+					print("[SupportSystem] クラススキル spd_pct_buff: %s +%.2f" % [u.unit_name, u.attack_interval * pct])
+		# バーサーカー: HP50%以下で全ATK+3
+		elif etype == "conditional_buff":
+			var threshold = skill.get("params", {}).get("threshold", edef.get("threshold", 0.5))
+			var atk_bonus = skill.get("params", {}).get("atk", edef.get("atk", 3))
+			var base_hp = bm.base_hp_ref
+			var hp_ratio = float(base_hp[side]) / 30.0  # 本体HP上限は30固定
+			if hp_ratio <= threshold:
+				print("[SupportSystem] クラススキル conditional_buff: 発動 hp_ratio=%.2f threshold=%.2f" % [hp_ratio, threshold])
+				for r in range(3):
+					for c in range(3):
+						var u = bm.board[side][r][c]
+						if u != null:
+							u._atk_bonus += atk_bonus
+		# hp_pct_buff はplace_unit時に処理済みのためpassブランチのみ
+		elif etype in ["hp_pct_buff", "cost_modifier"]:
+			pass  # hp_pct_buff: BoardManager.place_unit で処理 / cost_modifier: DeckManager.process_deck で処理
 
 func _apply_permanent_artifact_effects() -> void:
 	# 永久効果型アーティファクト（player_artifacts / enemy_artifacts）のalwaysスキルを適用

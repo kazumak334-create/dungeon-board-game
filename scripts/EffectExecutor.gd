@@ -591,6 +591,20 @@ func execute(effect_id: String, params: Dictionary, context: Dictionary) -> void
 							for c2 in range(3):
 								bm.set_tile_effect(s2, r2, c2, tile_id, tile_dur)
 
+		# ---- プレイヤークラススキル（呼び出し側で処理・ここはpass） ----
+		# cost_modifier: DeckManager.process_deck で処理
+		"cost_modifier":
+			pass
+		# spd_pct_buff: SupportSystem._apply_class_skills で処理
+		"spd_pct_buff":
+			pass
+		# conditional_buff: SupportSystem._apply_class_skills で処理
+		"conditional_buff":
+			pass
+		# hp_pct_buff: BoardManager.place_unit で処理
+		"hp_pct_buff":
+			pass
+
 		# ---- マナ回復倍率変更（永久効果型アーティファクト・DeckManagerで処理） ----
 		"mana_regen_modify":
 			# DeckManager.process_deck()でplayer_artifactsを走査して計算するため、ここは何もしない

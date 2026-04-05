@@ -120,6 +120,24 @@ func _ready() -> void:
 	board_manager.enemy_ai_ref = enemy_ai
 	spell_executor.effect_executor = effect_executor
 
+	# PlayerData 生成（デフォルト: バーサーカー）
+	var PlayerDataScript = load("res://scripts/PlayerData.gd")
+	var _CardDB = load("res://scripts/CardDB.gd")
+	var player_data = PlayerDataScript.new()
+	var class_def = _CardDB.CLASSES["berserker"]
+	player_data.class_id = "berserker"
+	player_data.class_name_jp = class_def["display"]
+	player_data.initial_mana = class_def["initial_mana"]
+	player_data.mana_max = class_def["mana_max"]
+	player_data.mana_regen = class_def["mana_regen"]
+	player_data.skills = class_def["skills"].duplicate(true)
+	# DeckManager に反映
+	deck_manager.mana = player_data.initial_mana
+	deck_manager.MANA_MAX = player_data.mana_max
+	deck_manager.MANA_REGEN = player_data.mana_regen
+	# BoardManager に設定
+	board_manager.player_data = player_data
+
 	_build_synthesis_registry()
 	_build_ui()
 	_build_mode_select()
@@ -886,6 +904,17 @@ func _on_unit_died(side: int, row: int, col: int) -> void:
 	var display_col: int = (2 - col) if side == 0 else col
 	var col_names: Array  = ["前列", "中列", "後列"]
 	_add_log("倒 %s %d行%s" % [side_name, row + 1, col_names[display_col]])
+	# 死霊術師パッシブ: 味方死亡時マナ+1
+	if side == 0 and board_manager.player_data != null:
+		var _EDB = load("res://scripts/EffectDB.gd")
+		for skill in board_manager.player_data.skills:
+			if skill.get("trigger", "") == "on_unit_died_ally":
+				var max_count = skill.get("params", {}).get("max_count", 10)
+				if board_manager.player_data._death_mana_count < max_count:
+					board_manager.player_data._death_mana_count += 1
+					var amount = skill.get("params", {}).get("amount", 1)
+					deck_manager.mana = min(deck_manager.MANA_MAX, deck_manager.mana + amount)
+					_add_log("[死霊術師] 味方死亡: マナ+%d (累計%d/%d)" % [amount, board_manager.player_data._death_mana_count, max_count])
 	_mark_all_cells_dirty()
 
 func _on_unit_damaged(side: int, row: int, col: int) -> void:

@@ -177,6 +177,20 @@ func _build_dev_panel() -> void:
 	clear_tile_btn.pressed.connect(_on_tile_effect_clear)
 	card_list_container.add_child(clear_tile_btn)
 
+	# クラス選択
+	_add_section_header("── クラス選択 ──")
+	var _CardDB_cls = load("res://scripts/CardDB.gd")
+	for class_id in _CardDB_cls.CLASSES:
+		var cdef = _CardDB_cls.CLASSES[class_id]
+		var cls_btn := Button.new()
+		cls_btn.text = cdef["display"]
+		cls_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		cls_btn.custom_minimum_size = Vector2(240, 24)
+		cls_btn.add_theme_font_size_override("font_size", 11)
+		cls_btn.modulate = Color(0.3, 0.9, 0.9)
+		cls_btn.pressed.connect(_on_class_select.bind(class_id))
+		card_list_container.add_child(cls_btn)
+
 	# カード詳細ツールチップ（カード一覧の上に表示）
 	_tooltip_panel = PanelContainer.new()
 	_tooltip_panel.position = Vector2(750, 10)
@@ -713,3 +727,21 @@ func _on_tile_effect_select(eid: String) -> void:
 func _on_tile_effect_clear() -> void:
 	_pending_tile_effect = "clear"
 	selected_label.text = "盤面効果解除 → セルをクリック"
+
+func _on_class_select(class_id: String) -> void:
+	var _CardDB = load("res://scripts/CardDB.gd")
+	var cdef = _CardDB.CLASSES[class_id]
+	var PlayerDataScript = load("res://scripts/PlayerData.gd")
+	var pdata = PlayerDataScript.new()
+	pdata.class_id = class_id
+	pdata.class_name_jp = cdef["display"]
+	pdata.initial_mana = cdef["initial_mana"]
+	pdata.mana_max = cdef["mana_max"]
+	pdata.mana_regen = cdef["mana_regen"]
+	pdata.skills = cdef["skills"].duplicate(true)
+	pdata.reset_runtime()
+	board_manager.player_data = pdata
+	deck_manager.mana = pdata.initial_mana
+	deck_manager.MANA_MAX = pdata.mana_max
+	deck_manager.MANA_REGEN = pdata.mana_regen
+	main._add_log("[DEV] クラス変更: %s" % cdef["display"])
