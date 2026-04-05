@@ -526,11 +526,9 @@ func _apply_support_effects() -> void:
 						continue
 					for skill in u.skills:
 						if skill.get("trigger", "") == "always":
-							# 前列チェック：skill_flagタイプ（狙撃/支援攻撃）は位置制限なし
-							var eid = skill.get("effect_id", "")
-							var is_skill_flag = eid in ["snipe", "support_fire", "support_revive", "enemy_mana_drain", "debuff_spread"]
-							if c == front_col and not is_skill_flag:
-								continue  # 前列ユニットはサポート効果を発動しない
+							# 前列ユニットはサポート効果（always）を一切発動しない
+							if c == front_col:
+								continue
 							# skillsのtop-level targetをparamsにマージ
 							var merged_params: Dictionary = skill.get("params", {}).duplicate()
 							if skill.has("target"):
