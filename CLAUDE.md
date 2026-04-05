@@ -41,10 +41,20 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - 変更したファイル一覧と各ファイルの変更概要
 - 新規追加したeffect_id/target/triggerのリスト
 
-**checker 必須チェック:**
-- CLAUDE.md 3レイヤー定義（攻撃/サポート/アクティブスキル）との整合性
-- 前列チェックがサポート効果typeのみに適用されているか
-- match文にDB定義IDが条件にないか（grep検出）
+**checker 検証フレームワーク（3段階）:**
+
+1. **「何を実現すべきか」を理解する（最重要）**
+   - implementerからの引き継ぎで設計意図を把握する
+   - CLAUDE.mdの該当セクションを必ず読み、実装が設計定義と矛盾しないか突合する
+   - 「このコードは正しく動くか」ではなく「このコードは正しいことをしているか」を問う
+
+2. **「データとロジックが分離されているか」を検証する**
+   - DB（EffectDB/CardDB）に定義すべきものがコードにハードコードされていないか
+   - 新カード/効果を追加した時にコード変更が必要になる書き方をしていないか
+   - grep: match文の条件にDB定義済みID、Color()リテラル、日本語文字列がないか
+
+3. **「壊れていないか」を検証する（従来のチェック）**
+   - 構文/インデント/nullアクセス/Godot互換性
 
 **planning → implementer:**
 - 新効果提案時に「既存EffectDBのどのtypeで実現可能か」を明記
