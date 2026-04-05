@@ -1,6 +1,6 @@
 # EffectDB.gd
 # 効果テーブル定義（静的辞書。インスタンス不要）
-class_name EffectDB
+# class_name を使わない（循環参照回避：EffectExecutorからload()で参照）
 extends RefCounted
 
 const EFFECTS: Dictionary = {
