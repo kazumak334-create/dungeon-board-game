@@ -262,12 +262,16 @@ func _on_deck_shuffle() -> void:
 func _on_deck_clear() -> void:
 	deck_manager.deck.clear()
 	deck_manager.discard.clear()
+	deck_manager.ensure_shuffle_card()  # シャッフルカードは除外不可
 	_refresh_deck_list()
 	main._add_log("[DEV] デッキ全削除")
 
 func _on_deck_move_up(index: int) -> void:
 	var arr: Array = deck_manager.deck
 	if index > 0 and index < arr.size():
+		# シャッフルカードは最下部固定（移動不可）
+		if arr[index].unit_name == "シャッフル" or arr[index - 1].unit_name == "シャッフル":
+			return
 		var tmp = arr[index]
 		arr[index] = arr[index - 1]
 		arr[index - 1] = tmp
@@ -276,6 +280,9 @@ func _on_deck_move_up(index: int) -> void:
 func _on_deck_remove(index: int) -> void:
 	var arr: Array = deck_manager.deck
 	if index >= 0 and index < arr.size():
+		# シャッフル���ードは除外不可
+		if arr[index].unit_name == "シャッフル":
+			return
 		arr.remove_at(index)
 	_refresh_deck_list()
 	main._add_log("[DEV] デッキからカード削除")
@@ -288,9 +295,14 @@ func on_drop_to_deck() -> void:
 	if selected_card == null:
 		return
 	var card = selected_card.clone() if selected_card.card_type == "unit" else selected_card
-	deck_manager.deck.append(card)
+	# シャッフルカードの上（最下部の1つ上）に挿入
+	var arr: Array = deck_manager.deck
+	var insert_pos: int = arr.size()
+	if arr.size() > 0 and arr[arr.size() - 1].unit_name == "シャッフル":
+		insert_pos = arr.size() - 1
+	arr.insert(insert_pos, card)
 	_refresh_deck_list()
-	main._add_log("[DEV] %s をデッキ末尾に追加" % selected_card.unit_name)
+	main._add_log("[DEV] %s をデッキに追加" % selected_card.unit_name)
 
 func _add_section_header(text: String) -> void:
 	var lbl := Label.new()

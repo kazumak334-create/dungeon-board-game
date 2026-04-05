@@ -45,13 +45,14 @@ func _build_default_deck() -> void:
 		u.skills = d.get("skills", []).duplicate(true)
 		deck.append(u)
 	deck.shuffle()
-	_insert_shuffle_card()  # 初期デッキにもシャッフルカードを挿入
 
-func _insert_shuffle_card() -> void:
-	# 既にシャッフルカードがデッキにある場合は追加しない（重複防止）
-	for c in deck:
-		if c.unit_name == "シャッフル":
-			return
+# シャッフルカードをデッキ最下部に保証する（バトルルール）
+func ensure_shuffle_card() -> void:
+	# 既存のシャッフルカードを除去（位置リセット）
+	for i in range(deck.size() - 1, -1, -1):
+		if deck[i].unit_name == "シャッフル":
+			deck.remove_at(i)
+	# 最下部に新規追加
 	var _CDB = load("res://scripts/CardDB.gd")
 	if not _CDB.SYSTEM_SPELLS.has("シャッフル"):
 		return
@@ -66,7 +67,7 @@ func _insert_shuffle_card() -> void:
 	card.spell_target = sd["target"]
 	card.spell_effect = sd["effect"]
 	card.skills = sd.get("skills", []).duplicate(true)
-	deck.append(card)  # 必ず最下部に追加
+	deck.append(card)
 
 func process_deck(delta: float, board: Node) -> void:
 	# 敵スケルトンによるマナ回復妨害（1体につき-0.1/s）
@@ -81,14 +82,14 @@ func process_deck(delta: float, board: Node) -> void:
 	_check_timer = check_interval
 
 	if deck.is_empty():
-		# フォールバック：シャッフルカード発動前にデッキが空になった場合
+		# フォールバック：デッキが空になった場合
 		if discard.is_empty():
 			return
 		for card in discard:
 			deck.append(card)
 		discard.clear()
 		deck.shuffle()
-		_insert_shuffle_card()
+		ensure_shuffle_card()
 	var top = deck[0]
 	# コスト計算（連鎖の触媒によるコスト軽減）
 	var effective_cost: int = top.cost

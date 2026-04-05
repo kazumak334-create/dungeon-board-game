@@ -195,6 +195,9 @@ func _on_mode_play() -> void:
 	mode_select_panel.queue_free()
 	mode_select_panel = null
 	game_started = true
+	# バトル開始時にシャッフルカードをデッキ最下部に挿入
+	deck_manager.ensure_shuffle_card()
+	enemy_ai.ensure_shuffle_card()
 	_add_log("=== PLAY モード開始 ===")
 
 func _on_mode_dev() -> void:
@@ -203,9 +206,10 @@ func _on_mode_dev() -> void:
 	dev_mode = true
 	game_started = true
 	game_paused = true  # 一時停止状態で開始
-	# 初期デッキを空にする（開発者モードは手動構築）
+	# 初期デッキを空にする（開発者モードは手動構築、シャッフルカードは常に最下部に存在）
 	deck_manager.deck.clear()
 	deck_manager.discard.clear()
+	deck_manager.ensure_shuffle_card()
 	var DevUIScript = load("res://scripts/DevUI.gd")
 	dev_ui = DevUIScript.new()
 	dev_ui.setup(self, board_manager, deck_manager, enemy_ai)

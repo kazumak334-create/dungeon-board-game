@@ -36,9 +36,11 @@ func _build_enemy_deck() -> void:
 		u.skills = d.get("skills", []).duplicate(true)
 		enemy_deck.append(u)
 	enemy_deck.shuffle()
-	_insert_shuffle_card()
 
-func _insert_shuffle_card() -> void:
+func ensure_shuffle_card() -> void:
+	for i in range(enemy_deck.size() - 1, -1, -1):
+		if enemy_deck[i].unit_name == "シャッフル":
+			enemy_deck.remove_at(i)
 	var _CDB = load("res://scripts/CardDB.gd")
 	if not _CDB.SYSTEM_SPELLS.has("シャッフル"):
 		return
@@ -65,7 +67,7 @@ func _pick_next_card() -> void:
 			enemy_deck.append(card)
 		enemy_discard.clear()
 		enemy_deck.shuffle()
-		_insert_shuffle_card()
+		ensure_shuffle_card()
 	next_card = enemy_deck[0]
 
 func force_play_card(board: Node) -> void:
