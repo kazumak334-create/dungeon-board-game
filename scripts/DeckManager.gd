@@ -56,6 +56,16 @@ func _build_default_deck() -> void:
 			"support": "後列攻撃〈常時発動・全行・極低ATK・命中時効果あり〉 / SPDバフ〈常時発動・同列の味方〉",
 			"active":  "火傷付与〈命中時・敵ATK低下〉 / 全体ATK低下〈時間経過15s・敵全行〉 / 敵SPD低下〈撃破時・全体30%・30s〉",
 		},
+		"リッチ": {
+			"hp": 15, "atk": 2, "interval": 3.0, "cost": 3, "race": "アンデッド", "range": "上下含む3行",
+			"support": "後列攻撃〈常時発動・敵最後列優先・命中時アクティブ発動なし〉 / 再起付与〈常時発動・同行の味方〉",
+			"active":  "凍結付与〈命中時〉 / 呪い付与〈時間経過20s・敵全体〉 / 魂の器〈撃破時・アンデッド1体完全回復〉",
+		},
+		"ヴリコラカス": {
+			"hp": 30, "atk": 6, "interval": 2.0, "cost": 3, "race": "アンデッド", "range": "1行",
+			"support": "デバフ波及〈常時発動・隣接の敵〉",
+			"active":  "バフ奪取〈命中時・敵バフを自分に移す・効果1.5倍〉 / 全バフ奪取〈時間経過20s・敵1体〉",
+		},
 		# ── 獣系 ──
 		"ゴブリン": {
 			"hp": 15, "atk": 3, "interval": 1.0, "cost": 1, "race": "獣", "range": "1行",
@@ -92,6 +102,8 @@ func _build_default_deck() -> void:
 		{"name": "ブラッドスライム","col": 2},
 		{"name": "バンシー",       "col": 2},
 		{"name": "タイガー",       "col": 2},
+		{"name": "リッチ",         "col": 2},  # 後列: 後列攻撃持ち
+		{"name": "ヴリコラカス",   "col": 1},  # 中列: 前線バフ奪取
 	]
 	var spell_list: Array = ["召喚加速", "生命の雫", "盤面強化"]
 
@@ -154,21 +166,46 @@ func process_deck(delta: float, board: Node) -> void:
 	if _cost_reduction_remaining > 0 and top.cost != -1:
 		_cost_reduction_remaining -= 1
 	# カードタイプ別処理
+	emit_signal("card_played", top)
 	if top.card_type == "unit":
 		board.place_unit(0, top)
-		emit_signal("card_played", top)
 		discard.append(top)
-	elif top.card_type == "spell":
-		if top.cost == -1:
-			top.cost = effective_cost  # 再召喚用：X値をcostに設定
-		emit_signal("card_played", top)
-		var to_discard: bool = spell_executor.execute(top, 0, board, self, enemy_ai_ref)
-		if to_discard:
-			discard.append(top)
-	elif top.card_type == "status_spell":
-		emit_signal("card_played", top)
-		spell_executor.execute(top, 0, board, self, enemy_ai_ref)
-		# 消滅：捨て札に行かない
+	elif top.card_type in ["spell", "status_spell"]:
+		# 呪文・異常状態カード → 盤面合成チェック
+		if _try_spell_synthesis(0, top, board):
+			if not top.is_consumable:
+				discard.append(top)
+		else:
+			if top.cost == -1:
+				top.cost = effective_cost
+			if top.card_type == "status_spell":
+				spell_executor.execute(top, 0, board, self, enemy_ai_ref)
+				# 消滅：捨て札に行かない
+			else:
+				var to_discard: bool = spell_executor.execute(top, 0, board, self, enemy_ai_ref)
+				if to_discard:
+					discard.append(top)
+
+func _try_spell_synthesis(side: int, spell: Object, board: Node) -> bool:
+	# 呪文カードで盤面合成が成立するかチェック
+	var card_name: String = spell.spell_id if spell.spell_id != "" else spell.unit_name
+	for entry in board.synthesis_registry:
+		if entry["card"] != card_name:
+			continue
+		# 盤面上に合成元ユニットがいるか探す
+		var candidates: Array = []
+		for r in range(3):
+			for c in range(3):
+				var u = board.board[side][r][c]
+				if u != null and u.unit_name == entry["base"]:
+					candidates.append({"row": r, "col": c})
+		if not candidates.is_empty():
+			candidates.shuffle()
+			var pick = candidates[0]
+			board._execute_synthesis(side, pick["row"], pick["col"],
+				board.board[side][pick["row"]][pick["col"]], entry["result"])
+			return true
+	return false
 
 func force_play_card(board: Node) -> void:
 	if deck.is_empty():
