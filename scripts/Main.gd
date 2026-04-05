@@ -10,8 +10,8 @@ const SpellExecutorScript  = preload("res://scripts/SpellExecutor.gd")
 var EffectExecutorScript = null  # 遅延ロード（preloadだとコンパイル時にフリーズ）
 
 # ---- レイアウト定数 ----
-const CELL_W    := 85
-const CELL_H    := 70
+const CELL_W    := 105
+const CELL_H    := 85
 const BOARD_TOP := 110   # 盤面上端Y
 
 # 盤面X原点（画面中央を基準に左右対称）
@@ -695,14 +695,12 @@ func _render_cell(side: int, r: int, c: int) -> void:
 	var lbl:  Label     = cell_labels[side][r][c]
 	if unit != null:
 		var hp_ratio: float = float(unit.current_hp) / float(unit.max_hp)
-		# スキル発動フラッシュ or 通常色
+		# ユニットは透明（盤面効果の色を見せるため）。フラッシュ時のみ色あり
 		if skill_flash_timers[side][r][c] > 0.0:
 			var f: float = skill_flash_timers[side][r][c]
 			rect.color = Color(0.9, 0.75 * f + 0.1, 0.0)
-		elif side == 0:
-			rect.color = Color(0.08, 0.22 * hp_ratio + 0.04, 0.45 * hp_ratio + 0.08)
 		else:
-			rect.color = Color(0.45 * hp_ratio + 0.08, 0.06, 0.06)
+			rect.color = Color(0.11, 0.11, 0.17)  # 透明ベース
 		# 列マーカー
 		var col_mark: String
 		if side == 0:
