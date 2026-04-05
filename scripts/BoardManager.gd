@@ -275,7 +275,7 @@ func _do_attack(side: int, row: int, col: int, attacker: Object, enemy_side: int
 				target._damage_reduction -= 1
 			# 呪われた地チェック
 			var _te_curse = board_effects[enemy_side][target_row][target_col]
-			if _te_curse != null and not target.get("_is_flying", false):
+			if _te_curse != null and not target.get("_is_flying") == true:
 				var _EDB_curse = load("res://scripts/EffectDB.gd")
 				var _tile_curse_def = _EDB_curse.EFFECTS.get(_te_curse["effect_id"], {})
 				if _tile_curse_def.has("damage_mult"):
@@ -573,7 +573,7 @@ func _apply_support_effects() -> void:
 			for c in range(3):
 				var u = board[s][r][c]
 				var te_stay = board_effects[s][r][c]
-				if u != null and te_stay != null and not u.get("_is_flying", false):
+				if u != null and te_stay != null and not u.get("_is_flying") == true:
 					var tile_def_stay = _EDB_stay.EFFECTS.get(te_stay["effect_id"], {})
 					if tile_def_stay.has("atk_bonus") and (not tile_def_stay.has("race") or u.race == tile_def_stay["race"]):
 						u._atk_bonus += tile_def_stay["atk_bonus"]
@@ -1281,7 +1281,7 @@ func _check_tile_on_enter(side: int, row: int, col: int, unit: Object) -> void:
 	var te = board_effects[side][row][col]
 	if te == null:
 		return
-	if unit.get("_is_flying", false):
+	if unit.get("_is_flying") == true:
 		return
 	var _EDB = load("res://scripts/EffectDB.gd")
 	var def = _EDB.EFFECTS.get(te["effect_id"], {})
@@ -1294,7 +1294,7 @@ func _check_tile_on_leave(side: int, row: int, col: int, unit: Object) -> void:
 	var te = board_effects[side][row][col]
 	if te == null:
 		return
-	if unit.get("_is_flying", false):
+	if unit.get("_is_flying") == true:
 		return
 	var _EDB = load("res://scripts/EffectDB.gd")
 	var def = _EDB.EFFECTS.get(te["effect_id"], {})
@@ -1324,7 +1324,7 @@ func _process_tile_effects() -> void:
 				var trigger = def.get("trigger", "")
 				var unit = board[s][r][c]
 				# 飛行ユニットは盤面効果を無視
-				if unit != null and unit.get("_is_flying", false):
+				if unit != null and unit.get("_is_flying") == true:
 					continue
 				# on_tick: N秒ごとに発動
 				if trigger == "on_tick" and unit != null and unit.is_alive():
