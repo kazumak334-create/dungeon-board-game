@@ -24,6 +24,7 @@ var _deck_container: VBoxContainer = null
 var _deck_scroll: ScrollContainer = null
 var _deck_title_label: Label = null
 var _last_deck_size: int = -1
+var _pending_tile_effect: String = ""  # 設置予約中の盤面効果ID
 
 func setup(p_main: Node, p_board: Node, p_deck: Node, p_enemy: Node) -> void:
 	main = p_main
@@ -134,6 +135,30 @@ func _build_dev_panel() -> void:
 	for i in range(_all_cards.size()):
 		if _all_cards[i]["type"] == "status_spell":
 			_add_card_button(i, _all_cards[i]["name"], Color(0.8, 0.3, 0.8))
+
+	# 盤面効果ボタン（EffectDBからtile_effect typeを動的取得）
+	_add_section_header("── 盤面効果 ──")
+	var _EDB_tile = load("res://scripts/EffectDB.gd")
+	for eid in _EDB_tile.EFFECTS:
+		var def = _EDB_tile.EFFECTS[eid]
+		if def.get("type", "") == "tile_effect":
+			var display = def.get("display", eid)
+			var tile_btn := Button.new()
+			tile_btn.text = display
+			tile_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			tile_btn.custom_minimum_size = Vector2(240, 24)
+			tile_btn.add_theme_font_size_override("font_size", 11)
+			tile_btn.modulate = Color(0.9, 0.7, 0.3)
+			tile_btn.pressed.connect(_on_tile_effect_select.bind(eid))
+			card_list_container.add_child(tile_btn)
+	var clear_tile_btn := Button.new()
+	clear_tile_btn.text = "効果解除"
+	clear_tile_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	clear_tile_btn.custom_minimum_size = Vector2(240, 24)
+	clear_tile_btn.add_theme_font_size_override("font_size", 11)
+	clear_tile_btn.modulate = Color(0.5, 0.5, 0.5)
+	clear_tile_btn.pressed.connect(_on_tile_effect_clear)
+	card_list_container.add_child(clear_tile_btn)
 
 	# カード詳細ツールチップ（カード一覧の上に表示）
 	_tooltip_panel = PanelContainer.new()
@@ -357,9 +382,27 @@ func _stop_drag() -> void:
 	_dragging = false
 	if _drag_label != null:
 		_drag_label.visible = false
-	selected_label.text = "クリック=通常発動 / ドラッグ=対象指定"
+	if _pending_tile_effect == "":
+		selected_label.text = "クリック=通常発動 / ドラッグ=対象指定"
 
 func on_drop(side: int, row: int, col: int) -> void:
+	# 盤面効果設置モード
+	if _pending_tile_effect != "":
+		if _pending_tile_effect == "clear":
+			board_manager.clear_tile_effect(side, row, col)
+			main._add_log("[DEV] 盤面効果解除: %d行col%d" % [row, col])
+		else:
+			var _EDB_drop = load("res://scripts/EffectDB.gd")
+			var def_drop = _EDB_drop.EFFECTS.get(_pending_tile_effect, {})
+			var duration_drop: float = def_drop.get("duration", -1.0)
+			board_manager.set_tile_effect(side, row, col, _pending_tile_effect, duration_drop)
+			var display_drop: String = def_drop.get("display", _pending_tile_effect)
+			main._add_log("[DEV] 盤面効果設置: %s → %d行col%d" % [display_drop, row, col])
+		_pending_tile_effect = ""
+		selected_label.text = "クリック=通常発動 / ドラッグ=対象指定"
+		_stop_drag()
+		main._mark_all_cells_dirty()
+		return
 	# ドラッグ距離が短い → クリック扱い（通常発動）
 	var dist: float = main.get_viewport().get_mouse_position().distance_to(_drag_start_pos)
 	if dist < 30.0:
@@ -561,3 +604,13 @@ func _on_heal_both_base() -> void:
 
 func _on_back_to_menu() -> void:
 	main.get_tree().reload_current_scene()
+
+func _on_tile_effect_select(eid: String) -> void:
+	_pending_tile_effect = eid
+	var _EDB_sel = load("res://scripts/EffectDB.gd")
+	var display = _EDB_sel.EFFECTS[eid].get("display", eid)
+	selected_label.text = "盤面効果: " + display + " → セルをクリック"
+
+func _on_tile_effect_clear() -> void:
+	_pending_tile_effect = "clear"
+	selected_label.text = "盤面効果解除 → セルをクリック"

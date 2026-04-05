@@ -4,6 +4,7 @@ extends Node
 
 var board: Array = []
 var attack_timers: Array = []
+var board_effects: Array = []  # board_effects[side][row][col] = null or {effect_id, remaining, tick_timer, tick_interval}
 var event_queue: Node = null          # EventQueue（Main.gd が設定）
 var base_hp_ref: Array = []           # Main.gd の base_hp への参照（Timer tick 用）
 var effect_executor: RefCounted = null  # EffectExecutor（Main.gd が設定）
@@ -33,12 +34,15 @@ func _ready() -> void:
 func _setup() -> void:
 	board = []
 	attack_timers = []
+	board_effects = []
 	for s in range(2):
 		board.append([])
 		attack_timers.append([])
+		board_effects.append([])
 		for r in range(3):
 			board[s].append([null, null, null])
 			attack_timers[s].append([0.0, 0.0, 0.0])
+			board_effects[s].append([null, null, null])
 	# 状態異常・HP回復を1秒ごとに処理するTimerノード
 	_status_timer = Timer.new()
 	_status_timer.wait_time  = 1.0
@@ -57,6 +61,14 @@ func place_unit(side: int, unit_data: Object) -> bool:
 	# 抽選で1行を決定
 	var row: int = rows[0]
 	if board[side][row][col] == null:
+		# 穴チェック：召喚不可
+		var _te_check = board_effects[side][row][col]
+		if _te_check != null:
+			var _EDB_check = load("res://scripts/EffectDB.gd")
+			var _def_check = _EDB_check.EFFECTS.get(_te_check["effect_id"], {})
+			if _def_check.get("block_summon", false):
+				print("[BoardManager] 穴により召喚不可: side=%d row=%d col=%d" % [side, row, col])
+				return false
 		# 空きマス → 通常配置
 		var placed = unit_data.clone()
 		board[side][row][col] = placed
@@ -69,6 +81,8 @@ func place_unit(side: int, unit_data: Object) -> bool:
 				{"side": side, "row": row, "col": front_col})
 		_init_skill_timers(placed)
 		_push_summon_effects(side, row, col, placed)
+		# 盤面効果 on_enter チェック
+		_check_tile_on_enter(side, row, col, placed)
 		return true
 	else:
 		# マスが埋まっている → 盤面合成チェック
@@ -150,6 +164,8 @@ func remove_unit(side: int, row: int, col: int) -> void:
 		attack_timers[side][row][col] = unit.attack_interval
 		emit_signal("unit_revived", side, row, col)
 		return
+	# 盤面効果 on_leave チェック
+	_check_tile_on_leave(side, row, col, unit)
 	board[side][row][col] = null
 	attack_timers[side][row][col] = 0.0
 	emit_signal("unit_died", side, row, col)
@@ -257,6 +273,13 @@ func _do_attack(side: int, row: int, col: int, attacker: Object, enemy_side: int
 			var actual_damage: int = max(0, int(float(effective_atk) * (1.0 - armor_pct)))
 			if target._damage_reduction > 0:
 				target._damage_reduction -= 1
+			# 呪われた地チェック
+			var _te_curse = board_effects[enemy_side][target_row][target_col]
+			if _te_curse != null and not target.get("_is_flying", false):
+				var _EDB_curse = load("res://scripts/EffectDB.gd")
+				var _tile_curse_def = _EDB_curse.EFFECTS.get(_te_curse["effect_id"], {})
+				if _tile_curse_def.has("damage_mult"):
+					actual_damage = int(float(actual_damage) * _tile_curse_def["damage_mult"])
 			if actual_damage > 0:
 				# ダメージイベントをキューに積む
 				event_queue.push(
@@ -428,10 +451,14 @@ func _try_promote(side: int, row: int, col: int) -> void:
 	if mid_unit == null:
 		return
 	# 中列ユニットを前列に移動（HPそのまま・タイマーは新規設定）
+	# 盤面効果: 移動元 on_leave
+	_check_tile_on_leave(side, row, 1, mid_unit)
 	board[side][row][front_col] = mid_unit
 	attack_timers[side][row][front_col] = mid_unit.attack_interval
 	board[side][row][1] = null
 	attack_timers[side][row][1] = 0.0
+	# 盤面効果: 移動先 on_enter
+	_check_tile_on_enter(side, row, front_col, mid_unit)
 	on_board_changed()
 
 func _get_frontmost_col(side: int, row: int) -> int:
@@ -539,6 +566,17 @@ func _apply_support_effects() -> void:
 								"board_manager": self, "deck_manager": deck_manager_ref, "enemy_ai": enemy_ai_ref,
 								"event_queue": event_queue
 							})
+	# 盤面効果 on_stay: 獣の森等のATKボーナス
+	var _EDB_stay = load("res://scripts/EffectDB.gd")
+	for s in range(2):
+		for r in range(3):
+			for c in range(3):
+				var u = board[s][r][c]
+				var te_stay = board_effects[s][r][c]
+				if u != null and te_stay != null and not u.get("_is_flying", false):
+					var tile_def_stay = _EDB_stay.EFFECTS.get(te_stay["effect_id"], {})
+					if tile_def_stay.has("atk_bonus") and (not tile_def_stay.has("race") or u.race == tile_def_stay["race"]):
+						u._atk_bonus += tile_def_stay["atk_bonus"]
 	# アクティブスキル由来のバフ + ATKバフ上限適用
 	for s in range(2):
 		for r in range(3):
@@ -732,6 +770,8 @@ func _on_status_tick() -> void:
 	if _regen_tick >= 2:
 		_regen_tick = 0
 		_apply_regen_buff()
+	# 盤面効果のティック処理
+	_process_tile_effects()
 	# 時間経過スキル処理
 	_process_timed_skills()
 	# HP閾値スキルチェック
@@ -1218,3 +1258,83 @@ func _fire_hp_threshold_skill(side: int, row: int, col: int, unit: Object, entry
 		unit._temp_spd_bonus = unit.attack_interval * 0.5  # 攻撃間隔半減
 		unit._temp_spd_timer = 10.0
 		active_skill_used.emit(side, row, col, "ATK/SPD2倍")
+
+# ---- 盤面効果システム ----
+
+func set_tile_effect(side: int, row: int, col: int, effect_id: String, duration: float = -1.0) -> void:
+	var _EDB = load("res://scripts/EffectDB.gd")
+	if not _EDB.EFFECTS.has(effect_id):
+		return
+	var def = _EDB.EFFECTS[effect_id]
+	board_effects[side][row][col] = {
+		"effect_id": effect_id,
+		"remaining": duration,
+		"tick_timer": 0.0,
+		"tick_interval": def.get("tick_interval", 1.0),
+	}
+	print("[BoardManager] 盤面効果設置: %s side=%d row=%d col=%d remaining=%s" % [effect_id, side, row, col, str(duration)])
+
+func clear_tile_effect(side: int, row: int, col: int) -> void:
+	board_effects[side][row][col] = null
+
+func _check_tile_on_enter(side: int, row: int, col: int, unit: Object) -> void:
+	var te = board_effects[side][row][col]
+	if te == null:
+		return
+	if unit.get("_is_flying", false):
+		return
+	var _EDB = load("res://scripts/EffectDB.gd")
+	var def = _EDB.EFFECTS.get(te["effect_id"], {})
+	# 鉄壁の地: 鎧付与
+	if def.get("armor_stacks", 0) > 0:
+		unit._damage_reduction += def["armor_stacks"]
+		print("[BoardManager] 鉄壁の地: 鎧+%d → %s" % [def["armor_stacks"], unit.unit_name])
+
+func _check_tile_on_leave(side: int, row: int, col: int, unit: Object) -> void:
+	var te = board_effects[side][row][col]
+	if te == null:
+		return
+	if unit.get("_is_flying", false):
+		return
+	var _EDB = load("res://scripts/EffectDB.gd")
+	var def = _EDB.EFFECTS.get(te["effect_id"], {})
+	# ヒビ→穴に変形
+	if def.has("transform_to"):
+		var next_id: String = def["transform_to"]
+		var next_def = _EDB.EFFECTS.get(next_id, {})
+		var duration: float = next_def.get("duration", 5.0)
+		set_tile_effect(side, row, col, next_id, duration)
+		print("[BoardManager] ヒビ→穴に変形: side=%d row=%d col=%d" % [side, row, col])
+
+func _process_tile_effects() -> void:
+	var _EDB = load("res://scripts/EffectDB.gd")
+	for s in range(2):
+		for r in range(3):
+			for c in range(3):
+				var te = board_effects[s][r][c]
+				if te == null:
+					continue
+				# 持続時間の管理
+				if te["remaining"] > 0:
+					te["remaining"] -= 1.0
+					if te["remaining"] <= 0:
+						board_effects[s][r][c] = null
+						continue
+				var def = _EDB.EFFECTS.get(te["effect_id"], {})
+				var trigger = def.get("trigger", "")
+				var unit = board[s][r][c]
+				# 飛行ユニットは盤面効果を無視
+				if unit != null and unit.get("_is_flying", false):
+					continue
+				# on_tick: N秒ごとに発動
+				if trigger == "on_tick" and unit != null and unit.is_alive():
+					te["tick_timer"] -= 1.0
+					if te["tick_timer"] <= 0:
+						te["tick_timer"] = te["tick_interval"]
+						# 炎床: ダメージ
+						if def.has("damage"):
+							event_queue.push(EventQueue.PRIORITY_IMMEDIATE, null, unit, "damage",
+								float(def["damage"]), {"enemy_side": s, "row": r, "col": c})
+						# 毒沼: 毒スタック付与
+						if def.has("status") and def["status"] == "poison":
+							unit.poison_stacks += def.get("stacks", 1)

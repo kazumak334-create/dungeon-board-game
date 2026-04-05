@@ -89,4 +89,13 @@ const EFFECTS: Dictionary = {
 	"synthesis_boost":     {"type": "deck_add",           "unit_id": "self", "count": 1,       "display": "合成促進"},
 	"shuffle_deck":        {"type": "shuffle_deck",                                            "display": "デッキシャッフル"},
 	"split_on_death":      {"type": "summon_on_death",                                          "display": "分裂"},
+
+	# ---- 盤面効果 ----
+	"tile_curse":        {"type": "tile_effect", "trigger": "on_stay",  "display": "呪われた地", "damage_mult": 1.5},
+	"tile_fire":         {"type": "tile_effect", "trigger": "on_tick",  "display": "炎床",       "damage": 3, "tick_interval": 1.0},
+	"tile_beast_forest": {"type": "tile_effect", "trigger": "on_stay",  "display": "獣の森",     "race": "獣", "atk_bonus": 3},
+	"tile_fortress":     {"type": "tile_effect", "trigger": "on_enter", "display": "鉄壁の地",   "armor_stacks": 2},
+	"tile_crack":        {"type": "tile_effect", "trigger": "on_leave", "display": "ヒビ床",     "transform_to": "tile_hole"},
+	"tile_poison":       {"type": "tile_effect", "trigger": "on_tick",  "display": "毒沼",       "status": "poison", "stacks": 2, "tick_interval": 1.0},
+	"tile_hole":         {"type": "tile_effect", "trigger": "on_enter", "display": "穴",         "block_summon": true, "duration": 5.0},
 }

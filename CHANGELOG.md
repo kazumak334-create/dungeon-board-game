@@ -2,6 +2,37 @@
 
 ## [Unreleased]
 
+### Added — 2026-04-05: 盤面効果（Tile Effect）基盤実装
+
+#### EffectDB.gd
+- 盤面効果7種を追加（tile_curse/tile_fire/tile_beast_forest/tile_fortress/tile_crack/tile_poison/tile_hole）
+- type="tile_effect" で統一、trigger/display/効果パラメータを定義
+
+#### BoardManager.gd
+- board_effects: Array フィールド追加（board と同構造 [side][row][col]）
+- _setup() で board_effects を初期化
+- set_tile_effect(side, row, col, effect_id, duration) / clear_tile_effect() 追加
+- _check_tile_on_enter()：鉄壁の地（鎧付与）処理
+- _check_tile_on_leave()：ヒビ→穴への変形処理
+- _process_tile_effects()：1秒ごとの持続時間管理・炎床ダメージ・毒沼スタック付与
+- place_unit()：穴による召喚ブロックチェック、on_enter 発火
+- remove_unit()：on_leave 発火
+- _try_promote()：移動元 on_leave → 移動先 on_enter 発火
+- _do_attack()：呪われた地によるダメージ×1.5
+- _apply_support_effects()：獣の森による ATKボーナス付与
+- 飛行ユニット（_is_flying=true）は全盤面効果を無視
+
+#### DevUI.gd
+- _pending_tile_effect フィールド追加
+- 盤面効果ボタンセクション追加（EffectDB から動的生成）
+- on_drop() に盤面効果設置モード追加
+- _on_tile_effect_select() / _on_tile_effect_clear() コールバック追加
+
+#### Main.gd
+- _render_cell()：盤面効果の色オーバーレイ可視化（lerp ブレンド）
+- _on_cell_hover()：盤面効果情報をツールチップに表示、ユニット不在でも表示
+- _update_cells()：盤面効果があるセルは常に再描画
+
 ### CheckAgent — 2026-04-05: CardDB一元化＋サポート効果位置制限チェック
 確認完了・修正なし（全16項目）
 

@@ -592,8 +592,19 @@ func _check_game_over() -> void:
 
 func _on_cell_hover(side: int, r: int, c: int) -> void:
 	var unit = board_manager.board[side][r][c]
-	if unit == null:
+	var te_hover = board_manager.board_effects[side][r][c]
+	if unit == null and te_hover == null:
 		_cell_tooltip_panel.visible = false
+		return
+	if unit == null:
+		# 盤面効果のみ表示
+		var _EDB_h = load("res://scripts/EffectDB.gd")
+		var tile_def_h = _EDB_h.EFFECTS.get(te_hover["effect_id"], {})
+		var tile_display_h: String = tile_def_h.get("display", te_hover["effect_id"])
+		var remaining_str_h: String = "永続" if te_hover["remaining"] < 0 else "%ds" % int(te_hover["remaining"])
+		_cell_tooltip_label.text = "■ 盤面効果: %s（%s）" % [tile_display_h, remaining_str_h]
+		_cell_tooltip_panel.visible = true
+		_cell_tooltip_panel.size = Vector2(265, 0)
 		return
 	var _EDB = load("res://scripts/EffectDB.gd")
 	var trigger_jp: Dictionary = {"always": "常時", "on_summon": "召喚時", "on_hit": "命中時", "on_kill": "撃破時", "on_death": "死亡時", "timer": "時間経過"}
@@ -628,6 +639,14 @@ func _on_cell_hover(side: int, r: int, c: int) -> void:
 		lines.append("")
 		lines.append("■ アクティブスキル:")
 		lines.append_array(active_lines)
+	# 盤面効果表示
+	if te_hover != null:
+		var _EDB_hover = load("res://scripts/EffectDB.gd")
+		var tile_def_hover = _EDB_hover.EFFECTS.get(te_hover["effect_id"], {})
+		var tile_display_hover: String = tile_def_hover.get("display", te_hover["effect_id"])
+		var remaining_str: String = "永続" if te_hover["remaining"] < 0 else "%ds" % int(te_hover["remaining"])
+		lines.append("")
+		lines.append("■ 盤面効果: %s（%s）" % [tile_display_hover, remaining_str])
 	_cell_tooltip_label.text = "\n".join(lines)
 	_cell_tooltip_panel.visible = true
 	_cell_tooltip_panel.size = Vector2(265, 0)
@@ -651,8 +670,10 @@ func _update_cells() -> void:
 		for r in range(3):
 			for c in range(3):
 				var has_flash: bool = skill_flash_timers[side][r][c] > 0.0
-				if not _cell_dirty[side][r][c] and not has_flash:
-					continue  # 変化なし・フラッシュなし → スキップ
+				# 盤面効果があるセルは常に再描画（持続時間変化を反映）
+				var has_tile_effect: bool = board_manager.board_effects[side][r][c] != null
+				if not _cell_dirty[side][r][c] and not has_flash and not has_tile_effect:
+					continue  # 変化なし・フラッシュなし・盤面効果なし → スキップ
 				_render_cell(side, r, c)
 				if not has_flash:
 					_cell_dirty[side][r][c] = false
@@ -713,6 +734,18 @@ func _render_cell(side: int, r: int, c: int) -> void:
 	else:
 		rect.color = Color(0.11, 0.11, 0.17)
 		lbl.text   = ""
+	# 盤面効果の可視化（ユニット有無に関わらずオーバーレイ）
+	var te_vis = board_manager.board_effects[side][r][c]
+	if te_vis != null:
+		var tile_id: String = te_vis["effect_id"]
+		match tile_id:
+			"tile_curse":        rect.color = rect.color.lerp(Color(0.5, 0.0, 0.5), 0.3)
+			"tile_fire":         rect.color = rect.color.lerp(Color(0.8, 0.2, 0.0), 0.3)
+			"tile_beast_forest": rect.color = rect.color.lerp(Color(0.0, 0.5, 0.0), 0.3)
+			"tile_fortress":     rect.color = rect.color.lerp(Color(0.3, 0.3, 0.6), 0.3)
+			"tile_crack":        rect.color = rect.color.lerp(Color(0.4, 0.3, 0.2), 0.3)
+			"tile_poison":       rect.color = rect.color.lerp(Color(0.3, 0.0, 0.4), 0.3)
+			"tile_hole":         rect.color = rect.color.lerp(Color(0.1, 0.1, 0.1), 0.5)
 
 func _update_base_hp() -> void:
 	player_base_label.text = "自陣 本体HP: %d / 30" % base_hp[0]
