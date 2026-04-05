@@ -696,6 +696,10 @@ func on_board_changed() -> void:
 func _on_status_tick() -> void:
 	if event_queue == null:
 		return
+	# 一時停止中は全ての時間経過処理をスキップ（遅延復活含む）
+	var main_node = get_parent()
+	if main_node != null and main_node.get("game_paused") == true:
+		return
 	# 遅延復活の処理
 	var revived: Array = []
 	for i in range(_pending_revives.size()):
@@ -721,10 +725,6 @@ func _on_status_tick() -> void:
 				pass  # 同段が満席なら復活失敗
 	for i in range(revived.size() - 1, -1, -1):
 		_pending_revives.remove_at(revived[i])
-	# 一時停止中は全ての時間経過処理をスキップ
-	var main_node = get_parent()
-	if main_node != null and main_node.get("game_paused") == true:
-		return
 	# HP回復（サポート効果の _regen を1秒ごとに適用）
 	_apply_regen()
 	# リジェネバフ（2秒ごとにHP5%×スタック数回復）
