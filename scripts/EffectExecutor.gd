@@ -579,7 +579,6 @@ func execute(effect_id: String, params: Dictionary, context: Dictionary) -> void
 						if u != null and u.is_alive() and u != source:
 							if race_filter == "" or u.race == race_filter:
 								u._atk_bonus += max(1, int(float(u.attack) * atk_pct))
-								print("[EffectExecutor] race_buff: %s ATK+%d" % [u.unit_name, max(1, int(float(u.attack) * atk_pct))])
 
 		# ---- 盤面効果設置 ----
 		"tile_set":
