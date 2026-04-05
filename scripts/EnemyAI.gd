@@ -36,6 +36,24 @@ func _build_enemy_deck() -> void:
 		u.skills = d.get("skills", []).duplicate(true)
 		enemy_deck.append(u)
 	enemy_deck.shuffle()
+	_insert_shuffle_card()
+
+func _insert_shuffle_card() -> void:
+	var _CDB = load("res://scripts/CardDB.gd")
+	if not _CDB.SYSTEM_SPELLS.has("シャッフル"):
+		return
+	var sd = _CDB.SYSTEM_SPELLS["シャッフル"]
+	var UnitDataScript = load("res://scripts/UnitData.gd")
+	var card = UnitDataScript.new()
+	card.unit_name = "シャッフル"
+	card.card_type = "status_spell"
+	card.spell_id = "シャッフル"
+	card.cost = 0
+	card.is_consumable = true
+	card.spell_target = sd["target"]
+	card.spell_effect = sd["effect"]
+	card.skills = sd.get("skills", []).duplicate(true)
+	enemy_deck.append(card)
 
 func _pick_next_card() -> void:
 	# 山札が空なら捨て札をシャッフルして山札に戻す
@@ -46,7 +64,8 @@ func _pick_next_card() -> void:
 		enemy_deck = enemy_discard.duplicate()
 		enemy_discard.clear()
 		enemy_deck.shuffle()
-	next_card = enemy_deck[0]  # 山札先頭を次の召喚カードとして確定
+		_insert_shuffle_card()
+	next_card = enemy_deck[0]
 
 func force_play_card(board: Node) -> void:
 	if enemy_deck.is_empty():
@@ -55,6 +74,7 @@ func force_play_card(board: Node) -> void:
 		enemy_deck = enemy_discard.duplicate()
 		enemy_discard.clear()
 		enemy_deck.shuffle()
+		_insert_shuffle_card()
 	var top = enemy_deck[0]
 	enemy_deck.remove_at(0)
 	if top.card_type == "unit":

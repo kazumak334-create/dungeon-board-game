@@ -202,10 +202,14 @@ func _on_mode_dev() -> void:
 	mode_select_panel = null
 	dev_mode = true
 	game_started = true
+	game_paused = true  # 一時停止状態で開始
+	# 初期デッキを空にする（開発者モードは手動構築）
+	deck_manager.deck.clear()
+	deck_manager.discard.clear()
 	var DevUIScript = load("res://scripts/DevUI.gd")
 	dev_ui = DevUIScript.new()
 	dev_ui.setup(self, board_manager, deck_manager, enemy_ai)
-	_add_log("=== 開発者モード開始 ===")
+	_add_log("=== 開発者モード開始（一時停止・デッキ空）===")
 
 # ---- UI構築 ----
 func _build_ui() -> void:

@@ -229,6 +229,13 @@ const STATUS_SPELLS: Dictionary = {
 		"skills": [{"trigger": "on_play", "target": "random_ally", "effect_id": "paralysis_apply", "params": {"stacks": 2}}]},
 }
 
+# ---- システムカード定義 ----
+const SYSTEM_SPELLS: Dictionary = {
+	"シャッフル": {"cost": 0, "target": "self", "effect": "山札をシャッフルし、自身を山札最下部に再挿入",
+		"is_consumable": true,
+		"skills": [{"trigger": "on_play", "target": "self_deck", "effect_id": "shuffle_deck", "params": {}}]},
+}
+
 # ---- 合成レシピ定義 ----
 const SYNTHESIS: Array = [
 	# スライム合体チェーン

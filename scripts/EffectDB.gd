@@ -87,5 +87,6 @@ const EFFECTS: Dictionary = {
 
 	# ---- ラージ/ファット専用 ----
 	"synthesis_boost":     {"type": "deck_add",           "unit_id": "self", "count": 1,       "display": "合成促進"},
+	"shuffle_deck":        {"type": "shuffle_deck",                                            "display": "デッキシャッフル"},
 	"split_on_death":      {"type": "summon_on_death",                                          "display": "分裂"},
 }

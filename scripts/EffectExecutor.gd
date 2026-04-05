@@ -174,6 +174,27 @@ func execute(effect_id: String, params: Dictionary, context: Dictionary) -> void
 						bm._init_skill_timers(slime)
 						break
 
+		"shuffle_deck":
+			# デッキシャッフル＋シャッフルカードを山札最下部に再挿入
+			var deck_mgr = dm if side == 0 else ai
+			if deck_mgr != null:
+				deck_mgr.deck.shuffle()
+				# シャッフルカードを再挿入（消滅型だが自ら復帰）
+				var _CDB = load("res://scripts/CardDB.gd")
+				if _CDB.SYSTEM_SPELLS.has("シャッフル"):
+					var sd = _CDB.SYSTEM_SPELLS["シャッフル"]
+					var UDS = load("res://scripts/UnitData.gd")
+					var shuffle_card = UDS.new()
+					shuffle_card.unit_name = "シャッフル"
+					shuffle_card.card_type = "status_spell"
+					shuffle_card.spell_id = "シャッフル"
+					shuffle_card.cost = 0
+					shuffle_card.is_consumable = true
+					shuffle_card.spell_target = sd["target"]
+					shuffle_card.spell_effect = sd["effect"]
+					shuffle_card.skills = sd.get("skills", []).duplicate(true)
+					deck_mgr.deck.append(shuffle_card)
+
 		"summon_low_cost":
 			# 急召：低コストユニットを即時召喚
 			if side == 0 and dm != null:
