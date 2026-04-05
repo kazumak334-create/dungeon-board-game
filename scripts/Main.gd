@@ -817,9 +817,10 @@ func _on_base_damaged(side: int, amount: int) -> void:
 func _on_active_skill_used(side: int, row: int, col: int, skill_name: String) -> void:
 	var unit = board_manager.get_unit(side, row, col)
 	var name: String = unit.unit_name if unit != null else "?"
-	_add_log("[アクティブ] %s の %s 発動（命中時）" % [name, skill_name])
+	_add_log("[アクティブ] %s の %s 発動" % [name, skill_name])
 	skill_flash_timers[side][row][col] = 0.6
 	skill_flash_names[side][row][col]  = skill_name
+	_cell_dirty[side][row][col] = true  # ATK累積等の永続変化を即反映
 	_cell_dirty[side][row][col] = true
 
 func _log_support_effects() -> void:
