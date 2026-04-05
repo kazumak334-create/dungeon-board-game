@@ -262,6 +262,58 @@ row2(下段)  [2,0]      [2,1]      [2,2]
 - **呪い・透明化**: デバフ/バフとして将来実装。現時点ではカード定義にeffect_idなしで登録
 - **board_effects構造**: `board_effects[side][row][col]`で盤面効果レイヤーを管理予定。飛行スキルで無視
 
+## モジュール設計の実装ルール（全Agent必読）
+
+### 原則：効果は独立したモジュールとして設計する
+
+1つの効果（effect）= 1つの責務。複合的な動作が必要な場合は、**複数のeffectをskills配列で並べて実現する**。1つのeffect内に複数の責務を混ぜない。
+
+```
+# 悪い例：1つのeffectにシャッフルと再挿入を混ぜる
+"shuffle_deck": シャッフルして、自カードを山札最下部に再挿入する
+
+# 良い例：2つの独立effectを並べる
+skills: [
+    {effect_id: "shuffle_deck"},     # 山札をシャッフルするだけ
+    {effect_id: "deck_add_self", params: {position: "bottom"}},  # 自カードを最下部に追加
+]
+```
+
+### ルール一覧
+
+**R1. effectロジック内でユニット名・カード名をハードコードしない**
+- NG: `if unit_name == "スライム"` をeffect内に書く
+- OK: CardDB.SYNTHESISなど既存データの関係性から自動導出する
+
+**R2. 新effectを作る前に「既存effectの組み合わせで実現できないか」を確認する**
+- 既存effectにパラメータを追加するだけで解決できるなら新effectは作らない
+- 例: deck_add_selfにpositionパラメータを追加→top/bottom/randomを切り替え可能に
+
+**R3. effectのパラメータは汎用的に命名する**
+- NG: `slime_hp`, `skeleton_delay`（ユニット固有名）
+- OK: `stacks`, `factor`, `delay`, `position`, `unit_id`（汎用名）
+
+**R4. カード種別（card_type）とカード属性（is_consumable等）は独立**
+- 消費＝異常状態カードではない。呪文でも消費型はある
+- 将来の属性: 山札戻し、敵デッキ移動なども想定
+
+**R5. trigger/target/effect_idの3軸でスキルを定義する**
+- skills配列の各エントリは必ず `{trigger, target, effect_id, params}` の構造
+- 複合動作は複数エントリで表現。1エントリ=1効果
+
+**R6. EffectDBのdisplay名を必ず定義する**
+- 新effectを追加する際は必ず `"display": "日本語名"` を含める
+- UIが内部IDを直接表示することを禁止
+
+**R7. データ定義は CardDB に一元管理する**
+- ユニット/呪文/異常状態/システムカード/合成レシピ/デッキ構成は全てCardDB.gd
+- DeckManager/EnemyAI/DevUI/Main.gdはCardDBを参照するだけ
+- 同じデータを複数ファイルに書かない
+
+**R8. replace_all使用後はインデント検証を必ず行う**
+- GDScriptはインデントが構文の一部。replace_allでインデントが壊れるとパースエラー
+- 置換後に前後5行のインデントを確認する
+
 ## GDScript Conventions
 
 - Scripts use `class_name` declarations (`BoardManager`, `DeckManager`, `EnemyAI`, `UnitData`)
