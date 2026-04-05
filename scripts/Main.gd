@@ -744,18 +744,15 @@ func _render_cell(side: int, r: int, c: int) -> void:
 		var tile_id: String = te_vis["effect_id"]
 		var tile_def = _EDB_vis.EFFECTS.get(tile_id, {})
 		var tile_display: String = tile_def.get("display", tile_id)
-		# 色オーバーレイ（ヒビは色ではなくテキスト）
-		match tile_id:
-			"tile_curse":        rect.color = rect.color.lerp(Color(0.8, 0.2, 0.6), 0.4)
-			"tile_fire":         rect.color = rect.color.lerp(Color(0.8, 0.2, 0.0), 0.3)
-			"tile_beast_forest": rect.color = rect.color.lerp(Color(0.0, 0.5, 0.0), 0.3)
-			"tile_fortress":     rect.color = rect.color.lerp(Color(0.3, 0.3, 0.6), 0.3)
-			"tile_crack":        pass  # ヒビはテキストで表現
-			"tile_poison":       rect.color = rect.color.lerp(Color(0.3, 0.0, 0.4), 0.3)
-			"tile_hole":         rect.color = rect.color.lerp(Color(0.1, 0.1, 0.1), 0.5)
-		# 盤面効果名をセルに表示
+		# 色オーバーレイ（EffectDBのcolorから取得）
+		var tile_color: Array = tile_def.get("color", [])
+		if tile_color.size() == 4:
+			rect.color = rect.color.lerp(Color(tile_color[0], tile_color[1], tile_color[2]), tile_color[3])
+		# 盤面効果テキスト表示
+		var unit_label: String = tile_def.get("unit_label", "")
+		var race_filter: String = tile_def.get("race", "")
 		if lbl.text == "":
-			# ユニット不在
+			# ユニット不在：盤面効果名を表示（ヒビ/穴は専用テキスト）
 			if tile_id == "tile_crack":
 				lbl.text = "╳╳╳\n╳ヒビ╳\n╳╳╳"
 			elif tile_id == "tile_hole":
@@ -763,24 +760,13 @@ func _render_cell(side: int, r: int, c: int) -> void:
 			else:
 				lbl.text = tile_display
 		else:
-			# ユニットあり：飛行ユニットは盤面効果表示しない
+			# ユニットあり：飛行は非表示、種族条件不一致も非表示
 			if unit != null and unit.get("_is_flying") == true:
-				pass  # 飛行は盤面効果無視→表示もしない
-			else:
-				# 対象外の場合は表示しない（獣の森に非獣等）
-				var tile_info: String = ""
-				match tile_id:
-					"tile_curse":        tile_info = "被ダメ+50%"
-					"tile_beast_forest":
-						if unit != null and unit.race == "獣":
-							tile_info = "獣ATK+3"
-					"tile_fortress":     tile_info = "鎧+2"
-					"tile_fire":         tile_info = "炎床3dmg/s"
-					"tile_poison":       tile_info = "毒+2/s"
-					"tile_crack":        tile_info = "─ヒビ─"
-					_:                   tile_info = tile_display
-				if tile_info != "":
-					lbl.text = lbl.text + "\n[%s]" % tile_info
+				pass
+			elif race_filter != "" and (unit == null or unit.race != race_filter):
+				pass
+			elif unit_label != "":
+				lbl.text = lbl.text + "\n[%s]" % unit_label
 
 func _update_base_hp() -> void:
 	player_base_label.text = "自陣 本体HP: %d / 30" % base_hp[0]
