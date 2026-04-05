@@ -701,12 +701,7 @@ func _render_cell(side: int, r: int, c: int) -> void:
 			rect.color = Color(0.9, 0.75 * f + 0.1, 0.0)
 		else:
 			rect.color = Color(0.11, 0.11, 0.17)  # 透明ベース
-		# 列マーカー
-		var col_mark: String
-		if side == 0:
-			col_mark = "【前】" if c == 2 else ("【中】" if c == 1 else "【後】")
-		else:
-			col_mark = "【前】" if c == 0 else ("【中】" if c == 1 else "【後】")
+		# 列マーカー不要（見ればわかる）
 		# HPバー（8ブロック）
 		var bar_filled: int = int(hp_ratio * 8)
 		var hp_bar: String = "█".repeat(bar_filled) + "░".repeat(8 - bar_filled)
@@ -733,7 +728,7 @@ func _render_cell(side: int, r: int, c: int) -> void:
 			flash_line = "★" + skill_flash_names[side][r][c] + "!"
 		# 組み立て
 		var lines: Array = [
-			"%s%s" % [col_mark, unit.unit_name],
+			unit.unit_name,
 			"HP %d/%d ATK %d" % [unit.current_hp, unit.max_hp, unit.attack],
 			hp_bar,
 		]
