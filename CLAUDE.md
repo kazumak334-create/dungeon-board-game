@@ -35,6 +35,41 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - 仕様変更後は必ずdata-syncを実行（ズレ防止）
 - architectとimplementerの境界：共通基盤=architect、個別カード/呪文=implementer
 
+### Agent品質基準（全Agent必読）
+
+**CEO:**
+- リファクタリングと新機能追加を同一タスクに混ぜない。基盤変更→コミット→機能追加の順
+- 1コミット=1目的。「AとBとCをまとめて」を安易に投げない
+- 実装指示には必ず「影響範囲」と「変更しないファイル」を明記する
+
+**architect:**
+- 新機能追加前に既存ファイルの肥大化を確認する。500行超のファイルには追加前に分割を検討
+- 新しいデータ構造を追加する際は、既存構造との排他/共存ルールを明記する
+- EventQueueの優先度変更は影響範囲を全列挙してから実施する
+
+**implementer:**
+- 1タスク=1機能。複数機能を混ぜない
+- DB定義（EffectDB/CardDB）のデータ追加とロジック実装を分けてコミットする
+- 新effectを追加する前に既存effectの組み合わせで実現できないか必ず確認する（R2）
+- match文を書く前に「新しいカード追加時にこのmatch文に分岐追加が必要か？」を自問する。YESならDBに移す
+
+**checker:**
+- 構文チェック: GDScriptのインデント整合性を全変更ファイルで検証する
+- nullアクセスパターン: `board[s][r][c]`の後にnullチェックなしでプロパティアクセスしている箇所を全探索
+- ハードコード検出: 変更ファイルのmatch文をgrepし、EffectDB/CardDBに定義済みのIDが条件にあればNG
+- Godot互換性: `Object.get()`の引数数、`preload`と`load`の使い分けを確認
+- 旧方式残存: support_effect/active_skillの文字列パースが新規追加されていないか確認
+
+**data-sync:**
+- コード変更後にcard_database.md/CLAUDE.mdとの差分を全チェック
+- CardDB.gdの定義とcard_database.mdの記載が一致しているか検証
+- 新フィールド追加時はcard_database.mdにも定義を反映
+
+**planning:**
+- 新効果・新カードを提案する際はtexture/anim/sfxの想定を記述する
+- 既存のtrigger/target/effect_idで表現できるか確認してから新typeを提案する
+- UI表示への影響（セル表示、ホバー、DevUI）を提案に含める
+
 ### 現在のフェーズ
 Phase 1・4合目（効果システム基盤設計中）
 次のマイルストーン：効果テーブルシステム完成 → カード全実装
