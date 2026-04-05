@@ -5,103 +5,111 @@ extends RefCounted
 
 const EFFECTS: Dictionary = {
 	# ---- バフ付与 ----
-	"lifesteal_apply":  {"type": "buff_apply",  "buff": "lifesteal",  "stacks": 5, "display": "吸血付与"},
-	"armor_apply":      {"type": "buff_apply",  "buff": "armor",      "stacks": 1, "display": "鎧付与"},
-	"regen_apply":      {"type": "buff_apply",  "buff": "regen",      "stacks": 1, "display": "リジェネ付与"},
-	"atk_buff_apply":   {"type": "buff_apply",  "buff": "atk",        "stacks": 2, "display": "ATKバフ"},
-	"spd_buff_apply":   {"type": "buff_apply",  "buff": "spd",        "stacks": 3, "display": "SPDバフ"},
+	"lifesteal_apply":  {"type": "buff_apply",  "buff": "lifesteal",  "stacks": 5, "display": "吸血付与", "texture": "", "anim": "", "sfx": ""},
+	"armor_apply":      {"type": "buff_apply",  "buff": "armor",      "stacks": 1, "display": "鎧付与", "texture": "", "anim": "", "sfx": ""},
+	"regen_apply":      {"type": "buff_apply",  "buff": "regen",      "stacks": 1, "display": "リジェネ付与", "texture": "", "anim": "", "sfx": ""},
+	"atk_buff_apply":   {"type": "buff_apply",  "buff": "atk",        "stacks": 2, "display": "ATKバフ", "texture": "", "anim": "", "sfx": ""},
+	"spd_buff_apply":   {"type": "buff_apply",  "buff": "spd",        "stacks": 3, "display": "SPDバフ", "texture": "", "anim": "", "sfx": ""},
 
 	# ---- デバフ付与 ----
-	"burn_apply":       {"type": "debuff_apply", "status": "burn",      "stacks": 2, "display": "火傷付与"},
-	"freeze_apply":     {"type": "debuff_apply", "status": "freeze",    "stacks": 3, "display": "凍結付与"},
-	"poison_apply":     {"type": "debuff_apply", "status": "poison",    "stacks": 1, "display": "毒付与"},
-	"paralysis_apply":  {"type": "debuff_apply", "status": "paralysis", "stacks": 1, "display": "麻痺付与"},
+	"burn_apply":       {"type": "debuff_apply", "status": "burn",      "stacks": 2, "display": "火傷付与", "texture": "", "anim": "", "sfx": ""},
+	"freeze_apply":     {"type": "debuff_apply", "status": "freeze",    "stacks": 3, "display": "凍結付与", "texture": "", "anim": "", "sfx": ""},
+	"poison_apply":     {"type": "debuff_apply", "status": "poison",    "stacks": 1, "display": "毒付与", "texture": "", "anim": "", "sfx": ""},
+	"paralysis_apply":  {"type": "debuff_apply", "status": "paralysis", "stacks": 1, "display": "麻痺付与", "texture": "", "anim": "", "sfx": ""},
 
 	# ---- ダメージ ----
-	"direct_damage":    {"type": "damage",        "factor": 1.0,                                "display": "直接ダメージ"},
-	"chain_damage":     {"type": "damage",        "target": "adjacent_rows", "factor": 0.5,    "display": "連鎖ダメージ"},
-	"big_damage":       {"type": "damage",        "target": "enemy_max_hp",  "factor": 3.0,    "display": "単体大ダメージ"},
-	"hp_cost":          {"type": "self_damage",   "factor": 0.30, "min_hp": 1,                 "display": "HP代償"},
+	"direct_damage":    {"type": "damage",        "factor": 1.0,                                "display": "直接ダメージ", "texture": "", "anim": "", "sfx": ""},
+	"chain_damage":     {"type": "damage",        "target": "adjacent_rows", "factor": 0.5,    "display": "連鎖ダメージ", "texture": "", "anim": "", "sfx": ""},
+	"big_damage":       {"type": "damage",        "target": "enemy_max_hp",  "factor": 3.0,    "display": "単体大ダメージ", "texture": "", "anim": "", "sfx": ""},
+	"hp_cost":          {"type": "self_damage",   "factor": 0.30, "min_hp": 1,                 "display": "HP代償", "texture": "", "anim": "", "sfx": ""},
 
 	# ---- 回復 ----
-	"heal_pct":         {"type": "heal",          "factor": 0.15,                               "display": "HP回復"},
+	"heal_pct":         {"type": "heal",          "factor": 0.15,                               "display": "HP回復", "texture": "", "anim": "", "sfx": ""},
 
 	# ---- ATK変化 ----
-	"atk_accumulate":   {"type": "atk_permanent", "amount": 2, "cap": 10,                      "display": "ATK累積"},
+	"atk_accumulate":   {"type": "atk_permanent", "amount": 2, "cap": 10,                      "display": "ATK累積", "texture": "", "anim": "", "sfx": ""},
 
 	# ---- 召喚 ----
-	"summon_same_row":  {"type": "summon",        "range": "same_row", "unit_id": "スライム", "chain": false, "display": "追加召喚"},
-	"summon_low_cost":  {"type": "summon_low_cost",                                             "display": "急召"},
+	"summon_same_row":  {"type": "summon",        "range": "same_row", "unit_id": "スライム", "chain": false, "display": "追加召喚", "texture": "", "anim": "", "sfx": ""},
+	"summon_low_cost":  {"type": "summon_low_cost",                                             "display": "急召", "texture": "", "anim": "", "sfx": ""},
 
 	# ---- デッキ操作 ----
-	"deck_add_self":    {"type": "deck_add",      "unit_id": "self", "count": 1,               "display": "デッキ追加"},
-	"draw_cards":       {"type": "draw",          "count": 2,                                   "display": "ドロー"},
-	"mana_boost":       {"type": "mana_add",      "amount": 3,                                  "display": "マナ回復"},
+	"deck_add_self":    {"type": "deck_add",      "unit_id": "self", "count": 1,               "display": "デッキ追加", "texture": "", "anim": "", "sfx": ""},
+	"draw_cards":       {"type": "draw",          "count": 2,                                   "display": "ドロー", "texture": "", "anim": "", "sfx": ""},
+	"mana_boost":       {"type": "mana_add",      "amount": 3,                                  "display": "マナ回復", "texture": "", "anim": "", "sfx": ""},
 
 	# ---- バフ奪取 ----
-	"steal_buffs":      {"type": "steal_buffs",   "factor": 1.5,                               "display": "バフ奪取"},
-	"steal_all_buffs":  {"type": "steal_all_buffs", "factor": 1.5,                             "display": "全バフ奪取"},
+	"steal_buffs":      {"type": "steal_buffs",   "factor": 1.5,                               "display": "バフ奪取", "texture": "", "anim": "", "sfx": ""},
+	"steal_all_buffs":  {"type": "steal_all_buffs", "factor": 1.5,                             "display": "全バフ奪取", "texture": "", "anim": "", "sfx": ""},
 
 	# ---- 位置移動 ----
-	"force_front":      {"type": "move",          "dest": "front",                              "display": "最前列突撃"},
+	"force_front":      {"type": "move",          "dest": "front",                              "display": "最前列突撃", "texture": "", "anim": "", "sfx": ""},
 
 	# ---- 復活 ----
-	"self_revive":      {"type": "revive",        "hp": 5, "delay": 3.0, "range": "same_row",  "display": "自己再起"},
-	"revive_undead":    {"type": "revive_ally",   "race": "アンデッド", "hp": "full",          "display": "魂の器"},
+	"self_revive":      {"type": "revive",        "hp": 5, "delay": 3.0, "range": "same_row",  "display": "自己再起", "texture": "", "anim": "", "sfx": ""},
+	"revive_undead":    {"type": "revive_ally",   "race": "アンデッド", "hp": "full",          "display": "魂の器", "texture": "", "anim": "", "sfx": ""},
 
 	# ---- スキルフラグ（ON/OFF） ----
-	"snipe":            {"type": "skill_flag",    "flags": {"_can_attack_from_back": true, "_back_target_rear": true, "_back_no_on_hit": true},  "display": "狙撃"},
-	"support_fire":     {"type": "skill_flag",    "flags": {"_can_attack_from_back": true, "_can_attack_from_mid": true, "_back_no_on_hit": true}, "display": "支援攻撃"},
-	"support_revive":   {"type": "skill_flag",    "flags": {"_support_revive": true},                                                             "display": "再起付与"},
-	"flying":           {"type": "skill_flag",    "flags": {"_is_flying": true},                                                                  "display": "飛行"},
-	"impact":           {"type": "skill_flag",    "flags": {"_has_impact": true},                                                                 "display": "衝撃"},
-	"penetrate":        {"type": "skill_flag",    "flags": {"_has_penetrate": true},                                                              "display": "貫通"},
-	"big_penetrate":    {"type": "skill_flag",    "flags": {"_has_big_penetrate": true},                                                          "display": "大貫通"},
+	"snipe":            {"type": "skill_flag",    "flags": {"_can_attack_from_back": true, "_back_target_rear": true, "_back_no_on_hit": true},  "display": "狙撃", "texture": "", "anim": "", "sfx": ""},
+	"support_fire":     {"type": "skill_flag",    "flags": {"_can_attack_from_back": true, "_can_attack_from_mid": true, "_back_no_on_hit": true}, "display": "支援攻撃", "texture": "", "anim": "", "sfx": ""},
+	"support_revive":   {"type": "skill_flag",    "flags": {"_support_revive": true},                                                             "display": "再起付与", "texture": "", "anim": "", "sfx": ""},
+	"flying":           {"type": "skill_flag",    "flags": {"_is_flying": true},                                                                  "display": "飛行", "texture": "", "anim": "", "sfx": ""},
+	"impact":           {"type": "skill_flag",    "flags": {"_has_impact": true},                                                                 "display": "衝撃", "texture": "", "anim": "", "sfx": ""},
+	"penetrate":        {"type": "skill_flag",    "flags": {"_has_penetrate": true},                                                              "display": "貫通", "texture": "", "anim": "", "sfx": ""},
+	"big_penetrate":    {"type": "skill_flag",    "flags": {"_has_big_penetrate": true},                                                          "display": "大貫通", "texture": "", "anim": "", "sfx": ""},
 
 	# ---- マナ妨害 ----
-	"enemy_mana_drain": {"type": "mana_drain",    "per_unit": -0.1,                             "display": "マナ妨害"},
+	"enemy_mana_drain": {"type": "mana_drain",    "per_unit": -0.1,                             "display": "マナ妨害", "texture": "", "anim": "", "sfx": ""},
 
 	# ---- デバフ波及 ----
-	"debuff_spread":    {"type": "debuff_spread",                                               "display": "デバフ波及"},
+	"debuff_spread":    {"type": "debuff_spread",                                               "display": "デバフ波及", "texture": "", "anim": "", "sfx": ""},
 
 	# ---- 呪文専用 ----
-	"inject_status_card":  {"type": "inject_status",      "card_id": "",                        "display": "異常カード注入"},
-	"cost_reduction":      {"type": "cost_reduce",        "count": 3, "amount": 1,             "display": "コスト軽減"},
-	"spd_buff_all":        {"type": "temp_buff_all",      "buff": "spd", "factor": 0.5, "duration": 5.0, "display": "全体SPDバフ"},
-	"atk_hp_boost":        {"type": "stat_boost",         "atk": 5, "hp": 10,                  "display": "個体強化"},
-	"all_stat_boost":      {"type": "stat_boost",         "atk": 2, "hp": 10,                  "display": "全体強化"},
-	"remove_status_card":  {"type": "deck_remove_status",                                       "display": "異常カード除去"},
-	"front_status_both":   {"type": "front_status",       "status": "", "stacks": 2, "both_sides": true, "display": "前列状態付与"},
-	"front_damage_status": {"type": "front_damage_status","damage": 10, "status": "paralysis", "stacks": 2, "display": "前列ダメージ+状態"},
-	"all_enemy_damage":    {"type": "all_enemy_damage",   "damage": 8,                          "display": "全体ダメージ"},
-	"all_enemy_burn":      {"type": "all_enemy_debuff",   "status": "burn",   "stacks": 3,     "display": "全体デバフ"},
-	"all_enemy_freeze":    {"type": "all_enemy_debuff",   "status": "freeze", "stacks": 8,     "display": "全体デバフ"},
-	"all_enemy_debuff":    {"type": "all_enemy_debuff",   "status": "burn",   "stacks": 2,     "display": "全体デバフ"},
-	"move_random":         {"type": "move_enemy_random",                                        "display": "ランダム移動"},
-	"swap_front_back":     {"type": "swap_front_back",                                          "display": "前後入替"},
-	"push_to_back":        {"type": "push_to_back",                                             "display": "押し込み"},
-	"delay_enemy_spawn":   {"type": "delay_spawn",        "seconds": 3,                         "display": "召喚妨害"},
-	"randomize_enemy_col": {"type": "randomize_col",                                            "display": "配置崩し"},
-	"slime_global_buff":   {"type": "race_buff",          "race": "スライム", "atk_pct": 0.5,  "display": "スライム全体強化"},
-	"crystallize":         {"type": "crystallize",                                              "display": "結晶化"},
-	"critical":            {"type": "critical",           "first_only": true, "factor": 2.0,   "display": "クリティカル"},
+	"inject_status_card":  {"type": "inject_status",      "card_id": "",                        "display": "異常カード注入", "texture": "", "anim": "", "sfx": ""},
+	"cost_reduction":      {"type": "cost_reduce",        "count": 3, "amount": 1,             "display": "コスト軽減", "texture": "", "anim": "", "sfx": ""},
+	"spd_buff_all":        {"type": "temp_buff_all",      "buff": "spd", "factor": 0.5, "duration": 5.0, "display": "全体SPDバフ", "texture": "", "anim": "", "sfx": ""},
+	"atk_hp_boost":        {"type": "stat_boost",         "atk": 5, "hp": 10,                  "display": "個体強化", "texture": "", "anim": "", "sfx": ""},
+	"all_stat_boost":      {"type": "stat_boost",         "atk": 2, "hp": 10,                  "display": "全体強化", "texture": "", "anim": "", "sfx": ""},
+	"remove_status_card":  {"type": "deck_remove_status",                                       "display": "異常カード除去", "texture": "", "anim": "", "sfx": ""},
+	"front_status_both":   {"type": "front_status",       "status": "", "stacks": 2, "both_sides": true, "display": "前列状態付与", "texture": "", "anim": "", "sfx": ""},
+	"front_damage_status": {"type": "front_damage_status","damage": 10, "status": "paralysis", "stacks": 2, "display": "前列ダメージ+状態", "texture": "", "anim": "", "sfx": ""},
+	"all_enemy_damage":    {"type": "all_enemy_damage",   "damage": 8,                          "display": "全体ダメージ", "texture": "", "anim": "", "sfx": ""},
+	"all_enemy_burn":      {"type": "all_enemy_debuff",   "status": "burn",   "stacks": 3,     "display": "全体デバフ", "texture": "", "anim": "", "sfx": ""},
+	"all_enemy_freeze":    {"type": "all_enemy_debuff",   "status": "freeze", "stacks": 8,     "display": "全体デバフ", "texture": "", "anim": "", "sfx": ""},
+	"all_enemy_debuff":    {"type": "all_enemy_debuff",   "status": "burn",   "stacks": 2,     "display": "全体デバフ", "texture": "", "anim": "", "sfx": ""},
+	"move_random":         {"type": "move_enemy_random",                                        "display": "ランダム移動", "texture": "", "anim": "", "sfx": ""},
+	"swap_front_back":     {"type": "swap_front_back",                                          "display": "前後入替", "texture": "", "anim": "", "sfx": ""},
+	"push_to_back":        {"type": "push_to_back",                                             "display": "押し込み", "texture": "", "anim": "", "sfx": ""},
+	"delay_enemy_spawn":   {"type": "delay_spawn",        "seconds": 3,                         "display": "召喚妨害", "texture": "", "anim": "", "sfx": ""},
+	"randomize_enemy_col": {"type": "randomize_col",                                            "display": "配置崩し", "texture": "", "anim": "", "sfx": ""},
+	"slime_global_buff":   {"type": "race_buff",          "race": "スライム", "atk_pct": 0.5,  "display": "スライム全体強化", "texture": "", "anim": "", "sfx": ""},
+	"crystallize":         {"type": "crystallize",                                              "display": "結晶化", "texture": "", "anim": "", "sfx": ""},
+	"critical":            {"type": "critical",           "first_only": true, "factor": 2.0,   "display": "クリティカル", "texture": "", "anim": "", "sfx": ""},
 
 	# ---- ラージ/ファット専用 ----
-	"synthesis_boost":     {"type": "deck_add",           "unit_id": "self", "count": 1,       "display": "合成促進"},
-	"shuffle_deck":        {"type": "shuffle_deck",                                            "display": "デッキシャッフル"},
-	"split_on_death":      {"type": "summon_on_death",                                          "display": "分裂"},
+	"synthesis_boost":     {"type": "deck_add",           "unit_id": "self", "count": 1,       "display": "合成促進", "texture": "", "anim": "", "sfx": ""},
+	"shuffle_deck":        {"type": "shuffle_deck",                                            "display": "デッキシャッフル", "texture": "", "anim": "", "sfx": ""},
+	"split_on_death":      {"type": "summon_on_death",                                          "display": "分裂", "texture": "", "anim": "", "sfx": ""},
 
 	# ---- 盤面効果 ----
-	"tile_curse":        {"type": "tile_effect", "trigger": "on_stay",  "display": "呪われた地", "unit_label": "被ダメ+50%", "damage_mult": 1.5, "color": [0.8, 0.2, 0.6, 0.4]},
-	"tile_fire":         {"type": "tile_effect", "trigger": "on_tick",  "display": "炎床",       "unit_label": "炎床3dmg/s", "damage": 3, "tick_interval": 1.0, "color": [0.8, 0.2, 0.0, 0.3]},
-	"tile_beast_forest": {"type": "tile_effect", "trigger": "on_stay",  "display": "獣の森",     "unit_label": "獣ATK+3", "race": "獣", "atk_bonus": 3, "color": [0.0, 0.5, 0.0, 0.3]},
-	"tile_fortress":     {"type": "tile_effect", "trigger": "on_enter", "display": "鉄壁の地",   "unit_label": "鎧+2", "armor_stacks": 2, "color": [0.3, 0.3, 0.6, 0.3]},
-	"tile_crack":        {"type": "tile_effect", "trigger": "on_leave", "display": "╳╳╳\n╳ヒビ╳\n╳╳╳", "unit_label": "─ヒビ─", "transform_to": "tile_hole", "color": []},
-	"tile_poison":       {"type": "tile_effect", "trigger": "on_tick",  "display": "毒沼",       "unit_label": "毒+2/s", "status": "poison", "stacks": 2, "tick_interval": 1.0, "color": [0.3, 0.0, 0.4, 0.3]},
-	"tile_hole":         {"type": "tile_effect", "trigger": "on_enter", "display": "■■■\n■ 穴 ■\n■■■", "unit_label": "", "block_summon": true, "duration": 5.0, "color": [0.1, 0.1, 0.1, 0.5]},
+	# 盤面効果の共通フィールド:
+	#   display     : テキスト表示名（ユニット不在時のセル表示）
+	#   unit_label  : ユニットありセルに表示するテキスト（""=非表示）
+	#   color       : [r,g,b,a] 色オーバーレイ（[]=色なし。将来テクスチャに置換予定）
+	#   race        : 種族フィルタ（""=全種族対象）
+	#   texture     : テクスチャID（将来実装。""=未設定→colorフォールバック）
+	#   anim        : アニメーションID（将来実装。""=なし）
+	#   sfx         : 効果音ID（将来実装。""=なし）
+	"tile_curse":        {"type": "tile_effect", "trigger": "on_stay",  "display": "呪われた地", "unit_label": "被ダメ+50%", "damage_mult": 1.5, "color": [0.8, 0.2, 0.6, 0.4], "texture": "", "anim": "", "sfx": ""},
+	"tile_fire":         {"type": "tile_effect", "trigger": "on_tick",  "display": "炎床",       "unit_label": "炎床3dmg/s", "damage": 3, "tick_interval": 1.0, "color": [0.8, 0.2, 0.0, 0.3], "texture": "", "anim": "fire_loop", "sfx": "fire_ambient"},
+	"tile_beast_forest": {"type": "tile_effect", "trigger": "on_stay",  "display": "獣の森",     "unit_label": "獣ATK+3", "race": "獣", "atk_bonus": 3, "color": [0.0, 0.5, 0.0, 0.3], "texture": "", "anim": "", "sfx": ""},
+	"tile_fortress":     {"type": "tile_effect", "trigger": "on_enter", "display": "鉄壁の地",   "unit_label": "鎧+2", "armor_stacks": 2, "color": [0.3, 0.3, 0.6, 0.3], "texture": "", "anim": "", "sfx": ""},
+	"tile_crack":        {"type": "tile_effect", "trigger": "on_leave", "display": "╳╳╳\n╳ヒビ╳\n╳╳╳", "unit_label": "─ヒビ─", "transform_to": "tile_hole", "color": [], "texture": "", "anim": "crack_idle", "sfx": "crack"},
+	"tile_poison":       {"type": "tile_effect", "trigger": "on_tick",  "display": "毒沼",       "unit_label": "毒+2/s", "status": "poison", "stacks": 2, "tick_interval": 1.0, "color": [0.3, 0.0, 0.4, 0.3], "texture": "", "anim": "poison_bubble", "sfx": "poison_ambient"},
+	"tile_hole":         {"type": "tile_effect", "trigger": "on_enter", "display": "■■■\n■ 穴 ■\n■■■", "unit_label": "", "block_summon": true, "duration": 5.0, "color": [0.1, 0.1, 0.1, 0.5], "texture": "", "anim": "", "sfx": ""},
 
 	# ---- 盤面効果設置（呪文用） ----
-	"tile_set_all":      {"type": "tile_set",   "scope": "all",    "tile_id": "",              "display": "全マス盤面効果"},
-	"tile_set_enemy":    {"type": "tile_set",   "scope": "enemy",  "tile_id": "",              "display": "敵盤面効果"},
-	"tile_set_ally":     {"type": "tile_set",   "scope": "ally",   "tile_id": "",              "display": "味方盤面効果"},
+	"tile_set_all":      {"type": "tile_set",   "scope": "all",    "tile_id": "",              "display": "全マス盤面効果", "texture": "", "anim": "", "sfx": ""},
+	"tile_set_enemy":    {"type": "tile_set",   "scope": "enemy",  "tile_id": "",              "display": "敵盤面効果", "texture": "", "anim": "", "sfx": ""},
+	"tile_set_ally":     {"type": "tile_set",   "scope": "ally",   "tile_id": "",              "display": "味方盤面効果", "texture": "", "anim": "", "sfx": ""},
 }
