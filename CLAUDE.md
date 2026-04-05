@@ -28,6 +28,31 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - E（発信）：pmo → pr → ユーザー確認 → 投稿
 - F（戦略）：marketing → planning → CEO → ユーザー報告
 
+### Agent間連携ルール（後戻り削減）
+
+**CEO → implementer:**
+- 実装指示に「CLAUDE.mdの該当セクション」を明示引用する
+- 新規ファイルはCEOがWriteでスケルトン作成→implementerにEdit実装
+- 影響範囲（変更するファイル）と変更しないファイルを明記
+- EffectDB/CardDBのデータ追加とロジック実装は別タスクに分ける
+
+**implementer → checker 引き継ぎ:**
+- 「何を実現するためのコードか」（設計意図）を含める
+- 変更したファイル一覧と各ファイルの変更概要
+- 新規追加したeffect_id/target/triggerのリスト
+
+**checker 必須チェック:**
+- CLAUDE.md 3レイヤー定義（攻撃/サポート/アクティブスキル）との整合性
+- 前列チェックがサポート効果typeのみに適用されているか
+- match文にDB定義IDが条件にないか（grep検出）
+
+**planning → implementer:**
+- 新効果提案時に「既存EffectDBのどのtypeで実現可能か」を明記
+- 新typeが必要な場合は理由と代替案を併記
+
+**data-sync タイミング:**
+- implementer完了後、checker前に実行（card_database.md/cards.json/CLAUDE.md 3点同期）
+
 ### 運用ルール
 - 全指示はCEOを通す
 - コード変更を伴う実装は全てchecker必須
