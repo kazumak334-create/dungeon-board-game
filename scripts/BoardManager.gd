@@ -885,15 +885,15 @@ func _process_timed_skills() -> void:
 						var idx: int = int(entry.substr(6))
 						if idx < u.skills.size():
 							var skill = u.skills[idx]
-								var _mp: Dictionary = skill.get("params", {}).duplicate()
-								if skill.has("target"): _mp["target"] = skill["target"]
-								effect_executor.execute(skill["effect_id"], _mp, {
-									"trigger": "timer", "side": s, "row": r, "col": c,
-									"source": u, "target": null, "damage": 0,
-									"board_manager": self, "deck_manager": deck_manager_ref, "enemy_ai": enemy_ai_ref,
-									"event_queue": event_queue
-								})
-								u._skill_timers[entry] = skill.get("params", {}).get("interval", 1.0)
+							var _mp: Dictionary = skill.get("params", {}).duplicate()
+							if skill.has("target"): _mp["target"] = skill["target"]
+							effect_executor.execute(skill["effect_id"], _mp, {
+								"trigger": "timer", "side": s, "row": r, "col": c,
+								"source": u, "target": null, "damage": 0,
+								"board_manager": self, "deck_manager": deck_manager_ref, "enemy_ai": enemy_ai_ref,
+								"event_queue": event_queue
+							})
+							u._skill_timers[entry] = skill.get("params", {}).get("interval", 1.0)
 					else:
 						_fire_timed_skill(s, r, c, u, entry)
 						u._skill_timers[entry] = _parse_skill_interval(entry)
