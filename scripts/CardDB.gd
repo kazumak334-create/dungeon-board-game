@@ -54,6 +54,7 @@ const UNITS: Dictionary = {
 	"ヒートスライム": {
 		"hp": 25, "atk": 2, "interval": 3.8, "cost": 3, "race": "スライム", "range": "1行", "col": 0,
 		"skills": [
+			{"trigger": "timer", "target": "random_front_enemy", "effect_id": "burn_apply", "params": {"interval": 3.0, "stacks": 3}},
 			{"trigger": "on_hit", "target": "hit_target", "effect_id": "burn_apply", "params": {"stacks": 2}},
 		],
 		"texture": "", "anim": "", "sfx": "",
@@ -61,6 +62,7 @@ const UNITS: Dictionary = {
 	"フロストスライム": {
 		"hp": 25, "atk": 2, "interval": 3.8, "cost": 3, "race": "スライム", "range": "1行", "col": 0,
 		"skills": [
+			{"trigger": "timer", "target": "random_front_enemy", "effect_id": "freeze_apply", "params": {"interval": 3.0, "stacks": 3}},
 			{"trigger": "on_hit", "target": "hit_target", "effect_id": "freeze_apply", "params": {"stacks": 3}},
 		],
 		"texture": "", "anim": "", "sfx": "",
@@ -68,6 +70,7 @@ const UNITS: Dictionary = {
 	"パラライズスライム": {
 		"hp": 25, "atk": 2, "interval": 3.0, "cost": 3, "race": "スライム", "range": "1行", "col": 0,
 		"skills": [
+			{"trigger": "timer", "target": "random_front_enemy", "effect_id": "paralysis_apply", "params": {"interval": 3.0, "stacks": 1}},
 			{"trigger": "on_hit", "target": "hit_target", "effect_id": "paralysis_apply", "params": {"stacks": 1}},
 		],
 		"texture": "", "anim": "", "sfx": "",
@@ -75,6 +78,7 @@ const UNITS: Dictionary = {
 	"ポイズンスライム": {
 		"hp": 25, "atk": 2, "interval": 3.0, "cost": 3, "race": "スライム", "range": "1行", "col": 0,
 		"skills": [
+			{"trigger": "timer", "target": "random_front_enemy", "effect_id": "poison_apply", "params": {"interval": 3.0, "stacks": 5}},
 			{"trigger": "on_hit", "target": "hit_target", "effect_id": "poison_apply", "params": {"stacks": 1}},
 		],
 		"texture": "", "anim": "", "sfx": "",

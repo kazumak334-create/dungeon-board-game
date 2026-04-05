@@ -839,6 +839,17 @@ func _resolve_target(merged: Dictionary, context: Dictionary, ally_side: bool) -
 				if u != null and u.is_alive():
 					result_fe.append(u)
 			return result_fe
+		"random_front_enemy":
+			# 前列の敵ランダム1体
+			var front_rfe: int = 0 if enemy_side == 1 else 2
+			var cands_rfe: Array = []
+			for r2 in range(3):
+				var u = bm.board[enemy_side][r2][front_rfe]
+				if u != null and u.is_alive():
+					cands_rfe.append(u)
+			if cands_rfe.is_empty():
+				return []
+			return [cands_rfe[randi() % cands_rfe.size()]]
 		"adjacent_enemy":
 			# 隣接の敵ユニット（上下左右）
 			var result_ae: Array = []
