@@ -100,6 +100,7 @@ func process_deck(delta: float, board: Node) -> void:
 	if _cost_reduction_remaining > 0 and top.cost != -1:
 		_cost_reduction_remaining -= 1
 	# カードタイプ別処理
+	print("[DeckManager] カード発動: %s (type=%s, skills=%d, consumable=%s)" % [top.unit_name, top.card_type, top.skills.size(), str(top.is_consumable)])
 	emit_signal("card_played", top)
 	if top.card_type == "unit":
 		board.place_unit(0, top)

@@ -177,8 +177,10 @@ func execute(effect_id: String, params: Dictionary, context: Dictionary) -> void
 		"shuffle_deck":
 			# 山札をシャッフルするだけ（再挿入はdeck_add_selfで別途行う）
 			var deck_mgr = dm if side == 0 else ai
+			print("[EffectExecutor] shuffle_deck: deck_mgr=%s, side=%d" % [str(deck_mgr != null), side])
 			if deck_mgr != null:
 				deck_mgr.deck.shuffle()
+				print("[EffectExecutor] デッキシャッフル完了 (%d枚)" % deck_mgr.deck.size())
 
 		"summon_low_cost":
 			# 急召：低コストユニットを即時召喚
