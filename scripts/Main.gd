@@ -613,21 +613,38 @@ func _render_cell(side: int, r: int, c: int) -> void:
 		# HPバー（8ブロック）
 		var bar_filled: int = int(hp_ratio * 8)
 		var hp_bar: String = "█".repeat(bar_filled) + "░".repeat(8 - bar_filled)
-		# アクティブバフ略称
+		# バフ/デバフ/スキル表示（skillsのdisplay名＋ランタイム状態から動的生成）
 		var buffs: Array = []
+		# スキル表示（skills配列のalwaysトリガーからdisplay名を取得、位置条件付き）
+		var _EDB = load("res://scripts/EffectDB.gd")
+		var back_col: int = 0 if side == 0 else 2
+		for skill in unit.skills:
+			if skill.get("trigger", "") != "always":
+				continue
+			var eid: String = skill.get("effect_id", "")
+			var display: String = eid
+			if _EDB != null and _EDB.EFFECTS.has(eid):
+				display = _EDB.EFFECTS[eid].get("display", eid)
+			# 狙撃は後列のみ、支援攻撃は後列+中列のみ表示
+			if eid == "snipe" and c != back_col:
+				continue
+			if eid == "support_fire" and c != back_col and c != 1:
+				continue
+			buffs.append(display)
+		# バフ（スタック値）
 		if unit._atk_bonus > 0:        buffs.append("ATK+%d" % unit._atk_bonus)
 		if unit._interval_bonus > 0.0:  buffs.append("SPD+")
-		if unit._regen > 0.0:           buffs.append("HP回")
-		if unit._damage_reduction > 0:  buffs.append("障壁")
-		if unit._can_attack_from_back:  buffs.append("後列↑")
+		if unit._damage_reduction > 0:  buffs.append("鎧%d" % unit._damage_reduction)
+		if unit.lifesteal_stacks > 0:   buffs.append("吸血%d" % unit.lifesteal_stacks)
+		if unit._regen_stacks > 0:      buffs.append("再生%d" % unit._regen_stacks)
+		if unit._temp_atk_bonus > 0:    buffs.append("ATK↑%d" % unit._temp_atk_bonus)
+		if unit._temp_spd_bonus > 0.0:  buffs.append("SPD↑")
+		# デバフ
 		if unit.burn_turns > 0:         buffs.append("火傷%d" % unit.burn_turns)
 		if unit.frozen_turns > 0:       buffs.append("凍結%d" % unit.frozen_turns)
 		if unit.paralysis_turns > 0:    buffs.append("麻痺%d" % unit.paralysis_turns)
 		if unit.poison_stacks > 0:      buffs.append("毒%d" % unit.poison_stacks)
 		if unit._invincible_timer > 0.0: buffs.append("無敵")
-		if unit._temp_atk_bonus > 0:    buffs.append("ATK↑%d" % unit._temp_atk_bonus)
-		if unit._temp_spd_bonus > 0.0:  buffs.append("SPD↑")
-		if unit._regen_stacks > 0:      buffs.append("再生%d" % unit._regen_stacks)
 		var buff_line: String = (" ".join(buffs)) if not buffs.is_empty() else ""
 		# スキルフラッシュ
 		var flash_line: String = ""

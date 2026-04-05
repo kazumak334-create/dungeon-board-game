@@ -310,7 +310,13 @@ skills: [
 - DeckManager/EnemyAI/DevUI/Main.gdはCardDBを参照するだけ
 - 同じデータを複数ファイルに書かない
 
-**R8. replace_all使用後はインデント検証を必ず行う**
+**R8. UI表示文字列はマスタ/DBから取得する（ハードコード禁止）**
+- NG: `buffs.append("後列↑")` のような直書き文字列
+- OK: EffectDBのdisplay名、CardDBの定義値から動的取得
+- バフ/デバフ/スキル名は全てEffectDB.EFFECTS[id].displayを参照
+- 新しい表示が必要な場合はEffectDBにdisplayを追加してから参照
+
+**R9. replace_all使用後はインデント検証を必ず行う**
 - GDScriptはインデントが構文の一部。replace_allでインデントが壊れるとパースエラー
 - 置換後に前後5行のインデントを確認する
 
