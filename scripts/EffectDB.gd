@@ -84,7 +84,7 @@ const EFFECTS: Dictionary = {
 	"push_to_back":        {"type": "push_to_back",                                             "display": "押し込み", "texture": "", "anim": "", "sfx": ""},
 	"delay_enemy_spawn":   {"type": "delay_spawn",        "seconds": 3,                         "display": "召喚妨害", "texture": "", "anim": "", "sfx": ""},
 	"randomize_enemy_col": {"type": "randomize_col",                                            "display": "配置崩し", "texture": "", "anim": "", "sfx": ""},
-	"slime_global_buff":   {"type": "race_buff",          "race": "スライム", "atk_pct": 0.5,  "display": "スライム全体強化", "ignore_front_check": true, "texture": "", "anim": "", "sfx": ""},
+	"slime_global_buff":   {"type": "race_buff",          "race": "スライム", "atk_pct": 0.5,  "display": "スライム全体強化", "texture": "", "anim": "", "sfx": ""},
 	"crystallize":         {"type": "crystallize",                                              "display": "結晶化", "texture": "", "anim": "", "sfx": ""},
 	"critical":            {"type": "critical",           "first_only": true, "factor": 2.0,   "display": "クリティカル", "texture": "", "anim": "", "sfx": ""},
 

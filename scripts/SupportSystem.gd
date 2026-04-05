@@ -48,8 +48,10 @@ func apply_support_effects() -> void:
 							# 前列チェック: skill_flagはスキル（位置無関係）なので除外
 							var _eid_check = skill.get("effect_id", "")
 							var _edef_check = _EDB.EFFECTS.get(_eid_check, {})
-							var _is_skill = _edef_check.get("type", "") == "skill_flag" or _edef_check.get("ignore_front_check", false)
-							if c == front_col and not _is_skill:
+							var _etype_check = _edef_check.get("type", "")
+							# サポート効果系typeのみ前列で発動しない。スキル/アクティブ常時は位置無関係
+							var _is_support_type = _etype_check in ["buff_apply", "debuff_apply", "mana_drain", "debuff_spread"]
+							if c == front_col and _is_support_type:
 								continue
 							# skillsのtop-level targetをparamsにマージ
 							var merged_params: Dictionary = skill.get("params", {}).duplicate()
