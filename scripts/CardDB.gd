@@ -129,6 +129,14 @@ const UNITS: Dictionary = {
 			{"trigger": "on_summon", "target": "self", "effect_id": "draw_cards", "params": {"count": 2}},
 		],
 	},
+	"ワイルドホーク": {
+		"hp": 15, "atk": 2, "interval": 1.5, "cost": 2, "race": "獣", "range": "1行", "col": 2,
+		"skills": [
+			{"trigger": "always", "target": "front_beast", "effect_id": "spd_buff_apply", "params": {"stacks": 1}},
+			{"trigger": "always", "target": "self", "effect_id": "flying", "params": {}},
+			{"trigger": "always", "target": "self", "effect_id": "penetrate", "params": {}},
+		],
+	},
 	"ウルフ": {
 		"hp": 20, "atk": 5, "interval": 1.5, "cost": 2, "race": "獣", "range": "1行", "col": 1,
 		"skills": [

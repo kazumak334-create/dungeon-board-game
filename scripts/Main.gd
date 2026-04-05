@@ -753,16 +753,18 @@ func _render_cell(side: int, r: int, c: int) -> void:
 			"tile_crack":        pass  # ヒビはテキストで表現
 			"tile_poison":       rect.color = rect.color.lerp(Color(0.3, 0.0, 0.4), 0.3)
 			"tile_hole":         rect.color = rect.color.lerp(Color(0.1, 0.1, 0.1), 0.5)
-		# ユニット不在時は盤面効果名を表示、ヒビはテキスト表現
+		# 盤面効果名をセルに表示
 		if lbl.text == "":
+			# ユニット不在
 			if tile_id == "tile_crack":
 				lbl.text = "╳╳╳\n╳ヒビ╳\n╳╳╳"
 			elif tile_id == "tile_hole":
 				lbl.text = "■■■\n■ 穴 ■\n■■■"
 			else:
 				lbl.text = tile_display
-		elif tile_id == "tile_crack":
-			lbl.text = lbl.text + "\n─ヒビ─"
+		else:
+			# ユニットあり：末尾に盤面効果名を追加
+			lbl.text = lbl.text + "\n[%s]" % tile_display
 
 func _update_base_hp() -> void:
 	player_base_label.text = "自陣 本体HP: %d / 30" % base_hp[0]

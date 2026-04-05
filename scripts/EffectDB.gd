@@ -53,6 +53,7 @@ const EFFECTS: Dictionary = {
 	"snipe":            {"type": "skill_flag",    "flags": {"_can_attack_from_back": true, "_back_target_rear": true, "_back_no_on_hit": true},  "display": "狙撃"},
 	"support_fire":     {"type": "skill_flag",    "flags": {"_can_attack_from_back": true, "_can_attack_from_mid": true, "_back_no_on_hit": true}, "display": "支援攻撃"},
 	"support_revive":   {"type": "skill_flag",    "flags": {"_support_revive": true},                                                             "display": "再起付与"},
+	"flying":           {"type": "skill_flag",    "flags": {"_is_flying": true},                                                                  "display": "飛行"},
 	"impact":           {"type": "skill_flag",    "flags": {"_has_impact": true},                                                                 "display": "衝撃"},
 	"penetrate":        {"type": "skill_flag",    "flags": {"_has_penetrate": true},                                                              "display": "貫通"},
 	"big_penetrate":    {"type": "skill_flag",    "flags": {"_has_big_penetrate": true},                                                          "display": "大貫通"},

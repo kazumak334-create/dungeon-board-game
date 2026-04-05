@@ -532,6 +532,7 @@ func _apply_support_effects() -> void:
 					u._has_penetrate = false
 					u._has_impact = false
 					u._has_big_penetrate = false
+					u._is_flying = false
 					# _regen_stacks はリセットしない（スタック+時間減少方式）
 					u._support_revive = false
 	# 各ユニットのサポート効果を適用（旧方式：support_effect文字列）

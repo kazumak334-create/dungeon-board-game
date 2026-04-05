@@ -701,6 +701,15 @@ func _resolve_target(merged: Dictionary, context: Dictionary, ally_side: bool) -
 				if u != null and u.is_alive():
 					return [u]
 			return []
+		"front_beast":
+			# 前列の獣ユニット全体
+			var front_col_fb: int = 2 if side == 0 else 0
+			var result_fb: Array = []
+			for r2 in range(3):
+				var u = bm.board[side][r2][front_col_fb]
+				if u != null and u.is_alive() and u.race == "獣":
+					result_fb.append(u)
+			return result_fb
 	return []
 
 func _pick_ally_by_strategy(side: int, bm: Node, strategy: String) -> Object:
