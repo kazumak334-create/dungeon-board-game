@@ -108,8 +108,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - UI表示への影響（セル表示、ホバー、DevUI）を提案に含める
 
 ### 現在のフェーズ
-Phase 1・4合目（効果システム基盤設計中）
-次のマイルストーン：効果テーブルシステム完成 → カード全実装
+Phase 2・5合目（画面遷移+デッキ構築フェーズ）
+次のマイルストーン：クラス選択→バトル→結果の画面ループ完成
 
 ## Running the Game
 
@@ -358,6 +358,29 @@ row2(下段)  [2,0]      [2,1]      [2,2]
 - **盤面効果の発動条件**: 呪文で設置？ユニットスキルで設置？ステージ固有？全パターン対応予定
 - **呪い・透明化**: デバフ/バフとして将来実装。現時点ではカード定義にeffect_idなしで登録
 - **board_effects構造**: `board_effects[side][row][col]`で盤面効果レイヤーを管理予定。飛行スキルで無視
+
+### 画面遷移設計
+
+**画面フロー（MVP）:**
+ClassSelect → Battle → Result → ClassSelect（ループ）
+
+**Autoload構成:**
+- `SceneManager`: 全画面遷移を一元管理（scripts/SceneManager.gd）
+- `GameSession`: ランデータの一時保管（scripts/GameSession.gd）
+
+**画面一覧:**
+
+| シーン名 | パス（予定） | 状態 |
+|---------|------------|------|
+| クラス選択 | res://scenes/class_select.tscn | 未実装 |
+| バトル | res://scenes/Main.tscn | 実装済み |
+| バトル結果 | res://scenes/result.tscn | 未実装 |
+| 拠点 | res://scenes/home.tscn | Phase 3 |
+
+**遷移時のデータ引き継ぎ（GameSession）:**
+- class_id: 選択クラスID
+- selected_deck: デッキ配列
+- last_result: バトル結果{win, player_hp_remaining, turns}
 
 ## モジュール設計の実装ルール（全Agent必読）
 
