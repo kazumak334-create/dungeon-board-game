@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git:*)",
+      "Read(//c/Users/kazum/.claude/**)",
+      "Bash(echo \"---EXIT_CODE:$?---\")",
+      "Bash(python3:*)",
+      "Bash(py -3 --version)",
+      "Bash(/c/Users/kazum/AppData/Local/Microsoft/WindowsApps/python --version)",
+      "Read(//c/Users/kazum/AppData/Local/Programs/**)",
+      "Bash(ls /c/Python*)",
+      "Bash(node:*)"
+    ]
+  }
+}
