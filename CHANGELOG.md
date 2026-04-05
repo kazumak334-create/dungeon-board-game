@@ -2,9 +2,59 @@
 
 ## [Unreleased]
 
+### Added — 2026-04-05: 効果テーブルシステム（EffectDB + EffectExecutor）
+
+#### EffectDB.gd（新規）
+- class_name EffectDB, extends RefCounted
+- EFFECTS: Dictionary に65種の効果定義を一元管理
+- buff_apply/debuff_apply/damage/self_damage/heal/atk_permanent/summon/deck_add/draw/mana_add/steal_buffs/move/skill_flag/mana_drain/debuff_spread/inject_status/cost_reduce/temp_buff_all/stat_boost/deck_remove_status/front_status/front_damage_status/all_enemy_damage/all_enemy_debuff/move_enemy_random/swap_front_back/push_to_back/delay_spawn/randomize_col/revive/revive_ally/crystallize/critical 各type定義
+
+#### EffectExecutor.gd（新規）
+- class_name EffectExecutor, extends RefCounted
+- execute(effect_id, params, context)でEffectDBのデフォルト値をparams上書きして実行
+- contextに board_manager/deck_manager/enemy_ai/event_queue/source/target/side/row/col を渡す設計
+- _resolve_target()で"self"/"random_front_ally"/"same_col_ally"/"same_row_beast"/"adjacent_beast"/"all_allies"/"all_enemies"/"single_ally"/"random_ally"/"enemy_random_col"/"ally_max_atk"/"enemy_front_one"を解決
+
+#### UnitData.gd
+- skills: Array = [] フィールド追加
+- clone()でskillsもdeep copy
+
+#### DeckManager.gd / EnemyAI.gd
+- card_pool全ユニットに skills配列を追加（support/activeは空文字に変更）
+- spell_poolに主要3呪文のskills追加
+
+#### BoardManager.gd
+- effect_executor: RefCounted フィールド追加
+- _apply_support_effects()内でskills[always]をEffectExecutor経由で処理
+- _push_on_hit_effects()でskills[on_hit]をEffectExecutor経由で処理（旧方式は後方互換で維持）
+- _push_summon_effects()でskills[on_summon]をEffectExecutor経由で処理
+- _init_skill_timers()でskills[timer]を"timer_N"キーで登録
+- _process_timed_skills()で"timer_N"形式キーをEffectExecutor経由で発火
+- _process_on_kill()でskills[on_kill]をEffectExecutor経由で処理
+- remove_unit()でskills[on_death]をEffectExecutor経由で処理
+
+#### SpellExecutor.gd
+- effect_executor: RefCounted フィールド追加
+- execute()先頭でspell.skillsがある場合はEffectExecutor経由で処理（既存matchは後方互換）
+- _inject_status_card()で異常状態カードにskills配列を設定
+- _apply_self_status()でスライム優先判定をunit_name判定に更新
+
+#### EventQueue.gd
+- デバフ波及チェックをskills配列にも対応（support_effect文字列との両対応）
+
+#### Main.gd
+- EffectExecutorScript preload追加
+- EffectExecutor生成・board_manager/spell_executorに注入
+- synthesis_registryのresult定義にskillsを含める
+
+#### DevUI.gd
+- unit_defsにskills配列追加（主要ユニット全件）
+- _build_card()でskillsをUnitData.skillsに設定
+
 ### Fixed — 2026-04-05
 - CheckAgent：DeckManager.gd 57行目（バンシー active）・EnemyAI.gd 58行目（リッチ support）・59行目（リッチ active）・64行目（ヴリコラカス active）の日本語文字化け（U+FFFD）を修正
 - CheckAgent：BoardManager.gd 217行目コメントの文字化け（ターゲッ□□選択）を修正（実行影響なし）
+- CheckAgent：EffectExecutor.gdに"race_buff" typeのmatch分岐を追加（EffectDB.EFFECTSに定義済みの"slime_global_buff"エントリへの対応）
 
 ### Added — 開発者モード・リジェネバフ・呪文カードシステム・バフ統一化・撃破時スキル
 
