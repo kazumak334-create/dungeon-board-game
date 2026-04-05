@@ -758,12 +758,17 @@ func _on_heal_both_base() -> void:
 	main._add_log("[DEV] 両本体HP全回復")
 
 func _on_run_tests() -> void:
+	main._add_log("=== テスト開始 ===")
 	var TestRunnerScript = load("res://scripts/TestRunner.gd")
+	if TestRunnerScript == null:
+		main._add_log("ERROR: TestRunner.gd ロード失敗")
+		return
 	var runner = TestRunnerScript.new()
 	var result: String = runner.run_all()
-	main._add_log("=== 自動テスト ===")
 	for line in result.split("\n"):
-		main._add_log(line)
+		if line != "":
+			main._add_log(line)
+	main._add_log("=== テスト完了 ===")
 
 func _on_back_to_menu() -> void:
 	main.get_tree().reload_current_scene()
