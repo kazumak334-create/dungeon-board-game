@@ -763,17 +763,24 @@ func _render_cell(side: int, r: int, c: int) -> void:
 			else:
 				lbl.text = tile_display
 		else:
-			# ユニットあり：盤面効果の具体的な影響を表示
-			var tile_info: String = ""
-			match tile_id:
-				"tile_curse":        tile_info = "被ダメ+50%"
-				"tile_beast_forest": tile_info = "獣ATK+3" if unit != null and unit.race == "獣" else "獣の森"
-				"tile_fortress":     tile_info = "鎧+2"
-				"tile_fire":         tile_info = "炎床3dmg/s"
-				"tile_poison":       tile_info = "毒+2/s"
-				"tile_crack":        tile_info = "─ヒビ─"
-				_:                   tile_info = tile_display
-			lbl.text = lbl.text + "\n[%s]" % tile_info
+			# ユニットあり：飛行ユニットは盤面効果表示しない
+			if unit != null and unit.get("_is_flying") == true:
+				pass  # 飛行は盤面効果無視→表示もしない
+			else:
+				# 対象外の場合は表示しない（獣の森に非獣等）
+				var tile_info: String = ""
+				match tile_id:
+					"tile_curse":        tile_info = "被ダメ+50%"
+					"tile_beast_forest":
+						if unit != null and unit.race == "獣":
+							tile_info = "獣ATK+3"
+					"tile_fortress":     tile_info = "鎧+2"
+					"tile_fire":         tile_info = "炎床3dmg/s"
+					"tile_poison":       tile_info = "毒+2/s"
+					"tile_crack":        tile_info = "─ヒビ─"
+					_:                   tile_info = tile_display
+				if tile_info != "":
+					lbl.text = lbl.text + "\n[%s]" % tile_info
 
 func _update_base_hp() -> void:
 	player_base_label.text = "自陣 本体HP: %d / 30" % base_hp[0]
