@@ -559,7 +559,16 @@ func execute(effect_id: String, params: Dictionary, context: Dictionary) -> void
 
 		# ---- 種族バフ（スライム全体強化など） ----
 		"race_buff":
-			pass
+			var race_filter: String = merged.get("race", "")
+			var atk_pct: float = merged.get("atk_pct", 0.5)
+			if bm != null:
+				for r2 in range(3):
+					for c2 in range(3):
+						var u = bm.board[side][r2][c2]
+						if u != null and u.is_alive() and u != source:
+							if race_filter == "" or u.race == race_filter:
+								u._atk_bonus += max(1, int(float(u.attack) * atk_pct))
+								print("[EffectExecutor] race_buff: %s ATK+%d" % [u.unit_name, max(1, int(float(u.attack) * atk_pct))])
 
 		# ---- 盤面効果設置 ----
 		"tile_set":
@@ -779,6 +788,57 @@ func _resolve_target(merged: Dictionary, context: Dictionary, ally_side: bool) -
 		"random_empty_ally":
 			# 味方ランダム空きマス（召喚用）: ここではユニットリストは返さない（_resolve_target想定外）
 			return []
+		"ally_undead_lowest":
+			# HP割合が最も低いアンデッド味方
+			var best: Object = null
+			var best_ratio: float = 1.0
+			for r2 in range(3):
+				for c2 in range(3):
+					var u = bm.board[side][r2][c2]
+					if u != null and u.is_alive() and u.race == "アンデッド" and u != source:
+						var ratio: float = float(u.current_hp) / float(u.max_hp)
+						if ratio < best_ratio:
+							best_ratio = ratio
+							best = u
+			return [best] if best != null else []
+		"enemy_most_buffs":
+			# バフが最も多い敵
+			var best: Object = null
+			var best_count: int = 0
+			for r2 in range(3):
+				for c2 in range(3):
+					var u = bm.board[enemy_side][r2][c2]
+					if u != null and u.is_alive():
+						var cnt: int = 0
+						if u._atk_bonus > 0: cnt += 1
+						if u._interval_bonus > 0.0: cnt += 1
+						if u.lifesteal_stacks > 0: cnt += 1
+						if u._regen_stacks > 0: cnt += 1
+						if u._damage_reduction > 0: cnt += 1
+						if cnt > best_count:
+							best_count = cnt
+							best = u
+			return [best] if best != null else []
+		"front_enemy":
+			# 前列の敵全員
+			var front_fe: int = 0 if enemy_side == 1 else 2
+			var result_fe: Array = []
+			for r2 in range(3):
+				var u = bm.board[enemy_side][r2][front_fe]
+				if u != null and u.is_alive():
+					result_fe.append(u)
+			return result_fe
+		"adjacent_enemy":
+			# 隣接の敵ユニット（上下左右）
+			var result_ae: Array = []
+			for d in [[-1, 0], [1, 0], [0, -1], [0, 1]]:
+				var r2: int = row + d[0]
+				var c2: int = col + d[1]
+				if r2 >= 0 and r2 < 3 and c2 >= 0 and c2 < 3:
+					var u = bm.board[enemy_side][r2][c2]
+					if u != null and u.is_alive():
+						result_ae.append(u)
+			return result_ae
 	return []
 
 func _pick_ally_by_strategy(side: int, bm: Node, strategy: String) -> Object:

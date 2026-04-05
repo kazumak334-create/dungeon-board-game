@@ -52,6 +52,11 @@ func check_tile_on_enter(side: int, row: int, col: int, unit: Object) -> void:
 	if def.get("armor_stacks", 0) > 0:
 		unit._damage_reduction += def["armor_stacks"]
 		print("[TileSystem] 鉄壁の地: 鎧+%d → %s" % [def["armor_stacks"], unit.unit_name])
+	# 棘: 配置/復活時にダメージ
+	if def.has("damage") and def.get("trigger", "") == "on_enter":
+		var dmg: int = def["damage"]
+		unit.take_damage(dmg)
+		print("[TileSystem] 棘ダメージ: %s -%d" % [unit.unit_name, dmg])
 
 func check_tile_on_leave(side: int, row: int, col: int, unit: Object) -> void:
 	var te = board_manager.board_effects[side][row][col]

@@ -159,6 +159,14 @@ func _execute_synthesis(side: int, row: int, col: int, existing: Object, result_
 	synthesized._temp_atk_timer = existing._temp_atk_timer
 	synthesized._temp_spd_bonus = existing._temp_spd_bonus
 	synthesized._temp_spd_timer = existing._temp_spd_timer
+	synthesized.lifesteal_stacks = existing.lifesteal_stacks
+	synthesized._kill_atk_bonus = existing._kill_atk_bonus
+	synthesized._stolen_atk = existing._stolen_atk
+	synthesized._stolen_spd = existing._stolen_spd
+	synthesized._stolen_lifesteal = existing._stolen_lifesteal
+	synthesized._stolen_penetrate = existing._stolen_penetrate
+	synthesized._stolen_regen = existing._stolen_regen
+	synthesized._stolen_armor = existing._stolen_armor
 	# デバフ10スタック解除
 	synthesized.burn_turns = max(0, existing.burn_turns - 10)
 	synthesized.frozen_turns = max(0, existing.frozen_turns - 10)

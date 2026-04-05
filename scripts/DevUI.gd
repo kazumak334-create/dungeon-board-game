@@ -100,6 +100,25 @@ func _build_dev_panel() -> void:
 			btn.pressed.connect(row[i]["cb"])
 			main.add_child(btn)
 		btn_y += 26
+	# 速度ボタン
+	var speed_btns := [
+		{"text": "x0.5", "speed": 0.5},
+		{"text": "x1",   "speed": 1.0},
+		{"text": "x2",   "speed": 2.0},
+		{"text": "x4",   "speed": 4.0},
+	]
+	var spd_col_w: int = 60
+	for i in range(speed_btns.size()):
+		var sbtn := Button.new()
+		sbtn.text = speed_btns[i]["text"]
+		sbtn.position = Vector2(1022 + i * (spd_col_w + 2), btn_y)
+		sbtn.size = Vector2(spd_col_w, 24)
+		sbtn.add_theme_font_size_override("font_size", 10)
+		sbtn.modulate = Color(0.8, 0.9, 0.6)
+		var spd: float = speed_btns[i]["speed"]
+		sbtn.pressed.connect(_on_set_speed.bind(spd))
+		main.add_child(sbtn)
+	btn_y += 26
 	btn_y += 4
 
 	var scroll := ScrollContainer.new()
@@ -717,6 +736,10 @@ func _on_heal_both_base() -> void:
 
 func _on_back_to_menu() -> void:
 	main.get_tree().reload_current_scene()
+
+func _on_set_speed(speed: float) -> void:
+	main.game_speed = speed
+	main._add_log("[DEV] ゲームスピード x%s" % str(speed))
 
 func _on_tile_effect_select(eid: String) -> void:
 	_pending_tile_effect = eid

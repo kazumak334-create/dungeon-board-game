@@ -68,6 +68,7 @@ var game_paused: bool = false
 
 var game_over: bool = false
 var log_lines: Array  = []
+var game_speed: float = 1.0
 
 var skill_flash_timers: Array = []  # [side][row][col] -> float
 var skill_flash_names:  Array = []  # [side][row][col] -> String
@@ -588,9 +589,10 @@ func _process(delta: float) -> void:
 	if not game_started or game_over:
 		return
 	if not game_paused:
-		deck_manager.process_deck(delta, board_manager)
-		enemy_ai.process_ai(delta, board_manager)
-		board_manager.process_combat(delta, base_hp)
+		var effective_delta: float = delta * game_speed
+		deck_manager.process_deck(effective_delta, board_manager)
+		enemy_ai.process_ai(effective_delta, board_manager)
+		board_manager.process_combat(effective_delta, base_hp)
 		if not dev_mode:
 			_check_game_over()
 		# 開発者モード: デッキ表示を更新（サイズ変化時のみ）
@@ -979,6 +981,17 @@ func _on_status_cleared(unit_name: String, status: String) -> void:
 	_add_log("[状態解除] %s の %s が解除" % [unit_name, status])
 
 func _on_synthesis_done(side: int, row: int, col: int, base_name: String, result_name: String) -> void:
+	# 錬金術師パッシブ: 合成時マナ+2
+	if side == 0 and board_manager.player_data != null:
+		var _EDB = load("res://scripts/EffectDB.gd")
+		for skill in board_manager.player_data.skills:
+			if skill.get("trigger", "") == "on_synthesis":
+				var eid: String = skill.get("effect_id", "")
+				var edef: Dictionary = _EDB.EFFECTS.get(eid, {})
+				if edef.get("type", "") == "mana_add":
+					var amount: int = skill.get("params", {}).get("amount", edef.get("amount", 2))
+					deck_manager.mana = min(deck_manager.MANA_MAX, deck_manager.mana + amount)
+					_add_log("[合成スキル] マナ+%d" % amount)
 	var side_name: String = "自陣" if side == 0 else "敵陣"
 	_add_log("[合成] %s %s → %s" % [side_name, base_name, result_name])
 	skill_flash_timers[side][row][col] = 1.0

@@ -101,7 +101,7 @@ const EFFECTS: Dictionary = {
 	#   anim        : アニメーションID（将来実装。""=なし）
 	#   sfx         : 効果音ID（将来実装。""=なし）
 	"tile_curse":        {"type": "tile_effect", "trigger": "on_stay",  "display": "呪われた地", "unit_label": "被ダメ+50%", "damage_mult": 1.5, "color": [0.8, 0.2, 0.6, 0.4], "texture": "", "anim": "", "sfx": ""},
-	"tile_fire":         {"type": "tile_effect", "trigger": "on_tick",  "display": "炎床",       "unit_label": "炎床3dmg/s", "damage": 3, "tick_interval": 1.0, "color": [0.8, 0.2, 0.0, 0.3], "texture": "", "anim": "fire_loop", "sfx": "fire_ambient"},
+	"tile_thorn":        {"type": "tile_effect", "trigger": "on_enter", "display": "棘",         "unit_label": "棘5dmg",     "damage": 5,                        "color": [0.6, 0.3, 0.0, 0.3], "texture": "", "anim": "", "sfx": ""},
 	"tile_beast_forest": {"type": "tile_effect", "trigger": "on_stay",  "display": "獣の森",     "unit_label": "獣ATK+3", "race": "獣", "atk_bonus": 3, "color": [0.0, 0.5, 0.0, 0.3], "texture": "", "anim": "", "sfx": ""},
 	"tile_fortress":     {"type": "tile_effect", "trigger": "on_enter", "display": "鉄壁の地",   "unit_label": "鎧+2", "armor_stacks": 2, "color": [0.3, 0.3, 0.6, 0.3], "texture": "", "anim": "", "sfx": ""},
 	"tile_crack":        {"type": "tile_effect", "trigger": "on_leave", "display": "╳╳╳\n╳ヒビ╳\n╳╳╳", "unit_label": "─ヒビ─", "transform_to": "tile_hole", "color": [], "texture": "", "anim": "crack_idle", "sfx": "crack"},

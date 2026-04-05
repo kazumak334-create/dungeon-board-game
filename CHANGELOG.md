@@ -2,6 +2,30 @@
 
 ## [Unreleased]
 
+### Added — 2026-04-05: バトル完成6件修正（ゲームスピード・棘・合成スキル・ターゲット拡張・race_buff・合成バフ引き継ぎ）
+
+#### Main.gd
+- `game_speed: float = 1.0` フィールド追加
+- `_process()` 内に `effective_delta = delta * game_speed` を導入し、deck/ai/combatの各processに適用
+- `_on_synthesis_done()` に on_synthesis trigger スキル（錬金術師パッシブ: 合成時マナ+N）の発火ロジックを追加
+
+#### DevUI.gd
+- ツールボタン行の後に速度ボタン行（x0.5 / x1 / x2 / x4）を追加
+- `_on_set_speed(speed: float)` 新規追加：main.game_speed を更新
+
+#### EffectDB.gd
+- `tile_fire`（炎床 on_tick 3dmg）を `tile_thorn`（棘 on_enter 5dmg）に置き換え
+
+#### TileSystem.gd
+- `check_tile_on_enter()` に `on_enter` かつ `damage` フィールドを持つ盤面効果のダメージ処理を追加（棘対応）
+
+#### EffectExecutor.gd
+- `_resolve_target()` に 4種のターゲット指定子を追加: `ally_undead_lowest` / `enemy_most_buffs` / `front_enemy` / `adjacent_enemy`
+- `race_buff` typeのpassブランチを実装（種族フィルタ＋atk_pctによる_atk_bonus付与）
+
+#### BoardManager.gd
+- `_execute_synthesis()` のバフコピーに 8フィールドを追加: `lifesteal_stacks` / `_kill_atk_bonus` / `_stolen_atk` / `_stolen_spd` / `_stolen_lifesteal` / `_stolen_penetrate` / `_stolen_regen` / `_stolen_armor`
+
 ### Added — 2026-04-05: クラススキルロジック実装 + PlayerData統合 + DevUIクラス選択
 
 #### BoardManager.gd
