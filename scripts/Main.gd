@@ -218,6 +218,28 @@ func _build_mode_select() -> void:
 	dev_btn.pressed.connect(_on_mode_dev)
 	mode_select_panel.add_child(dev_btn)
 
+	var test_btn := Button.new()
+	test_btn.text = "テスト実行"
+	test_btn.position = Vector2(440, 480)
+	test_btn.size = Vector2(400, 60)
+	test_btn.add_theme_font_size_override("font_size", 28)
+	test_btn.modulate = Color(1.0, 1.0, 0.3)
+	test_btn.pressed.connect(_on_run_tests)
+	mode_select_panel.add_child(test_btn)
+
+func _on_run_tests() -> void:
+	print("=== テスト開始 ===")
+	var TestRunnerScript = load("res://scripts/TestRunner.gd")
+	if TestRunnerScript == null:
+		print("ERROR: TestRunner.gd ロード失敗")
+		return
+	var runner = TestRunnerScript.new()
+	var result: String = runner.run_all()
+	for line in result.split("\n"):
+		if line != "":
+			print(line)
+	print("=== テスト完了 ===")
+
 func _on_mode_play() -> void:
 	mode_select_panel.queue_free()
 	mode_select_panel = null

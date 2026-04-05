@@ -232,16 +232,6 @@ func _build_dev_panel() -> void:
 		cls_btn.pressed.connect(_on_class_select.bind(class_id))
 		card_list_container.add_child(cls_btn)
 
-	# テスト実行ボタン
-	_add_section_header("── テスト ──")
-	var test_btn := Button.new()
-	test_btn.text = "テスト実行"
-	test_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	test_btn.custom_minimum_size = Vector2(240, 28)
-	test_btn.add_theme_font_size_override("font_size", 12)
-	test_btn.modulate = Color(1.0, 1.0, 0.3)
-	test_btn.pressed.connect(_on_run_tests)
-	card_list_container.add_child(test_btn)
 
 	# カード詳細ツールチップ（カード一覧の上に表示）
 	_tooltip_panel = PanelContainer.new()
