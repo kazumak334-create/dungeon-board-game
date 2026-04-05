@@ -438,15 +438,19 @@ func _on_card_hover(index: int) -> void:
 		lines.append("Cost: %d" % d["cost"])
 		lines.append("HP: %d / ATK: %d / SPD: %.1fs" % [d["hp"], d["atk"], d["interval"]])
 		lines.append("攻撃範囲: %s" % d.get("range", "1行"))
-		# skills配列からスキル名のみ簡潔に表示
+		# skills配列からdisplay名で表示
+		var _EDB = load("res://scripts/EffectDB.gd")
 		var support_names: Array = []
 		var active_names: Array = []
 		for skill in d.get("skills", []):
 			var eid: String = skill.get("effect_id", "")
+			var display: String = eid
+			if _EDB != null and _EDB.EFFECTS.has(eid):
+				display = _EDB.EFFECTS[eid].get("display", eid)
 			if skill.get("trigger", "") == "always":
-				support_names.append(eid)
+				support_names.append(display)
 			else:
-				active_names.append(eid)
+				active_names.append(display)
 		if support_names.size() > 0:
 			lines.append("")
 			lines.append("■ サポート: " + ", ".join(support_names))
