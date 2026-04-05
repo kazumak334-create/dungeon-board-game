@@ -129,6 +129,13 @@ func remove_unit(side: int, row: int, col: int) -> void:
 		attack_timers[side][row][col] = unit.attack_interval
 		emit_signal("unit_revived", side, row, col)
 		return
+	# サポート効果由来の再起チェック（1回限り）
+	if unit != null and unit._support_revive and not unit._support_revive_used:
+		unit._support_revive_used = true
+		unit.current_hp = 1
+		attack_timers[side][row][col] = unit.attack_interval
+		emit_signal("unit_revived", side, row, col)
+		return
 	board[side][row][col] = null
 	attack_timers[side][row][col] = 0.0
 	emit_signal("unit_died", side, row, col)
@@ -186,13 +193,13 @@ func process_combat(delta: float, base_hp: Array) -> void:
 				var eff_interval: float = max(0.3, unit.attack_interval - unit._interval_bonus - unit._temp_spd_bonus + freeze_penalty)
 				attack_timers[side][row][back_col] = eff_interval
 				var back_atk: int = max(1, int(unit.attack * unit._back_atk_factor) + unit._atk_bonus)
-				_do_attack(side, row, back_col, unit, enemy_side, base_hp, back_atk)
+				_do_attack(side, row, back_col, unit, enemy_side, base_hp, back_atk, unit._back_target_rear, unit._back_no_on_hit)
 
 	# 全イベントを優先度順に一括処理
 	if event_queue != null:
 		event_queue.flush(self, base_hp)
 
-func _do_attack(side: int, row: int, col: int, attacker: Object, enemy_side: int, base_hp: Array, atk_override: int = -1) -> void:
+func _do_attack(side: int, row: int, col: int, attacker: Object, enemy_side: int, base_hp: Array, atk_override: int = -1, target_rear: bool = false, skip_on_hit: bool = false) -> void:
 	var effective_atk: int = atk_override if atk_override >= 0 else attacker.attack + attacker._atk_bonus + attacker._temp_atk_bonus
 	# 火傷中はATK低下（逓減・最大80%）: reduction = 0.8 * stacks / (stacks + 2)
 	if attacker.burn_turns > 0:
@@ -207,8 +214,8 @@ func _do_attack(side: int, row: int, col: int, attacker: Object, enemy_side: int
 	var target_rows: Array = _get_target_rows(row, attacker.attack_range)
 	var hit_any: bool = false
 	for target_row in target_rows:
-		# 前列→中列→後列の順で最初にいるユニットを攻撃（案A）
-		var target_col: int = _get_frontmost_col(enemy_side, target_row)
+		# ターゲット選択：最後列優先 or 最前列優先
+		var target_col: int = _get_rearmost_col(enemy_side, target_row) if target_rear else _get_frontmost_col(enemy_side, target_row)
 		if target_col != -1:
 			hit_any = true
 			var target = board[enemy_side][target_row][target_col]
@@ -244,9 +251,10 @@ func _do_attack(side: int, row: int, col: int, attacker: Object, enemy_side: int
 									attacker, behind_target, "damage", float(pen_dmg),
 									{"enemy_side": enemy_side, "row": target_row, "col": behind_col}
 								)
-				# 命中時アクティブスキル（PRIORITY_ACTIVE）
-				_push_on_hit_effects(side, row, col, attacker, target,
-					enemy_side, target_row, target_col, actual_damage)
+				# 命中時アクティブスキル（PRIORITY_ACTIVE）— skip_on_hit時はスキップ
+				if not skip_on_hit:
+					_push_on_hit_effects(side, row, col, attacker, target,
+						enemy_side, target_row, target_col, actual_damage)
 	if is_critical:
 		active_skill_used.emit(side, row, col, "クリティカル")
 	if not hit_any:
@@ -356,6 +364,14 @@ func _get_frontmost_col(side: int, row: int) -> int:
 			return c
 	return -1
 
+func _get_rearmost_col(side: int, row: int) -> int:
+	# 後列→中列→前列の順で最初にユニットがいる列を返す（-1=なし）
+	var col_order: Array = [0, 1, 2] if side == 0 else [2, 1, 0]
+	for c in col_order:
+		if board[side][row][c] != null:
+			return c
+	return -1
+
 func _get_behind_col(side: int, row: int, front_col: int) -> int:
 	# front_col の後ろにいるユニットの列を返す（-1=なし）
 	var col_order: Array = [2, 1, 0] if side == 0 else [0, 1, 2]
@@ -403,10 +419,13 @@ func _apply_support_effects() -> void:
 					u._regen = 0.0
 					u._can_attack_from_back = false
 					u._back_atk_factor = 1.0
+					u._back_target_rear = false
+					u._back_no_on_hit = false
 					u._damage_reduction = 0
 					u._has_lifesteal = false
 					u._has_penetrate = false
 					u._regen_stacks = 0
+					u._support_revive = false
 	# 各ユニットのサポート効果を適用
 	for s in range(2):
 		for r in range(3):
@@ -425,6 +444,13 @@ func _apply_support_effects() -> void:
 					u._has_lifesteal = true
 				if "貫通" in u.active_skill:
 					u._has_penetrate = true
+				# バフ奪取で得た永続ボーナスを加算
+				u._atk_bonus += u._stolen_atk
+				u._interval_bonus += u._stolen_spd
+				if u._stolen_lifesteal: u._has_lifesteal = true
+				if u._stolen_penetrate: u._has_penetrate = true
+				u._regen_stacks += u._stolen_regen
+				u._damage_reduction += u._stolen_armor
 				u._atk_bonus = min(u._atk_bonus, 10)  # ATKバフ重複上限+10
 
 func _process_unit_support(side: int, row: int, col: int, unit: Object) -> void:
@@ -435,6 +461,10 @@ func _process_unit_support(side: int, row: int, col: int, unit: Object) -> void:
 		if "後列攻撃" in entry:
 			unit._can_attack_from_back = true
 			unit._back_atk_factor = 0.3 if "極低ATK" in entry else 1.0
+			if "最��列優先" in entry:
+				unit._back_target_rear = true
+			if "命中時アクティブ発動なし" in entry or "命中時アクティブは発動しない" in entry:
+				unit._back_no_on_hit = true
 			continue
 		# 〈〉内のターゲット記述を取得
 		var bs: int = entry.find("〈")
@@ -465,6 +495,12 @@ func _process_unit_support(side: int, row: int, col: int, unit: Object) -> void:
 		elif "リジェネ付与" in entry:
 			for t in targets:
 				t._regen_stacks += 1
+		elif "再起付与" in entry:
+			for t in targets:
+				if not t._support_revive_used:
+					t._support_revive = true
+		elif "デバフ波及" in entry:
+			pass  # デバフ波及はフラグ不要：撃破時に_process_debuff_spreadで処理
 
 func _get_support_targets(side: int, row: int, col: int, target_desc: String) -> Array:
 	var positions: Array = []
@@ -756,31 +792,25 @@ func _fire_timed_skill(side: int, row: int, col: int, unit: Object, entry: Strin
 # ---- バフ奪取ヘルパー ----
 
 func _steal_buffs(stealer: Object, victim: Object, multiplier: float) -> void:
-	# ATKボーナス奪取（baseATKに永続加算・_atk_bonusはサポート再計算でリセットされるため変更しない）
+	# _stolen_* に蓄積することでサポート効果リセット後も永続する
+	# ATKボーナス奪取
 	if victim._atk_bonus > 0:
-		stealer.attack += int(victim._atk_bonus * multiplier)
-		victim.attack -= victim._atk_bonus
-		victim._atk_bonus = 0
+		stealer._stolen_atk += int(victim._atk_bonus * multiplier)
 	# SPDボーナス奪取
 	if victim._interval_bonus > 0.0:
-		stealer._interval_bonus += victim._interval_bonus * multiplier
-		victim._interval_bonus = 0.0
+		stealer._stolen_spd += victim._interval_bonus * multiplier
 	# 吸血奪取
 	if victim._has_lifesteal:
-		stealer._has_lifesteal = true
-		victim._has_lifesteal = false
+		stealer._stolen_lifesteal = true
 	# 貫通奪取
 	if victim._has_penetrate:
-		stealer._has_penetrate = true
-		victim._has_penetrate = false
+		stealer._stolen_penetrate = true
 	# リジェネ奪取
 	if victim._regen_stacks > 0:
-		stealer._regen_stacks += int(victim._regen_stacks * multiplier)
-		victim._regen_stacks = 0
+		stealer._stolen_regen += int(victim._regen_stacks * multiplier)
 	# 鎧奪取
 	if victim._damage_reduction > 0:
-		stealer._damage_reduction += int(victim._damage_reduction * multiplier)
-		victim._damage_reduction = 0
+		stealer._stolen_armor += int(victim._damage_reduction * multiplier)
 
 # ---- 撃破時スキルシステム ----
 
@@ -834,6 +864,45 @@ func _process_on_kill(killer: Object) -> void:
 			if best_ally != null and lowest_ratio < 1.0:
 				best_ally.current_hp = best_ally.max_hp
 				active_skill_used.emit(k_side, k_row, k_col, "魂の器")
+
+# ---- デバフ波及システム ----
+
+func _process_debuff_spread(killer: Object, victim: Object, victim_side: int, victim_row: int, victim_col: int) -> void:
+	# 死亡した敵の周囲（上下左右）の敵にデバフを波及
+	var k_side: int = -1
+	var k_row: int = -1
+	var k_col: int = -1
+	for s in range(2):
+		for r in range(3):
+			for c in range(3):
+				if board[s][r][c] == killer:
+					k_side = s; k_row = r; k_col = c
+	for d in [[-1, 0], [1, 0], [0, -1], [0, 1]]:
+		var r2: int = victim_row + d[0]
+		var c2: int = victim_col + d[1]
+		if r2 < 0 or r2 >= 3 or c2 < 0 or c2 >= 3:
+			continue
+		var adj = board[victim_side][r2][c2]
+		if adj == null or not adj.is_alive():
+			continue
+		# 死亡ユニットが持っていたデバフを半減して波及
+		if victim.poison_stacks > 0:
+			event_queue.push(EventQueue.PRIORITY_ACTIVE, killer, adj, "status_apply", 0.0,
+				{"status": "毒", "stacks": max(1, victim.poison_stacks / 2),
+				 "side": victim_side, "row": r2, "col": c2,
+				 "src_side": k_side, "src_row": k_row, "src_col": k_col, "skill_name": "デバフ波及"})
+		if victim.frozen_turns > 0:
+			event_queue.push(EventQueue.PRIORITY_ACTIVE, killer, adj, "status_apply", 0.0,
+				{"status": "凍結", "stacks": max(1, victim.frozen_turns / 2),
+				 "side": victim_side, "row": r2, "col": c2,
+				 "src_side": k_side, "src_row": k_row, "src_col": k_col, "skill_name": "デバフ波及"})
+		if victim.burn_turns > 0:
+			event_queue.push(EventQueue.PRIORITY_ACTIVE, killer, adj, "status_apply", 0.0,
+				{"status": "火傷", "stacks": max(1, victim.burn_turns / 2),
+				 "side": victim_side, "row": r2, "col": c2,
+				 "src_side": k_side, "src_row": k_row, "src_col": k_col, "skill_name": "デバフ波及"})
+	if k_side >= 0:
+		active_skill_used.emit(k_side, k_row, k_col, "デバフ波及")
 
 # ---- HP閾値スキルシステム ----
 

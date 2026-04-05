@@ -4,6 +4,7 @@
 
 ### Fixed — 2026-04-05
 - CheckAgent：DeckManager.gd 57行目（バンシー active）・EnemyAI.gd 58行目（リッチ support）・59行目（リッチ active）・64行目（ヴリコラカス active）の日本語文字化け（U+FFFD）を修正
+- CheckAgent：BoardManager.gd 217行目コメントの文字化け（ターゲッ□□選択）を修正（実行影響なし）
 
 ### Added — 開発者モード・リジェネバフ・呪文カードシステム・バフ統一化・撃破時スキル
 
