@@ -192,7 +192,6 @@ func place_artifact(side: int, row: int, col: int, artifact_data: Dictionary) ->
 	}
 	print("[BoardManager] アーティファクト配置: %s side=%d row=%d col=%d" % [art_name, side, row, col])
 	# on_summonスキルを発火
-	print("[BoardManager] アーティファクトon_summon発火: skills=%d" % board_artifacts[side][row][col].get("skills", []).size())
 	_push_artifact_summon_effects(side, row, col, board_artifacts[side][row][col])
 	on_board_changed()
 	return true
