@@ -39,6 +39,8 @@ var base_hp: Array = [30, 30]
 
 var cell_rects:  Array = []
 var cell_labels: Array = []
+var _cell_tooltip_panel: PanelContainer = null
+var _cell_tooltip_label: Label = null
 
 var mana_bar_cells: Array = []  # マナバー格子
 var mana_value_label: Label
@@ -299,6 +301,8 @@ func _build_ui() -> void:
 				rect.size     = Vector2(CELL_W - 4, CELL_H - 4)
 				rect.position = Vector2(x + 2, BOARD_TOP + r * CELL_H + 2)
 				rect.color    = Color(0.13, 0.13, 0.2)
+				rect.mouse_entered.connect(_on_cell_hover.bind(side, r, c))
+				rect.mouse_exited.connect(_on_cell_hover_end)
 				add_child(rect)
 				cell_rects[side][r].append(rect)
 
@@ -323,6 +327,24 @@ func _build_ui() -> void:
 	enemy_base_label.add_theme_font_size_override("font_size", 14)
 	enemy_base_label.modulate = Color(1.0, 0.45, 0.45)
 	add_child(enemy_base_label)
+
+	# 盤面セルホバー用ツールチップ
+	_cell_tooltip_panel = PanelContainer.new()
+	_cell_tooltip_panel.position = Vector2(10, 10)
+	_cell_tooltip_panel.visible = false
+	_cell_tooltip_panel.z_index = 90
+	var tt_style := StyleBoxFlat.new()
+	tt_style.bg_color = Color(0.08, 0.08, 0.15, 0.95)
+	tt_style.border_color = Color(0.4, 0.5, 0.7)
+	tt_style.set_border_width_all(1)
+	tt_style.set_content_margin_all(8)
+	_cell_tooltip_panel.add_theme_stylebox_override("panel", tt_style)
+	_cell_tooltip_label = Label.new()
+	_cell_tooltip_label.add_theme_font_size_override("font_size", 11)
+	_cell_tooltip_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_cell_tooltip_label.custom_minimum_size = Vector2(250, 0)
+	_cell_tooltip_panel.add_child(_cell_tooltip_label)
+	add_child(_cell_tooltip_panel)
 
 	# ---- マナバー ----
 	_build_mana_bar()
@@ -568,6 +590,51 @@ func _check_game_over() -> void:
 		game_over_label.visible  = true
 		restart_button.visible   = true
 
+func _on_cell_hover(side: int, r: int, c: int) -> void:
+	var unit = board_manager.board[side][r][c]
+	if unit == null:
+		_cell_tooltip_panel.visible = false
+		return
+	var _EDB = load("res://scripts/EffectDB.gd")
+	var trigger_jp: Dictionary = {"always": "常時", "on_summon": "召喚時", "on_hit": "命中時", "on_kill": "撃破時", "on_death": "死亡時", "timer": "時間経過"}
+	var target_jp: Dictionary = {"self": "自身", "front_one": "前方1体", "same_row": "同段", "same_row_beast": "同段の獣", "same_col_ally": "同深度の味方", "adjacent_beast": "隣接の獣", "all_allies": "味方全体", "all_enemies": "敵全体", "hit_target": "攻撃対象", "enemy_most_buffs": "バフ最多の敵", "ally_undead_lowest": "最低HPアンデッド", "enemy_max_hp": "最大HP敵", "self_deck": "自デッキ", "front_enemy": "前列の敵", "adjacent_enemy": "隣接の敵", "enemy": "敵"}
+	var lines: Array = []
+	lines.append("[%s] %s" % [unit.race, unit.unit_name])
+	lines.append("Cost: %d / HP: %d/%d / ATK: %d / SPD: %.1fs" % [unit.cost, unit.current_hp, unit.max_hp, unit.attack, unit.attack_interval])
+	var support_lines: Array = []
+	var active_lines: Array = []
+	for skill in unit.skills:
+		var eid: String = skill.get("effect_id", "")
+		var display: String = eid
+		if _EDB != null and _EDB.EFFECTS.has(eid):
+			display = _EDB.EFFECTS[eid].get("display", eid)
+		var trigger: String = skill.get("trigger", "")
+		var tgt: String = skill.get("target", "")
+		var t_jp: String = trigger_jp.get(trigger, trigger)
+		var tgt_jp: String = target_jp.get(tgt, tgt)
+		if trigger == "timer":
+			var interval = skill.get("params", {}).get("interval", 0)
+			t_jp = "%ds毎" % int(interval)
+		var entry: String = "- %s（%s, %s）" % [display, t_jp, tgt_jp]
+		if trigger == "always":
+			support_lines.append(entry)
+		else:
+			active_lines.append(entry)
+	if support_lines.size() > 0:
+		lines.append("")
+		lines.append("■ サポート効果:")
+		lines.append_array(support_lines)
+	if active_lines.size() > 0:
+		lines.append("")
+		lines.append("■ アクティブスキル:")
+		lines.append_array(active_lines)
+	_cell_tooltip_label.text = "\n".join(lines)
+	_cell_tooltip_panel.visible = true
+	_cell_tooltip_panel.size = Vector2(265, 0)
+
+func _on_cell_hover_end() -> void:
+	_cell_tooltip_panel.visible = false
+
 func _on_restart_pressed() -> void:
 	get_tree().reload_current_scene()
 
@@ -613,37 +680,8 @@ func _render_cell(side: int, r: int, c: int) -> void:
 		# HPバー（8ブロック）
 		var bar_filled: int = int(hp_ratio * 8)
 		var hp_bar: String = "█".repeat(bar_filled) + "░".repeat(8 - bar_filled)
-		# スキル表示（skillsからdisplay名+トリガー+対象を動的生成）
+		# アクティブバフ略称
 		var buffs: Array = []
-		var _EDB = load("res://scripts/EffectDB.gd")
-		var back_col: int = 0 if side == 0 else 2
-		var trigger_jp: Dictionary = {"always": "常時", "on_summon": "召喚時", "on_hit": "命中時", "on_kill": "撃破時", "on_death": "死亡時", "timer": "経過"}
-		var target_jp: Dictionary = {"self": "自身", "front_one": "前方", "same_row": "同段", "same_row_beast": "同段獣", "same_col_ally": "同深度", "adjacent_beast": "隣接獣", "all_allies": "味方全", "all_enemies": "敵全", "hit_target": "対象", "enemy_most_buffs": "敵", "ally_undead_lowest": "味方", "enemy_max_hp": "敵", "self_deck": "デッキ", "front_enemy": "前敵", "adjacent_enemy": "隣敵", "enemy": "敵"}
-		for skill in unit.skills:
-			var trigger: String = skill.get("trigger", "")
-			var eid: String = skill.get("effect_id", "")
-			var tgt: String = skill.get("target", "")
-			var display: String = eid
-			if _EDB != null and _EDB.EFFECTS.has(eid):
-				display = _EDB.EFFECTS[eid].get("display", eid)
-			# 狙撃は後列のみ、支援攻撃は後列+中列のみ表示
-			if eid == "snipe" and c != back_col:
-				continue
-			if eid == "support_fire" and c != back_col and c != 1:
-				continue
-			# 前列ではサポート効果を表示しない
-			var front_col: int = 2 if side == 0 else 0
-			if trigger == "always" and c == front_col:
-				continue
-			var t_jp: String = trigger_jp.get(trigger, trigger)
-			var tgt_jp: String = target_jp.get(tgt, "")
-			if trigger == "timer":
-				var interval = skill.get("params", {}).get("interval", 0)
-				t_jp = "%ds" % int(interval)
-			if tgt_jp != "":
-				buffs.append("%s(%s,%s)" % [display, t_jp, tgt_jp])
-			else:
-				buffs.append("%s(%s)" % [display, t_jp])
 		# バフ（スタック値）
 		if unit._atk_bonus > 0:        buffs.append("ATK+%d" % unit._atk_bonus)
 		if unit._interval_bonus > 0.0:  buffs.append("SPD+")
