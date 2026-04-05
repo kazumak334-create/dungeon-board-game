@@ -10,9 +10,12 @@ var _check_timer: float = 0.0
 
 var enemy_deck: Array = []
 var enemy_discard: Array = []
-var deck: Array:  # SpellExecutor互換エイリアス
+var deck: Array:  # SpellExecutor/EffectExecutor互換エイリアス
 	get: return enemy_deck
 	set(v): enemy_deck = v
+var discard: Array:  # EffectExecutor互換エイリアス
+	get: return enemy_discard
+	set(v): enemy_discard = v
 var next_card: Object = null  # 次に召喚するカード（表示用に事前決定）
 var spell_executor: RefCounted = null  # SpellExecutor（Main.gd が設定）
 var deck_manager_ref: Node = null      # DeckManager参照（Main.gd が設定）
