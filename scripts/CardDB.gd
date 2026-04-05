@@ -81,12 +81,18 @@ const UNITS: Dictionary = {
 	},
 	"クリスタルスライム": {
 		"hp": 10, "atk": 1, "interval": 2.0, "cost": 4, "race": "スライム", "range": "1行", "col": 2,
-		"skills": [],
+		"skills": [
+			{"trigger": "always", "target": "self", "effect_id": "mana_regen_boost", "params": {"pct": 0.1}},
+			{"trigger": "always", "target": "front_ally_all", "effect_id": "armor_apply", "params": {"stacks": 1}},
+		],
 		"texture": "", "anim": "", "sfx": "",
 	},
 	"ゼリーフィッシュ": {
 		"hp": 10, "atk": 1, "interval": 5.0, "cost": 3, "race": "スライム", "range": "1行", "col": 2,
-		"skills": [],
+		"skills": [
+			{"trigger": "on_summon", "target": "front_ally_all", "effect_id": "heal_pct", "params": {"factor": 0.15}},
+			{"trigger": "timer", "target": "random_front_ally", "effect_id": "regen_apply", "params": {"interval": 3.0, "stacks": 1}},
+		],
 		"texture": "", "anim": "", "sfx": "",
 	},
 	# ── アンデッド系 ──
@@ -389,6 +395,31 @@ const CLASSES: Dictionary = {
 		"skills": [
 			{"trigger": "on_unit_died_ally", "target": "self", "effect_id": "mana_boost", "params": {"amount": 1, "max_count": 10}},
 			{"trigger": "always", "target": "all_race_ally", "effect_id": "hp_pct_boost", "params": {"race": "アンデッド", "pct": 0.1}},
+		],
+		"texture": "", "anim": "", "sfx": "",
+	},
+}
+
+# ---- 装備定義 ----
+const EQUIPMENT: Dictionary = {
+	"古びた護符": {
+		"display": "古びた護符", "effect": "前列召喚時に50%で鎧+1付与",
+		"skills": [
+			{"trigger": "on_unit_placed", "target": "front_ally_placed", "effect_id": "armor_apply_chance", "params": {"stacks": 1, "chance": 0.5}},
+		],
+		"texture": "", "anim": "", "sfx": "",
+	},
+	"魔力の砂時計": {
+		"display": "魔力の砂時計", "effect": "マナ回復速度+20%",
+		"skills": [
+			{"trigger": "always", "target": "self", "effect_id": "mana_regen_boost", "params": {"pct": 0.2}},
+		],
+		"texture": "", "anim": "", "sfx": "",
+	},
+	"黒鉄の盾": {
+		"display": "黒鉄の盾", "effect": "本拠点ダメージ-10%",
+		"skills": [
+			{"trigger": "always", "target": "self", "effect_id": "base_damage_reduce", "params": {"pct": 0.1}},
 		],
 		"texture": "", "anim": "", "sfx": "",
 	},

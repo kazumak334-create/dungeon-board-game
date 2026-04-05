@@ -30,13 +30,6 @@ func apply_support_effects() -> void:
 					u._is_flying = false
 					# _regen_stacks はリセットしない（スタック+時間減少方式）
 					u._support_revive = false
-	# 各ユニットのサポート効果を適用（旧方式：support_effect文字列）
-	for s in range(2):
-		for r in range(3):
-			for c in range(3):
-				var u = bm.board[s][r][c]
-				if u != null:
-					_process_unit_support(s, r, c, u)
 	# skills配列のtrigger=="always"を処理（新方式）
 	# サポート効果は前列以外でのみ発動（原則）
 	if bm.effect_executor != null:

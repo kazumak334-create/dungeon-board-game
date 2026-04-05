@@ -91,12 +91,7 @@ func init_skill_timers(unit: Object) -> void:
 			var interval: float = skill["params"]["interval"]
 			if interval > 0.0:
 				unit._skill_timers["support_" + str(i)] = interval
-	for entry in unit.active_skill.split(" / "):
-		if "時間経過" not in entry:
-			continue
-		var interval: float = _parse_skill_interval(entry)
-		if interval > 0.0:
-			unit._skill_timers[entry] = interval
+	# 旧方式active_skill文字列パース（時間経過）は削除済み。timer triggerをskills配列で処理。
 
 func _parse_skill_interval(entry: String) -> float:
 	var marker: String = "時間経過"
@@ -203,18 +198,29 @@ func _check_hp_thresholds() -> void:
 				var u = bm.board[s][r][c]
 				if u == null or not u.is_alive():
 					continue
-				for entry in u.active_skill.split(" / "):
-					if "HP閾値時" not in entry:
+				# 旧方式active_skill文字列パースは削除済み
+				# skills配列のon_hp_threshold処理（新方式）
+				for i in range(u.skills.size()):
+					var skill = u.skills[i]
+					if skill.get("trigger", "") != "on_hp_threshold":
 						continue
-					if u._hp_threshold_triggered.get(entry, false):
+					var key: String = "skill_hp_%d" % i
+					if u._hp_threshold_triggered.get(key, false):
 						continue
-					var threshold: float = _parse_hp_threshold(entry)
-					if threshold <= 0.0:
-						continue
+					var threshold: float = skill.get("params", {}).get("threshold", 0.5)
 					var hp_ratio: float = float(u.current_hp) / float(u.max_hp)
 					if hp_ratio <= threshold:
-						u._hp_threshold_triggered[entry] = true
-						bm._fire_hp_threshold_skill(s, r, c, u, entry)
+						u._hp_threshold_triggered[key] = true
+						if bm.effect_executor != null:
+							var _mp: Dictionary = skill.get("params", {}).duplicate()
+							if skill.has("target"):
+								_mp["target"] = skill["target"]
+							bm.effect_executor.execute(skill["effect_id"], _mp, {
+								"trigger": "on_hp_threshold", "side": s, "row": r, "col": c,
+								"source": u, "target": null, "damage": 0,
+								"board_manager": bm, "deck_manager": bm.deck_manager_ref, "enemy_ai": bm.enemy_ai_ref,
+								"event_queue": bm.event_queue
+							})
 
 func _parse_hp_threshold(entry: String) -> float:
 	var idx: int = entry.find("HP")

@@ -299,44 +299,7 @@ func process_on_kill(killer: Object) -> void:
 					"board_manager": bm, "deck_manager": bm.deck_manager_ref, "enemy_ai": bm.enemy_ai_ref,
 					"event_queue": bm.event_queue
 				})
-	# 旧方式：active_skill文字列パース（後方互換）
-	for entry in killer.active_skill.split(" / "):
-		if "撃破時" not in entry:
-			continue
-		# ATK累積（撃破時ATK+2・上限+10）
-		if "ATK累積" in entry:
-			if killer._kill_atk_bonus < 10:
-				var prev_bonus: int = killer._kill_atk_bonus
-				killer._kill_atk_bonus = min(killer._kill_atk_bonus + 2, 10)
-				killer.attack += killer._kill_atk_bonus - prev_bonus
-				bm.active_skill_used.emit(k_side, k_row, k_col, "ATK累積")
-		# 敵SPD低下（撃破時・全体に凍結付与）
-		if "SPD低下" in entry:
-			for r2 in range(3):
-				for c2 in range(3):
-					var target = bm.board[enemy_side][r2][c2]
-					if target != null and target.is_alive():
-						bm.event_queue.push(4, killer, target, "status_apply", 0.0,
-							{"status": "凍結", "stacks": 4, "side": enemy_side, "row": r2, "col": c2,
-							 "src_side": k_side, "src_row": k_row, "src_col": k_col, "skill_name": "敵SPD低下"})
-			bm.active_skill_used.emit(k_side, k_row, k_col, "敵SPD低下")
-		# 魂の器（撃破時・自分以外のアンデッド1体を完全回復）
-		if "魂の器" in entry:
-			var best_ally: Object = null
-			var best_info: Dictionary = {}
-			var lowest_ratio: float = 1.0
-			for r2 in range(3):
-				for c2 in range(3):
-					var ally = bm.board[k_side][r2][c2]
-					if ally != null and ally.is_alive() and ally != killer and ally.race == "アンデッド":
-						var ratio: float = float(ally.current_hp) / float(ally.max_hp)
-						if ratio < lowest_ratio:
-							lowest_ratio = ratio
-							best_ally = ally
-							best_info = {"src_side": k_side, "src_row": r2, "src_col": c2}
-			if best_ally != null and lowest_ratio < 1.0:
-				best_ally.current_hp = best_ally.max_hp
-				bm.active_skill_used.emit(k_side, k_row, k_col, "魂の器")
+	# 旧方式active_skill文字列パースは削除済み。全てskills配列で処理。
 
 func process_debuff_spread(killer: Object, victim: Object, victim_side: int, victim_row: int, victim_col: int) -> void:
 	# 死亡した敵の周囲（上下左右）の敵にデバフを波及

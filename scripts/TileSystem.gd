@@ -106,7 +106,7 @@ func process_tile_effects() -> void:
 						if unit != null and unit.is_alive():
 							# 炎床: ダメージ
 							if def.has("damage"):
-								board_manager.event_queue.push(1, null, unit, "damage",  # 1 = EventQueue.PRIORITY_IMMEDIATE
+								board_manager.event_queue.push(1, null, unit, "damage",  # 1 = PRIORITY_IMMEDIATE
 									float(def["damage"]), {"enemy_side": s, "row": r, "col": c})
 							# 毒沼: 毒スタック付与
 							if def.has("status") and def["status"] == "poison":

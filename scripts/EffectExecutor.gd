@@ -73,6 +73,17 @@ func execute(effect_id: String, params: Dictionary, context: Dictionary) -> void
 						for t in tgt:
 							t._interval_bonus += 0.3 * stacks
 
+		# ---- バフ付与（確率） ----
+		"buff_apply_chance":
+			var tgt = _resolve_target(merged, context, true)
+			var chance: float = merged.get("chance", 0.5)
+			var stacks: int = merged.get("stacks", 1)
+			if randf() <= chance:
+				match merged.get("buff", ""):
+					"armor":
+						for t in tgt:
+							t._damage_reduction += stacks
+
 		# ---- デバフ付与 ----
 		"debuff_apply":
 			var tgt = _resolve_target(merged, context, false)

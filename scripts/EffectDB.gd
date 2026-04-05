@@ -7,6 +7,7 @@ const EFFECTS: Dictionary = {
 	# ---- バフ付与 ----
 	"lifesteal_apply":  {"type": "buff_apply",  "buff": "lifesteal",  "stacks": 5, "display": "吸血付与", "texture": "", "anim": "", "sfx": ""},
 	"armor_apply":      {"type": "buff_apply",  "buff": "armor",      "stacks": 1, "display": "鎧付与", "texture": "", "anim": "", "sfx": ""},
+	"armor_apply_chance": {"type": "buff_apply_chance", "buff": "armor", "stacks": 1, "chance": 0.5, "display": "鎧付与(確率)", "texture": "", "anim": "", "sfx": ""},
 	"regen_apply":      {"type": "buff_apply",  "buff": "regen",      "stacks": 1, "display": "リジェネ付与", "texture": "", "anim": "", "sfx": ""},
 	"atk_buff_apply":   {"type": "buff_apply",  "buff": "atk",        "stacks": 2, "display": "ATKバフ", "texture": "", "anim": "", "sfx": ""},
 	"spd_buff_apply":   {"type": "buff_apply",  "buff": "spd",        "stacks": 3, "display": "SPDバフ", "texture": "", "anim": "", "sfx": ""},

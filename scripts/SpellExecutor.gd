@@ -256,10 +256,9 @@ func _apply_self_status(side: int, bm: Node, eq: Node, status: String, stacks: i
 	var units = _get_all_units_with_pos(side, bm)
 	if units.is_empty():
 		return
-	# アクティブスキルに「異常状態カード」優先指定を持つユニットを優先（旧方式）
-	# またはskills配列のtrigger=="on_summon"でスライムのみ（旧ロジックと同等）
+	# スライム種族のユニットを優先（active_skill文字列依存を排除）
 	var priority: Array = units.filter(func(u):
-		return "異常状態カード" in u["unit"].active_skill or u["unit"].unit_name == "スライム")
+		return u["unit"].race == "スライム")
 	var pool: Array = priority if not priority.is_empty() else units
 	var pick = pool[randi() % pool.size()]
 	eq.push(EventQueue.PRIORITY_ACTIVE, null, pick["unit"], "status_apply", 0.0,

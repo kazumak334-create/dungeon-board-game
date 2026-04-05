@@ -276,10 +276,6 @@ func remove_unit(side: int, row: int, col: int) -> void:
 						"board_manager": self, "deck_manager": deck_manager_ref, "enemy_ai": enemy_ai_ref,
 						"event_queue": event_queue
 					})
-	# 後方互換：active_skillに自己再起が含まれる場合も処理（旧方式）
-	if unit != null and "自己再起" in unit.active_skill and not unit._has_revived:
-		unit._has_revived = true
-		_pending_revives.append({"timer": 3.0, "side": side, "row": row, "unit": unit, "hp": 5})
 	# サポート効果由来の再起チェック（1回限り）
 	if unit != null and unit._support_revive and not unit._support_revive_used:
 		unit._support_revive_used = true
@@ -372,37 +368,6 @@ func _process_debuff_spread(killer: Object, victim: Object, victim_side: int, vi
 	combat_system.process_debuff_spread(killer, victim, victim_side, victim_row, victim_col)
 
 # ---- HP閾値スキルシステム ----
-
-func _check_hp_thresholds() -> void:
-	for s in range(2):
-		for r in range(3):
-			for c in range(3):
-				var u = board[s][r][c]
-				if u == null or not u.is_alive():
-					continue
-				for entry in u.active_skill.split(" / "):
-					if "HP閾値時" not in entry:
-						continue
-					if u._hp_threshold_triggered.get(entry, false):
-						continue  # 既に発動済み
-					var threshold: float = _parse_hp_threshold(entry)
-					if threshold <= 0.0:
-						continue
-					var hp_ratio: float = float(u.current_hp) / float(u.max_hp)
-					if hp_ratio <= threshold:
-						u._hp_threshold_triggered[entry] = true
-						_fire_hp_threshold_skill(s, r, c, u, entry)
-
-func _parse_hp_threshold(entry: String) -> float:
-	# "HP30%以下" → 0.3, "HP50%以下" → 0.5
-	var idx: int = entry.find("HP")
-	if idx == -1:
-		return 0.0
-	var after: int = idx + 2  # "HP" = 2 chars
-	var pct_idx: int = entry.find("%", after)
-	if pct_idx == -1:
-		return 0.0
-	return float(entry.substr(after, pct_idx - after)) / 100.0
 
 func _fire_hp_threshold_skill(side: int, row: int, col: int, unit: Object, entry: String) -> void:
 	# 後退（後列に自動退避）

@@ -60,6 +60,10 @@ var deck_count_label:  Label
 var discard_count_label: Label
 var enemy_deck_count_label: Label
 
+var equipment_labels: Array = []    # 装備表示ラベル
+var _equip_tooltip_panel: PanelContainer = null
+var _equip_tooltip_label: Label = null
+
 var dev_mode: bool = false
 var dev_ui: RefCounted = null  # DevUI インスタンス
 var mode_select_panel: Control = null  # モード選択画面
@@ -138,6 +142,8 @@ func _ready() -> void:
 	deck_manager.MANA_REGEN = player_data.mana_regen
 	# BoardManager に設定
 	board_manager.player_data = player_data
+	# 装備効果の適用（初期装備なし）
+	_apply_equipment_effects(player_data)
 
 	_build_synthesis_registry()
 	_build_ui()
@@ -368,6 +374,9 @@ func _build_ui() -> void:
 	# ---- マナバー ----
 	_build_mana_bar()
 
+	# ---- 装備表示UI ----
+	_build_equipment_ui()
+
 	# ---- 次カードパネル ----
 	_build_next_card_panel()
 
@@ -433,6 +442,80 @@ func _build_mana_bar() -> void:
 	mana_value_label.add_theme_font_size_override("font_size", 13)
 	mana_value_label.modulate = Color(1.0, 0.9, 0.3)
 	add_child(mana_value_label)
+
+func _build_equipment_ui() -> void:
+	var eq_y: int = BOARD_TOP + 3 * CELL_H + 68
+	var bar_x: int = _cell_x(0, 0)
+
+	var eq_title := Label.new()
+	eq_title.text     = "装備"
+	eq_title.position = Vector2(bar_x, eq_y - 16)
+	eq_title.add_theme_font_size_override("font_size", 11)
+	eq_title.modulate = Color(0.85, 0.7, 1.0)
+	add_child(eq_title)
+
+	equipment_labels = []
+	for i in range(3):
+		var slot_bg := ColorRect.new()
+		slot_bg.size     = Vector2(90, 20)
+		slot_bg.position = Vector2(bar_x + i * 94, eq_y)
+		slot_bg.color    = Color(0.1, 0.08, 0.15)
+		add_child(slot_bg)
+		var slot_lbl := Label.new()
+		slot_lbl.text     = "─ 空 ─"
+		slot_lbl.position = Vector2(bar_x + i * 94 + 4, eq_y + 2)
+		slot_lbl.size     = Vector2(84, 18)
+		slot_lbl.add_theme_font_size_override("font_size", 10)
+		slot_lbl.modulate = Color(0.5, 0.5, 0.5)
+		add_child(slot_lbl)
+		equipment_labels.append(slot_lbl)
+		# ホバー検出用
+		slot_bg.mouse_entered.connect(_on_equip_hover.bind(i))
+		slot_bg.mouse_exited.connect(_on_equip_hover_end)
+
+	# 装備ホバーツールチップ
+	_equip_tooltip_panel = PanelContainer.new()
+	_equip_tooltip_panel.position = Vector2(bar_x, eq_y - 50)
+	_equip_tooltip_panel.visible = false
+	_equip_tooltip_panel.z_index = 90
+	var eq_style := StyleBoxFlat.new()
+	eq_style.bg_color = Color(0.08, 0.06, 0.14, 0.95)
+	eq_style.border_color = Color(0.6, 0.4, 0.9)
+	eq_style.set_border_width_all(1)
+	eq_style.set_content_margin_all(7)
+	_equip_tooltip_panel.add_theme_stylebox_override("panel", eq_style)
+	_equip_tooltip_label = Label.new()
+	_equip_tooltip_label.add_theme_font_size_override("font_size", 11)
+	_equip_tooltip_label.custom_minimum_size = Vector2(200, 0)
+	_equip_tooltip_panel.add_child(_equip_tooltip_label)
+	add_child(_equip_tooltip_panel)
+
+func _on_equip_hover(slot: int) -> void:
+	if board_manager.player_data == null:
+		return
+	var equip: Array = board_manager.player_data.equipment
+	if slot >= equip.size():
+		_equip_tooltip_panel.visible = false
+		return
+	var eq: Dictionary = equip[slot]
+	_equip_tooltip_label.text = "%s\n%s" % [eq.get("display", ""), eq.get("effect", "")]
+	_equip_tooltip_panel.visible = true
+
+func _on_equip_hover_end() -> void:
+	if _equip_tooltip_panel != null:
+		_equip_tooltip_panel.visible = false
+
+func _refresh_equipment_ui() -> void:
+	if board_manager.player_data == null:
+		return
+	var equip: Array = board_manager.player_data.equipment
+	for i in range(equipment_labels.size()):
+		if i < equip.size():
+			equipment_labels[i].text    = equip[i].get("display", "?")
+			equipment_labels[i].modulate = Color(0.9, 0.75, 1.0)
+		else:
+			equipment_labels[i].text    = "─ 空 ─"
+			equipment_labels[i].modulate = Color(0.5, 0.5, 0.5)
 
 func _build_next_card_panel() -> void:
 	# 次カードパネル：盤面下部中央
@@ -945,28 +1028,8 @@ func _on_active_skill_used(side: int, row: int, col: int, skill_name: String) ->
 	_cell_dirty[side][row][col] = true
 
 func _log_support_effects() -> void:
-	for side in range(2):
-		for r in range(3):
-			for c in range(3):
-				var unit = board_manager.get_unit(side, r, c)
-				if unit == null: continue
-				for entry in unit.support_effect.split(" / "):
-					if "常時発動" not in entry or "後列攻撃" in entry: continue
-					var bs: int = entry.find("〈")
-					var be: int = entry.find("〉")
-					if bs == -1 or be == -1: continue
-					var parts: Array = entry.substr(bs + 1, be - bs - 1).split("・")
-					var target_desc: String = parts[1] if parts.size() > 1 else ""
-					var targets: Array = board_manager._get_support_targets(side, r, c, target_desc)
-					if targets.is_empty(): continue
-					var eff_name: String = ""
-					if   "ATKバフ"  in entry: eff_name = "ATKバフ +2"
-					elif "SPDバフ"  in entry: eff_name = "SPDバフ -0.3s"
-					elif "HPバフ"   in entry: eff_name = "HPバフ +1/s"
-					elif "障壁付与" in entry: eff_name = "障壁 -1ダメ"
-					if eff_name.is_empty(): continue
-					for t in targets:
-						_add_log("[サポート] %s → %s に %s" % [unit.unit_name, t.unit_name, eff_name])
+	# 旧方式support_effect文字列パースは削除済み。skills配列ベースのサポートはEffectExecutor経由で動作。
+	pass
 
 func _mark_all_cells_dirty() -> void:
 	for s in range(2):
@@ -997,6 +1060,29 @@ func _on_synthesis_done(side: int, row: int, col: int, base_name: String, result
 	skill_flash_timers[side][row][col] = 1.0
 	skill_flash_names[side][row][col] = "合成"
 	_cell_dirty[side][row][col] = true
+
+func _apply_equipment_effects(pdata: RefCounted) -> void:
+	# 装備効果をDeckManager・EventQueueに反映する
+	# 魔力の砂時計: マナ回復速度+20%（装備数分）
+	# 黒鉄の盾: base_damage_reduce → EventQueueのbase_damage処理でplayer_artifactsを走査するため、
+	#   装備をplayer_artifactsに追加することで自動的に適用される
+	if pdata == null:
+		return
+	# player_artifactsをリセットして装備を再設定
+	board_manager.player_artifacts.clear()
+	var total_mana_regen_pct: float = 0.0
+	for eq in pdata.equipment:
+		# player_artifactsとして追加（base_damage_reduce等のEventQueue処理と連携）
+		board_manager.player_artifacts.append({"name": eq.get("display", ""), "skills": eq.get("skills", []).duplicate(true)})
+		# mana_regen_boostは個別にDeckManagerに反映
+		for skill in eq.get("skills", []):
+			var eid: String = skill.get("effect_id", "")
+			if eid == "mana_regen_boost":
+				total_mana_regen_pct += skill.get("params", {}).get("pct", 0.2)
+	# 元のmana_regen（playerdata由来）をベースに装備分を加算
+	var base_regen: float = pdata.mana_regen
+	deck_manager.MANA_REGEN = base_regen * (1.0 + total_mana_regen_pct)
+	print("[Main] 装備効果適用: MANA_REGEN=%.2f player_artifacts=%d件" % [deck_manager.MANA_REGEN, board_manager.player_artifacts.size()])
 
 func _on_spell_cast(side: int, spell_name: String) -> void:
 	var side_name: String = "自陣" if side == 0 else "敵陣"

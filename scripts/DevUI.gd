@@ -196,6 +196,28 @@ func _build_dev_panel() -> void:
 	clear_tile_btn.pressed.connect(_on_tile_effect_clear)
 	card_list_container.add_child(clear_tile_btn)
 
+	# 装備選択（CardDB.EQUIPMENTから動的生成）
+	_add_section_header("── 装備 ──")
+	var _CardDB_eq = load("res://scripts/CardDB.gd")
+	for eq_name in _CardDB_eq.EQUIPMENT:
+		var eq_def = _CardDB_eq.EQUIPMENT[eq_name]
+		var eq_btn := Button.new()
+		eq_btn.text = "%s" % eq_def.get("display", eq_name)
+		eq_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		eq_btn.custom_minimum_size = Vector2(110, 24)
+		eq_btn.add_theme_font_size_override("font_size", 10)
+		eq_btn.modulate = Color(0.8, 0.6, 1.0)
+		eq_btn.pressed.connect(_on_equip_toggle.bind(eq_name))
+		card_list_container.add_child(eq_btn)
+	var equip_remove_btn := Button.new()
+	equip_remove_btn.text = "装備全解除"
+	equip_remove_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	equip_remove_btn.custom_minimum_size = Vector2(240, 24)
+	equip_remove_btn.add_theme_font_size_override("font_size", 10)
+	equip_remove_btn.modulate = Color(0.5, 0.4, 0.6)
+	equip_remove_btn.pressed.connect(_on_equip_clear_all)
+	card_list_container.add_child(equip_remove_btn)
+
 	# クラス選択
 	_add_section_header("── クラス選択 ──")
 	var _CardDB_cls = load("res://scripts/CardDB.gd")
@@ -750,6 +772,39 @@ func _on_tile_effect_select(eid: String) -> void:
 func _on_tile_effect_clear() -> void:
 	_pending_tile_effect = "clear"
 	selected_label.text = "盤面効果解除 → セルをクリック"
+
+func _on_equip_toggle(eq_name: String) -> void:
+	if board_manager.player_data == null:
+		return
+	var _CardDB_eq = load("res://scripts/CardDB.gd")
+	var eq_def = _CardDB_eq.EQUIPMENT.get(eq_name, {})
+	if eq_def.is_empty():
+		return
+	var pdata = board_manager.player_data
+	# 既に装備中なら外す
+	for i in range(pdata.equipment.size()):
+		if pdata.equipment[i].get("display", "") == eq_def.get("display", ""):
+			pdata.equipment.remove_at(i)
+			main._apply_equipment_effects(pdata)
+			main._refresh_equipment_ui()
+			main._add_log("[DEV] 装備解除: %s" % eq_name)
+			return
+	# 装備スロット上限（3枠）
+	if pdata.equipment.size() >= 3:
+		main._add_log("[DEV] 装備スロット満杯（最大3）")
+		return
+	pdata.equipment.append({"name": eq_name, "display": eq_def.get("display", eq_name), "effect": eq_def.get("effect", ""), "skills": eq_def.get("skills", []).duplicate(true)})
+	main._apply_equipment_effects(pdata)
+	main._refresh_equipment_ui()
+	main._add_log("[DEV] 装備: %s" % eq_name)
+
+func _on_equip_clear_all() -> void:
+	if board_manager.player_data == null:
+		return
+	board_manager.player_data.equipment.clear()
+	main._apply_equipment_effects(board_manager.player_data)
+	main._refresh_equipment_ui()
+	main._add_log("[DEV] 装備全解除")
 
 func _on_class_select(class_id: String) -> void:
 	var _CardDB = load("res://scripts/CardDB.gd")

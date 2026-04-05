@@ -253,13 +253,12 @@ func flush(board_manager: Node, base_hp: Array) -> void:
 				var killer = death.get("killer")
 				if killer != null and killer.is_alive():
 					board_manager._process_on_kill(killer)
-					# デバフ波及チェック（旧方式: support_effect文字列 / 新方式: skills配列）
-					var has_debuff_spread: bool = "デバフ波及" in killer.support_effect
-					if not has_debuff_spread:
-						for skill in killer.skills:
-							if skill.get("effect_id", "") == "debuff_spread":
-								has_debuff_spread = true
-								break
+					# デバフ波及チェック（skills配列のdebuff_spreadのみ）
+					var has_debuff_spread: bool = false
+					for skill in killer.skills:
+						if skill.get("effect_id", "") == "debuff_spread":
+							has_debuff_spread = true
+							break
 					if victim != null and has_debuff_spread:
 						board_manager._process_debuff_spread(killer, victim, s, r, c)
 
