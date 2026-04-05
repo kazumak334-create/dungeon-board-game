@@ -199,8 +199,8 @@ func _build_dev_panel() -> void:
 	_refresh_deck_list()
 
 func _refresh_deck_list(force: bool = true) -> void:
-	# サイズ変化がない場合はスキップ（毎フレーム呼び出し対策）
-	var current_size: int = deck_manager.deck.size() + deck_manager.discard.size()
+	# デッキまたは捨て札のサイズが変化した場合のみリフレッシュ
+	var current_size: int = deck_manager.deck.size() * 1000 + deck_manager.discard.size()
 	if not force and current_size == _last_deck_size:
 		return
 	_last_deck_size = current_size
