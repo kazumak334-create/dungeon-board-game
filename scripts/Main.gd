@@ -778,6 +778,21 @@ func _on_cell_hover(side: int, r: int, c: int) -> void:
 		lines.append("")
 		lines.append("■ アクティブスキル:")
 		lines.append_array(active_lines)
+	# 現在のバフ/デバフ一覧
+	var buffs_h: Array = []
+	if unit._atk_bonus > 0:        buffs_h.append("ATK+%d" % unit._atk_bonus)
+	if unit._interval_bonus > 0.0:  buffs_h.append("SPD+")
+	if unit._damage_reduction > 0:  buffs_h.append("鎧%d" % unit._damage_reduction)
+	if unit.lifesteal_stacks > 0:   buffs_h.append("吸血%d" % unit.lifesteal_stacks)
+	if unit._regen_stacks > 0:      buffs_h.append("再生%d" % unit._regen_stacks)
+	if unit.burn_turns > 0:         buffs_h.append("火傷%d" % unit.burn_turns)
+	if unit.frozen_turns > 0:       buffs_h.append("凍結%d" % unit.frozen_turns)
+	if unit.paralysis_turns > 0:    buffs_h.append("麻痺%d" % unit.paralysis_turns)
+	if unit.poison_stacks > 0:      buffs_h.append("毒%d" % unit.poison_stacks)
+	if unit._invincible_timer > 0.0: buffs_h.append("無敵")
+	if buffs_h.size() > 0:
+		lines.append("")
+		lines.append("■ バフ/デバフ: " + " ".join(buffs_h))
 	# 盤面効果表示
 	if te_hover != null:
 		var _EDB_hover = load("res://scripts/EffectDB.gd")
