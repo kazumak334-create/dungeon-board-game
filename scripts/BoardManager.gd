@@ -554,8 +554,11 @@ func _apply_support_effects() -> void:
 						continue
 					for skill in u.skills:
 						if skill.get("trigger", "") == "always":
-							# 前列ユニットはサポート効果（always）を一切発動しない
-							if c == front_col:
+							# 前列チェック: skill_flagはスキル（位置無関係）なので除外
+							var _eid_check = skill.get("effect_id", "")
+							var _EDB_check = load("res://scripts/EffectDB.gd")
+							var _is_skill = _EDB_check.EFFECTS.get(_eid_check, {}).get("type", "") == "skill_flag"
+							if c == front_col and not _is_skill:
 								continue
 							# skillsのtop-level targetをparamsにマージ
 							var merged_params: Dictionary = skill.get("params", {}).duplicate()

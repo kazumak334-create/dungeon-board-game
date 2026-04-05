@@ -763,8 +763,17 @@ func _render_cell(side: int, r: int, c: int) -> void:
 			else:
 				lbl.text = tile_display
 		else:
-			# ユニットあり：末尾に盤面効果名を追加
-			lbl.text = lbl.text + "\n[%s]" % tile_display
+			# ユニットあり：盤面効果の具体的な影響を表示
+			var tile_info: String = ""
+			match tile_id:
+				"tile_curse":        tile_info = "被ダメ+50%"
+				"tile_beast_forest": tile_info = "獣ATK+3" if unit != null and unit.race == "獣" else "獣の森"
+				"tile_fortress":     tile_info = "鎧+2"
+				"tile_fire":         tile_info = "炎床3dmg/s"
+				"tile_poison":       tile_info = "毒+2/s"
+				"tile_crack":        tile_info = "─ヒビ─"
+				_:                   tile_info = tile_display
+			lbl.text = lbl.text + "\n[%s]" % tile_info
 
 func _update_base_hp() -> void:
 	player_base_label.text = "自陣 本体HP: %d / 30" % base_hp[0]
