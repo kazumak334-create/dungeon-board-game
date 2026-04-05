@@ -752,13 +752,8 @@ func _render_cell(side: int, r: int, c: int) -> void:
 		var unit_label: String = tile_def.get("unit_label", "")
 		var race_filter: String = tile_def.get("race", "")
 		if lbl.text == "":
-			# ユニット不在：盤面効果名を表示（ヒビ/穴は専用テキスト）
-			if tile_id == "tile_crack":
-				lbl.text = "╳╳╳\n╳ヒビ╳\n╳╳╳"
-			elif tile_id == "tile_hole":
-				lbl.text = "■■■\n■ 穴 ■\n■■■"
-			else:
-				lbl.text = tile_display
+			# ユニット不在：EffectDBのdisplayを表示
+			lbl.text = tile_display
 		else:
 			# ユニットあり：飛行は非表示、種族条件不一致も非表示
 			if unit != null and unit.get("_is_flying") == true:

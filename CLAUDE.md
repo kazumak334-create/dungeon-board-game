@@ -327,11 +327,13 @@ skills: [
 - DeckManager/EnemyAI/DevUI/Main.gdはCardDBを参照するだけ
 - 同じデータを複数ファイルに書かない
 
-**R8. UI表示文字列はマスタ/DBから取得する（ハードコード禁止）**
-- NG: `buffs.append("後列↑")` のような直書き文字列
-- OK: EffectDBのdisplay名、CardDBの定義値から動的取得
-- バフ/デバフ/スキル名は全てEffectDB.EFFECTS[id].displayを参照
-- 新しい表示が必要な場合はEffectDBにdisplayを追加してから参照
+**R8. UI表示文字列・色・条件分岐はマスタ/DBから取得する（ハードコード絶対禁止）**
+- NG: `match tile_id: "tile_curse": rect.color = Color(0.8, 0.2, 0.6)` のような直書き
+- NG: `match tile_id: "tile_fire": tile_info = "炎床3dmg/s"` のような直書き
+- OK: `var color = tile_def.get("color", [])` でDBから取得
+- OK: `var label = tile_def.get("unit_label", "")` でDBから取得
+- **判定基準**: そのmatch文に新しいeffect/カード追加時に分岐追加が必要？→ YES ならDBに移す
+- **checker必須**: 変更ファイルのmatch文にDB定義済みIDが条件にあればNG判定する
 
 **R9. replace_all使用後はインデント検証を必ず行う**
 - GDScriptはインデントが構文の一部。replace_allでインデントが壊れるとパースエラー

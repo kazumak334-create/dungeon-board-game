@@ -96,9 +96,9 @@ const EFFECTS: Dictionary = {
 	"tile_fire":         {"type": "tile_effect", "trigger": "on_tick",  "display": "炎床",       "unit_label": "炎床3dmg/s", "damage": 3, "tick_interval": 1.0, "color": [0.8, 0.2, 0.0, 0.3]},
 	"tile_beast_forest": {"type": "tile_effect", "trigger": "on_stay",  "display": "獣の森",     "unit_label": "獣ATK+3", "race": "獣", "atk_bonus": 3, "color": [0.0, 0.5, 0.0, 0.3]},
 	"tile_fortress":     {"type": "tile_effect", "trigger": "on_enter", "display": "鉄壁の地",   "unit_label": "鎧+2", "armor_stacks": 2, "color": [0.3, 0.3, 0.6, 0.3]},
-	"tile_crack":        {"type": "tile_effect", "trigger": "on_leave", "display": "ヒビ床",     "unit_label": "", "transform_to": "tile_hole", "color": []},
+	"tile_crack":        {"type": "tile_effect", "trigger": "on_leave", "display": "╳╳╳\n╳ヒビ╳\n╳╳╳", "unit_label": "─ヒビ─", "transform_to": "tile_hole", "color": []},
 	"tile_poison":       {"type": "tile_effect", "trigger": "on_tick",  "display": "毒沼",       "unit_label": "毒+2/s", "status": "poison", "stacks": 2, "tick_interval": 1.0, "color": [0.3, 0.0, 0.4, 0.3]},
-	"tile_hole":         {"type": "tile_effect", "trigger": "on_enter", "display": "穴",         "unit_label": "", "block_summon": true, "duration": 5.0, "color": [0.1, 0.1, 0.1, 0.5]},
+	"tile_hole":         {"type": "tile_effect", "trigger": "on_enter", "display": "■■■\n■ 穴 ■\n■■■", "unit_label": "", "block_summon": true, "duration": 5.0, "color": [0.1, 0.1, 0.1, 0.5]},
 
 	# ---- 盤面効果設置（呪文用） ----
 	"tile_set_all":      {"type": "tile_set",   "scope": "all",    "tile_id": "",              "display": "全マス盤面効果"},
