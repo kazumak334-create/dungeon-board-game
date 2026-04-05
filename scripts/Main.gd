@@ -10,8 +10,8 @@ const SpellExecutorScript  = preload("res://scripts/SpellExecutor.gd")
 var EffectExecutorScript = null  # 遅延ロード（preloadだとコンパイル時にフリーズ）
 
 # ---- レイアウト定数 ----
-const CELL_W    := 115
-const CELL_H    := 95
+const CELL_W    := 85
+const CELL_H    := 70
 const BOARD_TOP := 110   # 盤面上端Y
 
 # 盤面X原点（画面中央を基準に左右対称）
@@ -745,18 +745,32 @@ func _render_cell(side: int, r: int, c: int) -> void:
 	else:
 		rect.color = Color(0.11, 0.11, 0.17)
 		lbl.text   = ""
-	# 盤面効果の可視化（ユニット有無に関わらずオーバーレイ）
+	# 盤面効果の可視化（ユニット有無に関わらず）
 	var te_vis = board_manager.board_effects[side][r][c]
 	if te_vis != null:
+		var _EDB_vis = load("res://scripts/EffectDB.gd")
 		var tile_id: String = te_vis["effect_id"]
+		var tile_def = _EDB_vis.EFFECTS.get(tile_id, {})
+		var tile_display: String = tile_def.get("display", tile_id)
+		# 色オーバーレイ（ヒビは色ではなくテキスト）
 		match tile_id:
 			"tile_curse":        rect.color = rect.color.lerp(Color(0.5, 0.0, 0.5), 0.3)
 			"tile_fire":         rect.color = rect.color.lerp(Color(0.8, 0.2, 0.0), 0.3)
 			"tile_beast_forest": rect.color = rect.color.lerp(Color(0.0, 0.5, 0.0), 0.3)
 			"tile_fortress":     rect.color = rect.color.lerp(Color(0.3, 0.3, 0.6), 0.3)
-			"tile_crack":        rect.color = rect.color.lerp(Color(0.4, 0.3, 0.2), 0.3)
+			"tile_crack":        pass  # ヒビはテキストで表現
 			"tile_poison":       rect.color = rect.color.lerp(Color(0.3, 0.0, 0.4), 0.3)
 			"tile_hole":         rect.color = rect.color.lerp(Color(0.1, 0.1, 0.1), 0.5)
+		# ユニット不在時は盤面効果名を表示、ヒビはテキスト表現
+		if lbl.text == "":
+			if tile_id == "tile_crack":
+				lbl.text = "╳╳╳\n╳ヒビ╳\n╳╳╳"
+			elif tile_id == "tile_hole":
+				lbl.text = "■■■\n■ 穴 ■\n■■■"
+			else:
+				lbl.text = tile_display
+		elif tile_id == "tile_crack":
+			lbl.text = lbl.text + "\n─ヒビ─"
 
 func _update_base_hp() -> void:
 	player_base_label.text = "自陣 本体HP: %d / 30" % base_hp[0]
