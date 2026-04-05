@@ -249,6 +249,19 @@ row2(下段)  [2,0]      [2,1]      [2,2]
 - 復活はあくまで「盤面に戻る」だけ。新規ユニットとして扱わない
 - 遅延復活（スケルトン等）は死亡→N秒後に同段空きマスに配置
 
+### タイマー管理（_skill_timers統合方式）
+
+`UnitData._skill_timers`にアクティブスキルとサポート効果の定期発動を統合管理：
+- `"timer_N"` — アクティブスキルの時間経過（N=skills配列インデックス）
+- `"support_N"` — サポート効果の定期発動（N=skills配列インデックス）
+- 発火時にサポート効果は前列チェックを実施（前列なら発動しない）
+
+### 残論点（今後実装時に決定）
+
+- **盤面効果の発動条件**: 呪文で設置？ユニットスキルで設置？ステージ固有？全パターン対応予定
+- **呪い・透明化**: デバフ/バフとして将来実装。現時点ではカード定義にeffect_idなしで登録
+- **board_effects構造**: `board_effects[side][row][col]`で盤面効果レイヤーを管理予定。飛行スキルで無視
+
 ## GDScript Conventions
 
 - Scripts use `class_name` declarations (`BoardManager`, `DeckManager`, `EnemyAI`, `UnitData`)
