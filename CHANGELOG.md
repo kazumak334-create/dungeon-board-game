@@ -2,6 +2,9 @@
 
 ## [Unreleased]
 
+### CheckAgent — 2026-04-05: CardDB一元化＋サポート効果位置制限チェック
+確認完了・修正なし（全16項目）
+
 ### Added — 2026-04-05: 効果テーブルシステム（EffectDB + EffectExecutor）
 
 #### EffectDB.gd（新規）
