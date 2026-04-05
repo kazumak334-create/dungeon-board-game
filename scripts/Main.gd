@@ -14,21 +14,9 @@ const CELL_W    := 105
 const CELL_H    := 85
 const BOARD_TOP := 110   # 盤面上端Y
 
-# 盤面X原点（画面中央を基準に左右対称）
-# 画面幅1280, 中央=640
-# 自陣: col0=後列(左端) → col2=前列(右端=中央側)
-# 敵陣: col0=前列(左端=中央側) → col2=後列(右端)
-# 中央GAP=20
+# 中央GAP: 自陣前列と敵陣前列の間隔
 const CENTER_X  := 640
-const GAP       := 20    # 中央の隙間（自陣前列と敵陣前列の間）
-
-# 自陣: 前列(col2)の右端 = CENTER_X - GAP/2
-# 自陣: col2のX = CENTER_X - GAP/2 - CELL_W
-# 自陣: col1のX = CENTER_X - GAP/2 - CELL_W*2
-# 自陣: col0のX = CENTER_X - GAP/2 - CELL_W*3
-const PLAYER_FRONT_X := CENTER_X - GAP / 2 - CELL_W  # 自陣前列左端X
-# 敵陣: 前列(col0)の左端 = CENTER_X + GAP/2
-const ENEMY_FRONT_X  := CENTER_X + GAP / 2            # 敵陣前列左端X
+const GAP       := 20
 
 # ---- ノード ----
 var board_manager: Node
@@ -60,9 +48,12 @@ var deck_count_label:  Label
 var discard_count_label: Label
 var enemy_deck_count_label: Label
 
-var equipment_labels: Array = []    # 装備表示ラベル
+var _equip_slots: Array = []         # 装備スロットラベル（GameUIが設定）
 var _equip_tooltip_panel: PanelContainer = null
 var _equip_tooltip_label: Label = null
+
+var game_ui: RefCounted = null  # GameUI インスタンス
+var _EDB = null  # EffectDBキャッシュ
 
 var dev_mode: bool = false
 var dev_ui: RefCounted = null  # DevUI インスタンス
@@ -145,10 +136,13 @@ func _ready() -> void:
 	# 装備効果の適用（初期装備なし）
 	_apply_equipment_effects(player_data)
 
+	_EDB = load("res://scripts/EffectDB.gd")
 	_build_synthesis_registry()
-	_build_ui()
+	var GameUIScript = load("res://scripts/GameUI.gd")
+	game_ui = GameUIScript.new()
+	game_ui.setup(self)
+	game_ui.build_ui()
 	_build_mode_select()
-	# スキルフラッシュタイマー初期化
 	skill_flash_timers = [
 		[[0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0]],
 		[[0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0]]
@@ -157,7 +151,6 @@ func _ready() -> void:
 		[["", "", ""], ["", "", ""], ["", "", ""]],
 		[["", "", ""], ["", "", ""], ["", "", ""]]
 	]
-	# 全セル初回描画
 	_cell_dirty = [
 		[[true, true, true], [true, true, true], [true, true, true]],
 		[[true, true, true], [true, true, true], [true, true, true]]
@@ -264,378 +257,14 @@ func _on_mode_dev() -> void:
 	dev_ui.setup(self, board_manager, deck_manager, enemy_ai)
 	_add_log("=== 開発者モード開始（一時停止・デッキ空）===")
 
-# ---- UI構築 ----
-func _build_ui() -> void:
-	# 背景
-	var bg := ColorRect.new()
-	bg.color = Color(0.07, 0.07, 0.11)
-	bg.size  = Vector2(1280, 720)
-	add_child(bg)
+# ---- UI委譲ラッパー ----
+func _add_log(text: String) -> void: game_ui.add_log(text)
+func _update_ui() -> void: game_ui.update_ui()
+func _update_base_hp() -> void: game_ui.update_base_hp()
+func _mark_all_cells_dirty() -> void: game_ui.mark_all_cells_dirty()
+func _render_cell(s: int, r: int, c: int) -> void: game_ui.render_cell(s, r, c)
+func _refresh_equipment_ui() -> void: game_ui._refresh_equipment_ui()
 
-	# タイトル
-	var title := Label.new()
-	title.text = "Dungeon Board Game  Phase 1 Prototype"
-	title.position = Vector2(20, 8)
-	title.add_theme_font_size_override("font_size", 17)
-	title.modulate = Color(0.9, 0.85, 0.55)
-	add_child(title)
-
-	# 中央ライン
-	var line := ColorRect.new()
-	line.color    = Color(0.4, 0.4, 0.5, 0.5)
-	line.size     = Vector2(2, 3 * CELL_H + 10)
-	line.position = Vector2(CENTER_X - 1, BOARD_TOP - 5)
-	add_child(line)
-
-	# 行ラベル（左端）
-	var row_names := ["上", "中", "下"]
-	for r in range(3):
-		var lbl := Label.new()
-		lbl.text     = row_names[r]
-		lbl.position = Vector2(PLAYER_FRONT_X - CELL_W * 2 - 22, BOARD_TOP + r * CELL_H + 35)
-		lbl.add_theme_font_size_override("font_size", 12)
-		lbl.modulate = Color(0.6, 0.6, 0.6)
-		add_child(lbl)
-
-	# 列ラベル
-	# 自陣: 後→中→前（左→右）
-	var player_col_labels := ["後列", "中列", "前列"]
-	for c in range(3):
-		var x: int = _cell_x(0, c)
-		var lbl := Label.new()
-		lbl.text     = player_col_labels[c]
-		lbl.position = Vector2(x + 28, BOARD_TOP - 20)
-		lbl.add_theme_font_size_override("font_size", 11)
-		lbl.modulate = Color(0.5, 0.75, 1.0)
-		add_child(lbl)
-
-	# 敵陣: 前→中→後（左→右）
-	var enemy_col_labels := ["前列", "中列", "後列"]
-	for c in range(3):
-		var x: int = _cell_x(1, c)
-		var lbl := Label.new()
-		lbl.text     = enemy_col_labels[c]
-		lbl.position = Vector2(x + 28, BOARD_TOP - 20)
-		lbl.add_theme_font_size_override("font_size", 11)
-		lbl.modulate = Color(1.0, 0.5, 0.5)
-		add_child(lbl)
-
-	# 自陣・敵陣ラベル
-	var pl := Label.new()
-	pl.text     = "自  陣"
-	pl.position = Vector2(_cell_x(0, 0) + 60, BOARD_TOP - 40)
-	pl.add_theme_font_size_override("font_size", 15)
-	pl.modulate = Color(0.4, 0.8, 1.0)
-	add_child(pl)
-
-	var el := Label.new()
-	el.text     = "敵  陣"
-	el.position = Vector2(_cell_x(1, 0) + 60, BOARD_TOP - 40)
-	el.add_theme_font_size_override("font_size", 15)
-	el.modulate = Color(1.0, 0.45, 0.45)
-	add_child(el)
-
-	# セル生成
-	cell_rects  = [[], []]
-	cell_labels = [[], []]
-	for side in range(2):
-		for r in range(3):
-			cell_rects[side].append([])
-			cell_labels[side].append([])
-			for c in range(3):
-				var x: int = _cell_x(side, c)
-				var rect := ColorRect.new()
-				rect.size     = Vector2(CELL_W - 4, CELL_H - 4)
-				rect.position = Vector2(x + 2, BOARD_TOP + r * CELL_H + 2)
-				rect.color    = Color(0.13, 0.13, 0.2)
-				rect.mouse_entered.connect(_on_cell_hover.bind(side, r, c))
-				rect.mouse_exited.connect(_on_cell_hover_end)
-				add_child(rect)
-				cell_rects[side][r].append(rect)
-
-				var lbl := Label.new()
-				lbl.position  = rect.position + Vector2(5, 4)
-				lbl.size      = rect.size - Vector2(6, 6)
-				lbl.add_theme_font_size_override("font_size", 12)
-				lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-				add_child(lbl)
-				cell_labels[side][r].append(lbl)
-
-	# ---- 本体HP ----
-	var base_y: int = BOARD_TOP + 3 * CELL_H + 12
-	player_base_label = Label.new()
-	player_base_label.position = Vector2(_cell_x(0, 0), base_y)
-	player_base_label.add_theme_font_size_override("font_size", 14)
-	player_base_label.modulate = Color(0.4, 0.9, 0.4)
-	add_child(player_base_label)
-
-	enemy_base_label = Label.new()
-	enemy_base_label.position = Vector2(_cell_x(1, 0), base_y)
-	enemy_base_label.add_theme_font_size_override("font_size", 14)
-	enemy_base_label.modulate = Color(1.0, 0.45, 0.45)
-	add_child(enemy_base_label)
-
-	# 盤面セルホバー用ツールチップ
-	_cell_tooltip_panel = PanelContainer.new()
-	_cell_tooltip_panel.position = Vector2(10, 10)
-	_cell_tooltip_panel.visible = false
-	_cell_tooltip_panel.z_index = 90
-	var tt_style := StyleBoxFlat.new()
-	tt_style.bg_color = Color(0.08, 0.08, 0.15, 0.95)
-	tt_style.border_color = Color(0.4, 0.5, 0.7)
-	tt_style.set_border_width_all(1)
-	tt_style.set_content_margin_all(8)
-	_cell_tooltip_panel.add_theme_stylebox_override("panel", tt_style)
-	_cell_tooltip_label = Label.new()
-	_cell_tooltip_label.add_theme_font_size_override("font_size", 11)
-	_cell_tooltip_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_cell_tooltip_label.custom_minimum_size = Vector2(250, 0)
-	_cell_tooltip_panel.add_child(_cell_tooltip_label)
-	add_child(_cell_tooltip_panel)
-
-	# ---- マナバー ----
-	_build_mana_bar()
-
-	# ---- 装備表示UI ----
-	_build_equipment_ui()
-
-	# ---- 次カードパネル ----
-	_build_next_card_panel()
-
-	# ---- ログ ----
-	var log_bg := ColorRect.new()
-	log_bg.position = Vector2(1020, BOARD_TOP - 10)
-	log_bg.size     = Vector2(245, 3 * CELL_H + 30)
-	log_bg.color    = Color(0.04, 0.04, 0.07)
-	add_child(log_bg)
-
-	var log_title := Label.new()
-	log_title.text     = "ログ"
-	log_title.position = Vector2(1028, BOARD_TOP - 6)
-	log_title.modulate = Color(0.7, 0.7, 0.5)
-	add_child(log_title)
-
-	log_label = Label.new()
-	log_label.position       = Vector2(1025, BOARD_TOP + 14)
-	log_label.size           = Vector2(235, 3 * CELL_H)
-	log_label.add_theme_font_size_override("font_size", 11)
-	log_label.autowrap_mode  = TextServer.AUTOWRAP_WORD_SMART
-	log_label.modulate       = Color(0.78, 0.78, 0.78)
-	add_child(log_label)
-
-	# ---- ゲームオーバー ----
-	game_over_label = Label.new()
-	game_over_label.position = Vector2(340, 270)
-	game_over_label.add_theme_font_size_override("font_size", 72)
-	game_over_label.visible  = false
-	add_child(game_over_label)
-
-	restart_button = Button.new()
-	restart_button.text     = "もう一度"
-	restart_button.position = Vector2(540, 380)
-	restart_button.size     = Vector2(200, 56)
-	restart_button.add_theme_font_size_override("font_size", 26)
-	restart_button.visible  = false
-	restart_button.pressed.connect(_on_restart_pressed)
-	add_child(restart_button)
-
-func _build_mana_bar() -> void:
-	var bar_y: int = BOARD_TOP + 3 * CELL_H + 42
-	var bar_x: int = _cell_x(0, 0)
-
-	var bar_title := Label.new()
-	bar_title.text     = "Mana"
-	bar_title.position = Vector2(bar_x, bar_y - 18)
-	bar_title.add_theme_font_size_override("font_size", 12)
-	bar_title.modulate = Color(1.0, 0.85, 0.2)
-	add_child(bar_title)
-
-	mana_bar_cells = []
-	for i in range(10):
-		var cell := ColorRect.new()
-		cell.size     = Vector2(22, 18)
-		cell.position = Vector2(bar_x + i * 25, bar_y)
-		cell.color    = Color(0.2, 0.2, 0.1)
-		add_child(cell)
-		mana_bar_cells.append(cell)
-
-	mana_value_label = Label.new()
-	mana_value_label.position = Vector2(bar_x + 10 * 25 + 6, bar_y)
-	mana_value_label.add_theme_font_size_override("font_size", 13)
-	mana_value_label.modulate = Color(1.0, 0.9, 0.3)
-	add_child(mana_value_label)
-
-func _build_equipment_ui() -> void:
-	var eq_y: int = BOARD_TOP + 3 * CELL_H + 68
-	var bar_x: int = _cell_x(0, 0)
-
-	var eq_title := Label.new()
-	eq_title.text     = "装備"
-	eq_title.position = Vector2(bar_x, eq_y - 16)
-	eq_title.add_theme_font_size_override("font_size", 11)
-	eq_title.modulate = Color(0.85, 0.7, 1.0)
-	add_child(eq_title)
-
-	equipment_labels = []
-	for i in range(3):
-		var slot_bg := ColorRect.new()
-		slot_bg.size     = Vector2(90, 20)
-		slot_bg.position = Vector2(bar_x + i * 94, eq_y)
-		slot_bg.color    = Color(0.1, 0.08, 0.15)
-		add_child(slot_bg)
-		var slot_lbl := Label.new()
-		slot_lbl.text     = "─ 空 ─"
-		slot_lbl.position = Vector2(bar_x + i * 94 + 4, eq_y + 2)
-		slot_lbl.size     = Vector2(84, 18)
-		slot_lbl.add_theme_font_size_override("font_size", 10)
-		slot_lbl.modulate = Color(0.5, 0.5, 0.5)
-		add_child(slot_lbl)
-		equipment_labels.append(slot_lbl)
-		# ホバー検出用
-		slot_bg.mouse_entered.connect(_on_equip_hover.bind(i))
-		slot_bg.mouse_exited.connect(_on_equip_hover_end)
-
-	# 装備ホバーツールチップ
-	_equip_tooltip_panel = PanelContainer.new()
-	_equip_tooltip_panel.position = Vector2(bar_x, eq_y - 50)
-	_equip_tooltip_panel.visible = false
-	_equip_tooltip_panel.z_index = 90
-	var eq_style := StyleBoxFlat.new()
-	eq_style.bg_color = Color(0.08, 0.06, 0.14, 0.95)
-	eq_style.border_color = Color(0.6, 0.4, 0.9)
-	eq_style.set_border_width_all(1)
-	eq_style.set_content_margin_all(7)
-	_equip_tooltip_panel.add_theme_stylebox_override("panel", eq_style)
-	_equip_tooltip_label = Label.new()
-	_equip_tooltip_label.add_theme_font_size_override("font_size", 11)
-	_equip_tooltip_label.custom_minimum_size = Vector2(200, 0)
-	_equip_tooltip_panel.add_child(_equip_tooltip_label)
-	add_child(_equip_tooltip_panel)
-
-func _on_equip_hover(slot: int) -> void:
-	if board_manager.player_data == null:
-		return
-	var equip: Array = board_manager.player_data.equipment
-	if slot >= equip.size():
-		_equip_tooltip_panel.visible = false
-		return
-	var eq: Dictionary = equip[slot]
-	_equip_tooltip_label.text = "%s\n%s" % [eq.get("display", ""), eq.get("effect", "")]
-	_equip_tooltip_panel.visible = true
-
-func _on_equip_hover_end() -> void:
-	if _equip_tooltip_panel != null:
-		_equip_tooltip_panel.visible = false
-
-func _refresh_equipment_ui() -> void:
-	if board_manager.player_data == null:
-		return
-	var equip: Array = board_manager.player_data.equipment
-	for i in range(equipment_labels.size()):
-		if i < equip.size():
-			equipment_labels[i].text    = equip[i].get("display", "?")
-			equipment_labels[i].modulate = Color(0.9, 0.75, 1.0)
-		else:
-			equipment_labels[i].text    = "─ 空 ─"
-			equipment_labels[i].modulate = Color(0.5, 0.5, 0.5)
-
-func _build_next_card_panel() -> void:
-	# 次カードパネル：盤面下部中央
-	var panel_w  := 360
-	var panel_h  := 110
-	var panel_x  := CENTER_X - panel_w / 2
-	var panel_y  := BOARD_TOP + 3 * CELL_H + 36
-
-	next_card_panel = ColorRect.new()
-	next_card_panel.position = Vector2(panel_x, panel_y)
-	next_card_panel.size     = Vector2(panel_w, panel_h)
-	next_card_panel.color    = Color(0.08, 0.10, 0.17)
-	add_child(next_card_panel)
-
-	# 枠線風
-	var border := ColorRect.new()
-	border.position = Vector2(panel_x - 2, panel_y - 2)
-	border.size     = Vector2(panel_w + 4, panel_h + 4)
-	border.color    = Color(0.3, 0.5, 0.8, 0.6)
-	border.z_index  = -1
-	add_child(border)
-
-	var title_lbl := Label.new()
-	title_lbl.text     = "─── NEXT CARD ───"
-	title_lbl.position = Vector2(panel_x + 85, panel_y + 4)
-	title_lbl.add_theme_font_size_override("font_size", 12)
-	title_lbl.modulate = Color(0.5, 0.7, 1.0)
-	add_child(title_lbl)
-
-	# カード名（大きく）
-	next_card_name_label = Label.new()
-	next_card_name_label.position = Vector2(panel_x + 10, panel_y + 22)
-	next_card_name_label.add_theme_font_size_override("font_size", 28)
-	next_card_name_label.modulate = Color(1.0, 1.0, 0.85)
-	add_child(next_card_name_label)
-
-	# コスト（右上大きく）
-	next_card_cost_label = Label.new()
-	next_card_cost_label.position = Vector2(panel_x + panel_w - 70, panel_y + 16)
-	next_card_cost_label.add_theme_font_size_override("font_size", 32)
-	next_card_cost_label.modulate = Color(1.0, 0.85, 0.1)
-	add_child(next_card_cost_label)
-
-	# 詳細（HP/ATK/列/攻撃間隔）
-	next_card_detail_label = Label.new()
-	next_card_detail_label.position = Vector2(panel_x + 10, panel_y + 60)
-	next_card_detail_label.add_theme_font_size_override("font_size", 13)
-	next_card_detail_label.modulate = Color(0.75, 0.85, 0.75)
-	add_child(next_card_detail_label)
-
-	# 発動チェックタイマー表示
-	next_card_timer_label = Label.new()
-	next_card_timer_label.position = Vector2(panel_x + 10, panel_y + 88)
-	next_card_timer_label.add_theme_font_size_override("font_size", 11)
-	next_card_timer_label.modulate = Color(0.55, 0.55, 0.7)
-	add_child(next_card_timer_label)
-
-	# 次の敵カード表示（パネル右側）
-	enemy_next_label = Label.new()
-	enemy_next_label.position = Vector2(panel_x + panel_w + 8, panel_y + 20)
-	enemy_next_label.add_theme_font_size_override("font_size", 13)
-	enemy_next_label.modulate = Color(1.0, 0.5, 0.5)
-	add_child(enemy_next_label)
-
-	# デッキ・捨て札枚数
-	var deck_y: int = panel_y + panel_h + 6
-	deck_count_label = Label.new()
-	deck_count_label.position = Vector2(panel_x, deck_y)
-	deck_count_label.add_theme_font_size_override("font_size", 12)
-	deck_count_label.modulate = Color(0.6, 0.8, 1.0)
-	add_child(deck_count_label)
-
-	discard_count_label = Label.new()
-	discard_count_label.position = Vector2(panel_x + 130, deck_y)
-	discard_count_label.add_theme_font_size_override("font_size", 12)
-	discard_count_label.modulate = Color(0.5, 0.5, 0.7)
-	add_child(discard_count_label)
-
-	enemy_deck_count_label = Label.new()
-	enemy_deck_count_label.position = Vector2(panel_x + panel_w + 8, panel_y + 60)
-	enemy_deck_count_label.add_theme_font_size_override("font_size", 12)
-	enemy_deck_count_label.modulate = Color(1.0, 0.5, 0.5)
-	add_child(enemy_deck_count_label)
-
-# ---- セルのX座標計算 ----
-# 自陣: col0=後列(最左), col1=中列, col2=前列(中央寄り右)
-# 敵陣: col0=前列(中央寄り左), col1=中列, col2=後列(最右)
-func _cell_x(side: int, col: int) -> int:
-	if side == 0:
-		# 自陣: 前列(col2)が右端
-		# col2のX = CENTER_X - GAP/2 - CELL_W
-		# col1のX = col2X - CELL_W
-		# col0のX = col1X - CELL_W
-		return CENTER_X - GAP / 2 - (3 - col) * CELL_W
-	else:
-		# 敵陣: 前列(col0)が左端
-		# col0のX = CENTER_X + GAP/2
-		return CENTER_X + GAP / 2 + col * CELL_W
 
 # ---- 入力処理（開発者モード用） ----
 func _input(event: InputEvent) -> void:
@@ -710,7 +339,7 @@ func _process(delta: float) -> void:
 		_support_log_timer = 5.0
 		_log_support_effects()
 
-	_update_ui()
+	game_ui.update_ui()
 
 func _check_game_over() -> void:
 	if base_hp[0] <= 0:
@@ -726,309 +355,19 @@ func _check_game_over() -> void:
 		game_over_label.visible  = true
 		restart_button.visible   = true
 
-func _on_cell_hover(side: int, r: int, c: int) -> void:
-	var unit = board_manager.board[side][r][c]
-	var te_hover = board_manager.board_effects[side][r][c]
-	var art_hover = board_manager.board_artifacts[side][r][c]
-	if unit == null and te_hover == null and art_hover == null:
-		_cell_tooltip_panel.visible = false
-		return
-	# アーティファクト表示
-	if art_hover != null and unit == null:
-		var _EDB_art_h = load("res://scripts/EffectDB.gd")
-		var art_lines: Array = []
-		art_lines.append("[アーティファクト] %s" % art_hover.get("name", "?"))
-		art_lines.append("HP: %d / %d" % [art_hover.get("hp", 0), art_hover.get("max_hp", 0)])
-		var art_skill_lines: Array = []
-		for sk in art_hover.get("skills", []):
-			var eid_ah: String = sk.get("effect_id", "")
-			var disp_ah: String = _EDB_art_h.EFFECTS.get(eid_ah, {}).get("display", eid_ah)
-			var trig_ah: String = sk.get("trigger", "")
-			if trig_ah == "timer":
-				var intv_ah: float = sk.get("params", {}).get("interval", 0)
-				art_skill_lines.append("- %s（%ds毎）" % [disp_ah, int(intv_ah)])
-			else:
-				art_skill_lines.append("- %s（%s）" % [disp_ah, trig_ah])
-		if art_skill_lines.size() > 0:
-			art_lines.append("")
-			art_lines.append("■ スキル:")
-			art_lines.append_array(art_skill_lines)
-		_cell_tooltip_label.text = "\n".join(art_lines)
-		_cell_tooltip_panel.visible = true
-		_cell_tooltip_panel.size = Vector2(265, 0)
-		return
-	if unit == null:
-		# 盤面効果のみ表示
-		var _EDB_h = load("res://scripts/EffectDB.gd")
-		var tile_def_h = _EDB_h.EFFECTS.get(te_hover["effect_id"], {})
-		var tile_display_h: String = tile_def_h.get("display", te_hover["effect_id"])
-		var remaining_str_h: String = "永続" if te_hover["remaining"] < 0 else "%ds" % int(te_hover["remaining"])
-		_cell_tooltip_label.text = "■ 盤面効果: %s（%s）" % [tile_display_h, remaining_str_h]
-		_cell_tooltip_panel.visible = true
-		_cell_tooltip_panel.size = Vector2(265, 0)
-		return
-	var _EDB = load("res://scripts/EffectDB.gd")
-	var trigger_jp: Dictionary = {"always": "常時", "on_summon": "召喚時", "on_hit": "命中時", "on_kill": "撃破時", "on_death": "死亡時", "timer": "時間経過"}
-	var target_jp: Dictionary = {"self": "自身", "front_one": "前方1体", "same_row": "同段", "same_row_beast": "同段の獣", "same_col_ally": "同深度の味方", "adjacent_beast": "隣接の獣", "all_allies": "味方全体", "all_enemies": "敵全体", "hit_target": "攻撃対象", "enemy_most_buffs": "バフ最多の敵", "ally_undead_lowest": "最低HPアンデッド", "enemy_max_hp": "最大HP敵", "self_deck": "自デッキ", "front_enemy": "前列の敵", "adjacent_enemy": "隣接の敵", "enemy": "敵"}
-	var lines: Array = []
-	lines.append("[%s] %s" % [unit.race, unit.unit_name])
-	lines.append("Cost: %d / HP: %d/%d / ATK: %d / SPD: %.1fs" % [unit.cost, unit.current_hp, unit.max_hp, unit.attack, unit.attack_interval])
-	var support_lines: Array = []
-	var active_lines: Array = []
-	for skill in unit.skills:
-		var eid: String = skill.get("effect_id", "")
-		var display: String = eid
-		if _EDB != null and _EDB.EFFECTS.has(eid):
-			display = _EDB.EFFECTS[eid].get("display", eid)
-		var trigger: String = skill.get("trigger", "")
-		var tgt: String = skill.get("target", "")
-		var t_jp: String = trigger_jp.get(trigger, trigger)
-		var tgt_jp: String = target_jp.get(tgt, tgt)
-		if trigger == "timer":
-			var interval = skill.get("params", {}).get("interval", 0)
-			t_jp = "%ds毎" % int(interval)
-		var entry: String = "- %s（%s, %s）" % [display, t_jp, tgt_jp]
-		if trigger == "always":
-			support_lines.append(entry)
-		else:
-			active_lines.append(entry)
-	if support_lines.size() > 0:
-		lines.append("")
-		lines.append("■ サポート効果:")
-		lines.append_array(support_lines)
-	if active_lines.size() > 0:
-		lines.append("")
-		lines.append("■ アクティブスキル:")
-		lines.append_array(active_lines)
-	# 現在のバフ/デバフ一覧
-	var buffs_h: Array = []
-	if unit._atk_bonus > 0:        buffs_h.append("ATK+%d" % unit._atk_bonus)
-	if unit._interval_bonus > 0.0:  buffs_h.append("SPD+")
-	if unit._damage_reduction > 0:  buffs_h.append("鎧%d" % unit._damage_reduction)
-	if unit.lifesteal_stacks > 0:   buffs_h.append("吸血%d" % unit.lifesteal_stacks)
-	if unit._regen_stacks > 0:      buffs_h.append("再生%d" % unit._regen_stacks)
-	if unit.burn_turns > 0:         buffs_h.append("火傷%d" % unit.burn_turns)
-	if unit.frozen_turns > 0:       buffs_h.append("凍結%d" % unit.frozen_turns)
-	if unit.paralysis_turns > 0:    buffs_h.append("麻痺%d" % unit.paralysis_turns)
-	if unit.poison_stacks > 0:      buffs_h.append("毒%d" % unit.poison_stacks)
-	if unit._invincible_timer > 0.0: buffs_h.append("無敵")
-	if buffs_h.size() > 0:
-		lines.append("")
-		lines.append("■ バフ/デバフ: " + " ".join(buffs_h))
-	# 盤面効果表示
-	if te_hover != null:
-		var _EDB_hover = load("res://scripts/EffectDB.gd")
-		var tile_def_hover = _EDB_hover.EFFECTS.get(te_hover["effect_id"], {})
-		var tile_display_hover: String = tile_def_hover.get("display", te_hover["effect_id"])
-		var remaining_str: String = "永続" if te_hover["remaining"] < 0 else "%ds" % int(te_hover["remaining"])
-		lines.append("")
-		lines.append("■ 盤面効果: %s（%s）" % [tile_display_hover, remaining_str])
-	_cell_tooltip_label.text = "\n".join(lines)
-	_cell_tooltip_panel.visible = true
-	_cell_tooltip_panel.size = Vector2(265, 0)
-
-func _on_cell_hover_end() -> void:
-	_cell_tooltip_panel.visible = false
-
 func _on_restart_pressed() -> void:
 	get_tree().reload_current_scene()
 
-# ---- UI更新 ----
-func _update_ui() -> void:
-	_update_cells()
-	_update_base_hp()
-	_update_mana()
-	_update_next_card()
-	_update_deck_counts()
-
-func _update_cells() -> void:
-	for side in range(2):
-		for r in range(3):
-			for c in range(3):
-				var has_flash: bool = skill_flash_timers[side][r][c] > 0.0
-				# 盤面効果・アーティファクトがあるセルは常に再描画
-				var has_tile_effect: bool = board_manager.board_effects[side][r][c] != null
-				var has_artifact: bool = board_manager.board_artifacts[side][r][c] != null
-				if not _cell_dirty[side][r][c] and not has_flash and not has_tile_effect and not has_artifact:
-					continue  # 変化なし・フラッシュなし・盤面効果なし → スキップ
-				_render_cell(side, r, c)
-				if not has_flash:
-					_cell_dirty[side][r][c] = false
-
-func _render_cell(side: int, r: int, c: int) -> void:
-	var unit   = board_manager.get_unit(side, r, c)
-	var artifact = board_manager.board_artifacts[side][r][c]
-	var rect: ColorRect = cell_rects[side][r][c]
-	var lbl:  Label     = cell_labels[side][r][c]
-	if artifact != null and unit == null:
-		# アーティファクト描画（ユニットと同じ透明ベース）
-		if skill_flash_timers[side][r][c] > 0.0:
-			var f: float = skill_flash_timers[side][r][c]
-			rect.color = Color(0.9, 0.75 * f + 0.1, 0.0)
-		else:
-			rect.color = Color(0.11, 0.11, 0.17)
-		var art_hp: int = artifact.get("hp", 0)
-		var art_max_hp: int = artifact.get("max_hp", 1)
-		var art_hp_ratio: float = float(art_hp) / float(max(1, art_max_hp))
-		var art_bar_filled: int = int(art_hp_ratio * 6)
-		var art_hp_bar: String = "█".repeat(art_bar_filled) + "░".repeat(6 - art_bar_filled)
-		lbl.text = "【%s】\n%s HP%d/%d" % [artifact.get("name", "?"), art_hp_bar, art_hp, art_max_hp]
-		return
-	if unit != null:
-		var hp_ratio: float = float(unit.current_hp) / float(unit.max_hp)
-		# ユニットは透明（盤面効果の色を見せるため）。フラッシュ時のみ色あり
-		if skill_flash_timers[side][r][c] > 0.0:
-			var f: float = skill_flash_timers[side][r][c]
-			rect.color = Color(0.9, 0.75 * f + 0.1, 0.0)
-		else:
-			rect.color = Color(0.11, 0.11, 0.17)  # 透明ベース
-		# 列マーカー不要（見ればわかる）
-		# HPバー（8ブロック）
-		var bar_filled: int = int(hp_ratio * 8)
-		var hp_bar: String = "█".repeat(bar_filled) + "░".repeat(8 - bar_filled)
-		# アクティブバフ略称
-		var buffs: Array = []
-		# バフ（スタック値）
-		if unit._atk_bonus > 0:        buffs.append("ATK+%d" % unit._atk_bonus)
-		if unit._interval_bonus > 0.0:  buffs.append("SPD+")
-		if unit._damage_reduction > 0:  buffs.append("鎧%d" % unit._damage_reduction)
-		if unit.lifesteal_stacks > 0:   buffs.append("吸血%d" % unit.lifesteal_stacks)
-		if unit._regen_stacks > 0:      buffs.append("再生%d" % unit._regen_stacks)
-		if unit._temp_atk_bonus > 0:    buffs.append("ATK↑%d" % unit._temp_atk_bonus)
-		if unit._temp_spd_bonus > 0.0:  buffs.append("SPD↑")
-		# デバフ
-		if unit.burn_turns > 0:         buffs.append("火傷%d" % unit.burn_turns)
-		if unit.frozen_turns > 0:       buffs.append("凍結%d" % unit.frozen_turns)
-		if unit.paralysis_turns > 0:    buffs.append("麻痺%d" % unit.paralysis_turns)
-		if unit.poison_stacks > 0:      buffs.append("毒%d" % unit.poison_stacks)
-		if unit._invincible_timer > 0.0: buffs.append("無敵")
-		var buff_line: String = (" ".join(buffs)) if not buffs.is_empty() else ""
-		# スキルフラッシュ
-		var flash_line: String = ""
-		if skill_flash_timers[side][r][c] > 0.0:
-			flash_line = "★" + skill_flash_names[side][r][c] + "!"
-		# 組み立て
-		var lines: Array = [
-			unit.unit_name,
-			"%s HP%d/%d ATK%d" % [hp_bar, unit.current_hp, unit.max_hp, unit.attack],
-		]
-		if buff_line != "": lines.append(buff_line)
-		if flash_line != "": lines.append(flash_line)
-		lbl.text = "\n".join(lines)
-	else:
-		rect.color = Color(0.11, 0.11, 0.17)
-		lbl.text   = ""
-	# 盤面効果の可視化（ユニット有無に関わらず）
-	var te_vis = board_manager.board_effects[side][r][c]
-	if te_vis != null:
-		var _EDB_vis = load("res://scripts/EffectDB.gd")
-		var tile_id: String = te_vis["effect_id"]
-		var tile_def = _EDB_vis.EFFECTS.get(tile_id, {})
-		var tile_display: String = tile_def.get("display", tile_id)
-		# 色オーバーレイ（EffectDBのcolorから取得）
-		var tile_color: Array = tile_def.get("color", [])
-		if tile_color.size() == 4:
-			rect.color = rect.color.lerp(Color(tile_color[0], tile_color[1], tile_color[2]), tile_color[3])
-		# 盤面効果テキスト表示
-		var unit_label: String = tile_def.get("unit_label", "")
-		var race_filter: String = tile_def.get("race", "")
-		if lbl.text == "":
-			# ユニット不在：EffectDBのdisplayを表示
-			lbl.text = tile_display
-		else:
-			# ユニットあり：飛行は非表示、種族条件不一致も非表示
-			if unit != null and unit.get("_is_flying") == true:
-				pass
-			elif race_filter != "" and (unit == null or unit.race != race_filter):
-				pass
-			elif unit_label != "":
-				lbl.text = lbl.text + "\n[%s]" % unit_label
-
-func _update_base_hp() -> void:
-	player_base_label.text = "自陣 本体HP: %d / 30" % base_hp[0]
-	enemy_base_label.text  = "敵陣 本体HP: %d / 30" % base_hp[1]
-
-func _update_mana() -> void:
-	var filled: int = int(deck_manager.mana)
-	for i in range(10):
-		var cell: ColorRect = mana_bar_cells[i]
-		if i < filled:
-			cell.color = Color(1.0, 0.85, 0.1)
-		else:
-			cell.color = Color(0.18, 0.17, 0.07)
-	mana_value_label.text = "%.1f / 10" % deck_manager.mana
-
-func _update_next_card() -> void:
-	var next = deck_manager.get_next_card()
-	if next == null:
-		next_card_name_label.text   = "（なし）"
-		next_card_detail_label.text = ""
-		next_card_cost_label.text   = ""
-		next_card_timer_label.text  = ""
-		return
-
-	# 呪文カード表示分岐
-	if next.card_type != "unit":
-		var prefix: String = "【呪文】" if next.card_type == "spell" else "【異常】"
-		next_card_name_label.text = prefix + next.unit_name
-		next_card_name_label.modulate = Color(0.8, 0.6, 1.0)
-		var cost_text: String = "Cost X" if next.cost == -1 else "Cost %d" % next.cost
-		next_card_cost_label.text = cost_text
-		next_card_cost_label.modulate = Color(0.3, 1.0, 0.4) if deck_manager.mana >= next.cost else Color(1.0, 0.85, 0.1)
-		next_card_detail_label.text = next.spell_effect
-	else:
-		next_card_name_label.modulate = Color(1.0, 1.0, 0.85)
-		var col_names: Array = ["前列", "中列", "後列"]
-		var col_name: String = col_names[next.assigned_col]
-
-		next_card_name_label.text = next.unit_name
-
-		# コスト表示：足りているかで色変化
-		next_card_cost_label.text = "Cost %d" % next.cost
-		if deck_manager.mana >= next.cost:
-			next_card_cost_label.modulate = Color(0.3, 1.0, 0.4)
-		else:
-			next_card_cost_label.modulate = Color(1.0, 0.85, 0.1)
-
-		next_card_detail_label.text = "HP %d  ATK %d  配置:%s  攻撃間隔:%.1fs" % [
-			next.max_hp, next.attack, col_name, next.attack_interval
-	]
-
-	# 発動チェックまでの残り時間
-	var remain: float = deck_manager._check_timer
-	var interval: float = deck_manager.check_interval
-	next_card_timer_label.text = "発動チェック: %.1fs 後（間隔 %.1fs）" % [remain, interval]
-
-	# 次の敵カード
-	var enemy_next = enemy_ai.get_next_card()
-	if enemy_next != null:
-		var cost_ok: bool = enemy_ai.mana >= enemy_next.cost
-		enemy_next_label.modulate = Color(0.3, 1.0, 0.4) if cost_ok else Color(1.0, 0.5, 0.5)
-		enemy_next_label.text = "次の敵：%s\nマナ %.1f/10  Cost %d" % [
-			enemy_next.unit_name, enemy_ai.mana, enemy_next.cost
-		]
-	else:
-		enemy_next_label.text = ""
-
-func _update_deck_counts() -> void:
-	deck_count_label.text    = "自デッキ: %d枚" % deck_manager.deck.size()
-	discard_count_label.text = "捨て札: %d枚" % deck_manager.discard.size()
-	enemy_deck_count_label.text = "敵デッキ: %d枚\n敵捨て札: %d枚" % [
-		enemy_ai.enemy_deck.size(), enemy_ai.enemy_discard.size()
-	]
-
 # ---- シグナルハンドラ ----
 func _on_unit_placed(side: int, row: int, col: int, _unit: Object) -> void:
-	_mark_all_cells_dirty()  # サポート効果が全体に波及する可能性
+	_mark_all_cells_dirty()
 
 func _on_unit_died(side: int, row: int, col: int) -> void:
 	var side_name: String = "自陣" if side == 0 else "敵陣"
 	var display_col: int = (2 - col) if side == 0 else col
 	var col_names: Array  = ["前列", "中列", "後列"]
 	_add_log("倒 %s %d行%s" % [side_name, row + 1, col_names[display_col]])
-	# 死霊術師パッシブ: 味方死亡時マナ+1
 	if side == 0 and board_manager.player_data != null:
-		var _EDB = load("res://scripts/EffectDB.gd")
 		for skill in board_manager.player_data.skills:
 			if skill.get("trigger", "") == "on_unit_died_ally":
 				var max_count = skill.get("params", {}).get("max_count", 10)
@@ -1061,18 +400,10 @@ func _on_active_skill_used(side: int, row: int, col: int, skill_name: String) ->
 	_add_log("[アクティブ] %s の %s 発動" % [name, skill_name])
 	skill_flash_timers[side][row][col] = 0.6
 	skill_flash_names[side][row][col]  = skill_name
-	_cell_dirty[side][row][col] = true  # ATK累積等の永続変化を即反映
 	_cell_dirty[side][row][col] = true
 
 func _log_support_effects() -> void:
-	# 旧方式support_effect文字列パースは削除済み。skills配列ベースのサポートはEffectExecutor経由で動作。
-	pass
-
-func _mark_all_cells_dirty() -> void:
-	for s in range(2):
-		for r in range(3):
-			for c in range(3):
-				_cell_dirty[s][r][c] = true
+	pass  # skills配列ベースのサポートはEffectExecutor経由で動作
 
 func _on_status_damage(unit_name: String, status: String, damage: int, stacks: int) -> void:
 	_add_log("[状態異常] %s: %s -%d (スタック:%d)" % [unit_name, status, damage, stacks])
@@ -1081,9 +412,7 @@ func _on_status_cleared(unit_name: String, status: String) -> void:
 	_add_log("[状態解除] %s の %s が解除" % [unit_name, status])
 
 func _on_synthesis_done(side: int, row: int, col: int, base_name: String, result_name: String) -> void:
-	# 錬金術師パッシブ: 合成時マナ+2
 	if side == 0 and board_manager.player_data != null:
-		var _EDB = load("res://scripts/EffectDB.gd")
 		for skill in board_manager.player_data.skills:
 			if skill.get("trigger", "") == "on_synthesis":
 				var eid: String = skill.get("effect_id", "")
@@ -1099,24 +428,16 @@ func _on_synthesis_done(side: int, row: int, col: int, base_name: String, result
 	_cell_dirty[side][row][col] = true
 
 func _apply_equipment_effects(pdata: RefCounted) -> void:
-	# 装備効果をDeckManager・EventQueueに反映する
-	# 魔力の砂時計: マナ回復速度+20%（装備数分）
-	# 黒鉄の盾: base_damage_reduce → EventQueueのbase_damage処理でplayer_artifactsを走査するため、
-	#   装備をplayer_artifactsに追加することで自動的に適用される
 	if pdata == null:
 		return
-	# player_artifactsをリセットして装備を再設定
 	board_manager.player_artifacts.clear()
 	var total_mana_regen_pct: float = 0.0
 	for eq in pdata.equipment:
-		# player_artifactsとして追加（base_damage_reduce等のEventQueue処理と連携）
 		board_manager.player_artifacts.append({"name": eq.get("display", ""), "skills": eq.get("skills", []).duplicate(true)})
-		# mana_regen_boostは個別にDeckManagerに反映
 		for skill in eq.get("skills", []):
 			var eid: String = skill.get("effect_id", "")
 			if eid == "mana_regen_boost":
 				total_mana_regen_pct += skill.get("params", {}).get("pct", 0.2)
-	# 元のmana_regen（playerdata由来）をベースに装備分を加算
 	var base_regen: float = pdata.mana_regen
 	deck_manager.MANA_REGEN = base_regen * (1.0 + total_mana_regen_pct)
 	print("[Main] 装備効果適用: MANA_REGEN=%.2f player_artifacts=%d件" % [deck_manager.MANA_REGEN, board_manager.player_artifacts.size()])
@@ -1133,9 +454,3 @@ func _on_draw_cards_requested(side: int, count: int) -> void:
 		else:
 			enemy_ai.force_play_card(board_manager)
 
-func _add_log(text: String) -> void:
-	var ms: float = float(Time.get_ticks_msec()) * 0.001
-	log_lines.append("[%.1fs] %s" % [ms, text])
-	if log_lines.size() > 22:
-		log_lines.pop_front()
-	log_label.text = "\n".join(log_lines)
