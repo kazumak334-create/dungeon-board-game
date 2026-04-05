@@ -794,6 +794,13 @@ func _init_skill_timers(unit: Object) -> void:
 			var interval: float = skill.get("params", {}).get("interval", 0.0)
 			if interval > 0.0:
 				unit._skill_timers["timer_%d" % i] = interval
+	# skills配列のalways+interval（"support_N"形式）を登録
+	for i in range(unit.skills.size()):
+		var skill = unit.skills[i]
+		if skill.get("trigger", "") == "always" and skill.get("params", {}).has("interval"):
+			var interval: float = skill["params"]["interval"]
+			if interval > 0.0:
+				unit._skill_timers["support_" + str(i)] = interval
 	# 旧方式：active_skill文字列パース（後方互換）
 	for entry in unit.active_skill.split(" / "):
 		if "時間経過" not in entry:
@@ -840,6 +847,26 @@ func _process_timed_skills() -> void:
 					if u._skill_timers[entry] <= 0.0:
 						fired.append(entry)
 				for entry in fired:
+					# support_Nエントリは前列チェック：前列にいる場合はスキップ
+					if entry.begins_with("support_"):
+						var front_col: int = 2 if s == 0 else 0
+						if c == front_col:
+							var idx2: int = int(entry.substr(8))
+							if idx2 < u.skills.size():
+								u._skill_timers[entry] = u.skills[idx2].get("params", {}).get("interval", 1.0)
+							continue
+						var idx2: int = int(entry.substr(8))
+						if idx2 < u.skills.size():
+							var skill2 = u.skills[idx2]
+							if effect_executor != null:
+								effect_executor.execute(skill2["effect_id"], skill2.get("params", {}), {
+									"trigger": "always", "side": s, "row": r, "col": c,
+									"source": u, "target": null, "damage": 0,
+									"board_manager": self, "deck_manager": deck_manager_ref, "enemy_ai": enemy_ai_ref,
+									"event_queue": event_queue
+								})
+							u._skill_timers[entry] = skill2.get("params", {}).get("interval", 1.0)
+						continue
 					# skills配列のtimerエントリ（"timer_N"形式）は新方式で処理
 					if entry.begins_with("timer_") and effect_executor != null:
 						var idx: int = int(entry.substr(6))
