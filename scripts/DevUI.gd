@@ -89,6 +89,7 @@ func _build_dev_panel() -> void:
 		[{"text": "自HP回復",  "cb": _on_heal_player_base},
 		 {"text": "敵HP回復",  "cb": _on_heal_enemy_base},
 		 {"text": "HP全回復",  "cb": _on_heal_both_base}],
+		[{"text": "テスト実行","cb": _on_run_tests}],
 	]
 	for row in tools:
 		for i in range(row.size()):
@@ -755,6 +756,14 @@ func _on_heal_both_base() -> void:
 	main.base_hp[1] = 30
 	main._update_base_hp()
 	main._add_log("[DEV] 両本体HP全回復")
+
+func _on_run_tests() -> void:
+	var TestRunnerScript = load("res://scripts/TestRunner.gd")
+	var runner = TestRunnerScript.new()
+	var result: String = runner.run_all()
+	main._add_log("=== 自動テスト ===")
+	for line in result.split("\n"):
+		main._add_log(line)
 
 func _on_back_to_menu() -> void:
 	main.get_tree().reload_current_scene()
