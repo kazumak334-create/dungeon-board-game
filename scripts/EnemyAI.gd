@@ -56,10 +56,16 @@ func _insert_shuffle_card() -> void:
 	enemy_deck.append(card)
 
 func _pick_next_card() -> void:
-	# デッキ空の場合は何もしない（シャッフルカードがデッキ循環を担う）
 	if enemy_deck.is_empty():
-		next_card = null
-		return
+		# フォールバック：シャッフルカード発動前にデッキが空になった場合
+		if enemy_discard.is_empty():
+			next_card = null
+			return
+		for card in enemy_discard:
+			enemy_deck.append(card)
+		enemy_discard.clear()
+		enemy_deck.shuffle()
+		_insert_shuffle_card()
 	next_card = enemy_deck[0]
 
 func force_play_card(board: Node) -> void:

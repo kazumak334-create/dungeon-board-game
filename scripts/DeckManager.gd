@@ -81,7 +81,14 @@ func process_deck(delta: float, board: Node) -> void:
 	_check_timer = check_interval
 
 	if deck.is_empty():
-		return  # デッキ空の場合は何もしない（シャッフルカードがデッキ循環を担う）
+		# フォールバック：シャッフルカード発動前にデッキが空になった場合
+		if discard.is_empty():
+			return
+		for card in discard:
+			deck.append(card)
+		discard.clear()
+		deck.shuffle()
+		_insert_shuffle_card()
 	var top = deck[0]
 	# コスト計算（連鎖の触媒によるコスト軽減）
 	var effective_cost: int = top.cost
