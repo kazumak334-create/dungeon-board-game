@@ -56,25 +56,15 @@ func _insert_shuffle_card() -> void:
 	enemy_deck.append(card)
 
 func _pick_next_card() -> void:
-	# 山札が空なら捨て札をシャッフルして山札に戻す
+	# デッキ空の場合は何もしない（シャッフルカードがデッキ循環を担う）
 	if enemy_deck.is_empty():
-		if enemy_discard.is_empty():
-			next_card = null
-			return
-		enemy_deck = enemy_discard.duplicate()
-		enemy_discard.clear()
-		enemy_deck.shuffle()
-		_insert_shuffle_card()
+		next_card = null
+		return
 	next_card = enemy_deck[0]
 
 func force_play_card(board: Node) -> void:
 	if enemy_deck.is_empty():
-		if enemy_discard.is_empty():
-			return
-		enemy_deck = enemy_discard.duplicate()
-		enemy_discard.clear()
-		enemy_deck.shuffle()
-		_insert_shuffle_card()
+		return
 	var top = enemy_deck[0]
 	enemy_deck.remove_at(0)
 	if top.card_type == "unit":

@@ -48,7 +48,10 @@ func _build_default_deck() -> void:
 	_insert_shuffle_card()  # 初期デッキにもシャッフルカードを挿入
 
 func _insert_shuffle_card() -> void:
-	# シャッフルカードを山札最下部に挿入
+	# 既にシャッフルカードがデッキにある場合は追加しない（重複防止）
+	for c in deck:
+		if c.unit_name == "シャッフル":
+			return
 	var _CDB = load("res://scripts/CardDB.gd")
 	if not _CDB.SYSTEM_SPELLS.has("シャッフル"):
 		return
@@ -63,7 +66,7 @@ func _insert_shuffle_card() -> void:
 	card.spell_target = sd["target"]
 	card.spell_effect = sd["effect"]
 	card.skills = sd.get("skills", []).duplicate(true)
-	deck.append(card)
+	deck.append(card)  # 必ず最下部に追加
 
 func process_deck(delta: float, board: Node) -> void:
 	# 敵スケルトンによるマナ回復妨害（1体につき-0.1/s）
@@ -78,12 +81,7 @@ func process_deck(delta: float, board: Node) -> void:
 	_check_timer = check_interval
 
 	if deck.is_empty():
-		if discard.is_empty():
-			return
-		deck = discard.duplicate()
-		discard.clear()
-		deck.shuffle()
-		_insert_shuffle_card()  # リシャッフル時にシャッフルカードを山札最下部に挿入
+		return  # デッキ空の場合は何もしない（シャッフルカードがデッキ循環を担う）
 	var top = deck[0]
 	# コスト計算（連鎖の触媒によるコスト軽減）
 	var effective_cost: int = top.cost
@@ -143,12 +141,7 @@ func _try_spell_synthesis(side: int, spell: Object, board: Node) -> bool:
 
 func force_play_card(board: Node) -> void:
 	if deck.is_empty():
-		if discard.is_empty():
-			return
-		deck = discard.duplicate()
-		discard.clear()
-		deck.shuffle()
-		_insert_shuffle_card()
+		return
 	var top = deck[0]
 	deck.remove_at(0)
 	if top.card_type == "unit":
