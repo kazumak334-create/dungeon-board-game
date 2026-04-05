@@ -517,6 +517,17 @@ func _cell_x(side: int, col: int) -> int:
 func _input(event: InputEvent) -> void:
 	if not dev_mode or dev_ui == null:
 		return
+	# 盤面効果設置モード：クリックでセルに効果設置
+	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
+		if dev_ui._pending_tile_effect != "":
+			var pos: Vector2 = event.position
+			for side in range(2):
+				for r in range(3):
+					for c in range(3):
+						var rect: ColorRect = cell_rects[side][r][c]
+						if Rect2(rect.position, rect.size).has_point(pos):
+							dev_ui.on_drop(side, r, c)
+							return
 	# ドラッグ中のマウスリリース → セル判定
 	if event is InputEventMouseButton and not event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
 		if dev_ui._dragging:

@@ -98,4 +98,9 @@ const EFFECTS: Dictionary = {
 	"tile_crack":        {"type": "tile_effect", "trigger": "on_leave", "display": "ヒビ床",     "transform_to": "tile_hole"},
 	"tile_poison":       {"type": "tile_effect", "trigger": "on_tick",  "display": "毒沼",       "status": "poison", "stacks": 2, "tick_interval": 1.0},
 	"tile_hole":         {"type": "tile_effect", "trigger": "on_enter", "display": "穴",         "block_summon": true, "duration": 5.0},
+
+	# ---- 盤面効果設置（呪文用） ----
+	"tile_set_all":      {"type": "tile_set",   "scope": "all",    "tile_id": "",              "display": "全マス盤面効果"},
+	"tile_set_enemy":    {"type": "tile_set",   "scope": "enemy",  "tile_id": "",              "display": "敵盤面効果"},
+	"tile_set_ally":     {"type": "tile_set",   "scope": "ally",   "tile_id": "",              "display": "味方盤面効果"},
 }

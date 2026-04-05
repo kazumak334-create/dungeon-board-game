@@ -215,6 +215,11 @@ const SPELLS: Dictionary = {
 		"skills": [{"trigger": "on_play", "target": "enemy", "effect_id": "delay_enemy_spawn", "params": {"seconds": 3}}]},
 	"配置崩し":   {"cost": 2, "target": "enemy_queue",   "effect": "敵の次の召喚列をランダム化",
 		"skills": [{"trigger": "on_play", "target": "enemy", "effect_id": "randomize_enemy_col", "params": {}}]},
+	"アースクエイク": {"cost": 6, "target": "all_enemies", "effect": "全体30ダメージ＋全マスをヒビ床に",
+		"skills": [
+			{"trigger": "on_play", "target": "all_enemies", "effect_id": "all_enemy_damage", "params": {"damage": 30}},
+			{"trigger": "on_play", "target": "all", "effect_id": "tile_set_all", "params": {"tile_id": "tile_crack"}},
+		]},
 }
 
 # ---- 異常状態カード定義 ----

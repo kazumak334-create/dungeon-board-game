@@ -559,8 +559,25 @@ func execute(effect_id: String, params: Dictionary, context: Dictionary) -> void
 
 		# ---- 種族バフ（スライム全体強化など） ----
 		"race_buff":
-			# 種族バフは_apply_support_effects内のsupport_effect文字列で処理するため、ここでは何もしない
 			pass
+
+		# ---- 盤面効果設置 ----
+		"tile_set":
+			var tile_id: String = merged.get("tile_id", "")
+			var scope: String = merged.get("scope", "all")
+			if bm != null and tile_id != "":
+				var _EDB_tile = load("res://scripts/EffectDB.gd")
+				var tile_def = _EDB_tile.EFFECTS.get(tile_id, {})
+				var tile_dur: float = tile_def.get("duration", -1.0)
+				var sides_to_set: Array = []
+				match scope:
+					"all":   sides_to_set = [0, 1]
+					"enemy": sides_to_set = [enemy_side]
+					"ally":  sides_to_set = [side]
+				for s2 in sides_to_set:
+					for r2 in range(3):
+						for c2 in range(3):
+							bm.set_tile_effect(s2, r2, c2, tile_id, tile_dur)
 
 		_:
 			print("[EffectExecutor] 未実装type: %s (effect_id: %s)" % [merged.get("type", "?"), effect_id])
