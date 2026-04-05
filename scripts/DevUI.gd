@@ -89,7 +89,6 @@ func _build_dev_panel() -> void:
 		[{"text": "自HP回復",  "cb": _on_heal_player_base},
 		 {"text": "敵HP回復",  "cb": _on_heal_enemy_base},
 		 {"text": "HP全回復",  "cb": _on_heal_both_base}],
-		[{"text": "テスト実行","cb": _on_run_tests}],
 	]
 	for row in tools:
 		for i in range(row.size()):
@@ -232,6 +231,17 @@ func _build_dev_panel() -> void:
 		cls_btn.modulate = Color(0.3, 0.9, 0.9)
 		cls_btn.pressed.connect(_on_class_select.bind(class_id))
 		card_list_container.add_child(cls_btn)
+
+	# テスト実行ボタン
+	_add_section_header("── テスト ──")
+	var test_btn := Button.new()
+	test_btn.text = "テスト実行"
+	test_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	test_btn.custom_minimum_size = Vector2(240, 28)
+	test_btn.add_theme_font_size_override("font_size", 12)
+	test_btn.modulate = Color(1.0, 1.0, 0.3)
+	test_btn.pressed.connect(_on_run_tests)
+	card_list_container.add_child(test_btn)
 
 	# カード詳細ツールチップ（カード一覧の上に表示）
 	_tooltip_panel = PanelContainer.new()
