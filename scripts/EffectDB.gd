@@ -112,4 +112,14 @@ const EFFECTS: Dictionary = {
 	"tile_set_all":      {"type": "tile_set",   "scope": "all",    "tile_id": "",              "display": "全マス盤面効果", "texture": "", "anim": "", "sfx": ""},
 	"tile_set_enemy":    {"type": "tile_set",   "scope": "enemy",  "tile_id": "",              "display": "敵盤面効果", "texture": "", "anim": "", "sfx": ""},
 	"tile_set_ally":     {"type": "tile_set",   "scope": "ally",   "tile_id": "",              "display": "味方盤面効果", "texture": "", "anim": "", "sfx": ""},
+
+	# ---- アーティファクト用盤面効果 ----
+	"tile_grave":        {"type": "tile_effect", "trigger": "on_tick", "tick_interval": 3.0, "display": "墓地", "unit_label": "墓地", "summon_unit": "スケルトン", "color": [0.2, 0.15, 0.1, 0.3], "texture": "", "anim": "", "sfx": ""},
+
+	# ---- アーティファクト用永久効果 ----
+	"mana_regen_boost":    {"type": "mana_regen_modify", "pct": 0.2, "display": "マナ加速", "texture": "", "anim": "", "sfx": ""},
+	"base_damage_reduce":  {"type": "base_damage_reduce", "pct": 0.1, "display": "本体守護", "texture": "", "anim": "", "sfx": ""},
+
+	# ---- アーティファクト用召喚（random_empty_ally） ----
+	"summon_to_empty":   {"type": "summon_to_empty", "unit_id": "スライム", "display": "空きマス召喚", "texture": "", "anim": "", "sfx": ""},
 }

@@ -5,6 +5,9 @@ extends Node
 var board: Array = []
 var attack_timers: Array = []
 var board_effects: Array = []  # board_effects[side][row][col] = null or {effect_id, remaining, tick_timer, tick_interval}
+var board_artifacts: Array = []  # board_artifacts[side][row][col] = null or {name, hp, max_hp, skills, protect_tiles, timers}
+var player_artifacts: Array = []  # 永久効果型アーティファクト（プレイヤー側）
+var enemy_artifacts: Array = []   # 永久効果型アーティファクト（敵側）
 var event_queue: Node = null          # EventQueue（Main.gd が設定）
 var base_hp_ref: Array = []           # Main.gd の base_hp への参照（Timer tick 用）
 var effect_executor: RefCounted = null  # EffectExecutor（Main.gd が設定）
@@ -35,14 +38,17 @@ func _setup() -> void:
 	board = []
 	attack_timers = []
 	board_effects = []
+	board_artifacts = []
 	for s in range(2):
 		board.append([])
 		attack_timers.append([])
 		board_effects.append([])
+		board_artifacts.append([])
 		for r in range(3):
 			board[s].append([null, null, null])
 			attack_timers[s].append([0.0, 0.0, 0.0])
 			board_effects[s].append([null, null, null])
+			board_artifacts[s].append([null, null, null])
 	# 状態異常・HP回復を1秒ごとに処理するTimerノード
 	_status_timer = Timer.new()
 	_status_timer.wait_time  = 1.0
@@ -61,6 +67,10 @@ func place_unit(side: int, unit_data: Object) -> bool:
 	# 抽選で1行を決定
 	var row: int = rows[0]
 	if board[side][row][col] == null:
+		# アーティファクト排他チェック
+		if board_artifacts[side][row][col] != null:
+			print("[BoardManager] アーティファクトにより召喚不可: side=%d row=%d col=%d" % [side, row, col])
+			return false
 		# 穴チェック：召喚不可
 		var _te_check = board_effects[side][row][col]
 		if _te_check != null:
@@ -132,6 +142,77 @@ func _execute_synthesis(side: int, row: int, col: int, existing: Object, result_
 	_push_summon_effects(side, row, col, synthesized)
 	synthesis_done.emit(side, row, col, existing.unit_name, synthesized.unit_name)
 	print("[BoardManager] 盤面合成: %s → %s (side=%d row=%d col=%d)" % [existing.unit_name, synthesized.unit_name, side, row, col])
+
+# ---- アーティファクト配置・除去 ----
+
+func place_artifact(side: int, row: int, col: int, artifact_data: Dictionary) -> bool:
+	# ユニットがいる場合は配置不可（排他）
+	if board[side][row][col] != null:
+		print("[BoardManager] ユニットありのためアーティファクト配置不可: side=%d row=%d col=%d" % [side, row, col])
+		return false
+	var _CDB = load("res://scripts/CardDB.gd")
+	var art_name: String = artifact_data.get("name", "")
+	var art_def: Dictionary = _CDB.ARTIFACTS.get(art_name, artifact_data)
+	var hp: int = art_def.get("hp", 10)
+	# タイマー初期化（skills配列のtimerエントリ）
+	var timers: Dictionary = {}
+	var skills: Array = art_def.get("skills", [])
+	for i in range(skills.size()):
+		var sk = skills[i]
+		if sk.get("trigger", "") == "timer":
+			var interval: float = sk.get("params", {}).get("interval", 0.0)
+			if interval > 0.0:
+				timers["timer_%d" % i] = interval
+	board_artifacts[side][row][col] = {
+		"name": art_name,
+		"hp": hp,
+		"max_hp": hp,
+		"skills": skills.duplicate(true),
+		"protect_tiles": art_def.get("protect_tiles", false),
+		"timers": timers,
+	}
+	print("[BoardManager] アーティファクト配置: %s side=%d row=%d col=%d" % [art_name, side, row, col])
+	# on_summonスキルを発火
+	_push_artifact_summon_effects(side, row, col, board_artifacts[side][row][col])
+	on_board_changed()
+	return true
+
+func remove_artifact(side: int, row: int, col: int) -> void:
+	var art = board_artifacts[side][row][col]
+	if art == null:
+		return
+	print("[BoardManager] アーティファクト破壊: %s side=%d row=%d col=%d" % [art.get("name", "?"), side, row, col])
+	# on_deathスキルを発火
+	if effect_executor != null:
+		for skill in art.get("skills", []):
+			if skill.get("trigger", "") == "on_death":
+				var _mp: Dictionary = skill.get("params", {}).duplicate()
+				if skill.has("target"): _mp["target"] = skill["target"]
+				_execute_artifact_skill(side, row, col, art, skill["effect_id"], _mp)
+	board_artifacts[side][row][col] = null
+	on_board_changed()
+
+func _push_artifact_summon_effects(side: int, row: int, col: int, art: Dictionary) -> void:
+	if effect_executor == null:
+		return
+	for skill in art.get("skills", []):
+		if skill.get("trigger", "") == "on_summon":
+			var _mp: Dictionary = skill.get("params", {}).duplicate()
+			if skill.has("target"): _mp["target"] = skill["target"]
+			_execute_artifact_skill(side, row, col, art, skill["effect_id"], _mp)
+
+func _execute_artifact_skill(side: int, row: int, col: int, art: Dictionary, effect_id: String, params: Dictionary) -> void:
+	if effect_executor == null:
+		return
+	# アーティファクトはUnitDataを持たないため source=null で実行
+	effect_executor.execute(effect_id, params, {
+		"trigger": params.get("trigger", "artifact"),
+		"side": side, "row": row, "col": col,
+		"source": null, "target": null, "damage": 0,
+		"artifact": art,
+		"board_manager": self, "deck_manager": deck_manager_ref, "enemy_ai": enemy_ai_ref,
+		"event_queue": event_queue
+	})
 
 func get_unit(side: int, row: int, col: int) -> Object:
 	return board[side][row][col]
@@ -570,6 +651,22 @@ func _apply_support_effects() -> void:
 								"board_manager": self, "deck_manager": deck_manager_ref, "enemy_ai": enemy_ai_ref,
 								"event_queue": event_queue
 							})
+	# アーティファクトのalwaysスキル処理（位置無関係）
+	if effect_executor != null:
+		for s in range(2):
+			for r in range(3):
+				for c in range(3):
+					var art = board_artifacts[s][r][c]
+					if art == null:
+						continue
+					for skill in art.get("skills", []):
+						if skill.get("trigger", "") == "always":
+							var _merged_art: Dictionary = skill.get("params", {}).duplicate()
+							if skill.has("target"):
+								_merged_art["target"] = skill["target"]
+							_execute_artifact_skill(s, r, c, art, skill["effect_id"], _merged_art)
+	# 永久効果型アーティファクトのalwaysスキル（front_ally_all ATKバフ）
+	_apply_permanent_artifact_effects()
 	# 盤面効果 on_stay: 獣の森等のATKボーナス
 	var _EDB_stay = load("res://scripts/EffectDB.gd")
 	for s in range(2):
@@ -719,6 +816,28 @@ func _get_support_targets(side: int, row: int, col: int, target_desc: String) ->
 		result.append(u)
 	return result
 
+func _apply_permanent_artifact_effects() -> void:
+	# 永久効果型アーティファクト（player_artifacts / enemy_artifacts）のalwaysスキルを適用
+	var artifact_lists: Array = [player_artifacts, enemy_artifacts]
+	for s in range(2):
+		for art_entry in artifact_lists[s]:
+			if not (art_entry is Dictionary):
+				continue
+			for skill in art_entry.get("skills", []):
+				if skill.get("trigger", "") != "always":
+					continue
+				var _mp_perm: Dictionary = skill.get("params", {}).duplicate()
+				if skill.has("target"):
+					_mp_perm["target"] = skill["target"]
+				var eid: String = skill.get("effect_id", "")
+				if effect_executor != null:
+					effect_executor.execute(eid, _mp_perm, {
+						"trigger": "always", "side": s, "row": 0, "col": 0,
+						"source": null, "target": null, "damage": 0,
+						"board_manager": self, "deck_manager": deck_manager_ref, "enemy_ai": enemy_ai_ref,
+						"event_queue": event_queue
+					})
+
 func count_units_by_name(side: int, unit_name: String) -> int:
 	var count: int = 0
 	for r in range(3):
@@ -776,6 +895,8 @@ func _on_status_tick() -> void:
 		_apply_regen_buff()
 	# 盤面効果のティック処理
 	_process_tile_effects()
+	# アーティファクトのtimerスキル処理
+	_process_artifact_timers()
 	# 時間経過スキル処理
 	_process_timed_skills()
 	# HP閾値スキルチェック
@@ -876,6 +997,33 @@ func _parse_skill_interval(entry: String) -> float:
 	if s_idx == -1:
 		return 0.0
 	return float(entry.substr(after, s_idx - after))
+
+func _process_artifact_timers() -> void:
+	for s in range(2):
+		for r in range(3):
+			for c in range(3):
+				var art = board_artifacts[s][r][c]
+				if art == null:
+					continue
+				var timers: Dictionary = art.get("timers", {})
+				if timers.is_empty():
+					continue
+				var fired: Array = []
+				for key in timers:
+					timers[key] -= 1.0
+					if timers[key] <= 0.0:
+						fired.append(key)
+				for key in fired:
+					# timer_N形式 → skillsのN番目を発火
+					if key.begins_with("timer_"):
+						var idx: int = int(key.substr(6))
+						var skills: Array = art.get("skills", [])
+						if idx < skills.size():
+							var sk = skills[idx]
+							var _mp: Dictionary = sk.get("params", {}).duplicate()
+							if sk.has("target"): _mp["target"] = sk["target"]
+							_execute_artifact_skill(s, r, c, art, sk["effect_id"], _mp)
+							timers[key] = sk.get("params", {}).get("interval", 1.0)
 
 func _process_timed_skills() -> void:
 	for s in range(2):
@@ -1269,6 +1417,10 @@ func set_tile_effect(side: int, row: int, col: int, effect_id: String, duration:
 	var _EDB = load("res://scripts/EffectDB.gd")
 	if not _EDB.EFFECTS.has(effect_id):
 		return
+	# protect_tilesチェック: 隣接アーティファクトがprotect_tiles=trueならブロック
+	if _is_protected_by_artifact(side, row, col):
+		print("[BoardManager] protect_tilesにより盤面効果設置ブロック: %s side=%d row=%d col=%d" % [effect_id, side, row, col])
+		return
 	var def = _EDB.EFFECTS[effect_id]
 	board_effects[side][row][col] = {
 		"effect_id": effect_id,
@@ -1277,6 +1429,19 @@ func set_tile_effect(side: int, row: int, col: int, effect_id: String, duration:
 		"tick_interval": def.get("tick_interval", 1.0),
 	}
 	print("[BoardManager] 盤面効果設置: %s side=%d row=%d col=%d remaining=%s" % [effect_id, side, row, col, str(duration)])
+
+func _is_protected_by_artifact(side: int, row: int, col: int) -> bool:
+	# 周囲8マス＋自マスにprotect_tiles=trueのアーティファクトがあるか確認
+	for dr in range(-1, 2):
+		for dc in range(-1, 2):
+			var r2: int = row + dr
+			var c2: int = col + dc
+			if r2 < 0 or r2 >= 3 or c2 < 0 or c2 >= 3:
+				continue
+			var art = board_artifacts[side][r2][c2]
+			if art != null and art.get("protect_tiles", false):
+				return true
+	return false
 
 func clear_tile_effect(side: int, row: int, col: int) -> void:
 	board_effects[side][row][col] = null
@@ -1331,14 +1496,50 @@ func _process_tile_effects() -> void:
 				if unit != null and unit.get("_is_flying") == true:
 					continue
 				# on_tick: N秒ごとに発動
-				if trigger == "on_tick" and unit != null and unit.is_alive():
+				if trigger == "on_tick":
 					te["tick_timer"] -= 1.0
 					if te["tick_timer"] <= 0:
 						te["tick_timer"] = te["tick_interval"]
-						# 炎床: ダメージ
-						if def.has("damage"):
-							event_queue.push(EventQueue.PRIORITY_IMMEDIATE, null, unit, "damage",
-								float(def["damage"]), {"enemy_side": s, "row": r, "col": c})
-						# 毒沼: 毒スタック付与
-						if def.has("status") and def["status"] == "poison":
-							unit.poison_stacks += def.get("stacks", 1)
+						# 墓地: ランダム空きマスにユニット召喚（summon_unitフィールドから取得）
+						if def.has("summon_unit"):
+							var sum_unit_id: String = def["summon_unit"]
+							_summon_unit_to_random_empty(s, sum_unit_id)
+						if unit != null and unit.is_alive():
+							# 炎床: ダメージ
+							if def.has("damage"):
+								event_queue.push(EventQueue.PRIORITY_IMMEDIATE, null, unit, "damage",
+									float(def["damage"]), {"enemy_side": s, "row": r, "col": c})
+							# 毒沼: 毒スタック付与
+							if def.has("status") and def["status"] == "poison":
+								unit.poison_stacks += def.get("stacks", 1)
+
+func _summon_unit_to_random_empty(side: int, unit_id: String) -> void:
+	# 指定サイドのランダムな空きマスにユニットを召喚
+	var _CDB = load("res://scripts/CardDB.gd")
+	if not _CDB.UNITS.has(unit_id):
+		return
+	var ud = _CDB.UNITS[unit_id]
+	var empty_cells: Array = []
+	for r2 in range(3):
+		for c2 in range(3):
+			if board[side][r2][c2] == null and board_artifacts[side][r2][c2] == null:
+				empty_cells.append([r2, c2])
+	if empty_cells.is_empty():
+		return
+	empty_cells.shuffle()
+	var pos: Array = empty_cells[0]
+	var UDS = load("res://scripts/UnitData.gd")
+	var new_unit = UDS.new()
+	new_unit.unit_name = unit_id
+	new_unit.max_hp = ud["hp"]; new_unit.current_hp = ud["hp"]
+	new_unit.attack = ud["atk"]; new_unit.attack_interval = ud["interval"]
+	new_unit.cost = ud["cost"]; new_unit.race = ud.get("race", "")
+	new_unit.attack_range = ud.get("range", "1行")
+	new_unit.assigned_col = ud.get("col", 0)
+	new_unit.skills = ud.get("skills", []).duplicate(true)
+	board[side][pos[0]][pos[1]] = new_unit
+	attack_timers[side][pos[0]][pos[1]] = new_unit.attack_interval
+	emit_signal("unit_placed", side, pos[0], pos[1], new_unit)
+	on_board_changed()
+	_init_skill_timers(new_unit)
+	print("[BoardManager] 盤面効果召喚: %s → side=%d row=%d col=%d" % [unit_id, side, pos[0], pos[1]])

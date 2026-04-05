@@ -604,8 +604,33 @@ func _check_game_over() -> void:
 func _on_cell_hover(side: int, r: int, c: int) -> void:
 	var unit = board_manager.board[side][r][c]
 	var te_hover = board_manager.board_effects[side][r][c]
-	if unit == null and te_hover == null:
+	var art_hover = board_manager.board_artifacts[side][r][c]
+	if unit == null and te_hover == null and art_hover == null:
 		_cell_tooltip_panel.visible = false
+		return
+	# アーティファクト表示
+	if art_hover != null and unit == null:
+		var _EDB_art_h = load("res://scripts/EffectDB.gd")
+		var art_lines: Array = []
+		art_lines.append("[アーティファクト] %s" % art_hover.get("name", "?"))
+		art_lines.append("HP: %d / %d" % [art_hover.get("hp", 0), art_hover.get("max_hp", 0)])
+		var art_skill_lines: Array = []
+		for sk in art_hover.get("skills", []):
+			var eid_ah: String = sk.get("effect_id", "")
+			var disp_ah: String = _EDB_art_h.EFFECTS.get(eid_ah, {}).get("display", eid_ah)
+			var trig_ah: String = sk.get("trigger", "")
+			if trig_ah == "timer":
+				var intv_ah: float = sk.get("params", {}).get("interval", 0)
+				art_skill_lines.append("- %s（%ds毎）" % [disp_ah, int(intv_ah)])
+			else:
+				art_skill_lines.append("- %s（%s）" % [disp_ah, trig_ah])
+		if art_skill_lines.size() > 0:
+			art_lines.append("")
+			art_lines.append("■ スキル:")
+			art_lines.append_array(art_skill_lines)
+		_cell_tooltip_label.text = "\n".join(art_lines)
+		_cell_tooltip_panel.visible = true
+		_cell_tooltip_panel.size = Vector2(265, 0)
 		return
 	if unit == null:
 		# 盤面効果のみ表示
@@ -681,9 +706,10 @@ func _update_cells() -> void:
 		for r in range(3):
 			for c in range(3):
 				var has_flash: bool = skill_flash_timers[side][r][c] > 0.0
-				# 盤面効果があるセルは常に再描画（持続時間変化を反映）
+				# 盤面効果・アーティファクトがあるセルは常に再描画
 				var has_tile_effect: bool = board_manager.board_effects[side][r][c] != null
-				if not _cell_dirty[side][r][c] and not has_flash and not has_tile_effect:
+				var has_artifact: bool = board_manager.board_artifacts[side][r][c] != null
+				if not _cell_dirty[side][r][c] and not has_flash and not has_tile_effect and not has_artifact:
 					continue  # 変化なし・フラッシュなし・盤面効果なし → スキップ
 				_render_cell(side, r, c)
 				if not has_flash:
@@ -691,8 +717,20 @@ func _update_cells() -> void:
 
 func _render_cell(side: int, r: int, c: int) -> void:
 	var unit   = board_manager.get_unit(side, r, c)
+	var artifact = board_manager.board_artifacts[side][r][c]
 	var rect: ColorRect = cell_rects[side][r][c]
 	var lbl:  Label     = cell_labels[side][r][c]
+	if artifact != null and unit == null:
+		# アーティファクト専用描画（金色系背景）
+		var art_hp: int = artifact.get("hp", 0)
+		var art_max_hp: int = artifact.get("max_hp", 1)
+		var art_hp_ratio: float = float(art_hp) / float(max(1, art_max_hp))
+		rect.color = rect.color.lerp(Color(0.6, 0.5, 0.1), 0.5)
+		var art_bar_filled: int = int(art_hp_ratio * 6)
+		var art_hp_bar: String = "█".repeat(art_bar_filled) + "░".repeat(6 - art_bar_filled)
+		lbl.text = "[%s]\n%s %d/%d" % [artifact.get("name", "?"), art_hp_bar, art_hp, art_max_hp]
+		# 盤面効果は表示しない（アーティファクトは盤面効果の影響を受けない）
+		return
 	if unit != null:
 		var hp_ratio: float = float(unit.current_hp) / float(unit.max_hp)
 		# ユニットは透明（盤面効果の色を見せるため）。フラッシュ時のみ色あり

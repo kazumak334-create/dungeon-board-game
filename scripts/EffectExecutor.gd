@@ -565,19 +565,47 @@ func execute(effect_id: String, params: Dictionary, context: Dictionary) -> void
 		"tile_set":
 			var tile_id: String = merged.get("tile_id", "")
 			var scope: String = merged.get("scope", "all")
+			var tgt_tile: String = merged.get("target", "")
 			if bm != null and tile_id != "":
 				var _EDB_tile = load("res://scripts/EffectDB.gd")
 				var tile_def = _EDB_tile.EFFECTS.get(tile_id, {})
 				var tile_dur: float = tile_def.get("duration", -1.0)
-				var sides_to_set: Array = []
-				match scope:
-					"all":   sides_to_set = [0, 1]
-					"enemy": sides_to_set = [enemy_side]
-					"ally":  sides_to_set = [side]
-				for s2 in sides_to_set:
-					for r2 in range(3):
-						for c2 in range(3):
-							bm.set_tile_effect(s2, r2, c2, tile_id, tile_dur)
+				# target="adjacent_8": 自陣の周囲8マスのみに設置（アーティファクト用）
+				if tgt_tile == "adjacent_8":
+					for dr in range(-1, 2):
+						for dc in range(-1, 2):
+							if dr == 0 and dc == 0:
+								continue
+							var r2: int = row + dr
+							var c2: int = col + dc
+							if r2 >= 0 and r2 < 3 and c2 >= 0 and c2 < 3:
+								bm.set_tile_effect(side, r2, c2, tile_id, tile_dur)
+				else:
+					var sides_to_set: Array = []
+					match scope:
+						"all":   sides_to_set = [0, 1]
+						"enemy": sides_to_set = [enemy_side]
+						"ally":  sides_to_set = [side]
+					for s2 in sides_to_set:
+						for r2 in range(3):
+							for c2 in range(3):
+								bm.set_tile_effect(s2, r2, c2, tile_id, tile_dur)
+
+		# ---- マナ回復倍率変更（永久効果型アーティファクト・DeckManagerで処理） ----
+		"mana_regen_modify":
+			# DeckManager.process_deck()でplayer_artifactsを走査して計算するため、ここは何もしない
+			pass
+
+		# ---- 本体ダメージ軽減（永久効果型アーティファクト・EventQueueで処理） ----
+		"base_damage_reduce":
+			# EventQueue.base_damage処理でartifact_listを走査して計算するため、ここは何もしない
+			pass
+
+		# ---- 空きマスへの召喚（アーティファクト用） ----
+		"summon_to_empty":
+			var unit_id_se: String = merged.get("unit_id", "ゴブリン")
+			if bm != null:
+				bm._summon_unit_to_random_empty(side, unit_id_se)
 
 		_:
 			print("[EffectExecutor] 未実装type: %s (effect_id: %s)" % [merged.get("type", "?"), effect_id])
@@ -710,6 +738,33 @@ func _resolve_target(merged: Dictionary, context: Dictionary, ally_side: bool) -
 				if u != null and u.is_alive() and u.race == "獣":
 					result_fb.append(u)
 			return result_fb
+		"adjacent_8":
+			# 周囲8マス（上下左右＋斜め）の味方ユニット
+			var result_a8: Array = []
+			for dr in range(-1, 2):
+				for dc in range(-1, 2):
+					if dr == 0 and dc == 0:
+						continue
+					var r2: int = row + dr
+					var c2: int = col + dc
+					if r2 < 0 or r2 >= 3 or c2 < 0 or c2 >= 3:
+						continue
+					var u = bm.board[side][r2][c2]
+					if u != null and u.is_alive():
+						result_a8.append(u)
+			return result_a8
+		"front_ally_all":
+			# 前列味方全員
+			var front_fa: int = 2 if side == 0 else 0
+			var result_fa: Array = []
+			for r2 in range(3):
+				var u = bm.board[side][r2][front_fa]
+				if u != null and u.is_alive():
+					result_fa.append(u)
+			return result_fa
+		"random_empty_ally":
+			# 味方ランダム空きマス（召喚用）: ここではユニットリストは返さない（_resolve_target想定外）
+			return []
 	return []
 
 func _pick_ally_by_strategy(side: int, bm: Node, strategy: String) -> Object:

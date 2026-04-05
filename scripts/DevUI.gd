@@ -48,6 +48,10 @@ func _build_all_cards() -> void:
 	for name in _CardDB.SYSTEM_SPELLS:
 		var d = _CardDB.SYSTEM_SPELLS[name]
 		_all_cards.append({"name": name, "data": d, "type": "spell"})
+	# アーティファクト（盤面出現型 + 永久効果型）
+	for aname in _CardDB.ARTIFACTS:
+		var d = _CardDB.ARTIFACTS[aname]
+		_all_cards.append({"name": aname, "data": d, "type": d.get("card_type", "artifact")})
 
 func _build_dev_panel() -> void:
 	var panel := ColorRect.new()
@@ -135,6 +139,19 @@ func _build_dev_panel() -> void:
 	for i in range(_all_cards.size()):
 		if _all_cards[i]["type"] == "status_spell":
 			_add_card_button(i, _all_cards[i]["name"], Color(0.8, 0.3, 0.8))
+
+	_add_section_header("── アーティファクト（盤面） ──")
+	for i in range(_all_cards.size()):
+		var c = _all_cards[i]
+		if c["type"] == "artifact":
+			var hp_str: String = "HP%d" % c["data"].get("hp", 0)
+			_add_card_button(i, "%s [%s]" % [c["name"], hp_str], Color(1.0, 0.85, 0.3))
+
+	_add_section_header("── アーティファクト（永久） ──")
+	for i in range(_all_cards.size()):
+		var c = _all_cards[i]
+		if c["type"] == "permanent_artifact":
+			_add_card_button(i, c["name"], Color(1.0, 0.7, 0.1))
 
 	# 盤面効果ボタン（EffectDBからtile_effect typeを動的取得）
 	_add_section_header("── 盤面効果 ──")
@@ -361,6 +378,13 @@ func _build_card(index: int) -> Object:
 		obj.assigned_col = d["col"]; obj.race = d["race"]; obj.attack_range = d["range"]
 		obj.support_effect = ""; obj.active_skill = ""
 		obj.skills = d.get("skills", []).duplicate(true)
+	elif card["type"] in ["artifact", "permanent_artifact"]:
+		# アーティファクト: UnitDataを軽量ラッパーとして使用
+		var d = card["data"]
+		obj.unit_name = card["name"]
+		obj.card_type = card["type"]
+		obj.cost = 0
+		obj.skills = d.get("skills", []).duplicate(true)
 	else:
 		var d = card["data"]
 		obj.unit_name = card["name"]; obj.card_type = card["type"]
@@ -420,6 +444,32 @@ func on_drop_outside() -> void:
 func _normal_play(card: Object) -> void:
 	if card == null:
 		return
+	if card.card_type == "artifact":
+		# 盤面出現型アーティファクト: ランダム空きマスに配置
+		var placed_art: bool = false
+		var cells: Array = []
+		for r2 in range(3):
+			for c2 in range(3):
+				if board_manager.board[0][r2][c2] == null and board_manager.board_artifacts[0][r2][c2] == null:
+					cells.append([r2, c2])
+		cells.shuffle()
+		if not cells.is_empty():
+			board_manager.place_artifact(0, cells[0][0], cells[0][1], {"name": card.unit_name})
+			main._add_log("[DEV通常] アーティファクト %s を自陣に配置" % card.unit_name)
+			placed_art = true
+		if not placed_art:
+			main._add_log("[DEV通常] 空きマスなし: %s" % card.unit_name)
+		main._mark_all_cells_dirty()
+		return
+	elif card.card_type == "permanent_artifact":
+		# 永久効果型: player_artifactsに追加
+		var _CDB_np = load("res://scripts/CardDB.gd")
+		var art_def_np = _CDB_np.ARTIFACTS.get(card.unit_name, {})
+		var art_entry_np: Dictionary = {"name": card.unit_name, "skills": art_def_np.get("skills", []).duplicate(true)}
+		board_manager.player_artifacts.append(art_entry_np)
+		board_manager.on_board_changed()
+		main._add_log("[DEV通常] 永久アーティファクト %s を追加" % card.unit_name)
+		return
 	if card.card_type == "unit":
 		board_manager.place_unit(0, card)
 		main._add_log("[DEV通常] %s を自陣に召喚" % card.unit_name)
@@ -436,6 +486,24 @@ func _manual_place(card: Object, side: int, row: int, col: int) -> void:
 	if card == null:
 		return
 	var side_name: String = "自陣" if side == 0 else "敵陣"
+	if card.card_type == "artifact":
+		# 盤面出現型アーティファクトをドロップ先に配置
+		board_manager.place_artifact(side, row, col, {"name": card.unit_name})
+		main._add_log("[DEV] アーティファクト %s → %s %d行col%d" % [card.unit_name, side_name, row, col])
+		main._mark_all_cells_dirty()
+		return
+	elif card.card_type == "permanent_artifact":
+		# 永久効果型: player_artifacts / enemy_artifactsに追加
+		var _CDB_pa = load("res://scripts/CardDB.gd")
+		var art_def_pa = _CDB_pa.ARTIFACTS.get(card.unit_name, {})
+		var art_entry: Dictionary = {"name": card.unit_name, "skills": art_def_pa.get("skills", []).duplicate(true)}
+		if side == 0:
+			board_manager.player_artifacts.append(art_entry)
+		else:
+			board_manager.enemy_artifacts.append(art_entry)
+		board_manager.on_board_changed()
+		main._add_log("[DEV] 永久アーティファクト %s → %s に追加" % [card.unit_name, side_name])
+		return
 	if card.card_type == "unit":
 		var existing = board_manager.board[side][row][col]
 		if existing != null:
@@ -501,6 +569,32 @@ func _on_card_hover(index: int) -> void:
 		if active_names.size() > 0:
 			lines.append("")
 			lines.append("■ スキル: " + ", ".join(active_names))
+	elif card["type"] == "artifact":
+		lines.append("[アーティファクト] %s" % card["name"])
+		lines.append("HP: %d" % d.get("hp", 0))
+		var _EDB_art = load("res://scripts/EffectDB.gd")
+		var art_active: Array = []
+		for sk in d.get("skills", []):
+			var eid_a: String = sk.get("effect_id", "")
+			var disp_a: String = _EDB_art.EFFECTS.get(eid_a, {}).get("display", eid_a)
+			var trig_a: String = sk.get("trigger", "")
+			art_active.append("- %s（%s）" % [disp_a, trig_a])
+		if art_active.size() > 0:
+			lines.append("")
+			lines.append("■ スキル:")
+			lines.append_array(art_active)
+	elif card["type"] == "permanent_artifact":
+		lines.append("[永久アーティファクト] %s" % card["name"])
+		var _EDB_part = load("res://scripts/EffectDB.gd")
+		var perm_lines: Array = []
+		for sk in d.get("skills", []):
+			var eid_p: String = sk.get("effect_id", "")
+			var disp_p: String = _EDB_part.EFFECTS.get(eid_p, {}).get("display", eid_p)
+			perm_lines.append("- %s（常時）" % disp_p)
+		if perm_lines.size() > 0:
+			lines.append("")
+			lines.append("■ 永久効果:")
+			lines.append_array(perm_lines)
 	elif card["type"] == "spell":
 		lines.append("[呪文] %s" % card["name"])
 		lines.append("Cost: %s" % ("X" if d["cost"] == -1 else str(d["cost"])))

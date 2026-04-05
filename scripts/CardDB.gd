@@ -303,6 +303,69 @@ const SYSTEM_SPELLS: Dictionary = {
 		"texture": "", "anim": "", "sfx": ""},
 }
 
+# ---- アーティファクト定義 ----
+# 永久効果型（3種）: card_type="permanent_artifact" デッキ外・常時発動
+# 盤面出現型（4種）: card_type="artifact" 盤面配置・HPあり・アクティブスキルのみ
+const ARTIFACTS: Dictionary = {
+	# ── 永久効果型 ──
+	"加速の石板": {
+		"card_type": "permanent_artifact",
+		"skills": [
+			{"trigger": "always", "target": "self", "effect_id": "mana_regen_boost", "params": {"pct": 0.2}},
+		],
+		"texture": "", "anim": "", "sfx": "",
+	},
+	"速攻の刃": {
+		"card_type": "permanent_artifact",
+		"skills": [
+			{"trigger": "always", "target": "front_ally_all", "effect_id": "atk_buff_apply", "params": {"stacks": 2}},
+		],
+		"texture": "", "anim": "", "sfx": "",
+	},
+	"守護の紋章": {
+		"card_type": "permanent_artifact",
+		"skills": [
+			{"trigger": "always", "target": "self", "effect_id": "base_damage_reduce", "params": {"pct": 0.1}},
+		],
+		"texture": "", "anim": "", "sfx": "",
+	},
+	# ── 盤面出現型 ──
+	"戦旗": {
+		"card_type": "artifact", "hp": 20,
+		"skills": [
+			{"trigger": "always", "target": "adjacent_8", "effect_id": "atk_buff_apply", "params": {"stacks": 2}},
+			{"trigger": "always", "target": "adjacent_8", "effect_id": "spd_buff_apply", "params": {"stacks": 1}},
+		],
+		"protect_tiles": false,
+		"texture": "", "anim": "", "sfx": "",
+	},
+	"呪いの祭壇": {
+		"card_type": "artifact", "hp": 15,
+		"skills": [
+			{"trigger": "timer", "target": "all_enemies", "effect_id": "poison_apply", "params": {"interval": 5.0, "stacks": 1}},
+		],
+		"protect_tiles": false,
+		"texture": "", "anim": "", "sfx": "",
+	},
+	"召喚門": {
+		"card_type": "artifact", "hp": 30,
+		"skills": [
+			{"trigger": "timer", "target": "random_empty_ally", "effect_id": "summon_to_empty", "params": {"interval": 8.0, "unit_id": "ゴブリン"}},
+		],
+		"protect_tiles": false,
+		"texture": "", "anim": "", "sfx": "",
+	},
+	"王墓の石碑": {
+		"card_type": "artifact", "hp": 25,
+		"skills": [
+			{"trigger": "on_summon", "target": "adjacent_8", "effect_id": "tile_set_all", "params": {"tile_id": "tile_grave"}},
+			{"trigger": "on_death",  "target": "adjacent_8", "effect_id": "tile_set_all", "params": {"tile_id": "tile_crack"}},
+		],
+		"protect_tiles": true,
+		"texture": "", "anim": "", "sfx": "",
+	},
+}
+
 # ---- 合成レシピ定義 ----
 const SYNTHESIS: Array = [
 	# スライム合体チェーン
