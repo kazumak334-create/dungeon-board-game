@@ -182,15 +182,19 @@ func execute(effect_id: String, params: Dictionary, context: Dictionary) -> void
 				ai.force_play_card(bm)
 
 		"summon_on_death":
-			# 分裂：死亡時に指定ユニットを同段に復活
+			# 分裂：死亡時に合成元ユニットを同段に復活（SYNTHESIS定義から自動参照）
 			if source != null and bm != null:
-				var unit_id: String = merged.get("unit_id", "スライム")
 				var _CDB = load("res://scripts/CardDB.gd")
-				if _CDB.UNITS.has(unit_id):
-					var ud = _CDB.UNITS[unit_id]
+				var base_name: String = ""
+				for recipe in _CDB.SYNTHESIS:
+					if recipe["result"] == source.unit_name:
+						base_name = recipe["base"]
+						break
+				if base_name != "" and _CDB.UNITS.has(base_name):
+					var ud = _CDB.UNITS[base_name]
 					var UDS = load("res://scripts/UnitData.gd")
 					var new_unit = UDS.new()
-					new_unit.unit_name = unit_id
+					new_unit.unit_name = base_name
 					new_unit.max_hp = ud["hp"]; new_unit.current_hp = ud["hp"]
 					new_unit.attack = ud["atk"]; new_unit.attack_interval = ud["interval"]
 					new_unit.cost = ud["cost"]; new_unit.race = ud.get("race", "")

@@ -29,14 +29,14 @@ const UNITS: Dictionary = {
 		"hp": 25, "atk": 2, "interval": 3.8, "cost": 2, "race": "スライム", "range": "1行", "col": 1,
 		"skills": [
 			{"trigger": "on_summon", "target": "self_deck", "effect_id": "synthesis_boost", "params": {}},
-			{"trigger": "on_death", "target": "same_row", "effect_id": "split_on_death", "params": {"unit_id": "スライム"}},
+			{"trigger": "on_death", "target": "same_row", "effect_id": "split_on_death", "params": {}},
 		],
 	},
 	"ファットスライム": {
 		"hp": 50, "atk": 3, "interval": 6.0, "cost": 3, "race": "スライム", "range": "1行", "col": 0,
 		"skills": [
 			{"trigger": "on_summon", "target": "self_deck", "effect_id": "synthesis_boost", "params": {}},
-			{"trigger": "on_death", "target": "same_row", "effect_id": "split_on_death", "params": {"unit_id": "ラージスライム"}},
+			{"trigger": "on_death", "target": "same_row", "effect_id": "split_on_death", "params": {}},
 		],
 	},
 	"キングスライム": {
