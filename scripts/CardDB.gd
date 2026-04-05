@@ -366,6 +366,34 @@ const ARTIFACTS: Dictionary = {
 	},
 }
 
+# ---- クラス定義 ----
+const CLASSES: Dictionary = {
+	"alchemist": {
+		"display": "錬金術師", "initial_mana": 3.0, "mana_max": 12.0, "mana_regen": 1.0,
+		"skills": [
+			{"trigger": "on_synthesis", "target": "self", "effect_id": "mana_boost", "params": {"amount": 2}},
+			{"trigger": "always", "target": "self", "effect_id": "status_card_cost_reduce", "params": {"amount": 1}},
+		],
+		"texture": "", "anim": "", "sfx": "",
+	},
+	"berserker": {
+		"display": "バーサーカー", "initial_mana": 3.0, "mana_max": 10.0, "mana_regen": 1.0,
+		"skills": [
+			{"trigger": "always", "target": "front_ally_all", "effect_id": "spd_buff_pct", "params": {"pct": 0.2}},
+			{"trigger": "always", "target": "all_allies", "effect_id": "low_hp_atk_boost", "params": {"threshold": 0.5, "atk": 3}},
+		],
+		"texture": "", "anim": "", "sfx": "",
+	},
+	"necromancer": {
+		"display": "死霊術師", "initial_mana": 3.0, "mana_max": 8.0, "mana_regen": 1.0,
+		"skills": [
+			{"trigger": "on_unit_died_ally", "target": "self", "effect_id": "mana_boost", "params": {"amount": 1, "max_count": 10}},
+			{"trigger": "always", "target": "all_race_ally", "effect_id": "hp_pct_boost", "params": {"race": "アンデッド", "pct": 0.1}},
+		],
+		"texture": "", "anim": "", "sfx": "",
+	},
+}
+
 # ---- 合成レシピ定義 ----
 const SYNTHESIS: Array = [
 	# スライム合体チェーン

@@ -3,8 +3,8 @@ class_name DeckManager
 extends Node
 
 var mana: float = 3.0
-const MANA_MAX: float = 10.0
-const MANA_REGEN: float = 1.0
+var MANA_MAX: float = 10.0    # PlayerDataから設定可能
+var MANA_REGEN: float = 1.0   # PlayerDataから設定可能
 
 var deck: Array = []
 var discard: Array = []

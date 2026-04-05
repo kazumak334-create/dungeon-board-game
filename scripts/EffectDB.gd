@@ -113,6 +113,12 @@ const EFFECTS: Dictionary = {
 	"tile_set_enemy":    {"type": "tile_set",   "scope": "enemy",  "tile_id": "",              "display": "敵盤面効果", "texture": "", "anim": "", "sfx": ""},
 	"tile_set_ally":     {"type": "tile_set",   "scope": "ally",   "tile_id": "",              "display": "味方盤面効果", "texture": "", "anim": "", "sfx": ""},
 
+	# ---- プレイヤークラススキル ----
+	"status_card_cost_reduce": {"type": "cost_modifier",   "card_type": "status_spell", "amount": -1, "display": "異常カードコスト軽減", "texture": "", "anim": "", "sfx": ""},
+	"spd_buff_pct":            {"type": "spd_pct_buff",    "pct": 0.2,                               "display": "SPD%バフ", "texture": "", "anim": "", "sfx": ""},
+	"low_hp_atk_boost":        {"type": "conditional_buff","threshold": 0.5, "atk": 3,               "display": "逆転バフ", "texture": "", "anim": "", "sfx": ""},
+	"hp_pct_boost":            {"type": "hp_pct_buff",     "race": "", "pct": 0.1,                    "display": "HP%バフ", "texture": "", "anim": "", "sfx": ""},
+
 	# ---- アーティファクト用盤面効果 ----
 	"tile_grave":        {"type": "tile_effect", "trigger": "on_tick", "tick_interval": 3.0, "display": "墓地", "unit_label": "墓地", "summon_unit": "スケルトン", "color": [0.2, 0.15, 0.1, 0.3], "texture": "", "anim": "", "sfx": ""},
 
