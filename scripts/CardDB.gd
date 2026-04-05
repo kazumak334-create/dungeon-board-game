@@ -231,9 +231,12 @@ const STATUS_SPELLS: Dictionary = {
 
 # ---- システムカード定義 ----
 const SYSTEM_SPELLS: Dictionary = {
-	"シャッフル": {"cost": 0, "target": "self", "effect": "山札をシャッフルし、自身を山札最下部に再挿入",
+	"シャッフル": {"cost": 0, "target": "self", "effect": "山札をシャッフル＋自身を山札最下部に追加",
 		"is_consumable": true,
-		"skills": [{"trigger": "on_play", "target": "self_deck", "effect_id": "shuffle_deck", "params": {}}]},
+		"skills": [
+			{"trigger": "on_play", "target": "self_deck", "effect_id": "shuffle_deck", "params": {}},
+			{"trigger": "on_play", "target": "self_deck", "effect_id": "deck_add_self", "params": {"position": "bottom"}},
+		]},
 }
 
 # ---- 合成レシピ定義 ----

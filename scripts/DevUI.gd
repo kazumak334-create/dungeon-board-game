@@ -44,6 +44,9 @@ func _build_all_cards() -> void:
 	for name in _CardDB.STATUS_SPELLS:
 		var d = _CardDB.STATUS_SPELLS[name]
 		_all_cards.append({"name": name, "data": d, "type": "status_spell"})
+	for name in _CardDB.SYSTEM_SPELLS:
+		var d = _CardDB.SYSTEM_SPELLS[name]
+		_all_cards.append({"name": name, "data": d, "type": "spell"})
 
 func _build_dev_panel() -> void:
 	var panel := ColorRect.new()

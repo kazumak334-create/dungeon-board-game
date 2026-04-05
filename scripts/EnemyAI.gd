@@ -46,7 +46,7 @@ func _insert_shuffle_card() -> void:
 	var UnitDataScript = load("res://scripts/UnitData.gd")
 	var card = UnitDataScript.new()
 	card.unit_name = "シャッフル"
-	card.card_type = "status_spell"
+	card.card_type = "spell"
 	card.spell_id = "シャッフル"
 	card.cost = 0
 	card.is_consumable = true

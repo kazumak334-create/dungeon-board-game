@@ -175,25 +175,10 @@ func execute(effect_id: String, params: Dictionary, context: Dictionary) -> void
 						break
 
 		"shuffle_deck":
-			# デッキシャッフル＋シャッフルカードを山札最下部に再挿入
+			# 山札をシャッフルするだけ（再挿入はdeck_add_selfで別途行う）
 			var deck_mgr = dm if side == 0 else ai
 			if deck_mgr != null:
 				deck_mgr.deck.shuffle()
-				# シャッフルカードを再挿入（消滅型だが自ら復帰）
-				var _CDB = load("res://scripts/CardDB.gd")
-				if _CDB.SYSTEM_SPELLS.has("シャッフル"):
-					var sd = _CDB.SYSTEM_SPELLS["シャッフル"]
-					var UDS = load("res://scripts/UnitData.gd")
-					var shuffle_card = UDS.new()
-					shuffle_card.unit_name = "シャッフル"
-					shuffle_card.card_type = "status_spell"
-					shuffle_card.spell_id = "シャッフル"
-					shuffle_card.cost = 0
-					shuffle_card.is_consumable = true
-					shuffle_card.spell_target = sd["target"]
-					shuffle_card.spell_effect = sd["effect"]
-					shuffle_card.skills = sd.get("skills", []).duplicate(true)
-					deck_mgr.deck.append(shuffle_card)
 
 		"summon_low_cost":
 			# 急召：低コストユニットを即時召喚
@@ -227,16 +212,22 @@ func execute(effect_id: String, params: Dictionary, context: Dictionary) -> void
 		"deck_add":
 			var unit_id: String = merged.get("unit_id", "self")
 			var count: int      = merged.get("count", 1)
+			var position: String = merged.get("position", "random")  # "random" | "bottom" | "top"
 			if unit_id == "self" and source != null:
 				var deck_mgr = dm if side == 0 else ai
 				if deck_mgr != null:
 					for _i in range(count):
 						var card = source.clone()
 						card.current_hp = card.max_hp
-						# ai.deck は enemy_deck のエイリアス（EnemyAI.gd参照）
 						var deck_arr: Array = deck_mgr.deck
-						var pos: int = randi() % max(1, deck_arr.size() + 1)
-						deck_arr.insert(pos, card)
+						match position:
+							"bottom":
+								deck_arr.append(card)
+							"top":
+								deck_arr.insert(0, card)
+							_:
+								var pos: int = randi() % max(1, deck_arr.size() + 1)
+								deck_arr.insert(pos, card)
 
 		# ---- ドロー ----
 		"draw":
