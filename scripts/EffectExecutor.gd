@@ -110,7 +110,7 @@ func execute(effect_id: String, params: Dictionary, context: Dictionary) -> void
 			elif tgt_type == "adjacent_rows":
 				# 隣接行の敵に50%ダメージ（連鎖）
 				var t_row: int = context.get("target_row", row)
-				var chain_dmg: int = max(1, damage / 2)
+				var chain_dmg: int = max(1, int(float(damage) / 2.0))
 				for adj_row in _get_adjacent_rows(t_row):
 					var adj_col: int = bm._get_frontmost_col(enemy_side, adj_row)
 					if adj_col != -1 and eq != null:

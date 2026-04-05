@@ -514,6 +514,10 @@ func _manual_place(card: Object, side: int, row: int, col: int) -> void:
 			else:
 				main._add_log("[DEV] 合成不可・セル埋まり")
 		else:
+			# アーティファクト排他チェック
+			if board_manager.board_artifacts[side][row][col] != null:
+				main._add_log("[DEV] アーティファクトがあるため配置不可")
+				return
 			var placed = card.clone()
 			board_manager.board[side][row][col] = placed
 			board_manager.attack_timers[side][row][col] = placed.attack_interval

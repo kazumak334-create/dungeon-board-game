@@ -417,6 +417,12 @@ func _fire_hp_threshold_skill(side: int, row: int, col: int, unit: Object, entry
 # ---- 盤面効果システム ----
 
 # 外部IFを変えないための薄いラッパー（処理はTileSystemに委譲）
+func _check_tile_on_enter(side: int, row: int, col: int, unit: Object) -> void:
+	tile_system.check_tile_on_enter(side, row, col, unit)
+
+func _check_tile_on_leave(side: int, row: int, col: int, unit: Object) -> void:
+	tile_system.check_tile_on_leave(side, row, col, unit)
+
 func set_tile_effect(side: int, row: int, col: int, effect_id: String, duration: float = -1.0) -> void:
 	tile_system.set_tile_effect(side, row, col, effect_id, duration)
 
