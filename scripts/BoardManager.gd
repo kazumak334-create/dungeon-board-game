@@ -18,6 +18,7 @@ var _status_timer: Timer = null
 var _regen_tick: int = 0            # リジェネ用：2秒ごとにカウント
 var _pending_revives: Array = []    # [{timer: float, side: int, row: int, unit: Object}]
 var tile_system: RefCounted = null  # TileSystem（盤面効果処理）
+var tick_system: RefCounted = null  # TickSystem（毎秒Tick処理）
 
 signal unit_placed(side: int, row: int, col: int, unit: Object)
 signal unit_died(side: int, row: int, col: int)
@@ -60,6 +61,9 @@ func _setup() -> void:
 	var _TS = load("res://scripts/TileSystem.gd")
 	tile_system = _TS.new()
 	tile_system.setup(self)
+	var _TkS = load("res://scripts/TickSystem.gd")
+	tick_system = _TkS.new()
+	tick_system.setup(self)
 
 var synthesis_registry: Array = []  # [{base, card, result_name, result_data}] Main.gdで設定
 
@@ -860,148 +864,14 @@ func on_board_changed() -> void:
 		_board_dirty = true  # フォールバック（event_queue 未設定時）
 
 func _on_status_tick() -> void:
-	if event_queue == null:
-		return
-	# 一時停止中は全ての時間経過処理をスキップ（遅延復活含む）
-	var main_node = get_parent()
-	if main_node != null and main_node.get("game_paused") == true:
-		return
-	# 遅延復活の処理
-	var revived: Array = []
-	for i in range(_pending_revives.size()):
-		_pending_revives[i]["timer"] -= 1.0
-		if _pending_revives[i]["timer"] <= 0.0:
-			revived.append(i)
-			var rev = _pending_revives[i]
-			var s: int = rev["side"]
-			var r: int = rev["row"]
-			var u: Object = rev["unit"]
-			# 同段の空きマスを探す
-			var placed: bool = false
-			for c in range(3):
-				if board[s][r][c] == null:
-					u.current_hp = rev["hp"]
-					board[s][r][c] = u
-					attack_timers[s][r][c] = u.attack_interval
-					emit_signal("unit_revived", s, r, c)
-					on_board_changed()
-					placed = true
-					break
-			if not placed:
-				pass  # 同段が満席なら復活失敗
-	for i in range(revived.size() - 1, -1, -1):
-		_pending_revives.remove_at(revived[i])
-	# HP回復（サポート効果の _regen を1秒ごとに適用）
-	_apply_regen()
-	# リジェネバフ（2秒ごとにHP5%×スタック数回復）
-	_regen_tick += 1
-	if _regen_tick >= 2:
-		_regen_tick = 0
-		_apply_regen_buff()
-	# 盤面効果のティック処理
-	tile_system.process_tile_effects()
-	# アーティファクトのtimerスキル処理
-	_process_artifact_timers()
-	# 時間経過スキル処理
-	_process_timed_skills()
-	# HP閾値スキルチェック
-	_check_hp_thresholds()
-	# 状態異常処理
-	for s in range(2):
-		for r in range(3):
-			for c in range(3):
-				var u = board[s][r][c]
-				if u == null:
-					continue
-				# 毒ダメージ
-				if u.poison_stacks > 0:
-					event_queue.push(
-						EventQueue.PRIORITY_STATUS, null, u, "poison_damage",
-						float(u.poison_stacks),
-						{"enemy_side": s, "row": r, "col": c, "unit_name": u.unit_name}
-					)
-				# 状態異常カウントダウン
-				for status_pair in [["frozen_turns", "凍結"], ["burn_turns", "火傷"], ["paralysis_turns", "麻痺"]]:
-					var val: int = u.get(status_pair[0])
-					if val > 0:
-						u.set(status_pair[0], val - 1)
-						if val - 1 == 0:
-							event_queue.push(
-								EventQueue.PRIORITY_STATUS, null, u, "status_clear", 0.0,
-								{"unit_name": u.unit_name, "status": status_pair[1]}
-							)
-	# Timer ティックで flush（regen + 毒 + 時間経過スキルをまとめて処理）
-	event_queue.flush(self, base_hp_ref)
+	tick_system.on_tick()
 
-func _apply_regen() -> void:
-	for s in range(2):
-		for r in range(3):
-			for c in range(3):
-				var u = board[s][r][c]
-				if u != null and u._regen > 0.0:
-					event_queue.push(
-						EventQueue.PRIORITY_IMMEDIATE,
-						null, u, "heal", float(roundi(u._regen)),
-						{"src_side": s, "src_row": r, "src_col": c}
-					)
-
-func _apply_regen_buff() -> void:
-	for s in range(2):
-		for r in range(3):
-			for c in range(3):
-				var u = board[s][r][c]
-				if u == null:
-					continue  # nullユニットはスキップ
-				# リジェネ回復 + スタック減少
-				if u._regen_stacks > 0:
-					var heal: int = max(1, u.max_hp * 5 * u._regen_stacks / 100)
-					event_queue.push(
-						EventQueue.PRIORITY_IMMEDIATE,
-						null, u, "heal", float(heal),
-						{"src_side": s, "src_row": r, "src_col": c}
-					)
-					u._regen_stacks -= 1
-				# 吸血バフは2秒ごとに1スタック減少（貫通はスキルなので減少しない）
-				if u.lifesteal_stacks > 0:
-					u.lifesteal_stacks -= 1
-					u._has_lifesteal = u.lifesteal_stacks > 0
+# _apply_regen, _apply_regen_buff → TickSystem.gdに移動
 
 # ---- 時間経過スキルシステム ----
 
 func _init_skill_timers(unit: Object) -> void:
-	unit._skill_timers.clear()
-	# skills配列のtimerエントリを登録（新方式）
-	for i in range(unit.skills.size()):
-		var skill = unit.skills[i]
-		if skill.get("trigger", "") == "timer":
-			var interval: float = skill.get("params", {}).get("interval", 0.0)
-			if interval > 0.0:
-				unit._skill_timers["timer_%d" % i] = interval
-	# skills配列のalways+interval（"support_N"形式）を登録
-	for i in range(unit.skills.size()):
-		var skill = unit.skills[i]
-		if skill.get("trigger", "") == "always" and skill.get("params", {}).has("interval"):
-			var interval: float = skill["params"]["interval"]
-			if interval > 0.0:
-				unit._skill_timers["support_" + str(i)] = interval
-	# 旧方式：active_skill文字列パース（後方互換）
-	for entry in unit.active_skill.split(" / "):
-		if "時間経過" not in entry:
-			continue
-		var interval: float = _parse_skill_interval(entry)
-		if interval > 0.0:
-			unit._skill_timers[entry] = interval
-
-func _parse_skill_interval(entry: String) -> float:
-	var marker: String = "時間経過"
-	var idx: int = entry.find(marker)
-	if idx == -1:
-		return 0.0
-	var after: int = idx + marker.length()
-	var s_idx: int = entry.find("s", after)
-	if s_idx == -1:
-		return 0.0
-	return float(entry.substr(after, s_idx - after))
+	tick_system.init_skill_timers(unit)
 
 func _process_artifact_timers() -> void:
 	for s in range(2):
