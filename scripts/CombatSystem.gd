@@ -99,6 +99,14 @@ func _do_attack(side: int, row: int, col: int, attacker: Object, enemy_side: int
 		if target_col != -1:
 			hit_any = true
 			var target = bm.board[enemy_side][target_row][target_col]
+			# アーティファクトへの攻撃処理
+			if target == null:
+				var art = bm.board_artifacts[enemy_side][target_row][target_col]
+				if art != null:
+					art["hp"] -= effective_atk
+					if art["hp"] <= 0:
+						bm.remove_artifact(enemy_side, target_row, target_col)
+				continue
 			# 鎧による軽減（1スタック=10%軽減・最大100%）+ 被弾で-1
 			var armor_pct: float = min(1.0, target._damage_reduction * 0.1)
 			var actual_damage: int = max(0, int(float(effective_atk) * (1.0 - armor_pct)))
@@ -203,10 +211,10 @@ func _get_target_rows(attacker_row: int, attack_range: String) -> Array:
 			return [attacker_row]
 
 func get_frontmost_col(side: int, row: int) -> int:
-	# 前列→中列→後列の順で最初にユニットがいる列を返す（-1=なし）
+	# 前列→中列→後列の順で最初にユニットまたはアーティファクトがいる列を返す（-1=なし）
 	var col_order: Array = [2, 1, 0] if side == 0 else [0, 1, 2]
 	for c in col_order:
-		if bm.board[side][row][c] != null:
+		if bm.board[side][row][c] != null or bm.board_artifacts[side][row][c] != null:
 			return c
 	return -1
 

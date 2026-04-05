@@ -721,15 +721,18 @@ func _render_cell(side: int, r: int, c: int) -> void:
 	var rect: ColorRect = cell_rects[side][r][c]
 	var lbl:  Label     = cell_labels[side][r][c]
 	if artifact != null and unit == null:
-		# アーティファクト専用描画（金色系背景）
+		# アーティファクト描画（ユニットと同じ透明ベース）
+		if skill_flash_timers[side][r][c] > 0.0:
+			var f: float = skill_flash_timers[side][r][c]
+			rect.color = Color(0.9, 0.75 * f + 0.1, 0.0)
+		else:
+			rect.color = Color(0.11, 0.11, 0.17)
 		var art_hp: int = artifact.get("hp", 0)
 		var art_max_hp: int = artifact.get("max_hp", 1)
 		var art_hp_ratio: float = float(art_hp) / float(max(1, art_max_hp))
-		rect.color = rect.color.lerp(Color(0.6, 0.5, 0.1), 0.5)
 		var art_bar_filled: int = int(art_hp_ratio * 6)
 		var art_hp_bar: String = "█".repeat(art_bar_filled) + "░".repeat(6 - art_bar_filled)
-		lbl.text = "[%s]\n%s %d/%d" % [artifact.get("name", "?"), art_hp_bar, art_hp, art_max_hp]
-		# 盤面効果は表示しない（アーティファクトは盤面効果の影響を受けない）
+		lbl.text = "【%s】\n%s HP%d/%d" % [artifact.get("name", "?"), art_hp_bar, art_hp, art_max_hp]
 		return
 	if unit != null:
 		var hp_ratio: float = float(unit.current_hp) / float(unit.max_hp)
