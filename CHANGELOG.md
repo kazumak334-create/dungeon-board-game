@@ -47,6 +47,39 @@
 - EffectExecutor生成・board_manager/spell_executorに注入
 - synthesis_registryのresult定義にskillsを含める
 
+---
+
+### CheckAgent：確認完了・修正なし — 2026-04-05: テスト項目#12-#17コードレベル検証
+
+#### 検証結果
+
+**#12 リッチの後列攻撃（狙撃）**
+- _apply_support_effectsでskills[always]→EffectExecutor→skill_flagでフラグ設定: 正常
+- process_combatの後列攻撃でunit._back_target_rearをtarget_rear引数に渡している: 正常
+- _do_attack内で_get_rearmost_col呼び出しへの分岐: 正常
+
+**#13 リッチの後列攻撃で命中時スキル非発動**
+- _back_no_on_hitがtrueの場合skip_on_hit=trueで_push_on_hit_effectsをスキップ: 正常
+
+**#14 リッチの魂の器（撃破時）**
+- skills[on_kill]→EffectExecutor→revive_ally処理: 正常
+- active_skill=""のため旧方式"魂の器"チェックは非発動（二重発動なし）: 正常
+
+**#15 ヴリコラカスのバフ奪取（命中時）**
+- skills[on_hit]→EffectExecutor→steal_buffs→bm._steal_buffs呼び出し: 正常
+- _steal_buffsでlifesteal_stacks/penetrate_stacksの移動: 正常
+- active_skill=""のため旧方式"バフ奪取"チェックは非発動（二重発動なし）: 正常
+
+**#16 グールのATK累積（撃破時+2・上限10）**
+- skills[on_kill]→EffectExecutor→atk_permanent: _kill_atk_bonusを加算・cap=10で上限チェック: 正常
+- active_skill=""のため旧方式"ATK累積"チェックは非発動（二重発動なし）: 正常
+
+**#17 バンシーの全体ATK低下（時間経過15s）**
+- _init_skill_timersでtrigger=="timer"のindex3を"timer_3"キーで登録: 正常
+- _process_timed_skillsで減算・0以下でEffectExecutor経由発火・インターバルリセット: 正常
+- EffectExecutor all_enemy_debuffでburn_turnsを加算: 正常
+- active_skill=""のため旧方式タイマーは非発動: 正常
+
 #### DevUI.gd
 - unit_defsにskills配列追加（主要ユニット全件）
 - _build_card()でskillsをUnitData.skillsに設定
