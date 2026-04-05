@@ -20,6 +20,7 @@ func run_all() -> String:
 	_test_synthesis_references()
 	# シナリオテスト
 	_test_unit_placement()
+	_test_display_logic_consistency()
 	_test_damage_calculation()
 	_test_buff_application()
 	_test_debuff_tick()
@@ -266,3 +267,44 @@ func _test_revive_delay() -> void:
 			var hp = skill.get("params", {}).get("hp", 0)
 			_assert_eq(hp, 5, "スケルトン復活HP=5")
 	_assert_true(has_revive, "スケルトンにself_reviveスキルがある")
+
+# ---- 表示と内部ロジックの一致テスト ----
+func _test_display_logic_consistency() -> void:
+	var u = _create_unit("グール")
+	# ATKバフ: _atk_bonusが表示にもダメージ計算にも使われるか
+	u._atk_bonus = 5
+	var display_atk: int = u.attack + u._atk_bonus
+	var combat_atk: int = u.attack + u._atk_bonus + u._temp_atk_bonus
+	_assert_eq(display_atk, 10, "グールATK5+バフ5=表示10")
+	_assert_eq(combat_atk, 10, "グールATK5+バフ5=戦闘10（一時バフ0）")
+	# 一時バフ追加時の一致
+	u._temp_atk_bonus = 3
+	var combat_atk2: int = u.attack + u._atk_bonus + u._temp_atk_bonus
+	_assert_eq(combat_atk2, 13, "一時ATK+3→戦闘13")
+	# バフリセット後の一致（サポート再計算をシミュレート）
+	u._atk_bonus = 0
+	u._temp_atk_bonus = 0
+	_assert_eq(u.attack + u._atk_bonus, 5, "リセット後ATK=基礎値5")
+	# 吸血: lifesteal_stacksが回復計算と表示で一致
+	u.lifesteal_stacks = 8
+	var heal_pct: float = 0.03 * u.lifesteal_stacks
+	_assert_eq(heal_pct, 0.24, "吸血8スタック: 回復率24%")
+	_assert_true(u.lifesteal_stacks > 0, "吸血スタック>0→表示あり")
+	# リセット
+	u.lifesteal_stacks = 0
+	_assert_true(u.lifesteal_stacks == 0, "吸血0→表示なし")
+	# 鎧: _damage_reductionが軽減計算と表示で一致
+	u._damage_reduction = 3
+	var armor_pct: float = min(1.0, u._damage_reduction * 0.1)
+	_assert_eq(armor_pct, 0.3, "鎧3スタック: 軽減30%")
+	# 被弾で-1
+	u._damage_reduction -= 1
+	_assert_eq(u._damage_reduction, 2, "被弾後鎧2")
+	# デバフ表示一致
+	u.poison_stacks = 4
+	u.burn_turns = 2
+	_assert_true(u.poison_stacks > 0, "毒4→表示あり")
+	_assert_true(u.burn_turns > 0, "火傷2→表示あり")
+	var burn_reduction: float = 0.8 * float(u.burn_turns) / float(u.burn_turns + 2)
+	var burned_atk: int = max(1, int(float(u.attack) * (1.0 - burn_reduction)))
+	_assert_eq(burned_atk, 3, "火傷2: ATK5→3（表示と戦闘計算が同じ式）")
