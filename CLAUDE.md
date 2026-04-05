@@ -41,6 +41,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - リファクタリングと新機能追加を同一タスクに混ぜない。基盤変更→コミット→機能追加の順
 - 1コミット=1目的。「AとBとCをまとめて」を安易に投げない
 - 実装指示には必ず「影響範囲」と「変更しないファイル」を明記する
+- 新規ファイルが必要な場合はCEOがWriteでスケルトン作成→implementerにEdit実装を振る
 
 **architect:**
 - 新機能追加前に既存ファイルの肥大化を確認する。500行超のファイルには追加前に分割を検討
