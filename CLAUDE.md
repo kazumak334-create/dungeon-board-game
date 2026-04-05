@@ -59,6 +59,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - ハードコード検出: 変更ファイルのmatch文をgrepし、EffectDB/CardDBに定義済みのIDが条件にあればNG
 - Godot互換性: `Object.get()`の引数数、`preload`と`load`の使い分けを確認
 - 旧方式残存: support_effect/active_skillの文字列パースが新規追加されていないか確認
+- **設計整合性（最重要）**: 変更がCLAUDE.mdの3レイヤー定義（攻撃/サポート/アクティブスキル）と矛盾しないか検証。特に「位置制限」「発動条件」が設計書と一致しているか
 
 **data-sync:**
 - コード変更後にcard_database.md/CLAUDE.mdとの差分を全チェック

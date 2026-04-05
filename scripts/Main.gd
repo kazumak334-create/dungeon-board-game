@@ -156,6 +156,9 @@ func _ready() -> void:
 		[[true, true, true], [true, true, true], [true, true, true]]
 	]
 	_add_log("=== Dungeon Board Game 起動 ===")
+	# JSON書き出し（1回実行後に削除すること）
+	var _ExportScript = load("res://scripts/ExportCardDB.gd")
+	_ExportScript.export()
 
 # ---- 盤面合成レジストリ ----
 func _build_synthesis_registry() -> void:
@@ -453,4 +456,3 @@ func _on_draw_cards_requested(side: int, count: int) -> void:
 			deck_manager.force_play_card(board_manager)
 		else:
 			enemy_ai.force_play_card(board_manager)
-
