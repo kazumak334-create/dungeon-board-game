@@ -47,8 +47,8 @@ func apply_support_effects() -> void:
 						if skill.get("trigger", "") == "always":
 							# 前列チェック: skill_flagはスキル（位置無関係）なので除外
 							var _eid_check = skill.get("effect_id", "")
-							var _etype = _EDB.EFFECTS.get(_eid_check, {}).get("type", "")
-							var _is_skill = _etype == "skill_flag" or _etype == "race_buff"
+							var _edef_check = _EDB.EFFECTS.get(_eid_check, {})
+							var _is_skill = _edef_check.get("type", "") == "skill_flag" or _edef_check.get("ignore_front_check", false)
 							if c == front_col and not _is_skill:
 								continue
 							# skillsのtop-level targetをparamsにマージ
