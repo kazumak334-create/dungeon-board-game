@@ -70,9 +70,37 @@ func ensure_shuffle_card() -> void:
 	deck.append(card)
 
 func process_deck(delta: float, board: Node) -> void:
-	# 敵スケルトンによるマナ回復妨害（1体につき-0.1/s）
-	var enemy_skeletons: int = board.count_units_by_name(1, "スケルトン")
-	var effective_regen: float = max(0.1, MANA_REGEN - enemy_skeletons * 0.1)
+	# 敵ユニットのmana_drainスキル（always）によるマナ回復妨害
+	var _EDB_regen = load("res://scripts/EffectDB.gd")
+	var drain_count: int = 0
+	for r in range(3):
+		for c in range(3):
+			var u = board.board[1][r][c]
+			if u == null:
+				continue
+			for sk in u.skills:
+				if sk.get("trigger", "") == "always":
+					var _eid_drain: String = sk.get("effect_id", "")
+					var _edef_drain: Dictionary = _EDB_regen.EFFECTS.get(_eid_drain, {})
+					if _edef_drain.get("type", "") == "mana_drain":
+						drain_count += 1
+						break
+	var per_unit: float = -0.1
+	for eid_d in _EDB_regen.EFFECTS:
+		if _EDB_regen.EFFECTS[eid_d].get("type", "") == "mana_drain":
+			per_unit = _EDB_regen.EFFECTS[eid_d].get("per_unit", -0.1)
+			break
+	var effective_regen: float = max(0.1, MANA_REGEN + drain_count * per_unit)
+	# 永久効果型アーティファクト: mana_regen_modify type のスキルを反映
+	for art_entry in board.player_artifacts:
+		if not (art_entry is Dictionary):
+			continue
+		for sk in art_entry.get("skills", []):
+			var _eid_regen: String = sk.get("effect_id", "")
+			var _edef_regen: Dictionary = _EDB_regen.EFFECTS.get(_eid_regen, {})
+			if _edef_regen.get("type", "") == "mana_regen_modify":
+				var pct: float = sk.get("params", {}).get("pct", _edef_regen.get("pct", 0.2))
+				effective_regen *= (1.0 + pct)
 	mana = min(MANA_MAX, mana + effective_regen * delta)
 	emit_signal("mana_changed", mana)
 

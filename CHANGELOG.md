@@ -2,6 +2,71 @@
 
 ## [Unreleased]
 
+### Fixed — 2026-04-05: CheckAgent確認・R8ハードコード修正
+
+#### DeckManager.gd
+- `process_deck()` のマナ妨害処理を `"スケルトン"` ユニット名直書きから EffectDB type="mana_drain" を持つスキルのユニット数カウントに変更（R8準拠）
+- `mana_regen_boost` effect_id 直書きを EffectDB type="mana_regen_modify" 判定に変更（R8準拠）
+- 未使用変数 `_EDB_regen` を実際に使用する形に修正（チェック項目15）
+
+#### EnemyAI.gd
+- `process_ai()` のマナ妨害処理を `"スケルトン"` ユニット名直書きから EffectDB type="mana_drain" を持つスキルのユニット数カウントに変更（R8準拠）
+
+#### EventQueue.gd
+- `base_damage` 処理の `"base_damage_reduce"` effect_id 直書きを EffectDB type="base_damage_reduce" 判定に変更（R8準拠）
+- インデント崩れを修正（`_EDB_ev` を for ループ外に移動）
+
+### Added — 2026-04-05: アーティファクトシステム基盤実装
+
+#### EffectDB.gd
+- `tile_grave`: 盤面効果（on_tick/3s間隔・スケルトン召喚）を追加
+- `mana_regen_boost`: type="mana_regen_modify" 永久効果型アーティファクト用
+- `base_damage_reduce`: type="base_damage_reduce" 本体ダメージ軽減
+- `summon_to_empty`: type="summon_to_empty" ランダム空きマス召喚
+
+#### CardDB.gd
+- ARTIFACTS辞書を新規追加（永久効果型3種 + 盤面出現型4種）
+  - 永久効果型: 加速の石板/速攻の刃/守護の紋章
+  - 盤面出現型: 戦旗/呪いの祭壇/召喚門/王墓の石碑
+- 全エントリにtexture/anim/sfxフィールド含む
+
+#### BoardManager.gd
+- `board_artifacts[side][row][col]` フィールド追加・_setup()で初期化
+- `player_artifacts` / `enemy_artifacts` 配列フィールド追加（永久効果型管理）
+- `place_artifact()` / `remove_artifact()` 関数追加
+- `place_unit()` にアーティファクト排他チェック追加
+- `_push_artifact_summon_effects()` / `_execute_artifact_skill()` ヘルパー追加
+- `_apply_support_effects()` にアーティファクトのalwaysスキル処理追加
+- `_apply_permanent_artifact_effects()` 追加（永久効果型のfront_ally_all ATKバフ等）
+- `_process_artifact_timers()` 追加（timerスキル1秒ごと処理）
+- `_on_status_tick()` から `_process_artifact_timers()` を呼び出し
+- `set_tile_effect()` に protect_tiles チェック追加（`_is_protected_by_artifact()`）
+- `_process_tile_effects()` の on_tick に summon_unit 処理追加
+- `_summon_unit_to_random_empty()` ヘルパー追加
+
+#### EffectExecutor.gd
+- `_resolve_target` に `adjacent_8` / `front_ally_all` / `random_empty_ally` 追加
+- `tile_set` type に target="adjacent_8" 対応（隣接マスのみへの盤面効果設置）
+- `mana_regen_modify` / `base_damage_reduce` / `summon_to_empty` type 追加
+
+#### EventQueue.gd
+- `base_damage` 処理に永久効果型アーティファクトの `base_damage_reduce` 軽減を組み込み
+
+#### DeckManager.gd
+- `process_deck()` に `player_artifacts` の `mana_regen_boost` 反映を追加
+
+#### DevUI.gd
+- `_build_all_cards()` に ARTIFACTS 追加
+- アーティファクト（盤面）/アーティファクト（永久）セクションをカード一覧に追加
+- `_build_card()` にアーティファクト用ブランチ追加
+- `_normal_play()` / `_manual_place()` にアーティファクト配置処理追加
+- `_on_card_hover()` にアーティファクト詳細表示追加
+
+#### Main.gd
+- `_render_cell()` にアーティファクト描画追加（金色系背景・名前+HPバー表示）
+- `_update_cells()` にアーティファクトセルの常時再描画フラグ追加
+- `_on_cell_hover()` にアーティファクト情報ツールチップ追加
+
 ### Added — 2026-04-05: CardDB全エントリにtexture/anim/sfxフィールド追加
 
 #### CardDB.gd

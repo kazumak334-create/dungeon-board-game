@@ -93,9 +93,27 @@ func get_next_card() -> Object:
 	return next_card
 
 func process_ai(delta: float, board: Node) -> void:
-	# プレイヤースケルトンによるマナ回復妨害（1体につき-0.1/s）
-	var player_skeletons: int = board.count_units_by_name(0, "スケルトン")
-	var effective_regen: float = max(0.1, MANA_REGEN - player_skeletons * 0.1)
+	# プレイヤーユニットのmana_drainスキル（always）によるマナ回復妨害
+	var _EDB_ai = load("res://scripts/EffectDB.gd")
+	var drain_count_ai: int = 0
+	for r in range(3):
+		for c in range(3):
+			var u = board.board[0][r][c]
+			if u == null:
+				continue
+			for sk in u.skills:
+				if sk.get("trigger", "") == "always":
+					var _eid_d: String = sk.get("effect_id", "")
+					var _edef_d: Dictionary = _EDB_ai.EFFECTS.get(_eid_d, {})
+					if _edef_d.get("type", "") == "mana_drain":
+						drain_count_ai += 1
+						break
+	var per_unit_ai: float = -0.1
+	for eid_da in _EDB_ai.EFFECTS:
+		if _EDB_ai.EFFECTS[eid_da].get("type", "") == "mana_drain":
+			per_unit_ai = _EDB_ai.EFFECTS[eid_da].get("per_unit", -0.1)
+			break
+	var effective_regen: float = max(0.1, MANA_REGEN + drain_count_ai * per_unit_ai)
 	mana = min(MANA_MAX, mana + effective_regen * delta)
 
 	_check_timer -= delta

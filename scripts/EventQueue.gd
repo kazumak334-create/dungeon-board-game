@@ -127,8 +127,22 @@ func flush(board_manager: Node, base_hp: Array) -> void:
 				"base_damage":
 					var side: int = event["extra"].get("side", -1)
 					if side >= 0:
-						base_hp[side] = max(0, base_hp[side] - int(event["value"]))
-						board_manager.base_damaged.emit(side, int(event["value"]))
+						var raw_dmg: int = int(event["value"])
+						# 永久効果型アーティファクト: base_damage_reduce反映
+						var reduce_pct: float = 0.0
+						var artifact_list: Array = board_manager.player_artifacts if side == 0 else board_manager.enemy_artifacts
+						var _EDB_ev = load("res://scripts/EffectDB.gd")
+						for art_entry in artifact_list:
+							if not (art_entry is Dictionary):
+								continue
+							for sk in art_entry.get("skills", []):
+								var _eid_ev: String = sk.get("effect_id", "")
+								var _edef_ev: Dictionary = _EDB_ev.EFFECTS.get(_eid_ev, {})
+								if _edef_ev.get("type", "") == "base_damage_reduce":
+									reduce_pct += sk.get("params", {}).get("pct", _edef_ev.get("pct", 0.1))
+						var actual_dmg: int = max(0, int(float(raw_dmg) * (1.0 - reduce_pct)))
+						base_hp[side] = max(0, base_hp[side] - actual_dmg)
+						board_manager.base_damaged.emit(side, actual_dmg)
 
 				"status_apply":
 					var tgt = event["target"]
