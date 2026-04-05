@@ -451,6 +451,7 @@ func _manual_place(card: Object, side: int, row: int, col: int) -> void:
 			board_manager.attack_timers[side][row][col] = placed.attack_interval
 			board_manager._init_skill_timers(placed)
 			board_manager._push_summon_effects(side, row, col, placed)
+			board_manager._check_tile_on_enter(side, row, col, placed)
 			board_manager.emit_signal("unit_placed", side, row, col, placed)
 			board_manager.on_board_changed()
 			main._add_log("[DEV] %s → %s %d行col%d" % [placed.unit_name, side_name, row, col])

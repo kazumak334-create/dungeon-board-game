@@ -33,6 +33,10 @@
 - _on_cell_hover()：盤面効果情報をツールチップに表示、ユニット不在でも表示
 - _update_cells()：盤面効果があるセルは常に再描画
 
+### CheckAgent — 2026-04-05: 盤面効果（Tile Effect）基盤チェック
+- 修正あり：DevUI.gd `_manual_place()` にて `_check_tile_on_enter` の呼び出しが欠落していたため追加（453行目付近）
+- 他13項目は正常
+
 ### CheckAgent — 2026-04-05: CardDB一元化＋サポート効果位置制限チェック
 確認完了・修正なし（全16項目）
 
