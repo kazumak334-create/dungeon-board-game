@@ -444,59 +444,7 @@ func _push_on_hit_effects(side: int, row: int, col: int, attacker: Object, targe
 					"board_manager": self, "deck_manager": deck_manager_ref, "enemy_ai": enemy_ai_ref,
 					"event_queue": event_queue
 				})
-	# 旧方式：active_skill文字列パース（後方互換）
-	for entry in attacker.active_skill.split(" / "):
-		if "命中時" not in entry:
-			continue
-		# 火傷付与（PRIORITY_ACTIVE）
-		if "火傷付与" in entry:
-			event_queue.push(
-				EventQueue.PRIORITY_ACTIVE,
-				attacker, target, "status_apply", 0.0,
-				{"status": "火傷", "side": enemy_side, "row": target_row, "col": target_col,
-				 "src_side": side, "src_row": row, "src_col": col, "skill_name": "火傷付与"}
-			)
-		# 毒付与（PRIORITY_ACTIVE）
-		if "毒付与" in entry:
-			event_queue.push(
-				EventQueue.PRIORITY_ACTIVE,
-				attacker, target, "status_apply", 0.0,
-				{"status": "毒", "stacks": 1, "side": enemy_side, "row": target_row, "col": target_col,
-				 "src_side": side, "src_row": row, "src_col": col, "skill_name": "毒付与"}
-			)
-		# 凍結付与（PRIORITY_ACTIVE）
-		if "凍結付与" in entry:
-			event_queue.push(
-				EventQueue.PRIORITY_ACTIVE,
-				attacker, target, "status_apply", 0.0,
-				{"status": "凍結", "stacks": 3, "side": enemy_side, "row": target_row, "col": target_col,
-				 "src_side": side, "src_row": row, "src_col": col, "skill_name": "凍結付与"}
-			)
-		# 麻痺付与（PRIORITY_ACTIVE）
-		if "麻痺付与" in entry:
-			event_queue.push(
-				EventQueue.PRIORITY_ACTIVE,
-				attacker, target, "status_apply", 0.0,
-				{"status": "麻痺", "stacks": 1, "side": enemy_side, "row": target_row, "col": target_col,
-				 "src_side": side, "src_row": row, "src_col": col, "skill_name": "麻痺付与"}
-			)
-		# バフ奪取（命中時・敵のバフを自分に移す・効果1.5倍）
-		if "バフ奪取" in entry:
-			_steal_buffs(attacker, target, 1.5)
-			active_skill_used.emit(side, row, col, "バフ奪取")
-		# 連鎖（PRIORITY_ACTIVE：隣接行の敵に50%ダメージ波及）
-		if "連鎖" in entry:
-			var chain_damage: int = max(1, damage / 2)
-			for adj_row in _get_adjacent_rows(target_row):
-				var adj_col: int = _get_frontmost_col(enemy_side, adj_row)
-				if adj_col != -1:
-					var adj_target = board[enemy_side][adj_row][adj_col]
-					event_queue.push(
-						EventQueue.PRIORITY_ACTIVE,
-						attacker, adj_target, "damage", float(chain_damage),
-						{"enemy_side": enemy_side, "row": adj_row, "col": adj_col}
-					)
-			active_skill_used.emit(side, row, col, "連鎖")
+	# 旧方式（active_skill文字列パース）は削除済み。全てskills配列で処理。
 
 func _push_summon_effects(side: int, row: int, col: int, unit: Object) -> void:
 	if event_queue == null:
@@ -513,22 +461,7 @@ func _push_summon_effects(side: int, row: int, col: int, unit: Object) -> void:
 					"board_manager": self, "deck_manager": deck_manager_ref, "enemy_ai": enemy_ai_ref,
 					"event_queue": event_queue
 				})
-	# 旧方式：active_skill文字列パース（後方互換）
-	for entry in unit.active_skill.split(" / "):
-		if "召喚時" not in entry:
-			continue
-		if "追加召喚" in entry:
-			event_queue.push(EventQueue.PRIORITY_ACTIVE, unit, null, "extra_summon", 0.0,
-				{"side": side, "row": row, "col": col})
-		if "ドロー" in entry:
-			var count: int = 2 if "2枚" in entry else 1
-			event_queue.push(EventQueue.PRIORITY_ACTIVE, unit, null, "draw_cards", float(count),
-				{"side": side, "src_side": side, "src_row": row, "src_col": col,
-				 "skill_name": "2枚ドロー"})
-		if "最前列" in entry and "突撃" in entry:
-			event_queue.push(EventQueue.PRIORITY_ACTIVE, unit, null, "force_move_front", 0.0,
-				{"side": side, "row": row, "col": col,
-				 "src_side": side, "src_row": row, "src_col": col, "skill_name": "最前列突撃"})
+	# 旧方式（active_skill文字列パース）は削除済み。全てskills配列で処理。
 
 func _try_promote(side: int, row: int, col: int) -> void:
 	var front_col: int = 2 if side == 0 else 0
@@ -866,12 +799,10 @@ func on_board_changed() -> void:
 func _on_status_tick() -> void:
 	tick_system.on_tick()
 
-# _apply_regen, _apply_regen_buff → TickSystem.gdに移動
-
-# ---- 時間経過スキルシステム ----
-
 func _init_skill_timers(unit: Object) -> void:
 	tick_system.init_skill_timers(unit)
+
+# ---- 以下はTickSystem.gdに移動済みのデッドコード（来週削除予定） ----
 
 func _process_artifact_timers() -> void:
 	for s in range(2):
