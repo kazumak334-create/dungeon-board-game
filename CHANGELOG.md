@@ -2,6 +2,14 @@
 
 ## [Unreleased]
 
+### Added — 2026-04-05: data/cards.json ユニット18体追加
+
+#### data/cards.json
+- unitsセクションにアンデッド系5体追加：レヴナント・ワイト・シャドウ・デュラハン・デスナイト
+- unitsセクションに獣系6体追加：コカトリス・ケットシー・マンティコア・キリン・ビャッコ・グリフォン・フェンリル
+- unitsセクションに企画済み新ユニット7体追加：ソウルイーター・リッチキング・ストームホーク・フェンリスウルフ・ゾンビの手・ホブゴブリン
+- 全18体のskillsは空配列（将来実装用予約）
+
 ### Added — 2026-04-05: GameSession.gd + SceneManager.gd 実装・cards.jsonクラスデータ拡充
 
 #### scripts/GameSession.gd（新規）
