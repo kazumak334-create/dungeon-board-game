@@ -142,7 +142,9 @@
 	"classes": {
 		"alchemist": {
 			"anim": "",
+			"description": "スライムを操り合成で巨大化させる錬金術師",
 			"display": "錬金術師",
+			"initial_deck": ["スライム", "スライム", "スライム", "マッドスライム", "マッドスライム", "ブラッドスライム", "召喚加速", "生命の雫", "盤面強化"],
 			"initial_mana": 3.0,
 			"mana_max": 12.0,
 			"mana_regen": 1.0,
@@ -169,7 +171,9 @@
 		},
 		"berserker": {
 			"anim": "",
+			"description": "獣を率いて高速で敵を圧倒するバーサーカー",
 			"display": "バーサーカー",
+			"initial_deck": ["ゴブリン", "ゴブリン", "ウルフ", "ウルフ", "タイガー", "ワイルドホーク", "召喚加速", "戦場の鼓動", "盤面強化"],
 			"initial_mana": 3.0,
 			"mana_max": 10.0,
 			"mana_regen": 1.0,
@@ -197,7 +201,9 @@
 		},
 		"necromancer": {
 			"anim": "",
+			"description": "死を操り不死の軍勢を従える死霊術師",
 			"display": "死霊術師",
+			"initial_deck": ["スケルトン", "スケルトン", "グール", "グール", "バンシー", "リッチ", "召喚加速", "生命の雫", "弱体の呪詛"],
 			"initial_mana": 3.0,
 			"mana_max": 8.0,
 			"mana_regen": 1.0,

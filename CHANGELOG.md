@@ -2,6 +2,22 @@
 
 ## [Unreleased]
 
+### Added — 2026-04-05: GameSession.gd + SceneManager.gd 実装・cards.jsonクラスデータ拡充
+
+#### scripts/GameSession.gd（新規）
+- Autoload用ランデータ保管クラス
+- `class_id`, `selected_deck`, `last_result`, `run_depth`, `artifacts_acquired` フィールド
+- `reset()` で全フィールドを初期値に戻す
+
+#### scripts/SceneManager.gd（新規）
+- Autoload用画面遷移管理クラス
+- `_scenes` 辞書でシーン名→パスを管理（未作成シーンはnull）
+- `go_to(scene_name)` でnullチェック・ロード失敗チェック付きシーン遷移
+- `go_to_battle(class_id)` でGameSession.class_idをセットしてバトルへ遷移
+
+#### data/cards.json
+- classes の alchemist・berserker・necromancer に `description`（クラス説明文）と `initial_deck`（初期デッキカード名配列）を追加
+
 ### Perf — 2026-04-05: load()キャッシュ化（6ファイル）
 
 #### SupportSystem.gd / TileSystem.gd / CombatSystem.gd
