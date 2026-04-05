@@ -16,7 +16,9 @@ func execute(spell: Object, side: int, board_manager: Node,
 	if ee != null and spell.get("skills") != null and not spell.skills.is_empty():
 		for skill in spell.skills:
 			if skill.get("trigger", "") == "on_play":
-				ee.execute(skill["effect_id"], skill.get("params", {}), {
+				var _mp: Dictionary = skill.get("params", {}).duplicate()
+				if skill.has("target"): _mp["target"] = skill["target"]
+				ee.execute(skill["effect_id"], _mp, {
 					"trigger": "on_play", "side": side, "row": -1, "col": -1,
 					"source": spell, "target": null, "damage": 0,
 					"board_manager": board_manager, "deck_manager": deck_manager,

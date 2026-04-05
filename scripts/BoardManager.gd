@@ -131,7 +131,9 @@ func remove_unit(side: int, row: int, col: int) -> void:
 		for skill in unit.skills:
 			if skill.get("trigger", "") == "on_death":
 				if effect_executor != null:
-					effect_executor.execute(skill["effect_id"], skill.get("params", {}), {
+					var _mp: Dictionary = skill.get("params", {}).duplicate()
+				if skill.has("target"): _mp["target"] = skill["target"]
+				effect_executor.execute(skill["effect_id"], _mp, {
 						"trigger": "on_death", "side": side, "row": row, "col": col,
 						"source": unit, "target": null, "damage": 0,
 						"board_manager": self, "deck_manager": deck_manager_ref, "enemy_ai": enemy_ai_ref,
@@ -320,7 +322,9 @@ func _push_on_hit_effects(side: int, row: int, col: int, attacker: Object, targe
 	if effect_executor != null:
 		for skill in attacker.skills:
 			if skill.get("trigger", "") == "on_hit":
-				effect_executor.execute(skill["effect_id"], skill.get("params", {}), {
+				var _mp: Dictionary = skill.get("params", {}).duplicate()
+				if skill.has("target"): _mp["target"] = skill["target"]
+				effect_executor.execute(skill["effect_id"], _mp, {
 					"trigger": "on_hit", "side": side, "row": row, "col": col,
 					"source": attacker, "target": target, "damage": damage,
 					"target_row": target_row, "target_col": target_col,
@@ -388,7 +392,9 @@ func _push_summon_effects(side: int, row: int, col: int, unit: Object) -> void:
 	if effect_executor != null:
 		for skill in unit.skills:
 			if skill.get("trigger", "") == "on_summon":
-				effect_executor.execute(skill["effect_id"], skill.get("params", {}), {
+				var _mp: Dictionary = skill.get("params", {}).duplicate()
+				if skill.has("target"): _mp["target"] = skill["target"]
+				effect_executor.execute(skill["effect_id"], _mp, {
 					"trigger": "on_summon", "side": side, "row": row, "col": col,
 					"source": unit, "target": null, "damage": 0,
 					"board_manager": self, "deck_manager": deck_manager_ref, "enemy_ai": enemy_ai_ref,
@@ -525,7 +531,11 @@ func _apply_support_effects() -> void:
 							var is_skill_flag = eid in ["snipe", "support_fire", "support_revive", "enemy_mana_drain", "debuff_spread"]
 							if c == front_col and not is_skill_flag:
 								continue  # 前列ユニットはサポート効果を発動しない
-							effect_executor.execute(skill["effect_id"], skill.get("params", {}), {
+							# skillsのtop-level targetをparamsにマージ
+							var merged_params: Dictionary = skill.get("params", {}).duplicate()
+							if skill.has("target"):
+								merged_params["target"] = skill["target"]
+							effect_executor.execute(skill["effect_id"], merged_params, {
 								"trigger": "always", "side": s, "row": r, "col": c,
 								"source": u, "target": null, "damage": 0,
 								"board_manager": self, "deck_manager": deck_manager_ref, "enemy_ai": enemy_ai_ref,
@@ -877,7 +887,9 @@ func _process_timed_skills() -> void:
 						var idx: int = int(entry.substr(6))
 						if idx < u.skills.size():
 							var skill = u.skills[idx]
-							effect_executor.execute(skill["effect_id"], skill.get("params", {}), {
+							var _mp: Dictionary = skill.get("params", {}).duplicate()
+				if skill.has("target"): _mp["target"] = skill["target"]
+				effect_executor.execute(skill["effect_id"], _mp, {
 								"trigger": "timer", "side": s, "row": r, "col": c,
 								"source": u, "target": null, "damage": 0,
 								"board_manager": self, "deck_manager": deck_manager_ref, "enemy_ai": enemy_ai_ref,
@@ -1057,7 +1069,9 @@ func _process_on_kill(killer: Object) -> void:
 	if effect_executor != null:
 		for skill in killer.skills:
 			if skill.get("trigger", "") == "on_kill":
-				effect_executor.execute(skill["effect_id"], skill.get("params", {}), {
+				var _mp: Dictionary = skill.get("params", {}).duplicate()
+				if skill.has("target"): _mp["target"] = skill["target"]
+				effect_executor.execute(skill["effect_id"], _mp, {
 					"trigger": "on_kill", "side": k_side, "row": k_row, "col": k_col,
 					"source": killer, "target": null, "damage": 0,
 					"board_manager": self, "deck_manager": deck_manager_ref, "enemy_ai": enemy_ai_ref,
