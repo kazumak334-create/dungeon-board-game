@@ -271,12 +271,21 @@ func _do_attack(side: int, row: int, col: int, attacker: Object, enemy_side: int
 						target, attacker, "heal", float(heal),
 						{"src_side": side, "src_row": row, "src_col": col, "skill_name": "吸血"}
 					)
-				# 貫通バフ：後ろにダメージ波及（5%×スタック、10スタックで2マス）
-				if attacker.penetrate_stacks > 0:
-					var pen_pct: float = 0.05 * attacker.penetrate_stacks
-					var pen_depth: int = 2 if attacker.penetrate_stacks >= 10 else 1
+				# 衝撃/貫通/大貫通スキルによるダメージ波及
+				var pen_depth: int = 0
+				var pen_factors: Array = []
+				if attacker._has_big_penetrate:
+					pen_depth = 2
+					pen_factors = [1.0, 0.5]
+				elif attacker._has_penetrate:
+					pen_depth = 1
+					pen_factors = [1.0]
+				elif attacker._has_impact:
+					pen_depth = 1
+					pen_factors = [0.5]
+				if pen_depth > 0:
 					var prev_col: int = target_col
-					for _d in range(pen_depth):
+					for d_idx in range(pen_depth):
 						var behind_col: int = _get_behind_col(enemy_side, target_row, prev_col)
 						if behind_col == -1:
 							break
@@ -284,7 +293,7 @@ func _do_attack(side: int, row: int, col: int, attacker: Object, enemy_side: int
 						var behind_target = board[enemy_side][target_row][behind_col]
 						if behind_target != null:
 							var pen_armor: float = min(1.0, behind_target._damage_reduction * 0.1)
-							var pen_dmg: int = max(0, int(float(actual_damage) * pen_pct * (1.0 - pen_armor)))
+							var pen_dmg: int = max(0, int(float(actual_damage) * pen_factors[d_idx] * (1.0 - pen_armor)))
 							if pen_dmg > 0:
 								event_queue.push(
 									EventQueue.PRIORITY_IMMEDIATE,
@@ -487,7 +496,9 @@ func _apply_support_effects() -> void:
 					u._back_no_on_hit = false
 					u._damage_reduction = 0
 					u._has_lifesteal = u.lifesteal_stacks > 0
-					u._has_penetrate = u.penetrate_stacks > 0
+					u._has_penetrate = false
+					u._has_impact = false
+					u._has_big_penetrate = false
 					# _regen_stacks はリセットしない（スタック+時間減少方式）
 					u._support_revive = false
 	# 各ユニットのサポート効果を適用（旧方式：support_effect文字列）
@@ -527,18 +538,15 @@ func _apply_support_effects() -> void:
 				var u = board[s][r][c]
 				if u == null:
 					continue
-				# アクティブスキル文字列に吸血/貫通があれば常時スタック維持
+				# アクティブスキル文字列に吸血があれば常時スタック維持
 				if "吸血" in u.active_skill and u.lifesteal_stacks < 5:
 					u.lifesteal_stacks = 5
-				if "貫通" in u.active_skill and u.penetrate_stacks < 5:
-					u.penetrate_stacks = 5
 				u._has_lifesteal = u.lifesteal_stacks > 0
-				u._has_penetrate = u.penetrate_stacks > 0
+				# 貫通はスキル（ON/OFF）のためスタック処理なし
 				# バフ奪取で得た永続ボーナスを加算
 				u._atk_bonus += u._stolen_atk
 				u._interval_bonus += u._stolen_spd
 				if u._stolen_lifesteal: u.lifesteal_stacks = max(u.lifesteal_stacks, 5)
-				if u._stolen_penetrate: u.penetrate_stacks = max(u.penetrate_stacks, 5)
 				# _regen_stacksはスタック+時間減少方式のため_stolen_regenは直接加算済み
 				u._damage_reduction += u._stolen_armor
 				u._atk_bonus = min(u._atk_bonus, 10)  # ATKバフ重複上限+10
@@ -599,7 +607,7 @@ func _process_unit_support(side: int, row: int, col: int, unit: Object) -> void:
 				t.lifesteal_stacks = max(t.lifesteal_stacks, 5)
 		elif "貫通付与" in entry:
 			for t in targets:
-				t.penetrate_stacks = max(t.penetrate_stacks, 5)
+				t._has_penetrate = true  # スキル方式（ON/OFF）
 		elif "リジェネ付与" in entry:
 			for t in targets:
 				t._regen += 1.0  # サポート由来は_regen（毎秒HP回復・リセット再計算型）
@@ -775,13 +783,10 @@ func _apply_regen_buff() -> void:
 						{"src_side": s, "src_row": r, "src_col": c}
 					)
 					u._regen_stacks -= 1
-				# 吸血・貫通も2秒ごとに1スタック減少
+				# 吸血バフは2秒ごとに1スタック減少（貫通はスキルなので減少しない）
 				if u.lifesteal_stacks > 0:
 					u.lifesteal_stacks -= 1
 					u._has_lifesteal = u.lifesteal_stacks > 0
-				if u.penetrate_stacks > 0:
-					u.penetrate_stacks -= 1
-					u._has_penetrate = u.penetrate_stacks > 0
 
 # ---- 時間経過スキルシステム ----
 
@@ -1015,10 +1020,16 @@ func _steal_buffs(stealer: Object, victim: Object, multiplier: float) -> void:
 	if victim.lifesteal_stacks > 0:
 		stealer.lifesteal_stacks += int(victim.lifesteal_stacks * multiplier)
 		victim.lifesteal_stacks = 0
-	# 貫通奪取（スタック移動）
-	if victim.penetrate_stacks > 0:
-		stealer.penetrate_stacks += int(victim.penetrate_stacks * multiplier)
-		victim.penetrate_stacks = 0
+	# 貫通奪取（スキルフラグ移動）
+	if victim._has_penetrate:
+		stealer._has_penetrate = true
+		victim._has_penetrate = false
+	if victim._has_impact:
+		stealer._has_impact = true
+		victim._has_impact = false
+	if victim._has_big_penetrate:
+		stealer._has_big_penetrate = true
+		victim._has_big_penetrate = false
 	# リジェネ奪取（スタック直接移動）
 	if victim._regen_stacks > 0:
 		stealer._regen_stacks += int(victim._regen_stacks * multiplier)

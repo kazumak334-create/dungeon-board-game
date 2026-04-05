@@ -37,9 +37,10 @@ var _back_no_on_hit: bool = false        # 命中時アクティブを発動し�
 var _is_flying: bool = false             # 飛行スキル：盤面効果を受けない
 var _damage_reduction: int = 0  # 鎧バフ：被ダメージ-N
 var _has_lifesteal: bool = false  # 吸血（後方互換：スタック>0ならtrue）
-var _has_penetrate: bool = false  # 貫通（後方互換：スタック>0ならtrue）
+var _has_penetrate: bool = false  # 貫通：後ろ1マス100%
+var _has_impact: bool = false     # 衝撃：後ろ1マス50%
+var _has_big_penetrate: bool = false  # 大貫通：後ろ1マス100% + 後ろ2マス50%
 var lifesteal_stacks: int = 0    # 吸血スタック：回復率3%/スタック、2秒ごと-1
-var penetrate_stacks: int = 0    # 貫通スタック：波及5%/スタック、10で2マス、2秒ごと-1
 var _regen_stacks: int = 0       # リジェネバフ：2秒ごとにHP5%×スタック数回復（重複可）
 # アクティブスキル状態（永続・cloneには引き継がない）
 var _has_revived: bool = false

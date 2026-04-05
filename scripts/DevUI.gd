@@ -423,27 +423,21 @@ func _on_card_hover(index: int) -> void:
 		lines.append("Cost: %d" % d["cost"])
 		lines.append("HP: %d / ATK: %d / SPD: %.1fs" % [d["hp"], d["atk"], d["interval"]])
 		lines.append("攻撃範囲: %s" % d.get("range", "1行"))
-		# skills配列からサポート効果/アクティブスキルを動的生成
-		var support_lines: Array = []
-		var active_lines: Array = []
+		# skills配列からスキル名のみ簡潔に表示
+		var support_names: Array = []
+		var active_names: Array = []
 		for skill in d.get("skills", []):
 			var eid: String = skill.get("effect_id", "")
-			var tgt: String = skill.get("target", "")
-			var entry: String = "%s → %s" % [eid, tgt] if tgt != "" else eid
 			if skill.get("trigger", "") == "always":
-				support_lines.append(entry)
+				support_names.append(eid)
 			else:
-				active_lines.append("[%s] %s" % [skill.get("trigger", ""), entry])
-		if support_lines.size() > 0:
+				active_names.append(eid)
+		if support_names.size() > 0:
 			lines.append("")
-			lines.append("■ サポート効果:")
-			for part in support_lines:
-				lines.append("  " + part)
-		if active_lines.size() > 0:
+			lines.append("■ サポート: " + ", ".join(support_names))
+		if active_names.size() > 0:
 			lines.append("")
-			lines.append("■ アクティブスキル:")
-			for part in active_lines:
-				lines.append("  " + part)
+			lines.append("■ スキル: " + ", ".join(active_names))
 	elif card["type"] == "spell":
 		lines.append("[呪文] %s" % card["name"])
 		lines.append("Cost: %s" % ("X" if d["cost"] == -1 else str(d["cost"])))

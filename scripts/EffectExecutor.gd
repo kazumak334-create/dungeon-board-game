@@ -47,7 +47,7 @@ func execute(effect_id: String, params: Dictionary, context: Dictionary) -> void
 						t.lifesteal_stacks += stacks
 				"penetrate":
 					for t in tgt:
-						t.penetrate_stacks += stacks
+						t._has_penetrate = true  # スキル方式（ON/OFF）
 				"armor":
 					for t in tgt:
 						t._damage_reduction += stacks
@@ -180,6 +180,23 @@ func execute(effect_id: String, params: Dictionary, context: Dictionary) -> void
 				dm.force_play_card(bm)
 			elif side == 1 and ai != null:
 				ai.force_play_card(bm)
+
+		"summon_on_death":
+			# 分裂：死亡時に指定ユニットを同段に復活
+			if source != null and bm != null:
+				var unit_id: String = merged.get("unit_id", "スライム")
+				var _CDB = load("res://scripts/CardDB.gd")
+				if _CDB.UNITS.has(unit_id):
+					var ud = _CDB.UNITS[unit_id]
+					var UDS = load("res://scripts/UnitData.gd")
+					var new_unit = UDS.new()
+					new_unit.unit_name = unit_id
+					new_unit.max_hp = ud["hp"]; new_unit.current_hp = ud["hp"]
+					new_unit.attack = ud["atk"]; new_unit.attack_interval = ud["interval"]
+					new_unit.cost = ud["cost"]; new_unit.race = ud.get("race", "")
+					new_unit.attack_range = ud.get("range", "1行")
+					new_unit.skills = ud.get("skills", []).duplicate(true)
+					bm._pending_revives.append({"timer": 0.0, "side": side, "row": row, "unit": new_unit, "hp": ud["hp"]})
 
 		# ---- デッキ追加 ----
 		"deck_add":
