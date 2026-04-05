@@ -282,10 +282,10 @@ func _refresh_equipment_ui() -> void:
 			main._equip_slots[i].modulate = Color(0.5, 0.5, 0.5)
 
 func _build_next_card_panel() -> void:
-	var panel_w  := 360
-	var panel_h  := 110
-	var panel_x  := main.CENTER_X - panel_w / 2
-	var panel_y  := main.BOARD_TOP + 3 * main.CELL_H + 36
+	var panel_w: int = 360
+	var panel_h: int = 110
+	var panel_x: int = main.CENTER_X - panel_w / 2
+	var panel_y: int = main.BOARD_TOP + 3 * main.CELL_H + 36
 
 	main.next_card_panel = ColorRect.new()
 	main.next_card_panel.position = Vector2(panel_x, panel_y)
