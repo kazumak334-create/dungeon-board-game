@@ -35,6 +35,7 @@ var _back_atk_factor: float = 1.0
 var _back_target_rear: bool = false      # 敵最後列を優先（狙撃）
 var _back_no_on_hit: bool = false        # 命中時アクティブを発動しない
 var _is_flying: bool = false             # 飛行スキル：盤面効果を受けない
+var _auto_promote: bool = false          # 自動前進：前マスが空いたら自動移動
 var _damage_reduction: int = 0  # 鎧バフ：被ダメージ-N
 var _has_lifesteal: bool = false  # 吸血（後方互換：スタック>0ならtrue）
 var _has_penetrate: bool = false  # 貫通：後ろ1マス100%

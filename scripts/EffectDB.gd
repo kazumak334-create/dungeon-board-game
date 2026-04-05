@@ -55,6 +55,7 @@ const EFFECTS: Dictionary = {
 	"support_fire":     {"type": "skill_flag",    "flags": {"_can_attack_from_back": true, "_can_attack_from_mid": true, "_back_no_on_hit": true}, "display": "支援攻撃", "texture": "", "anim": "", "sfx": ""},
 	"support_revive":   {"type": "skill_flag",    "flags": {"_support_revive": true},                                                             "display": "再起付与", "texture": "", "anim": "", "sfx": ""},
 	"flying":           {"type": "skill_flag",    "flags": {"_is_flying": true},                                                                  "display": "飛行", "texture": "", "anim": "", "sfx": ""},
+	"auto_promote":     {"type": "skill_flag",    "flags": {"_auto_promote": true},                                                               "display": "自動前進", "texture": "", "anim": "", "sfx": ""},
 	"impact":           {"type": "skill_flag",    "flags": {"_has_impact": true},                                                                 "display": "衝撃", "texture": "", "anim": "", "sfx": ""},
 	"penetrate":        {"type": "skill_flag",    "flags": {"_has_penetrate": true},                                                              "display": "貫通", "texture": "", "anim": "", "sfx": ""},
 	"big_penetrate":    {"type": "skill_flag",    "flags": {"_has_big_penetrate": true},                                                          "display": "大貫通", "texture": "", "anim": "", "sfx": ""},

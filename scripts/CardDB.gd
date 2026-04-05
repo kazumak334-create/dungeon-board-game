@@ -45,9 +45,10 @@ const UNITS: Dictionary = {
 		"texture": "", "anim": "", "sfx": "",
 	},
 	"キングスライム": {
-		"hp": 100, "atk": 5, "interval": 6.0, "cost": 10, "race": "スライム", "range": "1行", "col": 2,
+		"hp": 100, "atk": 10, "interval": 6.0, "cost": 10, "race": "スライム", "range": "上下含む3行", "col": 2,
 		"skills": [
 			{"trigger": "always", "target": "all_allies", "effect_id": "slime_global_buff", "params": {"race": "スライム", "atk_pct": 0.5}},
+			{"trigger": "always", "target": "self", "effect_id": "auto_promote", "params": {}},
 		],
 		"texture": "", "anim": "", "sfx": "",
 	},

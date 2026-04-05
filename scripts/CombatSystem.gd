@@ -14,6 +14,8 @@ func process_combat(delta: float, base_hp: Array) -> void:
 	if bm._board_dirty:
 		bm._board_dirty = false
 		bm.support_system.apply_support_effects()
+	# 自動前進（auto_promote持ちユニットが前マス空きなら移動）
+	_process_auto_promote()
 
 	# 前列ユニットの攻撃
 	for side in range(2):
@@ -210,6 +212,30 @@ func _get_target_rows(attacker_row: int, attack_range: String) -> Array:
 			return [0, 1, 2]
 		_:
 			return [attacker_row]
+
+func _process_auto_promote() -> void:
+	for side in range(2):
+		for row in range(3):
+			for col in range(3):
+				var unit = bm.board[side][row][col]
+				if unit == null or not unit._auto_promote:
+					continue
+				# 前方のマスが空いていれば移動（side0: col+1方向、side1: col-1方向）
+				var next_col: int = col + 1 if side == 0 else col - 1
+				if next_col < 0 or next_col >= 3:
+					continue
+				if bm.board[side][row][next_col] != null:
+					continue
+				if bm.board_artifacts[side][row][next_col] != null:
+					continue
+				# 移動実行
+				bm.tile_system.check_tile_on_leave(side, row, col, unit)
+				bm.board[side][row][next_col] = unit
+				bm.attack_timers[side][row][next_col] = unit.attack_interval
+				bm.board[side][row][col] = null
+				bm.attack_timers[side][row][col] = 0.0
+				bm.tile_system.check_tile_on_enter(side, row, next_col, unit)
+				bm.on_board_changed()
 
 func get_frontmost_col(side: int, row: int) -> int:
 	# 前列→中列→後列の順で最初にユニットまたはアーティファクトがいる列を返す（-1=なし）
