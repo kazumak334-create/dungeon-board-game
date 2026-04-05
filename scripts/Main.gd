@@ -729,8 +729,7 @@ func _render_cell(side: int, r: int, c: int) -> void:
 		# 組み立て
 		var lines: Array = [
 			unit.unit_name,
-			"HP %d/%d ATK %d" % [unit.current_hp, unit.max_hp, unit.attack],
-			hp_bar,
+			"%s HP%d/%d ATK%d" % [hp_bar, unit.current_hp, unit.max_hp, unit.attack],
 		]
 		if buff_line != "": lines.append(buff_line)
 		if flash_line != "": lines.append(flash_line)
@@ -747,7 +746,7 @@ func _render_cell(side: int, r: int, c: int) -> void:
 		var tile_display: String = tile_def.get("display", tile_id)
 		# 色オーバーレイ（ヒビは色ではなくテキスト）
 		match tile_id:
-			"tile_curse":        rect.color = rect.color.lerp(Color(0.5, 0.0, 0.5), 0.3)
+			"tile_curse":        rect.color = rect.color.lerp(Color(0.8, 0.2, 0.6), 0.4)
 			"tile_fire":         rect.color = rect.color.lerp(Color(0.8, 0.2, 0.0), 0.3)
 			"tile_beast_forest": rect.color = rect.color.lerp(Color(0.0, 0.5, 0.0), 0.3)
 			"tile_fortress":     rect.color = rect.color.lerp(Color(0.3, 0.3, 0.6), 0.3)
