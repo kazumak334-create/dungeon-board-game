@@ -613,15 +613,16 @@ func _render_cell(side: int, r: int, c: int) -> void:
 		# HPバー（8ブロック）
 		var bar_filled: int = int(hp_ratio * 8)
 		var hp_bar: String = "█".repeat(bar_filled) + "░".repeat(8 - bar_filled)
-		# バフ/デバフ/スキル表示（skillsのdisplay名＋ランタイム状態から動的生成）
+		# スキル表示（skillsからdisplay名+トリガー+対象を動的生成）
 		var buffs: Array = []
-		# スキル表示（skills配列のalwaysトリガーからdisplay名を取得、位置条件付き）
 		var _EDB = load("res://scripts/EffectDB.gd")
 		var back_col: int = 0 if side == 0 else 2
+		var trigger_jp: Dictionary = {"always": "常時", "on_summon": "召喚時", "on_hit": "命中時", "on_kill": "撃破時", "on_death": "死亡時", "timer": "経過"}
+		var target_jp: Dictionary = {"self": "自身", "front_one": "前方", "same_row": "同段", "same_row_beast": "同段獣", "same_col_ally": "同深度", "adjacent_beast": "隣接獣", "all_allies": "味方全", "all_enemies": "敵全", "hit_target": "対象", "enemy_most_buffs": "敵", "ally_undead_lowest": "味方", "enemy_max_hp": "敵", "self_deck": "デッキ", "front_enemy": "前敵", "adjacent_enemy": "隣敵", "enemy": "敵"}
 		for skill in unit.skills:
-			if skill.get("trigger", "") != "always":
-				continue
+			var trigger: String = skill.get("trigger", "")
 			var eid: String = skill.get("effect_id", "")
+			var tgt: String = skill.get("target", "")
 			var display: String = eid
 			if _EDB != null and _EDB.EFFECTS.has(eid):
 				display = _EDB.EFFECTS[eid].get("display", eid)
@@ -630,7 +631,19 @@ func _render_cell(side: int, r: int, c: int) -> void:
 				continue
 			if eid == "support_fire" and c != back_col and c != 1:
 				continue
-			buffs.append(display)
+			# 前列ではサポート効果を表示しない
+			var front_col: int = 2 if side == 0 else 0
+			if trigger == "always" and c == front_col:
+				continue
+			var t_jp: String = trigger_jp.get(trigger, trigger)
+			var tgt_jp: String = target_jp.get(tgt, "")
+			if trigger == "timer":
+				var interval = skill.get("params", {}).get("interval", 0)
+				t_jp = "%ds" % int(interval)
+			if tgt_jp != "":
+				buffs.append("%s(%s,%s)" % [display, t_jp, tgt_jp])
+			else:
+				buffs.append("%s(%s)" % [display, t_jp])
 		# バフ（スタック値）
 		if unit._atk_bonus > 0:        buffs.append("ATK+%d" % unit._atk_bonus)
 		if unit._interval_bonus > 0.0:  buffs.append("SPD+")
