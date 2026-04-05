@@ -2,11 +2,12 @@
 # メインシーン制御・UI描画・ゲームループ
 extends Node
 
-const BoardManagerScript = preload("res://scripts/BoardManager.gd")
-const DeckManagerScript  = preload("res://scripts/DeckManager.gd")
-const EnemyAIScript      = preload("res://scripts/EnemyAI.gd")
-const EventQueueScript   = preload("res://scripts/EventQueue.gd")
-const SpellExecutorScript = preload("res://scripts/SpellExecutor.gd")
+const BoardManagerScript   = preload("res://scripts/BoardManager.gd")
+const DeckManagerScript    = preload("res://scripts/DeckManager.gd")
+const EnemyAIScript        = preload("res://scripts/EnemyAI.gd")
+const EventQueueScript     = preload("res://scripts/EventQueue.gd")
+const SpellExecutorScript  = preload("res://scripts/SpellExecutor.gd")
+const EffectExecutorScript = preload("res://scripts/EffectExecutor.gd")
 
 # ---- レイアウト定数 ----
 const CELL_W    := 115
@@ -109,6 +110,13 @@ func _ready() -> void:
 	enemy_ai.spell_executor = spell_executor
 	enemy_ai.deck_manager_ref = deck_manager
 
+	# EffectExecutor 初期化・注入
+	var effect_executor = EffectExecutorScript.new()
+	board_manager.effect_executor = effect_executor
+	board_manager.deck_manager_ref = deck_manager
+	board_manager.enemy_ai_ref = enemy_ai
+	spell_executor.effect_executor = effect_executor
+
 	_build_synthesis_registry()
 	_build_ui()
 	_build_mode_select()
@@ -136,7 +144,7 @@ func _build_synthesis_registry() -> void:
 		# スライム合成チェーン
 		{"base": "スライム",       "card": "スライム",       "result": {"name": "ラージスライム",   "hp": 25, "atk": 2, "interval": 3.8, "cost": 2, "col": 1}},
 		{"base": "ラージスライム", "card": "ラージスライム", "result": {"name": "ファットスライム", "hp": 50, "atk": 3, "interval": 6.0, "cost": 3, "col": 0}},
-		{"base": "ファットスライム","card": "ファットスライム","result": {"name": "キングスライム",   "hp":100, "atk": 5, "interval": 6.0, "cost":10, "col": 2}},
+		{"base": "ファットスライム","card": "ファットスライム","result": {"name": "キングスライム",   "hp":100, "atk": 5, "interval": 6.0, "cost":10, "col": 2, "support": "スライム全体強化〈常時発動・全体・スライムのATK+50%〉", "race": "スライム"}},
 		# スライム＋呪文合成
 		{"base": "スライム", "card": "泥の鎧",   "result": {"name": "マッドスライム",     "hp": 40, "atk": 2, "interval": 3.8, "cost": 3, "col": 1, "active": "鎧〈常時〉"}},
 		{"base": "スライム", "card": "火傷カード","result": {"name": "ヒートスライム",     "hp": 25, "atk": 2, "interval": 3.8, "cost": 3, "col": 0, "active": "火傷付与〈命中時〉"}},
@@ -157,9 +165,11 @@ func _build_synthesis_registry() -> void:
 		u.attack_interval = r["interval"]
 		u.cost = r["cost"]
 		u.assigned_col = r["col"]
-		u.race = "スライム"
-		u.attack_range = "1行"
+		u.race = r.get("race", "スライム")
+		u.attack_range = r.get("range", "1行")
+		u.support_effect = r.get("support", "")
 		u.active_skill = r.get("active", "")
+		u.skills = r.get("skills", []).duplicate(true)
 		board_manager.synthesis_registry.append({
 			"base": recipe["base"],
 			"card": recipe["card"],
@@ -500,13 +510,18 @@ func _input(event: InputEvent) -> void:
 		if dev_ui._dragging:
 			var pos: Vector2 = event.position
 			var dropped: bool = false
-			for side in range(2):
-				for r in range(3):
-					for c in range(3):
-						var rect: ColorRect = cell_rects[side][r][c]
-						if Rect2(rect.position, rect.size).has_point(pos):
-							dev_ui.on_drop(side, r, c)
-							dropped = true
+			# デッキエリアにドロップ → デッキに追加
+			if pos.x <= 155:
+				dev_ui.on_drop_to_deck()
+				dropped = true
+			else:
+				for side in range(2):
+					for r in range(3):
+						for c in range(3):
+							var rect: ColorRect = cell_rects[side][r][c]
+							if Rect2(rect.position, rect.size).has_point(pos):
+								dev_ui.on_drop(side, r, c)
+								dropped = true
 			if not dropped:
 				dev_ui.on_drop_outside()
 			dev_ui._stop_drag()
@@ -532,12 +547,14 @@ func _process(delta: float) -> void:
 	if not game_started or game_over:
 		return
 	if not game_paused:
-		if not dev_mode:
-			deck_manager.process_deck(delta, board_manager)
-			enemy_ai.process_ai(delta, board_manager)
+		deck_manager.process_deck(delta, board_manager)
+		enemy_ai.process_ai(delta, board_manager)
 		board_manager.process_combat(delta, base_hp)
 		if not dev_mode:
 			_check_game_over()
+		# 開発者モード: デッキ表示を更新（サイズ変化時のみ）
+		if dev_mode and dev_ui != null:
+			dev_ui._refresh_deck_list(false)
 
 	# サポート効果ログ（5秒ごと）
 	_support_log_timer -= delta

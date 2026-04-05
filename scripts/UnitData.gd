@@ -19,21 +19,41 @@ var spell_id: String = ""         # 呪文識別子
 var spell_target: String = ""     # "self" | "single_ally" | "all_allies" | "all_enemies" | "front_all" | "column" | "enemy_queue"
 var spell_effect: String = ""     # 効果記述
 var is_consumable: bool = false   # true = 発動後消滅（捨て札に行かない）
+# 盤面合成フィールド
+var synthesis_base: String = ""   # 盤面合成の盤面ユニット名（空=合成不可）
+var synthesis_card: String = ""   # 盤面合成の発動カード名
+# 効果テーブルシステム（新方式）
+var skills: Array = []            # [{trigger, effect_id, params}]
 
 # ランタイムサポートボーナス（毎フレームBoardManagerが再計算・cloneには引き継がない）
 var _atk_bonus: int = 0
 var _interval_bonus: float = 0.0
 var _regen: float = 0.0
-var _can_attack_from_back: bool = false
+var _can_attack_from_back: bool = false   # 後列から攻撃可能（狙撃/支援攻撃）
+var _can_attack_from_mid: bool = false   # 中列から攻撃可能（支援攻撃）
 var _back_atk_factor: float = 1.0
+var _back_target_rear: bool = false      # 敵最後列を優先（狙撃）
+var _back_no_on_hit: bool = false        # 命中時アクティブを発動しない
+var _is_flying: bool = false             # 飛行スキル：盤面効果を受けない
 var _damage_reduction: int = 0  # 鎧バフ：被ダメージ-N
-var _has_lifesteal: bool = false  # 吸血バフ：攻撃時ダメージ30%回復
-var _has_penetrate: bool = false  # 貫通バフ：後ろ1マスにも同量ダメージ（攻撃時効果なし）
+var _has_lifesteal: bool = false  # 吸血（後方互換：スタック>0ならtrue）
+var _has_penetrate: bool = false  # 貫通（後方互換：スタック>0ならtrue）
+var lifesteal_stacks: int = 0    # 吸血スタック：回復率3%/スタック、2秒ごと-1
+var penetrate_stacks: int = 0    # 貫通スタック：波及5%/スタック、10で2マス、2秒ごと-1
 var _regen_stacks: int = 0       # リジェネバフ：2秒ごとにHP5%×スタック数回復（重複可）
 # アクティブスキル状態（永続・cloneには引き継がない）
 var _has_revived: bool = false
+var _support_revive: bool = false    # サポート効果由来の再起（毎フレーム再計算）
+var _support_revive_used: bool = false  # サポート再起を使用済みか（1回限り）
 var _first_attack: bool = true  # クリティカル用：初撃フラグ
 var _kill_atk_bonus: int = 0    # ATK累積：撃破時の累積ボーナス（上限10）
+# バフ奪取で得た永続ボーナス（サポート再計算でリセットされない）
+var _stolen_atk: int = 0
+var _stolen_spd: float = 0.0
+var _stolen_lifesteal: bool = false
+var _stolen_penetrate: bool = false
+var _stolen_regen: int = 0
+var _stolen_armor: int = 0
 # 状態異常（Timerノードで1秒ごとに管理・cloneには引き継がない）
 var poison_stacks:    int = 0  # 毒: 毎秒スタック数分ダメージ（線形）
 var frozen_turns:     int = 0  # 凍結: 攻撃速度低下（逓減・最大80%）
@@ -74,4 +94,7 @@ func clone() -> RefCounted:
 	d.spell_target = spell_target
 	d.spell_effect = spell_effect
 	d.is_consumable = is_consumable
+	d.synthesis_base = synthesis_base
+	d.synthesis_card = synthesis_card
+	d.skills = skills.duplicate(true)
 	return d

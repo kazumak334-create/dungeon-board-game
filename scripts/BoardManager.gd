@@ -4,11 +4,15 @@ extends Node
 
 var board: Array = []
 var attack_timers: Array = []
-var event_queue: Node = null   # EventQueue（Main.gd が設定）
-var base_hp_ref: Array = []    # Main.gd の base_hp への参照（Timer tick 用）
-var _board_dirty: bool = true  # true のときのみサポート効果を再計算
+var event_queue: Node = null          # EventQueue（Main.gd が設定）
+var base_hp_ref: Array = []           # Main.gd の base_hp への参照（Timer tick 用）
+var effect_executor: RefCounted = null  # EffectExecutor（Main.gd が設定）
+var deck_manager_ref: Node = null     # DeckManager（Main.gd が設定）
+var enemy_ai_ref: Node = null         # EnemyAI（Main.gd が設定）
+var _board_dirty: bool = true       # true のときのみサポート効果を再計算
 var _status_timer: Timer = null
-var _regen_tick: int = 0       # リジェネ用：2秒ごとにカウント
+var _regen_tick: int = 0            # リジェネ用：2秒ごとにカウント
+var _pending_revives: Array = []    # [{timer: float, side: int, row: int, unit: Object}]
 
 signal unit_placed(side: int, row: int, col: int, unit: Object)
 signal unit_died(side: int, row: int, col: int)
@@ -122,13 +126,21 @@ func remove_unit(side: int, row: int, col: int) -> void:
 	var unit = board[side][row][col]
 	if unit == null:
 		return  # 既に削除済み（EventQueue の二重処理対策）
-	# 自己再起チェック（撃破時・1回限り）
+	# 撃破時スキル（on_death）処理
+	if unit != null:
+		for skill in unit.skills:
+			if skill.get("trigger", "") == "on_death":
+				if effect_executor != null:
+					effect_executor.execute(skill["effect_id"], skill.get("params", {}), {
+						"trigger": "on_death", "side": side, "row": row, "col": col,
+						"source": unit, "target": null, "damage": 0,
+						"board_manager": self, "deck_manager": deck_manager_ref, "enemy_ai": enemy_ai_ref,
+						"event_queue": event_queue
+					})
+	# 後方互換：active_skillに自己再起が含まれる場合も処理（旧方式）
 	if unit != null and "自己再起" in unit.active_skill and not unit._has_revived:
 		unit._has_revived = true
-		unit.current_hp = 5
-		attack_timers[side][row][col] = unit.attack_interval
-		emit_signal("unit_revived", side, row, col)
-		return
+		_pending_revives.append({"timer": 3.0, "side": side, "row": row, "unit": unit, "hp": 5})
 	# サポート効果由来の再起チェック（1回限り）
 	if unit != null and unit._support_revive and not unit._support_revive_used:
 		unit._support_revive_used = true
@@ -174,10 +186,12 @@ func process_combat(delta: float, base_hp: Array) -> void:
 				attack_timers[side][row][front_col] = eff_interval
 				_do_attack(side, row, front_col, unit, enemy_side, base_hp)
 
-	# 後列ユニットの攻撃（後列攻撃サポート効果を持つ場合）
+	# 後列・中列ユニットの攻撃（狙撃/支援攻撃サポート効果を持つ場合）
 	for side in range(2):
 		var enemy_side: int = 1 - side
 		var back_col: int = 0 if side == 0 else 2
+		var mid_col: int = 1
+		# 後列
 		for row in range(3):
 			var unit = board[side][row][back_col]
 			if unit == null or not unit._can_attack_from_back:
@@ -194,6 +208,23 @@ func process_combat(delta: float, base_hp: Array) -> void:
 				attack_timers[side][row][back_col] = eff_interval
 				var back_atk: int = max(1, int(unit.attack * unit._back_atk_factor) + unit._atk_bonus)
 				_do_attack(side, row, back_col, unit, enemy_side, base_hp, back_atk, unit._back_target_rear, unit._back_no_on_hit)
+		# 中列（支援攻撃のみ）
+		for row in range(3):
+			var unit = board[side][row][mid_col]
+			if unit == null or not unit._can_attack_from_mid:
+				continue
+			if unit.paralysis_turns > 0:
+				continue
+			attack_timers[side][row][mid_col] -= delta
+			if attack_timers[side][row][mid_col] <= 0.0:
+				var freeze_penalty: float = 0.0
+				if unit.frozen_turns > 0:
+					var freeze_reduction: float = 0.5 * float(unit.frozen_turns) / float(unit.frozen_turns + 2)
+					freeze_penalty = unit.attack_interval * freeze_reduction
+				var eff_interval: float = max(0.3, unit.attack_interval - unit._interval_bonus - unit._temp_spd_bonus + freeze_penalty)
+				attack_timers[side][row][mid_col] = eff_interval
+				var mid_atk: int = max(1, int(unit.attack * unit._back_atk_factor) + unit._atk_bonus)
+				_do_attack(side, row, mid_col, unit, enemy_side, base_hp, mid_atk, unit._back_target_rear, unit._back_no_on_hit)
 
 	# 全イベントを優先度順に一括処理
 	if event_queue != null:
@@ -219,9 +250,11 @@ func _do_attack(side: int, row: int, col: int, attacker: Object, enemy_side: int
 		if target_col != -1:
 			hit_any = true
 			var target = board[enemy_side][target_row][target_col]
-			# 鎧による軽減（1スタック=10%軽減・最大100%）
+			# 鎧による軽減（1スタック=10%軽減・最大100%）+ 被弾で-1
 			var armor_pct: float = min(1.0, target._damage_reduction * 0.1)
 			var actual_damage: int = max(0, int(float(effective_atk) * (1.0 - armor_pct)))
+			if target._damage_reduction > 0:
+				target._damage_reduction -= 1
 			if actual_damage > 0:
 				# ダメージイベントをキューに積む
 				event_queue.push(
@@ -229,22 +262,29 @@ func _do_attack(side: int, row: int, col: int, attacker: Object, enemy_side: int
 					attacker, target, "damage", float(actual_damage),
 					{"enemy_side": enemy_side, "row": target_row, "col": target_col}
 				)
-				# 吸血バフ：ダメージの30%をHP回復
-				if attacker._has_lifesteal:
-					var heal: int = max(1, int(actual_damage * 0.3))
+				# 吸血バフ：ダメージの(3%×スタック)をHP回復
+				if attacker.lifesteal_stacks > 0:
+					var heal_pct: float = 0.03 * attacker.lifesteal_stacks
+					var heal: int = max(1, int(actual_damage * heal_pct))
 					event_queue.push(
 						EventQueue.PRIORITY_ACTIVE,
 						target, attacker, "heal", float(heal),
 						{"src_side": side, "src_row": row, "src_col": col, "skill_name": "吸血"}
 					)
-				# 貫通バフ：後ろ1マスにも同量ダメージ（攻撃時効果なし）
-				if attacker._has_penetrate:
-					var behind_col: int = _get_behind_col(enemy_side, target_row, target_col)
-					if behind_col != -1:
+				# 貫通バフ：後ろにダメージ波及（5%×スタック、10スタックで2マス）
+				if attacker.penetrate_stacks > 0:
+					var pen_pct: float = 0.05 * attacker.penetrate_stacks
+					var pen_depth: int = 2 if attacker.penetrate_stacks >= 10 else 1
+					var prev_col: int = target_col
+					for _d in range(pen_depth):
+						var behind_col: int = _get_behind_col(enemy_side, target_row, prev_col)
+						if behind_col == -1:
+							break
+						prev_col = behind_col
 						var behind_target = board[enemy_side][target_row][behind_col]
 						if behind_target != null:
 							var pen_armor: float = min(1.0, behind_target._damage_reduction * 0.1)
-							var pen_dmg: int = max(0, int(float(actual_damage) * (1.0 - pen_armor)))
+							var pen_dmg: int = max(0, int(float(actual_damage) * pen_pct * (1.0 - pen_armor)))
 							if pen_dmg > 0:
 								event_queue.push(
 									EventQueue.PRIORITY_IMMEDIATE,
@@ -267,6 +307,18 @@ func _do_attack(side: int, row: int, col: int, attacker: Object, enemy_side: int
 
 func _push_on_hit_effects(side: int, row: int, col: int, attacker: Object, target: Object,
 		enemy_side: int, target_row: int, target_col: int, damage: int) -> void:
+	# skills配列のon_hit処理（新方式）
+	if effect_executor != null:
+		for skill in attacker.skills:
+			if skill.get("trigger", "") == "on_hit":
+				effect_executor.execute(skill["effect_id"], skill.get("params", {}), {
+					"trigger": "on_hit", "side": side, "row": row, "col": col,
+					"source": attacker, "target": target, "damage": damage,
+					"target_row": target_row, "target_col": target_col,
+					"board_manager": self, "deck_manager": deck_manager_ref, "enemy_ai": enemy_ai_ref,
+					"event_queue": event_queue
+				})
+	# 旧方式：active_skill文字列パース（後方互換）
 	for entry in attacker.active_skill.split(" / "):
 		if "命中時" not in entry:
 			continue
@@ -323,6 +375,17 @@ func _push_on_hit_effects(side: int, row: int, col: int, attacker: Object, targe
 func _push_summon_effects(side: int, row: int, col: int, unit: Object) -> void:
 	if event_queue == null:
 		return
+	# skills配列のon_summon処理（新方式）
+	if effect_executor != null:
+		for skill in unit.skills:
+			if skill.get("trigger", "") == "on_summon":
+				effect_executor.execute(skill["effect_id"], skill.get("params", {}), {
+					"trigger": "on_summon", "side": side, "row": row, "col": col,
+					"source": unit, "target": null, "damage": 0,
+					"board_manager": self, "deck_manager": deck_manager_ref, "enemy_ai": enemy_ai_ref,
+					"event_queue": event_queue
+				})
+	# 旧方式：active_skill文字列パース（後方互換）
 	for entry in unit.active_skill.split(" / "):
 		if "召喚時" not in entry:
 			continue
@@ -418,21 +481,38 @@ func _apply_support_effects() -> void:
 					u._interval_bonus = 0.0
 					u._regen = 0.0
 					u._can_attack_from_back = false
+					u._can_attack_from_mid = false
 					u._back_atk_factor = 1.0
 					u._back_target_rear = false
 					u._back_no_on_hit = false
 					u._damage_reduction = 0
-					u._has_lifesteal = false
-					u._has_penetrate = false
-					u._regen_stacks = 0
+					u._has_lifesteal = u.lifesteal_stacks > 0
+					u._has_penetrate = u.penetrate_stacks > 0
+					# _regen_stacks はリセットしない（スタック+時間減少方式）
 					u._support_revive = false
-	# 各ユニットのサポート効果を適用
+	# 各ユニットのサポート効果を適用（旧方式：support_effect文字列）
 	for s in range(2):
 		for r in range(3):
 			for c in range(3):
 				var u = board[s][r][c]
 				if u != null:
 					_process_unit_support(s, r, c, u)
+	# skills配列のtrigger=="always"を処理（新方式）
+	if effect_executor != null:
+		for s in range(2):
+			for r in range(3):
+				for c in range(3):
+					var u = board[s][r][c]
+					if u == null:
+						continue
+					for skill in u.skills:
+						if skill.get("trigger", "") == "always":
+							effect_executor.execute(skill["effect_id"], skill.get("params", {}), {
+								"trigger": "always", "side": s, "row": r, "col": c,
+								"source": u, "target": null, "damage": 0,
+								"board_manager": self, "deck_manager": deck_manager_ref, "enemy_ai": enemy_ai_ref,
+								"event_queue": event_queue
+							})
 	# アクティブスキル由来のバフ + ATKバフ上限適用
 	for s in range(2):
 		for r in range(3):
@@ -440,16 +520,19 @@ func _apply_support_effects() -> void:
 				var u = board[s][r][c]
 				if u == null:
 					continue
-				if "吸血" in u.active_skill:
-					u._has_lifesteal = true
-				if "貫通" in u.active_skill:
-					u._has_penetrate = true
+				# アクティブスキル文字列に吸血/貫通があれば常時スタック維持
+				if "吸血" in u.active_skill and u.lifesteal_stacks < 5:
+					u.lifesteal_stacks = 5
+				if "貫通" in u.active_skill and u.penetrate_stacks < 5:
+					u.penetrate_stacks = 5
+				u._has_lifesteal = u.lifesteal_stacks > 0
+				u._has_penetrate = u.penetrate_stacks > 0
 				# バフ奪取で得た永続ボーナスを加算
 				u._atk_bonus += u._stolen_atk
 				u._interval_bonus += u._stolen_spd
-				if u._stolen_lifesteal: u._has_lifesteal = true
-				if u._stolen_penetrate: u._has_penetrate = true
-				u._regen_stacks += u._stolen_regen
+				if u._stolen_lifesteal: u.lifesteal_stacks = max(u.lifesteal_stacks, 5)
+				if u._stolen_penetrate: u.penetrate_stacks = max(u.penetrate_stacks, 5)
+				# _regen_stacksはスタック+時間減少方式のため_stolen_regenは直接加算済み
 				u._damage_reduction += u._stolen_armor
 				u._atk_bonus = min(u._atk_bonus, 10)  # ATKバフ重複上限+10
 
@@ -457,11 +540,26 @@ func _process_unit_support(side: int, row: int, col: int, unit: Object) -> void:
 	for entry in unit.support_effect.split(" / "):
 		if "常時発動" not in entry:
 			continue
-		# 後列攻撃は自ユニットへの自己効果
+		# 狙撃：後列のみ、敵最後列優先、命中時アクティブ発動なし
+		if "狙撃" in entry:
+			unit._can_attack_from_back = true
+			unit._back_atk_factor = 0.3 if "極低ATK" in entry else 1.0
+			unit._back_target_rear = true
+			unit._back_no_on_hit = true
+			continue
+		# 支援攻撃：後列+中列から発動
+		if "支援攻撃" in entry:
+			unit._can_attack_from_back = true
+			unit._can_attack_from_mid = true
+			unit._back_atk_factor = 0.3 if "極低ATK" in entry else 1.0
+			if "命中時アクティブ発動なし" in entry or "命中時アクティブは発動しない" in entry:
+				unit._back_no_on_hit = true
+			continue
+		# 後列攻撃（後方互換）
 		if "後列攻撃" in entry:
 			unit._can_attack_from_back = true
 			unit._back_atk_factor = 0.3 if "極低ATK" in entry else 1.0
-			if "最��列優先" in entry:
+			if "最後列優先" in entry:
 				unit._back_target_rear = true
 			if "命中時アクティブ発動なし" in entry or "命中時アクティブは発動しない" in entry:
 				unit._back_no_on_hit = true
@@ -488,13 +586,20 @@ func _process_unit_support(side: int, row: int, col: int, unit: Object) -> void:
 				t._damage_reduction += 1
 		elif "吸血付与" in entry:
 			for t in targets:
-				t._has_lifesteal = true
+				t.lifesteal_stacks = max(t.lifesteal_stacks, 5)
 		elif "貫通付与" in entry:
 			for t in targets:
-				t._has_penetrate = true
+				t.penetrate_stacks = max(t.penetrate_stacks, 5)
 		elif "リジェネ付与" in entry:
 			for t in targets:
-				t._regen_stacks += 1
+				t._regen += 1.0  # サポート由来は_regen（毎秒HP回復・リセット再計算型）
+		elif "スライム全体強化" in entry or ("スライム全体" in entry and "攻撃" in entry):
+			# キングスライム：自軍スライム全体のATK+50%, HP+50%
+			for r2 in range(3):
+				for c2 in range(3):
+					var ally = board[side][r2][c2]
+					if ally != null and ally.race == "スライム" and ally != unit:
+						ally._atk_bonus += max(1, ally.attack / 2)
 		elif "再起付与" in entry:
 			for t in targets:
 				if not t._support_revive_used:
@@ -546,6 +651,15 @@ func _get_support_targets(side: int, row: int, col: int, target_desc: String) ->
 		result.append(u)
 	return result
 
+func count_units_by_name(side: int, unit_name: String) -> int:
+	var count: int = 0
+	for r in range(3):
+		for c in range(3):
+			var u = board[side][r][c]
+			if u != null and u.unit_name == unit_name:
+				count += 1
+	return count
+
 func on_board_changed() -> void:
 	if event_queue != null:
 		# PRIORITY_SUPPORT：盤面変化後にサポート効果を再計算
@@ -555,6 +669,35 @@ func on_board_changed() -> void:
 
 func _on_status_tick() -> void:
 	if event_queue == null:
+		return
+	# 遅延復活の処理
+	var revived: Array = []
+	for i in range(_pending_revives.size()):
+		_pending_revives[i]["timer"] -= 1.0
+		if _pending_revives[i]["timer"] <= 0.0:
+			revived.append(i)
+			var rev = _pending_revives[i]
+			var s: int = rev["side"]
+			var r: int = rev["row"]
+			var u: Object = rev["unit"]
+			# 同段の空きマスを探す
+			var placed: bool = false
+			for c in range(3):
+				if board[s][r][c] == null:
+					u.current_hp = rev["hp"]
+					board[s][r][c] = u
+					attack_timers[s][r][c] = u.attack_interval
+					emit_signal("unit_revived", s, r, c)
+					on_board_changed()
+					placed = true
+					break
+			if not placed:
+				pass  # 同段が満席なら復活失敗
+	for i in range(revived.size() - 1, -1, -1):
+		_pending_revives.remove_at(revived[i])
+	# 一時停止中は全ての時間経過処理をスキップ
+	var main_node = get_parent()
+	if main_node != null and main_node.get("game_paused") == true:
 		return
 	# HP回復（サポート効果の _regen を1秒ごとに適用）
 	_apply_regen()
@@ -618,11 +761,28 @@ func _apply_regen_buff() -> void:
 						null, u, "heal", float(heal),
 						{"src_side": s, "src_row": r, "src_col": c}
 					)
+					u._regen_stacks -= 1  # 2秒ごとに1スタック減少
+				# 吸血・貫通・鎧も2秒ごとに1スタック減少
+				if u.lifesteal_stacks > 0:
+					u.lifesteal_stacks -= 1
+					u._has_lifesteal = u.lifesteal_stacks > 0
+				if u.penetrate_stacks > 0:
+					u.penetrate_stacks -= 1
+					u._has_penetrate = u.penetrate_stacks > 0
+				# 鎧は被弾で減少（時間減衰なし）
 
 # ---- 時間経過スキルシステム ----
 
 func _init_skill_timers(unit: Object) -> void:
 	unit._skill_timers.clear()
+	# skills配列のtimerエントリを登録（新方式）
+	for i in range(unit.skills.size()):
+		var skill = unit.skills[i]
+		if skill.get("trigger", "") == "timer":
+			var interval: float = skill.get("params", {}).get("interval", 0.0)
+			if interval > 0.0:
+				unit._skill_timers["timer_%d" % i] = interval
+	# 旧方式：active_skill文字列パース（後方互換）
 	for entry in unit.active_skill.split(" / "):
 		if "時間経過" not in entry:
 			continue
@@ -668,8 +828,21 @@ func _process_timed_skills() -> void:
 					if u._skill_timers[entry] <= 0.0:
 						fired.append(entry)
 				for entry in fired:
-					_fire_timed_skill(s, r, c, u, entry)
-					u._skill_timers[entry] = _parse_skill_interval(entry)
+					# skills配列のtimerエントリ（"timer_N"形式）は新方式で処理
+					if entry.begins_with("timer_") and effect_executor != null:
+						var idx: int = int(entry.substr(6))
+						if idx < u.skills.size():
+							var skill = u.skills[idx]
+							effect_executor.execute(skill["effect_id"], skill.get("params", {}), {
+								"trigger": "timer", "side": s, "row": r, "col": c,
+								"source": u, "target": null, "damage": 0,
+								"board_manager": self, "deck_manager": deck_manager_ref, "enemy_ai": enemy_ai_ref,
+								"event_queue": event_queue
+							})
+							u._skill_timers[entry] = skill.get("params", {}).get("interval", 1.0)
+					else:
+						_fire_timed_skill(s, r, c, u, entry)
+						u._skill_timers[entry] = _parse_skill_interval(entry)
 
 func _fire_timed_skill(side: int, row: int, col: int, unit: Object, entry: String) -> void:
 	var enemy_side: int = 1 - side
@@ -740,7 +913,7 @@ func _fire_timed_skill(side: int, row: int, col: int, unit: Object, entry: Strin
 					var buff_count: int = 0
 					if target._atk_bonus > 0: buff_count += 1
 					if target._interval_bonus > 0.0: buff_count += 1
-					if target._has_lifesteal: buff_count += 1
+					if target.lifesteal_stacks > 0: buff_count += 1
 					if target._has_penetrate: buff_count += 1
 					if target._regen_stacks > 0: buff_count += 1
 					if target._damage_reduction > 0: buff_count += 1
@@ -799,15 +972,18 @@ func _steal_buffs(stealer: Object, victim: Object, multiplier: float) -> void:
 	# SPDボーナス奪取
 	if victim._interval_bonus > 0.0:
 		stealer._stolen_spd += victim._interval_bonus * multiplier
-	# 吸血奪取
-	if victim._has_lifesteal:
-		stealer._stolen_lifesteal = true
-	# 貫通奪取
-	if victim._has_penetrate:
-		stealer._stolen_penetrate = true
-	# リジェネ奪取
+	# 吸血奪取（スタック移動）
+	if victim.lifesteal_stacks > 0:
+		stealer.lifesteal_stacks += int(victim.lifesteal_stacks * multiplier)
+		victim.lifesteal_stacks = 0
+	# 貫通奪取（スタック移動）
+	if victim.penetrate_stacks > 0:
+		stealer.penetrate_stacks += int(victim.penetrate_stacks * multiplier)
+		victim.penetrate_stacks = 0
+	# リジェネ奪取（スタック直接移動）
 	if victim._regen_stacks > 0:
-		stealer._stolen_regen += int(victim._regen_stacks * multiplier)
+		stealer._regen_stacks += int(victim._regen_stacks * multiplier)
+		victim._regen_stacks = 0
 	# 鎧奪取
 	if victim._damage_reduction > 0:
 		stealer._stolen_armor += int(victim._damage_reduction * multiplier)
@@ -827,6 +1003,17 @@ func _process_on_kill(killer: Object) -> void:
 	if k_side == -1:
 		return
 	var enemy_side: int = 1 - k_side
+	# skills配列のon_kill処理（新方式）
+	if effect_executor != null:
+		for skill in killer.skills:
+			if skill.get("trigger", "") == "on_kill":
+				effect_executor.execute(skill["effect_id"], skill.get("params", {}), {
+					"trigger": "on_kill", "side": k_side, "row": k_row, "col": k_col,
+					"source": killer, "target": null, "damage": 0,
+					"board_manager": self, "deck_manager": deck_manager_ref, "enemy_ai": enemy_ai_ref,
+					"event_queue": event_queue
+				})
+	# 旧方式：active_skill文字列パース（後方互換）
 	for entry in killer.active_skill.split(" / "):
 		if "撃破時" not in entry:
 			continue

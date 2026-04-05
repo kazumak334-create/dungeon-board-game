@@ -17,6 +17,14 @@ var _drag_start_pos: Vector2 = Vector2.ZERO
 var card_list_container: VBoxContainer
 var selected_label: Label
 var _all_cards: Array = []
+var _tooltip_panel: PanelContainer = null
+var _tooltip_label: Label = null
+# デッキエディタ
+var _deck_container: VBoxContainer = null
+var _deck_scroll: ScrollContainer = null
+var _deck_title_label: Label = null
+var _deck_refresh_timer: float = 0.0
+var _last_deck_size: int = -1
 
 func setup(p_main: Node, p_board: Node, p_deck: Node, p_enemy: Node) -> void:
 	main = p_main
@@ -28,24 +36,74 @@ func setup(p_main: Node, p_board: Node, p_deck: Node, p_enemy: Node) -> void:
 
 func _build_all_cards() -> void:
 	var unit_defs: Array = [
-		{"name": "スライム",         "hp": 15, "atk": 1, "interval": 4.0, "cost": 1, "race": "スライム", "range": "1行", "col": 1, "support": "", "active": "追加召喚〈召喚時・隣接マスにスライムを1体召喚〉 / 異常状態カード使用時、優先的に対象に選定される"},
-		{"name": "ラージスライム",   "hp": 25, "atk": 2, "interval": 3.8, "cost": 2, "race": "スライム", "range": "1行", "col": 1, "support": "", "active": ""},
-		{"name": "ファットスライム", "hp": 50, "atk": 3, "interval": 6.0, "cost": 3, "race": "スライム", "range": "1行", "col": 0, "support": "", "active": ""},
-		{"name": "キングスライム",   "hp":100, "atk": 5, "interval": 6.0, "cost":10, "race": "スライム", "range": "1行", "col": 2, "support": "", "active": ""},
-		{"name": "マッドスライム",   "hp": 40, "atk": 2, "interval": 3.8, "cost": 3, "race": "スライム", "range": "1行", "col": 1, "support": "", "active": "鎧〈常時〉"},
-		{"name": "ヒートスライム",   "hp": 25, "atk": 2, "interval": 3.8, "cost": 3, "race": "スライム", "range": "1行", "col": 0, "support": "", "active": "火傷付与〈命中時〉"},
-		{"name": "フロストスライム", "hp": 25, "atk": 2, "interval": 3.8, "cost": 3, "race": "スライム", "range": "1行", "col": 0, "support": "", "active": "凍結付与〈命中時〉"},
-		{"name": "パラライズスライム","hp": 25, "atk": 2, "interval": 3.0, "cost": 3, "race": "スライム", "range": "1行", "col": 0, "support": "", "active": "麻痺付与〈命中時〉"},
-		{"name": "ポイズンスライム", "hp": 25, "atk": 2, "interval": 3.0, "cost": 3, "race": "スライム", "range": "1行", "col": 0, "support": "", "active": "毒付与〈命中時〉"},
-		{"name": "クリスタルスライム","hp": 10, "atk": 1, "interval": 2.0, "cost": 4, "race": "スライム", "range": "1行", "col": 2, "support": "", "active": ""},
-		{"name": "ブラッドスライム", "hp": 25, "atk": 2, "interval": 3.8, "cost": 4, "race": "スライム", "range": "1行", "col": 0, "support": "", "active": ""},
-		{"name": "ゼリーフィッシュ", "hp": 10, "atk": 1, "interval": 5.0, "cost": 3, "race": "スライム", "range": "1行", "col": 2, "support": "", "active": ""},
-		{"name": "スケルトン",     "hp": 20, "atk": 4, "interval": 2.0, "cost": 2, "race": "アンデッド", "range": "1行",       "col": 0, "support": "再起付与〈常時発動・隣接の味方・HP1で1度復活〉", "active": "自己再起〈撃破時・HP5で復活〉"},
-		{"name": "グール",         "hp": 25, "atk": 5, "interval": 2.0, "cost": 2, "race": "アンデッド", "range": "1行",       "col": 1, "support": "", "active": "吸血〈命中時・ダメージ25%回復〉 / ATK累積〈撃破時・+2（上限10）〉"},
-		{"name": "バンシー",       "hp": 10, "atk": 1, "interval": 2.0, "cost": 2, "race": "アンデッド", "range": "上下含む3行","col": 2, "support": "後列攻撃〈常時発動・全行・極低ATK・命中時効果あり〉 / SPDバフ〈常時発動・同列の味方〉", "active": "火傷付与〈命中時〉 / 全体ATK低下〈時間経過15s・敵全行〉 / 敵SPD低下〈撃破時・全体30%・30s〉"},
-		{"name": "ゴブリン",       "hp": 15, "atk": 3, "interval": 1.0, "cost": 1, "race": "獣",        "range": "1行",       "col": 0, "support": "ATKバフ〈常時発動・隣接の獣のみ〉", "active": "2枚ドロー〈召喚時・次の2枚をキューに同時積み〉"},
-		{"name": "ウルフ",         "hp": 20, "atk": 5, "interval": 1.5, "cost": 2, "race": "獣",        "range": "1行",       "col": 1, "support": "SPDバフ〈常時発動・同行の獣・同行獣数に比例〉", "active": "ATKバフ〈時間経過10s・同行の獣全員+3（5s）〉"},
-		{"name": "タイガー",       "hp": 25, "atk": 8, "interval": 2.0, "cost": 3, "race": "獣",        "range": "下含む2行", "col": 2, "support": "ATKバフ〈常時発動・隣接の獣のみ〉", "active": "クリティカル〈命中時・初撃ATK×2〉 / 最前列突撃〈召喚時〉 / 単体大ダメージ〈時間経過20s〉"},
+		{"name": "スライム",         "hp": 15, "atk": 1, "interval": 4.0, "cost": 1, "race": "スライム", "range": "1行", "col": 1, "support": "", "active": "",
+			"skills": [{"trigger": "on_summon", "effect_id": "summon_same_row", "params": {"unit_id": "スライム", "chain": false}}]},
+		{"name": "ラージスライム",   "hp": 25, "atk": 2, "interval": 3.8, "cost": 2, "race": "スライム", "range": "1行", "col": 1, "support": "", "active": "", "skills": []},
+		{"name": "ファットスライム", "hp": 50, "atk": 3, "interval": 6.0, "cost": 3, "race": "スライム", "range": "1行", "col": 0, "support": "", "active": "", "skills": []},
+		{"name": "キングスライム",   "hp":100, "atk": 5, "interval": 6.0, "cost":10, "race": "スライム", "range": "1行", "col": 2, "support": "スライム全体強化〈常時発動・全体・スライムのATK+50%〉", "active": "", "skills": []},
+		{"name": "マッドスライム",   "hp": 40, "atk": 2, "interval": 3.8, "cost": 3, "race": "スライム", "range": "1行", "col": 1, "support": "", "active": "",
+			"skills": [{"trigger": "always", "effect_id": "armor_apply", "params": {"target": "self", "stacks": 1}}]},
+		{"name": "ヒートスライム",   "hp": 25, "atk": 2, "interval": 3.8, "cost": 3, "race": "スライム", "range": "1行", "col": 0, "support": "", "active": "火傷付与〈命中時〉", "skills": []},
+		{"name": "フロストスライム", "hp": 25, "atk": 2, "interval": 3.8, "cost": 3, "race": "スライム", "range": "1行", "col": 0, "support": "", "active": "凍結付与〈命中時〉", "skills": []},
+		{"name": "パラライズスライム","hp": 25, "atk": 2, "interval": 3.0, "cost": 3, "race": "スライム", "range": "1行", "col": 0, "support": "", "active": "麻痺付与〈命中時〉", "skills": []},
+		{"name": "ポイズンスライム", "hp": 25, "atk": 2, "interval": 3.0, "cost": 3, "race": "スライム", "range": "1行", "col": 0, "support": "", "active": "毒付与〈命中時〉", "skills": []},
+		{"name": "クリスタルスライム","hp": 10, "atk": 1, "interval": 2.0, "cost": 4, "race": "スライム", "range": "1行", "col": 2, "support": "", "active": "", "skills": []},
+		{"name": "ブラッドスライム", "hp": 25, "atk": 2, "interval": 3.8, "cost": 4, "race": "スライム", "range": "1行", "col": 0, "support": "", "active": "",
+			"skills": [
+				{"trigger": "on_summon", "effect_id": "lifesteal_apply", "params": {"target": "random_front_ally", "stacks": 5}},
+				{"trigger": "on_summon", "effect_id": "deck_add_self", "params": {}},
+			]},
+		{"name": "ゼリーフィッシュ", "hp": 10, "atk": 1, "interval": 5.0, "cost": 3, "race": "スライム", "range": "1行", "col": 2, "support": "", "active": "", "skills": []},
+		{"name": "スケルトン",     "hp": 20, "atk": 2, "interval": 3.0, "cost": 2, "race": "アンデッド", "range": "1行",       "col": 0, "support": "", "active": "",
+			"skills": [
+				{"trigger": "always", "effect_id": "enemy_mana_drain", "params": {}},
+				{"trigger": "on_death", "effect_id": "self_revive", "params": {"hp": 5, "delay": 3.0}},
+			]},
+		{"name": "グール",         "hp": 25, "atk": 5, "interval": 2.0, "cost": 2, "race": "アンデッド", "range": "1行",       "col": 1, "support": "", "active": "",
+			"skills": [
+				{"trigger": "always", "effect_id": "debuff_spread", "params": {}},
+				{"trigger": "on_hit", "effect_id": "lifesteal_apply", "params": {"stacks": 8}},
+				{"trigger": "on_kill", "effect_id": "atk_accumulate", "params": {"amount": 2, "cap": 10}},
+			]},
+		{"name": "バンシー",       "hp": 10, "atk": 1, "interval": 2.0, "cost": 2, "race": "アンデッド", "range": "上下含む3行","col": 2, "support": "", "active": "",
+			"skills": [
+				{"trigger": "always", "effect_id": "support_fire", "params": {"atk_factor": 0.3}},
+				{"trigger": "always", "effect_id": "spd_buff_apply", "params": {"target": "same_col_ally"}},
+				{"trigger": "on_hit", "effect_id": "burn_apply", "params": {"stacks": 2}},
+				{"trigger": "timer", "effect_id": "all_enemy_debuff", "params": {"interval": 15.0, "status": "burn", "stacks": 2}},
+				{"trigger": "on_kill", "effect_id": "freeze_apply", "params": {"target": "all_enemies", "stacks": 4}},
+			]},
+		{"name": "リッチ",         "hp": 15, "atk": 2, "interval": 3.0, "cost": 3, "race": "アンデッド", "range": "上下含む3行","col": 2, "support": "", "active": "",
+			"skills": [
+				{"trigger": "always", "effect_id": "snipe", "params": {}},
+				{"trigger": "always", "effect_id": "support_revive", "params": {"target": "same_row"}},
+				{"trigger": "on_hit", "effect_id": "freeze_apply", "params": {"stacks": 3}},
+				{"trigger": "timer", "effect_id": "poison_apply", "params": {"interval": 20.0, "target": "all_enemies", "stacks": 3}},
+				{"trigger": "on_kill", "effect_id": "revive_undead", "params": {}},
+			]},
+		{"name": "ヴリコラカス",   "hp": 30, "atk": 6, "interval": 2.0, "cost": 3, "race": "アンデッド", "range": "1行",       "col": 1, "support": "", "active": "",
+			"skills": [
+				{"trigger": "always", "effect_id": "debuff_spread", "params": {}},
+				{"trigger": "on_hit", "effect_id": "steal_buffs", "params": {}},
+				{"trigger": "timer", "effect_id": "steal_all_buffs", "params": {"interval": 20.0}},
+			]},
+		{"name": "ゴブリン",       "hp": 15, "atk": 3, "interval": 1.0, "cost": 1, "race": "獣",        "range": "1行",       "col": 0, "support": "", "active": "",
+			"skills": [
+				{"trigger": "always", "effect_id": "atk_buff_apply", "params": {"target": "adjacent_beast"}},
+				{"trigger": "on_summon", "effect_id": "draw_cards", "params": {"count": 2}},
+			]},
+		{"name": "ウルフ",         "hp": 20, "atk": 5, "interval": 1.5, "cost": 2, "race": "獣",        "range": "1行",       "col": 1, "support": "", "active": "",
+			"skills": [
+				{"trigger": "always", "effect_id": "spd_buff_apply", "params": {"target": "same_row_beast"}},
+				{"trigger": "timer", "effect_id": "atk_buff_apply", "params": {"interval": 10.0, "target": "same_row_beast", "stacks": 3, "duration": 5.0}},
+			]},
+		{"name": "タイガー",       "hp": 25, "atk": 8, "interval": 2.0, "cost": 3, "race": "獣",        "range": "下含む2行", "col": 2, "support": "", "active": "",
+			"skills": [
+				{"trigger": "always", "effect_id": "atk_buff_apply", "params": {"target": "adjacent_beast"}},
+				{"trigger": "on_hit", "effect_id": "critical", "params": {"first_only": true, "factor": 2.0}},
+				{"trigger": "on_summon", "effect_id": "force_front", "params": {}},
+				{"trigger": "timer", "effect_id": "big_damage", "params": {"interval": 20.0}},
+			]},
 	]
 	for d in unit_defs:
 		_all_cards.append({"name": d["name"], "data": d, "type": "unit"})
@@ -122,6 +180,9 @@ func _build_dev_panel() -> void:
 		[{"text": "味方10dmg", "cb": _on_damage_allies},
 		 {"text": "敵10dmg",   "cb": _on_damage_enemies},
 		 {"text": "デバフ解除","cb": _on_clear_debuffs}],
+		[{"text": "自HP回復",  "cb": _on_heal_player_base},
+		 {"text": "敵HP回復",  "cb": _on_heal_enemy_base},
+		 {"text": "HP全回復",  "cb": _on_heal_both_base}],
 	]
 	for row in tools:
 		for i in range(row.size()):
@@ -173,12 +234,162 @@ func _build_dev_panel() -> void:
 		if _all_cards[i]["type"] == "status_spell":
 			_add_card_button(i, _all_cards[i]["name"], Color(0.8, 0.3, 0.8))
 
+	# カード詳細ツールチップ（カード一覧の上に表示）
+	_tooltip_panel = PanelContainer.new()
+	_tooltip_panel.position = Vector2(750, 10)
+	_tooltip_panel.size = Vector2(265, 0)
+	_tooltip_panel.visible = false
+	_tooltip_panel.z_index = 90
+	var style := StyleBoxFlat.new()
+	style.bg_color = Color(0.08, 0.08, 0.15, 0.95)
+	style.border_color = Color(0.4, 0.5, 0.7)
+	style.set_border_width_all(1)
+	style.set_content_margin_all(8)
+	_tooltip_panel.add_theme_stylebox_override("panel", style)
+	_tooltip_label = Label.new()
+	_tooltip_label.add_theme_font_size_override("font_size", 11)
+	_tooltip_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_tooltip_label.custom_minimum_size = Vector2(249, 0)
+	_tooltip_panel.add_child(_tooltip_label)
+	main.add_child(_tooltip_panel)
+
 	_drag_label = Label.new()
 	_drag_label.add_theme_font_size_override("font_size", 14)
 	_drag_label.modulate = Color(1.0, 1.0, 0.3)
 	_drag_label.visible = false
 	_drag_label.z_index = 100
 	main.add_child(_drag_label)
+
+	# ---- 左側デッキエディタパネル ----
+	var deck_bg := ColorRect.new()
+	deck_bg.position = Vector2(0, 0)
+	deck_bg.size = Vector2(155, 720)
+	deck_bg.color = Color(0.06, 0.1, 0.06)
+	main.add_child(deck_bg)
+
+	_deck_title_label = Label.new()
+	_deck_title_label.text = "プレイヤーデッキ (0枚)"
+	_deck_title_label.position = Vector2(6, 4)
+	_deck_title_label.add_theme_font_size_override("font_size", 11)
+	_deck_title_label.modulate = Color(0.5, 1.0, 0.5)
+	main.add_child(_deck_title_label)
+
+	var deck_tools_y: int = 22
+	var deck_btns: Array = [
+		{"text": "シャッフル", "cb": _on_deck_shuffle},
+		{"text": "全削除",     "cb": _on_deck_clear},
+	]
+	for i in range(deck_btns.size()):
+		var db := Button.new()
+		db.text = deck_btns[i]["text"]
+		db.position = Vector2(4 + i * 76, deck_tools_y)
+		db.size = Vector2(73, 22)
+		db.add_theme_font_size_override("font_size", 10)
+		db.pressed.connect(deck_btns[i]["cb"])
+		main.add_child(db)
+	deck_tools_y += 26
+
+	_deck_scroll = ScrollContainer.new()
+	_deck_scroll.position = Vector2(0, deck_tools_y)
+	_deck_scroll.size = Vector2(155, 720 - deck_tools_y - 6)
+	main.add_child(_deck_scroll)
+
+	_deck_container = VBoxContainer.new()
+	_deck_container.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_deck_scroll.add_child(_deck_container)
+
+	_refresh_deck_list()
+
+func _refresh_deck_list(force: bool = true) -> void:
+	# サイズ変化がない場合はスキップ（毎フレーム呼び出し対策）
+	var current_size: int = deck_manager.deck.size() + deck_manager.discard.size()
+	if not force and current_size == _last_deck_size:
+		return
+	_last_deck_size = current_size
+	# デッキ一覧を再構築
+	for child in _deck_container.get_children():
+		child.queue_free()
+	var deck_arr: Array = deck_manager.deck
+	_deck_title_label.text = "プレイヤーデッキ (%d枚)" % deck_arr.size()
+	for i in range(deck_arr.size()):
+		var card = deck_arr[i]
+		var hbox := HBoxContainer.new()
+		hbox.custom_minimum_size = Vector2(150, 22)
+		# カード名ラベル
+		var lbl := Label.new()
+		var display: String = "%d. %s (%d)" % [i + 1, card.unit_name, card.cost]
+		lbl.text = display
+		lbl.add_theme_font_size_override("font_size", 10)
+		lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		if card.card_type == "unit":
+			lbl.modulate = Color(0.7, 0.85, 1.0)
+		elif card.card_type == "status_spell":
+			lbl.modulate = Color(0.8, 0.3, 0.8)
+		else:
+			lbl.modulate = Color(0.5, 0.8, 0.5)
+		# 右クリックで削除
+		lbl.gui_input.connect(_on_deck_card_input.bind(i))
+		lbl.mouse_filter = Control.MOUSE_FILTER_STOP
+		hbox.add_child(lbl)
+		# 上移動ボタン
+		if i > 0:
+			var up_btn := Button.new()
+			up_btn.text = "↑"
+			up_btn.custom_minimum_size = Vector2(22, 20)
+			up_btn.add_theme_font_size_override("font_size", 10)
+			up_btn.pressed.connect(_on_deck_move_up.bind(i))
+			hbox.add_child(up_btn)
+		_deck_container.add_child(hbox)
+	# 捨て札表示
+	var discard_lbl := Label.new()
+	discard_lbl.text = "── 捨て札 (%d枚) ──" % deck_manager.discard.size()
+	discard_lbl.add_theme_font_size_override("font_size", 10)
+	discard_lbl.modulate = Color(0.5, 0.5, 0.4)
+	_deck_container.add_child(discard_lbl)
+	for card in deck_manager.discard:
+		var lbl := Label.new()
+		lbl.text = "  %s (%d)" % [card.unit_name, card.cost]
+		lbl.add_theme_font_size_override("font_size", 10)
+		lbl.modulate = Color(0.4, 0.4, 0.35)
+		_deck_container.add_child(lbl)
+
+func _on_deck_shuffle() -> void:
+	deck_manager.deck.shuffle()
+	_refresh_deck_list()
+	main._add_log("[DEV] デッキシャッフル")
+
+func _on_deck_clear() -> void:
+	deck_manager.deck.clear()
+	deck_manager.discard.clear()
+	_refresh_deck_list()
+	main._add_log("[DEV] デッキ全削除")
+
+func _on_deck_move_up(index: int) -> void:
+	var arr: Array = deck_manager.deck
+	if index > 0 and index < arr.size():
+		var tmp = arr[index]
+		arr[index] = arr[index - 1]
+		arr[index - 1] = tmp
+	_refresh_deck_list()
+
+func _on_deck_remove(index: int) -> void:
+	var arr: Array = deck_manager.deck
+	if index >= 0 and index < arr.size():
+		arr.remove_at(index)
+	_refresh_deck_list()
+	main._add_log("[DEV] デッキからカード削除")
+
+func _on_deck_card_input(event: InputEvent, index: int) -> void:
+	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_RIGHT:
+		_on_deck_remove(index)
+
+func on_drop_to_deck() -> void:
+	if selected_card == null:
+		return
+	var card = selected_card.clone() if selected_card.card_type == "unit" else selected_card
+	deck_manager.deck.append(card)
+	_refresh_deck_list()
+	main._add_log("[DEV] %s をデッキ末尾に追加" % selected_card.unit_name)
 
 func _add_section_header(text: String) -> void:
 	var lbl := Label.new()
@@ -195,6 +406,8 @@ func _add_card_button(index: int, card_name: String, color: Color) -> void:
 	btn.add_theme_font_size_override("font_size", 11)
 	btn.modulate = color
 	btn.button_down.connect(_on_card_mouse_down.bind(index))
+	btn.mouse_entered.connect(_on_card_hover.bind(index))
+	btn.mouse_exited.connect(_on_card_hover_end)
 	card_list_container.add_child(btn)
 
 # ---- カード操作 ----
@@ -208,13 +421,15 @@ func _build_card(index: int) -> Object:
 		obj.unit_name = d["name"]; obj.max_hp = d["hp"]; obj.current_hp = d["hp"]
 		obj.attack = d["atk"]; obj.attack_interval = d["interval"]; obj.cost = d["cost"]
 		obj.assigned_col = d["col"]; obj.race = d["race"]; obj.attack_range = d["range"]
-		obj.support_effect = d["support"]; obj.active_skill = d["active"]
+		obj.support_effect = d.get("support", ""); obj.active_skill = d.get("active", "")
+		obj.skills = d.get("skills", []).duplicate(true)
 	else:
 		var d = card["data"]
 		obj.unit_name = d["name"]; obj.card_type = card["type"]
 		obj.spell_id = d["name"]; obj.cost = d["cost"]
 		obj.spell_target = d["target"]; obj.spell_effect = d["effect"]
 		obj.is_consumable = (card["type"] == "status_spell")
+		obj.skills = d.get("skills", []).duplicate(true)
 	return obj
 
 func _on_card_mouse_down(index: int) -> void:
@@ -259,6 +474,7 @@ func _normal_play(card: Object) -> void:
 			deck_manager.spell_executor.execute(card, 0, board_manager, deck_manager, enemy_ai)
 			main._add_log("[DEV通常] %s 発動" % card.spell_id)
 	main._mark_all_cells_dirty()
+	_refresh_deck_list()
 
 func _manual_place(card: Object, side: int, row: int, col: int) -> void:
 	if card == null:
@@ -278,10 +494,12 @@ func _manual_place(card: Object, side: int, row: int, col: int) -> void:
 			board_manager.board[side][row][col] = placed
 			board_manager.attack_timers[side][row][col] = placed.attack_interval
 			board_manager._init_skill_timers(placed)
+			board_manager._push_summon_effects(side, row, col, placed)
 			board_manager.emit_signal("unit_placed", side, row, col, placed)
 			board_manager.on_board_changed()
 			main._add_log("[DEV] %s → %s %d行col%d" % [placed.unit_name, side_name, row, col])
 	elif card.card_type in ["spell", "status_spell"]:
+		# 呪文の盤面合成はドロップ先sideで判定
 		var existing = board_manager.board[side][row][col]
 		if existing != null:
 			var result = board_manager._check_synthesis(existing.unit_name, card)
@@ -290,9 +508,51 @@ func _manual_place(card: Object, side: int, row: int, col: int) -> void:
 				main._add_log("[DEV] 合成: %s + %s → %s" % [existing.unit_name, card.spell_id, result.unit_name])
 				main._mark_all_cells_dirty()
 				return
-		deck_manager.spell_executor.execute(card, side, board_manager, deck_manager, enemy_ai)
-		main._add_log("[DEV] 呪文 %s 発動（%s側）" % [card.spell_id, side_name])
+		# 呪文効果はside=0（プレイヤー発動）固定（enemy_side逆転を防ぐ）
+		deck_manager.spell_executor.execute(card, 0, board_manager, deck_manager, enemy_ai)
+		main._add_log("[DEV] 呪文 %s 発動" % card.spell_id)
 	main._mark_all_cells_dirty()
+	_refresh_deck_list()
+
+# ---- カードホバー詳細 ----
+
+func _on_card_hover(index: int) -> void:
+	var card = _all_cards[index]
+	var d = card["data"]
+	var lines: Array = []
+	if card["type"] == "unit":
+		lines.append("[%s] %s" % [d.get("race", ""), d["name"]])
+		lines.append("Cost: %d" % d["cost"])
+		lines.append("HP: %d / ATK: %d / SPD: %.1fs" % [d["hp"], d["atk"], d["interval"]])
+		lines.append("攻撃範囲: %s" % d.get("range", "1行"))
+		if d.get("support", "") != "":
+			lines.append("")
+			lines.append("■ サポート効果:")
+			for part in d["support"].split(" / "):
+				lines.append("  " + part.strip_edges())
+		if d.get("active", "") != "":
+			lines.append("")
+			lines.append("■ アクティブスキル:")
+			for part in d["active"].split(" / "):
+				lines.append("  " + part.strip_edges())
+	elif card["type"] == "spell":
+		lines.append("[呪文] %s" % d["name"])
+		lines.append("Cost: %s" % ("X" if d["cost"] == -1 else str(d["cost"])))
+		lines.append("")
+		lines.append("■ 効果:")
+		lines.append("  " + d["effect"])
+	elif card["type"] == "status_spell":
+		lines.append("[異常状態] %s" % d["name"])
+		lines.append("Cost: 0 (消滅型)")
+		lines.append("")
+		lines.append("■ 効果:")
+		lines.append("  " + d["effect"])
+	_tooltip_label.text = "\n".join(lines)
+	_tooltip_panel.visible = true
+	_tooltip_panel.size = Vector2(265, 0)  # 高さ自動調整
+
+func _on_card_hover_end() -> void:
+	_tooltip_panel.visible = false
 
 # ---- ツールボタン ----
 
@@ -360,6 +620,22 @@ func _on_clear_debuffs() -> void:
 					u.paralysis_turns = 0; u.poison_stacks = 0
 	main._add_log("[DEV] デバフ解除")
 	main._mark_all_cells_dirty()
+
+func _on_heal_player_base() -> void:
+	main.base_hp[0] = 30
+	main._update_base_hp()
+	main._add_log("[DEV] 自本体HP全回復")
+
+func _on_heal_enemy_base() -> void:
+	main.base_hp[1] = 30
+	main._update_base_hp()
+	main._add_log("[DEV] 敵本体HP全回復")
+
+func _on_heal_both_base() -> void:
+	main.base_hp[0] = 30
+	main.base_hp[1] = 30
+	main._update_base_hp()
+	main._add_log("[DEV] 両本体HP全回復")
 
 func _on_back_to_menu() -> void:
 	main.get_tree().reload_current_scene()

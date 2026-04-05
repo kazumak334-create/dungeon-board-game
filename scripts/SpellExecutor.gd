@@ -3,11 +3,27 @@
 class_name SpellExecutor
 extends RefCounted
 
+var effect_executor: RefCounted = null  # EffectExecutor（Main.gd から設定可能）
+
 # 呪文を実行する。戻り値: true=捨て札へ, false=消滅
 func execute(spell: Object, side: int, board_manager: Node,
 		deck_manager: Node, enemy_ai: Node) -> bool:
 	var enemy_side: int = 1 - side
 	var event_queue: Node = board_manager.event_queue
+
+	# skills配列がある場合は新方式で処理（EffectExecutorを使用）
+	var ee = effect_executor if effect_executor != null else board_manager.get("effect_executor")
+	if ee != null and spell.get("skills") != null and not spell.skills.is_empty():
+		for skill in spell.skills:
+			if skill.get("trigger", "") == "on_play":
+				ee.execute(skill["effect_id"], skill.get("params", {}), {
+					"trigger": "on_play", "side": side, "row": -1, "col": -1,
+					"source": spell, "target": null, "damage": 0,
+					"board_manager": board_manager, "deck_manager": deck_manager,
+					"enemy_ai": enemy_ai, "event_queue": event_queue
+				})
+		board_manager.spell_cast.emit(side, spell.spell_id)
+		return not spell.is_consumable
 
 	match spell.spell_id:
 		# ---- 自己強化系 ----
@@ -17,7 +33,9 @@ func execute(spell: Object, side: int, board_manager: Node,
 		"血の契約":
 			var target = _pick_ally_by(side, board_manager, "max_atk")
 			if target != null:
-				target._has_lifesteal = true
+				var hp_cost: int = max(1, target.max_hp * 30 / 100)
+				target.current_hp = max(1, target.current_hp - hp_cost)
+				target.lifesteal_stacks += 10  # 吸血10スタック付与（2秒ごと-1で約20秒持続）
 
 		"戦場の鼓動":
 			for u in _get_all_units(side, board_manager):
@@ -236,8 +254,10 @@ func _apply_self_status(side: int, bm: Node, eq: Node, status: String, stacks: i
 	var units = _get_all_units_with_pos(side, bm)
 	if units.is_empty():
 		return
-	# アクティブスキルに「異常状態カード」優先指定を持つユニットを優先
-	var priority: Array = units.filter(func(u): return "異常状態カード" in u["unit"].active_skill)
+	# アクティブスキルに「異常状態カード」優先指定を持つユニットを優先（旧方式）
+	# またはskills配列のtrigger=="on_summon"でスライムのみ（旧ロジックと同等）
+	var priority: Array = units.filter(func(u):
+		return "異常状態カード" in u["unit"].active_skill or u["unit"].unit_name == "スライム")
 	var pool: Array = priority if not priority.is_empty() else units
 	var pick = pool[randi() % pool.size()]
 	eq.push(EventQueue.PRIORITY_ACTIVE, null, pick["unit"], "status_apply", 0.0,
@@ -254,10 +274,18 @@ func _inject_status_card(deck_mgr: Node, card_name: String) -> void:
 	card.is_consumable = true
 	card.spell_target = "single_ally"
 	match card_name:
-		"毒カード":   card.spell_effect = "味方ランダム1体に毒2付与"
-		"凍結カード": card.spell_effect = "味方ランダム1体に凍結2付与"
-		"火傷カード": card.spell_effect = "味方ランダム1体に火傷2付与"
-		"麻痺カード": card.spell_effect = "味方ランダム1体に麻痺2付与"
+		"毒カード":
+			card.spell_effect = "味方ランダム1体に毒2付与"
+			card.skills = [{"trigger": "on_play", "effect_id": "poison_apply", "params": {"target": "random_ally", "stacks": 2}}]
+		"凍結カード":
+			card.spell_effect = "味方ランダム1体に凍結2付与"
+			card.skills = [{"trigger": "on_play", "effect_id": "freeze_apply", "params": {"target": "random_ally", "stacks": 2}}]
+		"火傷カード":
+			card.spell_effect = "味方ランダム1体に火傷2付与"
+			card.skills = [{"trigger": "on_play", "effect_id": "burn_apply", "params": {"target": "random_ally", "stacks": 2}}]
+		"麻痺カード":
+			card.spell_effect = "味方ランダム1体に麻痺2付与"
+			card.skills = [{"trigger": "on_play", "effect_id": "paralysis_apply", "params": {"target": "random_ally", "stacks": 2}}]
 	var pos: int = randi() % max(1, deck_mgr.deck.size() + 1)
 	deck_mgr.deck.insert(pos, card)
 

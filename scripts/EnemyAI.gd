@@ -10,6 +10,9 @@ var _check_timer: float = 0.0
 
 var enemy_deck: Array = []
 var enemy_discard: Array = []
+var deck: Array:  # SpellExecutor互換エイリアス
+	get: return enemy_deck
+	set(v): enemy_deck = v
 var next_card: Object = null  # 次に召喚するカード（表示用に事前決定）
 var spell_executor: RefCounted = null  # SpellExecutor（Main.gd が設定）
 var deck_manager_ref: Node = null      # DeckManager参照（Main.gd が設定）
@@ -24,60 +27,101 @@ func _build_enemy_deck() -> void:
 		# ── スライム系 ──
 		"スライム": {
 			"hp": 15, "atk": 1, "interval": 4.0, "cost": 1, "race": "スライム", "range": "1行",
-			"support": "HP回復〈召喚時・前マスのスライムのHP10%回復〉",
-			"active":  "追加召喚〈召喚時・隣接マスにスライムを1体召喚〉",
+			"support": "", "active": "",
+			"skills": [
+				{"trigger": "on_summon", "effect_id": "summon_same_row", "params": {"unit_id": "スライム", "chain": false}},
+			],
 		},
 		"マッドスライム": {
 			"hp": 40, "atk": 2, "interval": 3.8, "cost": 3, "race": "スライム", "range": "1行",
-			"support": "",
-			"active":  "鎧〈常時〉",
+			"support": "", "active": "",
+			"skills": [
+				{"trigger": "always", "effect_id": "armor_apply", "params": {"target": "self", "stacks": 1}},
+			],
 		},
 		"ブラッドスライム": {
 			"hp": 25, "atk": 2, "interval": 3.8, "cost": 4, "race": "スライム", "range": "1行",
-			"support": "吸血付与〈召喚時・ランダム前列ユニットへ5秒間吸血付与〉",
-			"active":  "デッキ追加〈召喚時・山札にブラッドスライムを1枚追加〉",
+			"support": "", "active": "",
+			"skills": [
+				{"trigger": "on_summon", "effect_id": "lifesteal_apply", "params": {"target": "random_front_ally", "stacks": 5}},
+				{"trigger": "on_summon", "effect_id": "deck_add_self", "params": {}},
+			],
 		},
 		# ── アンデッド系 ──
 		"スケルトン": {
-			"hp": 20, "atk": 4, "interval": 2.0, "cost": 2, "race": "アンデッド", "range": "1行",
-			"support": "再起付与〈常時発動・隣接の味方・HP1で1度復活〉",
-			"active":  "自己再起〈撃破時・HP5で復活〉",
+			"hp": 20, "atk": 2, "interval": 3.0, "cost": 2, "race": "アンデッド", "range": "1行",
+			"support": "", "active": "",
+			"skills": [
+				{"trigger": "always", "effect_id": "enemy_mana_drain", "params": {}},
+				{"trigger": "on_death", "effect_id": "self_revive", "params": {"hp": 5, "delay": 3.0}},
+			],
 		},
 		"グール": {
 			"hp": 25, "atk": 5, "interval": 2.0, "cost": 2, "race": "アンデッド", "range": "1行",
-			"support": "デバフ波及〈常時発動・前列の敵・撃破時に周囲の敵にデバフ波及〉",
-			"active":  "吸血〈命中時・ダメージ25%回復〉 / ATK累積〈撃破時・+2（上限10）〉",
+			"support": "", "active": "",
+			"skills": [
+				{"trigger": "always", "effect_id": "debuff_spread", "params": {}},
+				{"trigger": "on_hit", "effect_id": "lifesteal_apply", "params": {"stacks": 8}},
+				{"trigger": "on_kill", "effect_id": "atk_accumulate", "params": {"amount": 2, "cap": 10}},
+			],
 		},
 		"バンシー": {
 			"hp": 10, "atk": 1, "interval": 2.0, "cost": 2, "race": "アンデッド", "range": "上下含む3行",
-			"support": "後列攻撃〈常時発動・全行・極低ATK・命中時効果あり〉 / SPDバフ〈常時発動・同列の味方〉",
-			"active":  "火傷付与〈命中時・敵ATK低下〉 / 全体ATK低下〈時間経過15s・敵全行〉 / 敵SPD低下〈撃破時・全体30%・30s〉",
+			"support": "", "active": "",
+			"skills": [
+				{"trigger": "always", "effect_id": "support_fire", "params": {"atk_factor": 0.3}},
+				{"trigger": "always", "effect_id": "spd_buff_apply", "params": {"target": "same_col_ally"}},
+				{"trigger": "on_hit", "effect_id": "burn_apply", "params": {"stacks": 2}},
+				{"trigger": "timer", "effect_id": "all_enemy_debuff", "params": {"interval": 15.0, "status": "burn", "stacks": 2}},
+				{"trigger": "on_kill", "effect_id": "freeze_apply", "params": {"target": "all_enemies", "stacks": 4}},
+			],
 		},
 		"リッチ": {
 			"hp": 15, "atk": 2, "interval": 3.0, "cost": 3, "race": "アンデッド", "range": "上下含む3行",
-			"support": "後列攻撃〈常時発動・敵最後列優先・命中時アクティブ発動なし〉 / 再起付与〈常時発動・同行の味方〉",
-			"active":  "凍結付与〈命中時〉 / 呪い付与〈時間経過20s・敵全体〉 / 魂の器〈撃破時・アンデッド1体完全回復〉",
+			"support": "", "active": "",
+			"skills": [
+				{"trigger": "always", "effect_id": "snipe", "params": {}},
+				{"trigger": "always", "effect_id": "support_revive", "params": {"target": "same_row"}},
+				{"trigger": "on_hit", "effect_id": "freeze_apply", "params": {"stacks": 3}},
+				{"trigger": "timer", "effect_id": "poison_apply", "params": {"interval": 20.0, "target": "all_enemies", "stacks": 3}},
+				{"trigger": "on_kill", "effect_id": "revive_undead", "params": {}},
+			],
 		},
 		"ヴリコラカス": {
 			"hp": 30, "atk": 6, "interval": 2.0, "cost": 3, "race": "アンデッド", "range": "1行",
-			"support": "デバフ波及〈常時発動・隣接の敵〉",
-			"active":  "バフ奪取〈命中時・敵バフを自分に移す・効果1.5倍〉 / 全バフ奪取〈時間経過20s・敵1体〉",
+			"support": "", "active": "",
+			"skills": [
+				{"trigger": "always", "effect_id": "debuff_spread", "params": {}},
+				{"trigger": "on_hit", "effect_id": "steal_buffs", "params": {}},
+				{"trigger": "timer", "effect_id": "steal_all_buffs", "params": {"interval": 20.0}},
+			],
 		},
 		# ── 獣系 ──
 		"ゴブリン": {
 			"hp": 15, "atk": 3, "interval": 1.0, "cost": 1, "race": "獣", "range": "1行",
-			"support": "ATKバフ〈常時発動・隣接の獣のみ〉",
-			"active":  "2枚ドロー〈召喚時・次の2枚をキューに同時積み〉",
+			"support": "", "active": "",
+			"skills": [
+				{"trigger": "always", "effect_id": "atk_buff_apply", "params": {"target": "adjacent_beast"}},
+				{"trigger": "on_summon", "effect_id": "draw_cards", "params": {"count": 2}},
+			],
 		},
 		"ウルフ": {
 			"hp": 20, "atk": 5, "interval": 1.5, "cost": 2, "race": "獣", "range": "1行",
-			"support": "SPDバフ〈常時発動・同行の獣・同行獣数に比例〉",
-			"active":  "ATKバフ〈時間経過10s・同行の獣全員+3（5s）〉",
+			"support": "", "active": "",
+			"skills": [
+				{"trigger": "always", "effect_id": "spd_buff_apply", "params": {"target": "same_row_beast"}},
+				{"trigger": "timer", "effect_id": "atk_buff_apply", "params": {"interval": 10.0, "target": "same_row_beast", "stacks": 3, "duration": 5.0}},
+			],
 		},
 		"タイガー": {
 			"hp": 25, "atk": 8, "interval": 2.0, "cost": 3, "race": "獣", "range": "下含む2行",
-			"support": "ATKバフ〈常時発動・隣接の獣のみ〉",
-			"active":  "クリティカル〈命中時・初撃ATK×2〉 / 最前列突撃〈召喚時〉 / 単体大ダメージ〈時間経過20s〉",
+			"support": "", "active": "",
+			"skills": [
+				{"trigger": "always", "effect_id": "atk_buff_apply", "params": {"target": "adjacent_beast"}},
+				{"trigger": "on_hit", "effect_id": "critical", "params": {"first_only": true, "factor": 2.0}},
+				{"trigger": "on_summon", "effect_id": "force_front", "params": {}},
+				{"trigger": "timer", "effect_id": "big_damage", "params": {"interval": 20.0}},
+			],
 		},
 	}
 
@@ -109,8 +153,9 @@ func _build_enemy_deck() -> void:
 		u.assigned_col = entry["col"]
 		u.race = d["race"]
 		u.attack_range = d["range"]
-		u.support_effect = d["support"]
-		u.active_skill = d["active"]
+		u.support_effect = d.get("support", "")
+		u.active_skill = d.get("active", "")
+		u.skills = d.get("skills", []).duplicate(true)
 		enemy_deck.append(u)
 	enemy_deck.shuffle()
 
@@ -149,7 +194,10 @@ func get_next_card() -> Object:
 	return next_card
 
 func process_ai(delta: float, board: Node) -> void:
-	mana = min(MANA_MAX, mana + MANA_REGEN * delta)
+	# プレイヤースケルトンによるマナ回復妨害（1体につき-0.1/s）
+	var player_skeletons: int = board.count_units_by_name(0, "スケルトン")
+	var effective_regen: float = max(0.1, MANA_REGEN - player_skeletons * 0.1)
+	mana = min(MANA_MAX, mana + effective_regen * delta)
 
 	_check_timer -= delta
 	if _check_timer > 0.0:

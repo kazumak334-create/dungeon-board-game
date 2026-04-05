@@ -172,14 +172,11 @@ func flush(board_manager: Node, base_hp: Array) -> void:
 					var sc: int = ex.get("col", -1)
 					if src == null or s < 0:
 						continue
-					# 隣接空きマスを探す
+					# 同列（同じ行）の空きマスを探す
 					var adj: Array = []
-					for d in [[-1, 0], [1, 0], [0, -1], [0, 1]]:
-						var r2: int = sr + d[0]
-						var c2: int = sc + d[1]
-						if r2 >= 0 and r2 < 3 and c2 >= 0 and c2 < 3:
-							if board_manager.board[s][r2][c2] == null:
-								adj.append([r2, c2])
+					for c2 in range(3):
+						if c2 != sc and board_manager.board[s][sr][c2] == null:
+							adj.append([sr, c2])
 					if not adj.is_empty():
 						adj.shuffle()
 						var pos = adj[0]
@@ -236,10 +233,21 @@ func flush(board_manager: Node, base_hp: Array) -> void:
 			var r: int = pos.get("row", -1)
 			var c: int = pos.get("col", -1)
 			if s >= 0 and r >= 0 and c >= 0:
+				# 死亡ユニットのデバフ情報を保存（デバフ波及用）
+				var victim = board_manager.board[s][r][c]
 				board_manager.remove_unit(s, r, c)
 				var killer = death.get("killer")
 				if killer != null and killer.is_alive():
 					board_manager._process_on_kill(killer)
+					# デバフ波及チェック（旧方式: support_effect文字列 / 新方式: skills配列）
+					var has_debuff_spread: bool = "デバフ波及" in killer.support_effect
+					if not has_debuff_spread:
+						for skill in killer.skills:
+							if skill.get("effect_id", "") == "debuff_spread":
+								has_debuff_spread = true
+								break
+					if victim != null and has_debuff_spread:
+						board_manager._process_debuff_spread(killer, victim, s, r, c)
 
 	# 遅延キュー（priority 6–7）：1フレーム（≈0.016s）待ち後に promote_check を実行
 	if _deferred_pending:
