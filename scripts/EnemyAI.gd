@@ -20,16 +20,21 @@ var next_card: Object = null  # 次に召喚するカード（表示用に事前
 var spell_executor: RefCounted = null  # SpellExecutor（Main.gd が設定）
 var deck_manager_ref: Node = null      # DeckManager参照（Main.gd が設定）
 
+var _EDB = null
+var _CardDB = null
+var _UnitDataScript = null
+
 func _ready() -> void:
+	_EDB = load("res://scripts/EffectDB.gd")
+	_CardDB = load("res://scripts/CardDB.gd")
+	_UnitDataScript = load("res://scripts/UnitData.gd")
 	_build_enemy_deck()
 	_pick_next_card()
 
 func _build_enemy_deck() -> void:
-	var _CardDB = load("res://scripts/CardDB.gd")
-	var UnitDataScript = load("res://scripts/UnitData.gd")
 	for entry in _CardDB.ENEMY_DECK:
 		var d: Dictionary = _CardDB.UNITS[entry["name"]]
-		var u = UnitDataScript.new()
+		var u = _UnitDataScript.new()
 		u.unit_name = entry["name"]
 		u.max_hp = d["hp"]; u.current_hp = d["hp"]
 		u.attack = d["atk"]; u.attack_interval = d["interval"]
@@ -44,12 +49,10 @@ func ensure_shuffle_card() -> void:
 	for i in range(enemy_deck.size() - 1, -1, -1):
 		if enemy_deck[i].unit_name == "シャッフル":
 			enemy_deck.remove_at(i)
-	var _CDB = load("res://scripts/CardDB.gd")
-	if not _CDB.SYSTEM_SPELLS.has("シャッフル"):
+	if not _CardDB.SYSTEM_SPELLS.has("シャッフル"):
 		return
-	var sd = _CDB.SYSTEM_SPELLS["シャッフル"]
-	var UnitDataScript = load("res://scripts/UnitData.gd")
-	var card = UnitDataScript.new()
+	var sd = _CardDB.SYSTEM_SPELLS["シャッフル"]
+	var card = _UnitDataScript.new()
 	card.unit_name = "シャッフル"
 	card.card_type = "spell"
 	card.spell_id = "シャッフル"
@@ -94,7 +97,6 @@ func get_next_card() -> Object:
 
 func process_ai(delta: float, board: Node) -> void:
 	# プレイヤーユニットのmana_drainスキル（always）によるマナ回復妨害
-	var _EDB_ai = load("res://scripts/EffectDB.gd")
 	var drain_count_ai: int = 0
 	for r in range(3):
 		for c in range(3):
@@ -104,14 +106,14 @@ func process_ai(delta: float, board: Node) -> void:
 			for sk in u.skills:
 				if sk.get("trigger", "") == "always":
 					var _eid_d: String = sk.get("effect_id", "")
-					var _edef_d: Dictionary = _EDB_ai.EFFECTS.get(_eid_d, {})
+					var _edef_d: Dictionary = _EDB.EFFECTS.get(_eid_d, {})
 					if _edef_d.get("type", "") == "mana_drain":
 						drain_count_ai += 1
 						break
 	var per_unit_ai: float = -0.1
-	for eid_da in _EDB_ai.EFFECTS:
-		if _EDB_ai.EFFECTS[eid_da].get("type", "") == "mana_drain":
-			per_unit_ai = _EDB_ai.EFFECTS[eid_da].get("per_unit", -0.1)
+	for eid_da in _EDB.EFFECTS:
+		if _EDB.EFFECTS[eid_da].get("type", "") == "mana_drain":
+			per_unit_ai = _EDB.EFFECTS[eid_da].get("per_unit", -0.1)
 			break
 	var effective_regen: float = max(0.1, MANA_REGEN + drain_count_ai * per_unit_ai)
 	mana = min(MANA_MAX, mana + effective_regen * delta)

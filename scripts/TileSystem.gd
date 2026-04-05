@@ -3,9 +3,11 @@
 extends RefCounted
 
 var board_manager: Node = null  # BoardManagerへの参照
+var _EDB = null
 
 func setup(bm: Node) -> void:
 	board_manager = bm
+	_EDB = load("res://scripts/EffectDB.gd")
 
 func _is_protected_by_artifact(side: int, row: int, col: int) -> bool:
 	# 周囲8マス＋自マスにprotect_tiles=trueのアーティファクトがあるか確認
@@ -21,7 +23,6 @@ func _is_protected_by_artifact(side: int, row: int, col: int) -> bool:
 	return false
 
 func set_tile_effect(side: int, row: int, col: int, effect_id: String, duration: float = -1.0) -> void:
-	var _EDB = load("res://scripts/EffectDB.gd")
 	if not _EDB.EFFECTS.has(effect_id):
 		return
 	# protect_tilesチェック: 隣接アーティファクトがprotect_tiles=trueならブロック
@@ -46,7 +47,6 @@ func check_tile_on_enter(side: int, row: int, col: int, unit: Object) -> void:
 		return
 	if unit.get("_is_flying") == true:
 		return
-	var _EDB = load("res://scripts/EffectDB.gd")
 	var def = _EDB.EFFECTS.get(te["effect_id"], {})
 	# 鉄壁の地: 鎧付与
 	if def.get("armor_stacks", 0) > 0:
@@ -64,7 +64,6 @@ func check_tile_on_leave(side: int, row: int, col: int, unit: Object) -> void:
 		return
 	if unit.get("_is_flying") == true:
 		return
-	var _EDB = load("res://scripts/EffectDB.gd")
 	var def = _EDB.EFFECTS.get(te["effect_id"], {})
 	# ヒビ→穴に変形
 	if def.has("transform_to"):
@@ -75,7 +74,6 @@ func check_tile_on_leave(side: int, row: int, col: int, unit: Object) -> void:
 		print("[TileSystem] ヒビ→穴に変形: side=%d row=%d col=%d" % [side, row, col])
 
 func process_tile_effects() -> void:
-	var _EDB = load("res://scripts/EffectDB.gd")
 	for s in range(2):
 		for r in range(3):
 			for c in range(3):

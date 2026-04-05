@@ -3,9 +3,11 @@
 extends RefCounted
 
 var bm: Node = null
+var _EDB = null
 
 func setup(board_manager: Node) -> void:
 	bm = board_manager
+	_EDB = load("res://scripts/EffectDB.gd")
 
 func process_combat(delta: float, base_hp: Array) -> void:
 	# フォールバック：event_queue 未設定時のみサポート効果を再計算
@@ -115,8 +117,7 @@ func _do_attack(side: int, row: int, col: int, attacker: Object, enemy_side: int
 			# 呪われた地チェック
 			var _te_curse = bm.board_effects[enemy_side][target_row][target_col]
 			if _te_curse != null and not target.get("_is_flying") == true:
-				var _EDB_curse = load("res://scripts/EffectDB.gd")
-				var _tile_curse_def = _EDB_curse.EFFECTS.get(_te_curse["effect_id"], {})
+				var _tile_curse_def = _EDB.EFFECTS.get(_te_curse["effect_id"], {})
 				if _tile_curse_def.has("damage_mult"):
 					actual_damage = int(float(actual_damage) * _tile_curse_def["damage_mult"])
 			if actual_damage > 0:

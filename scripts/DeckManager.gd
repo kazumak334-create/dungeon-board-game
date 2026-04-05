@@ -16,18 +16,23 @@ var _cost_reduction_remaining: int = 0 # 連鎖の触媒：残りコスト軽減
 var check_interval: float = 1.0
 var _check_timer: float = 0.0
 
+var _EDB = null
+var _CardDB = null
+var _UnitDataScript = null
+
 signal card_played(unit: Object)
 signal mana_changed(current: float)
 
 func _ready() -> void:
+	_EDB = load("res://scripts/EffectDB.gd")
+	_CardDB = load("res://scripts/CardDB.gd")
+	_UnitDataScript = load("res://scripts/UnitData.gd")
 	_build_default_deck()
 
 func _build_default_deck() -> void:
-	var _CardDB = load("res://scripts/CardDB.gd")
-	var UnitDataScript = load("res://scripts/UnitData.gd")
 	for entry in _CardDB.PLAYER_DECK:
 		var d: Dictionary = _CardDB.UNITS[entry["name"]]
-		var u = UnitDataScript.new()
+		var u = _UnitDataScript.new()
 		u.unit_name = entry["name"]
 		u.max_hp = d["hp"]; u.current_hp = d["hp"]
 		u.attack = d["atk"]; u.attack_interval = d["interval"]
@@ -38,7 +43,7 @@ func _build_default_deck() -> void:
 		deck.append(u)
 	for spell_name in _CardDB.PLAYER_SPELLS:
 		var d: Dictionary = _CardDB.SPELLS[spell_name]
-		var u = UnitDataScript.new()
+		var u = _UnitDataScript.new()
 		u.unit_name = spell_name; u.card_type = "spell"
 		u.spell_id = spell_name; u.cost = d["cost"]
 		u.spell_target = d["target"]; u.spell_effect = d["effect"]
@@ -53,12 +58,10 @@ func ensure_shuffle_card() -> void:
 		if deck[i].unit_name == "シャッフル":
 			deck.remove_at(i)
 	# 最下部に新規追加
-	var _CDB = load("res://scripts/CardDB.gd")
-	if not _CDB.SYSTEM_SPELLS.has("シャッフル"):
+	if not _CardDB.SYSTEM_SPELLS.has("シャッフル"):
 		return
-	var sd = _CDB.SYSTEM_SPELLS["シャッフル"]
-	var UnitDataScript = load("res://scripts/UnitData.gd")
-	var card = UnitDataScript.new()
+	var sd = _CardDB.SYSTEM_SPELLS["シャッフル"]
+	var card = _UnitDataScript.new()
 	card.unit_name = "シャッフル"
 	card.card_type = "spell"
 	card.spell_id = "シャッフル"
@@ -71,7 +74,6 @@ func ensure_shuffle_card() -> void:
 
 func process_deck(delta: float, board: Node) -> void:
 	# 敵ユニットのmana_drainスキル（always）によるマナ回復妨害
-	var _EDB_regen = load("res://scripts/EffectDB.gd")
 	var drain_count: int = 0
 	for r in range(3):
 		for c in range(3):
@@ -81,14 +83,14 @@ func process_deck(delta: float, board: Node) -> void:
 			for sk in u.skills:
 				if sk.get("trigger", "") == "always":
 					var _eid_drain: String = sk.get("effect_id", "")
-					var _edef_drain: Dictionary = _EDB_regen.EFFECTS.get(_eid_drain, {})
+					var _edef_drain: Dictionary = _EDB.EFFECTS.get(_eid_drain, {})
 					if _edef_drain.get("type", "") == "mana_drain":
 						drain_count += 1
 						break
 	var per_unit: float = -0.1
-	for eid_d in _EDB_regen.EFFECTS:
-		if _EDB_regen.EFFECTS[eid_d].get("type", "") == "mana_drain":
-			per_unit = _EDB_regen.EFFECTS[eid_d].get("per_unit", -0.1)
+	for eid_d in _EDB.EFFECTS:
+		if _EDB.EFFECTS[eid_d].get("type", "") == "mana_drain":
+			per_unit = _EDB.EFFECTS[eid_d].get("per_unit", -0.1)
 			break
 	var effective_regen: float = max(0.1, MANA_REGEN + drain_count * per_unit)
 	# 永久効果型アーティファクト: mana_regen_modify type のスキルを反映
@@ -97,7 +99,7 @@ func process_deck(delta: float, board: Node) -> void:
 			continue
 		for sk in art_entry.get("skills", []):
 			var _eid_regen: String = sk.get("effect_id", "")
-			var _edef_regen: Dictionary = _EDB_regen.EFFECTS.get(_eid_regen, {})
+			var _edef_regen: Dictionary = _EDB.EFFECTS.get(_eid_regen, {})
 			if _edef_regen.get("type", "") == "mana_regen_modify":
 				var pct: float = sk.get("params", {}).get("pct", _edef_regen.get("pct", 0.2))
 				effective_regen *= (1.0 + pct)
@@ -129,10 +131,9 @@ func process_deck(delta: float, board: Node) -> void:
 		effective_cost = max(0, top.cost - 1)
 	# 錬金術師パッシブ: 異常状態カードコスト軽減
 	if top.card_type == "status_spell" and board != null and board.player_data != null:
-		var _EDB_cost = load("res://scripts/EffectDB.gd")
 		for sk in board.player_data.skills:
 			if sk.get("trigger", "") == "always":
-				var edef = _EDB_cost.EFFECTS.get(sk.get("effect_id", ""), {})
+				var edef = _EDB.EFFECTS.get(sk.get("effect_id", ""), {})
 				if edef.get("type", "") == "cost_modifier" and edef.get("card_type", "") == top.card_type:
 					var amount = sk.get("params", {}).get("amount", edef.get("amount", -1))
 					effective_cost = max(0, effective_cost + amount)

@@ -3,9 +3,11 @@
 extends RefCounted
 
 var bm: Node = null
+var _EDB = null
 
 func setup(board_manager: Node) -> void:
 	bm = board_manager
+	_EDB = load("res://scripts/EffectDB.gd")
 
 func apply_support_effects() -> void:
 	# ボーナスをリセット
@@ -44,8 +46,7 @@ func apply_support_effects() -> void:
 						if skill.get("trigger", "") == "always":
 							# 前列チェック: skill_flagはスキル（位置無関係）なので除外
 							var _eid_check = skill.get("effect_id", "")
-							var _EDB_check = load("res://scripts/EffectDB.gd")
-							var _is_skill = _EDB_check.EFFECTS.get(_eid_check, {}).get("type", "") == "skill_flag"
+							var _is_skill = _EDB.EFFECTS.get(_eid_check, {}).get("type", "") == "skill_flag"
 							if c == front_col and not _is_skill:
 								continue
 							# skillsのtop-level targetをparamsにマージ
@@ -75,14 +76,13 @@ func apply_support_effects() -> void:
 	# 永久効果型アーティファクトのalwaysスキル（front_ally_all ATKバフ）
 	_apply_permanent_artifact_effects()
 	# 盤面効果 on_stay: 獣の森等のATKボーナス
-	var _EDB_stay = load("res://scripts/EffectDB.gd")
 	for s in range(2):
 		for r in range(3):
 			for c in range(3):
 				var u = bm.board[s][r][c]
 				var te_stay = bm.board_effects[s][r][c]
 				if u != null and te_stay != null and not u.get("_is_flying") == true:
-					var tile_def_stay = _EDB_stay.EFFECTS.get(te_stay["effect_id"], {})
+					var tile_def_stay = _EDB.EFFECTS.get(te_stay["effect_id"], {})
 					if tile_def_stay.has("atk_bonus") and (not tile_def_stay.has("race") or u.race == tile_def_stay["race"]):
 						u._atk_bonus += tile_def_stay["atk_bonus"]
 	# プレイヤークラススキル適用
@@ -244,7 +244,6 @@ func push_summon_effects(side: int, row: int, col: int, unit: Object) -> void:
 	# 旧方式（active_skill文字列パース）は削除済み。全てskills配列で処理。
 
 func _apply_class_skills(side: int, pdata: RefCounted) -> void:
-	var _EDB = load("res://scripts/EffectDB.gd")
 	for skill in pdata.skills:
 		if skill.get("trigger", "") != "always":
 			continue

@@ -2,6 +2,16 @@
 
 ## [Unreleased]
 
+### Perf — 2026-04-05: load()キャッシュ化（6ファイル）
+
+#### SupportSystem.gd / TileSystem.gd / CombatSystem.gd
+- `var _EDB = null` フィールド追加、`setup()` 内で1回だけ `load("res://scripts/EffectDB.gd")` を実行
+- `apply_support_effects()`・`set_tile_effect()`・`check_tile_on_enter()`・`check_tile_on_leave()`・`process_tile_effects()`・`_do_attack()`・`_apply_class_skills()` 内のローカルload()を削除してフィールド参照に置換
+
+#### DeckManager.gd / EnemyAI.gd
+- `var _EDB / _CardDB / _UnitDataScript = null` フィールド追加、`_ready()` 内でキャッシュ
+- `_build_default_deck()`・`ensure_shuffle_card()`・`process_deck()`・`process_ai()` 内のload()をすべてフィールド参照に置換
+
 ### Added — 2026-04-05: バトル完成6件修正（ゲームスピード・棘・合成スキル・ターゲット拡張・race_buff・合成バフ引き継ぎ）
 
 #### Main.gd
