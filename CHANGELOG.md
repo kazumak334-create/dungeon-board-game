@@ -2,6 +2,15 @@
 
 ## [Unreleased]
 
+### Added — 2026-04-05: CardDB全エントリにtexture/anim/sfxフィールド追加
+
+#### CardDB.gd
+- UNITS全21エントリ（スライム系12・アンデッド系5・獣系4）に `"texture": "", "anim": "", "sfx": ""` を追加
+- SPELLS全25エントリに同フィールドを追加
+- STATUS_SPELLS全4エントリに同フィールドを追加
+- SYSTEM_SPELLS（シャッフル）に同フィールドを追加
+- 既存の値・skillsの中身は変更なし
+
 ### Added — 2026-04-05: 盤面効果（Tile Effect）基盤実装
 
 #### EffectDB.gd
