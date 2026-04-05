@@ -22,139 +22,17 @@ func _ready() -> void:
 	_pick_next_card()
 
 func _build_enemy_deck() -> void:
-	# プレイヤーと同じカードセット（バランス調整）
-	var card_pool: Dictionary = {
-		# ── スライム系 ──
-		"スライム": {
-			"hp": 15, "atk": 1, "interval": 4.0, "cost": 1, "race": "スライム", "range": "1行",
-			"support": "", "active": "",
-			"skills": [
-				{"trigger": "on_summon", "effect_id": "summon_same_row", "params": {"unit_id": "スライム", "chain": false}},
-			],
-		},
-		"マッドスライム": {
-			"hp": 40, "atk": 2, "interval": 3.8, "cost": 3, "race": "スライム", "range": "1行",
-			"support": "", "active": "",
-			"skills": [
-				{"trigger": "always", "effect_id": "armor_apply", "params": {"target": "self", "stacks": 1}},
-			],
-		},
-		"ブラッドスライム": {
-			"hp": 25, "atk": 2, "interval": 3.8, "cost": 4, "race": "スライム", "range": "1行",
-			"support": "", "active": "",
-			"skills": [
-				{"trigger": "on_summon", "effect_id": "lifesteal_apply", "params": {"target": "random_front_ally", "stacks": 5}},
-				{"trigger": "on_summon", "effect_id": "deck_add_self", "params": {}},
-			],
-		},
-		# ── アンデッド系 ──
-		"スケルトン": {
-			"hp": 20, "atk": 2, "interval": 3.0, "cost": 2, "race": "アンデッド", "range": "1行",
-			"support": "", "active": "",
-			"skills": [
-				{"trigger": "always", "effect_id": "enemy_mana_drain", "params": {}},
-				{"trigger": "on_death", "effect_id": "self_revive", "params": {"hp": 5, "delay": 3.0}},
-			],
-		},
-		"グール": {
-			"hp": 25, "atk": 5, "interval": 2.0, "cost": 2, "race": "アンデッド", "range": "1行",
-			"support": "", "active": "",
-			"skills": [
-				{"trigger": "always", "effect_id": "debuff_spread", "params": {}},
-				{"trigger": "on_hit", "effect_id": "lifesteal_apply", "params": {"stacks": 8}},
-				{"trigger": "on_kill", "effect_id": "atk_accumulate", "params": {"amount": 2, "cap": 10}},
-			],
-		},
-		"バンシー": {
-			"hp": 10, "atk": 1, "interval": 2.0, "cost": 2, "race": "アンデッド", "range": "上下含む3行",
-			"support": "", "active": "",
-			"skills": [
-				{"trigger": "always", "effect_id": "support_fire", "params": {"atk_factor": 0.3}},
-				{"trigger": "always", "effect_id": "spd_buff_apply", "params": {"target": "same_col_ally"}},
-				{"trigger": "on_hit", "effect_id": "burn_apply", "params": {"stacks": 2}},
-				{"trigger": "timer", "effect_id": "all_enemy_debuff", "params": {"interval": 15.0, "status": "burn", "stacks": 2}},
-				{"trigger": "on_kill", "effect_id": "freeze_apply", "params": {"target": "all_enemies", "stacks": 4}},
-			],
-		},
-		"リッチ": {
-			"hp": 15, "atk": 2, "interval": 3.0, "cost": 3, "race": "アンデッド", "range": "上下含む3行",
-			"support": "", "active": "",
-			"skills": [
-				{"trigger": "always", "effect_id": "snipe", "params": {}},
-				{"trigger": "always", "effect_id": "support_revive", "params": {"target": "same_row"}},
-				{"trigger": "on_hit", "effect_id": "freeze_apply", "params": {"stacks": 3}},
-				{"trigger": "timer", "effect_id": "poison_apply", "params": {"interval": 20.0, "target": "all_enemies", "stacks": 3}},
-				{"trigger": "on_kill", "effect_id": "revive_undead", "params": {}},
-			],
-		},
-		"ヴリコラカス": {
-			"hp": 30, "atk": 6, "interval": 2.0, "cost": 3, "race": "アンデッド", "range": "1行",
-			"support": "", "active": "",
-			"skills": [
-				{"trigger": "always", "effect_id": "debuff_spread", "params": {}},
-				{"trigger": "on_hit", "effect_id": "steal_buffs", "params": {}},
-				{"trigger": "timer", "effect_id": "steal_all_buffs", "params": {"interval": 20.0}},
-			],
-		},
-		# ── 獣系 ──
-		"ゴブリン": {
-			"hp": 15, "atk": 3, "interval": 1.0, "cost": 1, "race": "獣", "range": "1行",
-			"support": "", "active": "",
-			"skills": [
-				{"trigger": "always", "effect_id": "atk_buff_apply", "params": {"target": "adjacent_beast"}},
-				{"trigger": "on_summon", "effect_id": "draw_cards", "params": {"count": 2}},
-			],
-		},
-		"ウルフ": {
-			"hp": 20, "atk": 5, "interval": 1.5, "cost": 2, "race": "獣", "range": "1行",
-			"support": "", "active": "",
-			"skills": [
-				{"trigger": "always", "effect_id": "spd_buff_apply", "params": {"target": "same_row_beast"}},
-				{"trigger": "timer", "effect_id": "atk_buff_apply", "params": {"interval": 10.0, "target": "same_row_beast", "stacks": 3, "duration": 5.0}},
-			],
-		},
-		"タイガー": {
-			"hp": 25, "atk": 8, "interval": 2.0, "cost": 3, "race": "獣", "range": "下含む2行",
-			"support": "", "active": "",
-			"skills": [
-				{"trigger": "always", "effect_id": "atk_buff_apply", "params": {"target": "adjacent_beast"}},
-				{"trigger": "on_hit", "effect_id": "critical", "params": {"first_only": true, "factor": 2.0}},
-				{"trigger": "on_summon", "effect_id": "force_front", "params": {}},
-				{"trigger": "timer", "effect_id": "big_damage", "params": {"interval": 20.0}},
-			],
-		},
-	}
-
-	# 敵デッキ構成（プレイヤーと同じ9枚・前列3/中列3/後列3）
-	var deck_list: Array = [
-		{"name": "スライム",         "col": 1},  # 中列 / スライム
-		{"name": "スケルトン",       "col": 0},  # 前列 / アンデッド
-		{"name": "ゴブリン",         "col": 0},  # 前列 / 獣
-		{"name": "マッドスライム",   "col": 1},  # 中列 / スライム
-		{"name": "グール",           "col": 1},  # 中列 / アンデッド
-		{"name": "ウルフ",           "col": 1},  # 中列 / 獣
-		{"name": "ブラッドスライム", "col": 2},  # 後列 / スライム
-		{"name": "バンシー",         "col": 2},  # 後列 / アンデッド
-		{"name": "タイガー",         "col": 2},  # 後列 / 獣
-		{"name": "リッチ",           "col": 2},  # 後列 / アンデッド
-		{"name": "ヴリコラカス",     "col": 1},  # 中列 / アンデッド
-	]
-
+	var _CardDB = load("res://scripts/CardDB.gd")
 	var UnitDataScript = load("res://scripts/UnitData.gd")
-	for entry in deck_list:
-		var d: Dictionary = card_pool[entry["name"]]
+	for entry in _CardDB.ENEMY_DECK:
+		var d: Dictionary = _CardDB.UNITS[entry["name"]]
 		var u = UnitDataScript.new()
 		u.unit_name = entry["name"]
-		u.max_hp = d["hp"]
-		u.current_hp = d["hp"]
-		u.attack = d["atk"]
-		u.attack_interval = d["interval"]
-		u.cost = d["cost"]
-		u.assigned_col = entry["col"]
-		u.race = d["race"]
-		u.attack_range = d["range"]
-		u.support_effect = d.get("support", "")
-		u.active_skill = d.get("active", "")
+		u.max_hp = d["hp"]; u.current_hp = d["hp"]
+		u.attack = d["atk"]; u.attack_interval = d["interval"]
+		u.cost = d["cost"]; u.assigned_col = entry["col"]
+		u.race = d["race"]; u.attack_range = d["range"]
+		u.support_effect = ""; u.active_skill = ""
 		u.skills = d.get("skills", []).duplicate(true)
 		enemy_deck.append(u)
 	enemy_deck.shuffle()

@@ -23,7 +23,6 @@ var _tooltip_label: Label = null
 var _deck_container: VBoxContainer = null
 var _deck_scroll: ScrollContainer = null
 var _deck_title_label: Label = null
-var _deck_refresh_timer: float = 0.0
 var _last_deck_size: int = -1
 
 func setup(p_main: Node, p_board: Node, p_deck: Node, p_enemy: Node) -> void:
@@ -35,117 +34,16 @@ func setup(p_main: Node, p_board: Node, p_deck: Node, p_enemy: Node) -> void:
 	_build_dev_panel()
 
 func _build_all_cards() -> void:
-	var unit_defs: Array = [
-		{"name": "スライム",         "hp": 15, "atk": 1, "interval": 4.0, "cost": 1, "race": "スライム", "range": "1行", "col": 1, "support": "", "active": "",
-			"skills": [{"trigger": "on_summon", "effect_id": "summon_same_row", "params": {"unit_id": "スライム", "chain": false}}]},
-		{"name": "ラージスライム",   "hp": 25, "atk": 2, "interval": 3.8, "cost": 2, "race": "スライム", "range": "1行", "col": 1, "support": "", "active": "", "skills": []},
-		{"name": "ファットスライム", "hp": 50, "atk": 3, "interval": 6.0, "cost": 3, "race": "スライム", "range": "1行", "col": 0, "support": "", "active": "", "skills": []},
-		{"name": "キングスライム",   "hp":100, "atk": 5, "interval": 6.0, "cost":10, "race": "スライム", "range": "1行", "col": 2, "support": "スライム全体強化〈常時発動・全体・スライムのATK+50%〉", "active": "", "skills": []},
-		{"name": "マッドスライム",   "hp": 40, "atk": 2, "interval": 3.8, "cost": 3, "race": "スライム", "range": "1行", "col": 1, "support": "", "active": "",
-			"skills": [{"trigger": "always", "effect_id": "armor_apply", "params": {"target": "self", "stacks": 1}}]},
-		{"name": "ヒートスライム",   "hp": 25, "atk": 2, "interval": 3.8, "cost": 3, "race": "スライム", "range": "1行", "col": 0, "support": "", "active": "火傷付与〈命中時〉", "skills": []},
-		{"name": "フロストスライム", "hp": 25, "atk": 2, "interval": 3.8, "cost": 3, "race": "スライム", "range": "1行", "col": 0, "support": "", "active": "凍結付与〈命中時〉", "skills": []},
-		{"name": "パラライズスライム","hp": 25, "atk": 2, "interval": 3.0, "cost": 3, "race": "スライム", "range": "1行", "col": 0, "support": "", "active": "麻痺付与〈命中時〉", "skills": []},
-		{"name": "ポイズンスライム", "hp": 25, "atk": 2, "interval": 3.0, "cost": 3, "race": "スライム", "range": "1行", "col": 0, "support": "", "active": "毒付与〈命中時〉", "skills": []},
-		{"name": "クリスタルスライム","hp": 10, "atk": 1, "interval": 2.0, "cost": 4, "race": "スライム", "range": "1行", "col": 2, "support": "", "active": "", "skills": []},
-		{"name": "ブラッドスライム", "hp": 25, "atk": 2, "interval": 3.8, "cost": 4, "race": "スライム", "range": "1行", "col": 0, "support": "", "active": "",
-			"skills": [
-				{"trigger": "on_summon", "effect_id": "lifesteal_apply", "params": {"target": "random_front_ally", "stacks": 5}},
-				{"trigger": "on_summon", "effect_id": "deck_add_self", "params": {}},
-			]},
-		{"name": "ゼリーフィッシュ", "hp": 10, "atk": 1, "interval": 5.0, "cost": 3, "race": "スライム", "range": "1行", "col": 2, "support": "", "active": "", "skills": []},
-		{"name": "スケルトン",     "hp": 20, "atk": 2, "interval": 3.0, "cost": 2, "race": "アンデッド", "range": "1行",       "col": 0, "support": "", "active": "",
-			"skills": [
-				{"trigger": "always", "effect_id": "enemy_mana_drain", "params": {}},
-				{"trigger": "on_death", "effect_id": "self_revive", "params": {"hp": 5, "delay": 3.0}},
-			]},
-		{"name": "グール",         "hp": 25, "atk": 5, "interval": 2.0, "cost": 2, "race": "アンデッド", "range": "1行",       "col": 1, "support": "", "active": "",
-			"skills": [
-				{"trigger": "always", "effect_id": "debuff_spread", "params": {}},
-				{"trigger": "on_hit", "effect_id": "lifesteal_apply", "params": {"stacks": 8}},
-				{"trigger": "on_kill", "effect_id": "atk_accumulate", "params": {"amount": 2, "cap": 10}},
-			]},
-		{"name": "バンシー",       "hp": 10, "atk": 1, "interval": 2.0, "cost": 2, "race": "アンデッド", "range": "上下含む3行","col": 2, "support": "", "active": "",
-			"skills": [
-				{"trigger": "always", "effect_id": "support_fire", "params": {"atk_factor": 0.3}},
-				{"trigger": "always", "effect_id": "spd_buff_apply", "params": {"target": "same_col_ally"}},
-				{"trigger": "on_hit", "effect_id": "burn_apply", "params": {"stacks": 2}},
-				{"trigger": "timer", "effect_id": "all_enemy_debuff", "params": {"interval": 15.0, "status": "burn", "stacks": 2}},
-				{"trigger": "on_kill", "effect_id": "freeze_apply", "params": {"target": "all_enemies", "stacks": 4}},
-			]},
-		{"name": "リッチ",         "hp": 15, "atk": 2, "interval": 3.0, "cost": 3, "race": "アンデッド", "range": "上下含む3行","col": 2, "support": "", "active": "",
-			"skills": [
-				{"trigger": "always", "effect_id": "snipe", "params": {}},
-				{"trigger": "always", "effect_id": "support_revive", "params": {"target": "same_row"}},
-				{"trigger": "on_hit", "effect_id": "freeze_apply", "params": {"stacks": 3}},
-				{"trigger": "timer", "effect_id": "poison_apply", "params": {"interval": 20.0, "target": "all_enemies", "stacks": 3}},
-				{"trigger": "on_kill", "effect_id": "revive_undead", "params": {}},
-			]},
-		{"name": "ヴリコラカス",   "hp": 30, "atk": 6, "interval": 2.0, "cost": 3, "race": "アンデッド", "range": "1行",       "col": 1, "support": "", "active": "",
-			"skills": [
-				{"trigger": "always", "effect_id": "debuff_spread", "params": {}},
-				{"trigger": "on_hit", "effect_id": "steal_buffs", "params": {}},
-				{"trigger": "timer", "effect_id": "steal_all_buffs", "params": {"interval": 20.0}},
-			]},
-		{"name": "ゴブリン",       "hp": 15, "atk": 3, "interval": 1.0, "cost": 1, "race": "獣",        "range": "1行",       "col": 0, "support": "", "active": "",
-			"skills": [
-				{"trigger": "always", "effect_id": "atk_buff_apply", "params": {"target": "adjacent_beast"}},
-				{"trigger": "on_summon", "effect_id": "draw_cards", "params": {"count": 2}},
-			]},
-		{"name": "ウルフ",         "hp": 20, "atk": 5, "interval": 1.5, "cost": 2, "race": "獣",        "range": "1行",       "col": 1, "support": "", "active": "",
-			"skills": [
-				{"trigger": "always", "effect_id": "spd_buff_apply", "params": {"target": "same_row_beast"}},
-				{"trigger": "timer", "effect_id": "atk_buff_apply", "params": {"interval": 10.0, "target": "same_row_beast", "stacks": 3, "duration": 5.0}},
-			]},
-		{"name": "タイガー",       "hp": 25, "atk": 8, "interval": 2.0, "cost": 3, "race": "獣",        "range": "下含む2行", "col": 2, "support": "", "active": "",
-			"skills": [
-				{"trigger": "always", "effect_id": "atk_buff_apply", "params": {"target": "adjacent_beast"}},
-				{"trigger": "on_hit", "effect_id": "critical", "params": {"first_only": true, "factor": 2.0}},
-				{"trigger": "on_summon", "effect_id": "force_front", "params": {}},
-				{"trigger": "timer", "effect_id": "big_damage", "params": {"interval": 20.0}},
-			]},
-	]
-	for d in unit_defs:
-		_all_cards.append({"name": d["name"], "data": d, "type": "unit"})
-
-	var spell_defs: Array = [
-		{"name": "召喚加速",     "cost": 1, "target": "self",        "effect": "マナ即時+3回復"},
-		{"name": "血の契約",     "cost": 2, "target": "single_ally", "effect": "対象1体に吸血付与"},
-		{"name": "戦場の鼓動",   "cost": 2, "target": "all_allies",  "effect": "全味方SPD+50%（5s）"},
-		{"name": "急召",         "cost": 1, "target": "self",        "effect": "低コストユニット1体即時召喚"},
-		{"name": "連鎖の触媒",   "cost": 2, "target": "self",        "effect": "次の3枚コスト-1"},
-		{"name": "強化の儀式",   "cost": 3, "target": "single_ally", "effect": "対象1体ATK+5・HP+10"},
-		{"name": "盤面強化",     "cost": 3, "target": "all_allies",  "effect": "全味方HP+10・ATK+2"},
-		{"name": "圧縮の書",     "cost": 2, "target": "self",        "effect": "山札から異常状態カード除去"},
-		{"name": "生命の雫",     "cost": 2, "target": "single_ally", "effect": "対象1体HP15%回復"},
-		{"name": "全体再生",     "cost": 4, "target": "all_allies",  "effect": "全味方にリジェネ+1"},
-		{"name": "泥の鎧",       "cost": 1, "target": "single_ally", "effect": "対象1体に鎧付与"},
-		{"name": "結晶化",       "cost": 3, "target": "single_ally", "effect": "対象1体に呪文無効（1回）"},
-		{"name": "毒霧",         "cost": 2, "target": "column",      "effect": "敵ランダム列に毒5＋自デッキに毒カード"},
-		{"name": "寒波",         "cost": 2, "target": "front_all",   "effect": "前列全体に凍結＋両デッキに凍結カード"},
-		{"name": "山火事",       "cost": 2, "target": "front_all",   "effect": "前列全体に火傷＋両デッキに火傷カード"},
-		{"name": "落雷",         "cost": 3, "target": "front_all",   "effect": "前列全体に10dmg＋麻痺＋両デッキに麻痺カード"},
-		{"name": "烈風斬",       "cost": 3, "target": "all_enemies", "effect": "敵全体に中ダメージ"},
-		{"name": "弱体の呪詛",   "cost": 3, "target": "all_enemies", "effect": "敵全体ATK-30%（20s）"},
-		{"name": "盤面凍結",     "cost": 4, "target": "all_enemies", "effect": "敵全体を8s間凍結"},
-		{"name": "混沌の手",     "cost": 2, "target": "single_enemy","effect": "敵1体をランダム行に移動"},
-		{"name": "反転の波",     "cost": 3, "target": "all_enemies", "effect": "敵前列と後列を入れ替え"},
-		{"name": "押し込み",     "cost": 2, "target": "single_enemy","effect": "敵前列1体を後列に移動"},
-		{"name": "召喚妨害",     "cost": 1, "target": "enemy_queue", "effect": "敵の次の召喚を3s遅延"},
-		{"name": "配置崩し",     "cost": 2, "target": "enemy_queue", "effect": "敵の次の召喚列をランダム化"},
-		{"name": "魔力断絶",     "cost": 3, "target": "enemy_queue", "effect": "敵マナ回復-30%（10s）"},
-	]
-	for d in spell_defs:
-		_all_cards.append({"name": d["name"], "data": d, "type": "spell"})
-
-	var status_defs: Array = [
-		{"name": "毒カード",   "cost": 0, "target": "single_ally", "effect": "味方ランダム1体に毒2付与"},
-		{"name": "凍結カード", "cost": 0, "target": "single_ally", "effect": "味方ランダム1体に凍結2付与"},
-		{"name": "火傷カード", "cost": 0, "target": "single_ally", "effect": "味方ランダム1体に火傷2付与"},
-		{"name": "麻痺カード", "cost": 0, "target": "single_ally", "effect": "味方ランダム1体に麻痺2付与"},
-	]
-	for d in status_defs:
-		_all_cards.append({"name": d["name"], "data": d, "type": "status_spell"})
+	var _CardDB = load("res://scripts/CardDB.gd")
+	for name in _CardDB.UNITS:
+		var d = _CardDB.UNITS[name]
+		_all_cards.append({"name": name, "data": d, "type": "unit"})
+	for name in _CardDB.SPELLS:
+		var d = _CardDB.SPELLS[name]
+		_all_cards.append({"name": name, "data": d, "type": "spell"})
+	for name in _CardDB.STATUS_SPELLS:
+		var d = _CardDB.STATUS_SPELLS[name]
+		_all_cards.append({"name": name, "data": d, "type": "status_spell"})
 
 func _build_dev_panel() -> void:
 	var panel := ColorRect.new()
@@ -418,15 +316,15 @@ func _build_card(index: int) -> Object:
 	var obj = UnitDataScript.new()
 	if card["type"] == "unit":
 		var d = card["data"]
-		obj.unit_name = d["name"]; obj.max_hp = d["hp"]; obj.current_hp = d["hp"]
+		obj.unit_name = card["name"]; obj.max_hp = d["hp"]; obj.current_hp = d["hp"]
 		obj.attack = d["atk"]; obj.attack_interval = d["interval"]; obj.cost = d["cost"]
 		obj.assigned_col = d["col"]; obj.race = d["race"]; obj.attack_range = d["range"]
-		obj.support_effect = d.get("support", ""); obj.active_skill = d.get("active", "")
+		obj.support_effect = ""; obj.active_skill = ""
 		obj.skills = d.get("skills", []).duplicate(true)
 	else:
 		var d = card["data"]
-		obj.unit_name = d["name"]; obj.card_type = card["type"]
-		obj.spell_id = d["name"]; obj.cost = d["cost"]
+		obj.unit_name = card["name"]; obj.card_type = card["type"]
+		obj.spell_id = card["name"]; obj.cost = d["cost"]
 		obj.spell_target = d["target"]; obj.spell_effect = d["effect"]
 		obj.is_consumable = (card["type"] == "status_spell")
 		obj.skills = d.get("skills", []).duplicate(true)
@@ -521,28 +419,39 @@ func _on_card_hover(index: int) -> void:
 	var d = card["data"]
 	var lines: Array = []
 	if card["type"] == "unit":
-		lines.append("[%s] %s" % [d.get("race", ""), d["name"]])
+		lines.append("[%s] %s" % [d.get("race", ""), card["name"]])
 		lines.append("Cost: %d" % d["cost"])
 		lines.append("HP: %d / ATK: %d / SPD: %.1fs" % [d["hp"], d["atk"], d["interval"]])
 		lines.append("攻撃範囲: %s" % d.get("range", "1行"))
-		if d.get("support", "") != "":
+		# skills配列からサポート効果/アクティブスキルを動的生成
+		var support_lines: Array = []
+		var active_lines: Array = []
+		for skill in d.get("skills", []):
+			var eid: String = skill.get("effect_id", "")
+			var tgt: String = skill.get("target", "")
+			var entry: String = "%s → %s" % [eid, tgt] if tgt != "" else eid
+			if skill.get("trigger", "") == "always":
+				support_lines.append(entry)
+			else:
+				active_lines.append("[%s] %s" % [skill.get("trigger", ""), entry])
+		if support_lines.size() > 0:
 			lines.append("")
 			lines.append("■ サポート効果:")
-			for part in d["support"].split(" / "):
-				lines.append("  " + part.strip_edges())
-		if d.get("active", "") != "":
+			for part in support_lines:
+				lines.append("  " + part)
+		if active_lines.size() > 0:
 			lines.append("")
 			lines.append("■ アクティブスキル:")
-			for part in d["active"].split(" / "):
-				lines.append("  " + part.strip_edges())
+			for part in active_lines:
+				lines.append("  " + part)
 	elif card["type"] == "spell":
-		lines.append("[呪文] %s" % d["name"])
+		lines.append("[呪文] %s" % card["name"])
 		lines.append("Cost: %s" % ("X" if d["cost"] == -1 else str(d["cost"])))
 		lines.append("")
 		lines.append("■ 効果:")
 		lines.append("  " + d["effect"])
 	elif card["type"] == "status_spell":
-		lines.append("[異常状態] %s" % d["name"])
+		lines.append("[異常状態] %s" % card["name"])
 		lines.append("Cost: 0 (消滅型)")
 		lines.append("")
 		lines.append("■ 効果:")

@@ -7,7 +7,7 @@ const DeckManagerScript    = preload("res://scripts/DeckManager.gd")
 const EnemyAIScript        = preload("res://scripts/EnemyAI.gd")
 const EventQueueScript     = preload("res://scripts/EventQueue.gd")
 const SpellExecutorScript  = preload("res://scripts/SpellExecutor.gd")
-const EffectExecutorScript = preload("res://scripts/EffectExecutor.gd")
+var EffectExecutorScript = null  # 遅延ロード（preloadだとコンパイル時にフリーズ）
 
 # ---- レイアウト定数 ----
 const CELL_W    := 115
@@ -110,7 +110,8 @@ func _ready() -> void:
 	enemy_ai.spell_executor = spell_executor
 	enemy_ai.deck_manager_ref = deck_manager
 
-	# EffectExecutor 初期化・注入
+	# EffectExecutor 初期化・注入（遅延ロード）
+	EffectExecutorScript = load("res://scripts/EffectExecutor.gd")
 	var effect_executor = EffectExecutorScript.new()
 	board_manager.effect_executor = effect_executor
 	board_manager.deck_manager_ref = deck_manager
@@ -138,37 +139,18 @@ func _ready() -> void:
 
 # ---- 盤面合成レジストリ ----
 func _build_synthesis_registry() -> void:
+	var _CardDB = load("res://scripts/CardDB.gd")
 	var UnitDataScript = preload("res://scripts/UnitData.gd")
-	# {base: 盤面ユニット名, card: 発動カード名, result: 合成結果UnitData}
-	var recipes: Array = [
-		# スライム合成チェーン
-		{"base": "スライム",       "card": "スライム",       "result": {"name": "ラージスライム",   "hp": 25, "atk": 2, "interval": 3.8, "cost": 2, "col": 1}},
-		{"base": "ラージスライム", "card": "ラージスライム", "result": {"name": "ファットスライム", "hp": 50, "atk": 3, "interval": 6.0, "cost": 3, "col": 0}},
-		{"base": "ファットスライム","card": "ファットスライム","result": {"name": "キングスライム",   "hp":100, "atk": 5, "interval": 6.0, "cost":10, "col": 2, "support": "スライム全体強化〈常時発動・全体・スライムのATK+50%〉", "race": "スライム"}},
-		# スライム＋呪文合成
-		{"base": "スライム", "card": "泥の鎧",   "result": {"name": "マッドスライム",     "hp": 40, "atk": 2, "interval": 3.8, "cost": 3, "col": 1, "active": "鎧〈常時〉"}},
-		{"base": "スライム", "card": "火傷カード","result": {"name": "ヒートスライム",     "hp": 25, "atk": 2, "interval": 3.8, "cost": 3, "col": 0, "active": "火傷付与〈命中時〉"}},
-		{"base": "スライム", "card": "凍結カード","result": {"name": "フロストスライム",   "hp": 25, "atk": 2, "interval": 3.8, "cost": 3, "col": 0, "active": "凍結付与〈命中時〉"}},
-		{"base": "スライム", "card": "麻痺カード","result": {"name": "パラライズスライム", "hp": 25, "atk": 2, "interval": 3.0, "cost": 3, "col": 0, "active": "麻痺付与〈命中時〉"}},
-		{"base": "スライム", "card": "毒カード",  "result": {"name": "ポイズンスライム",   "hp": 25, "atk": 2, "interval": 3.0, "cost": 3, "col": 0, "active": "毒付与〈命中時〉"}},
-		{"base": "スライム", "card": "結晶化",   "result": {"name": "クリスタルスライム", "hp": 10, "atk": 1, "interval": 2.0, "cost": 4, "col": 2}},
-		{"base": "スライム", "card": "血の契約", "result": {"name": "ブラッドスライム",   "hp": 25, "atk": 2, "interval": 3.8, "cost": 4, "col": 0}},
-		{"base": "スライム", "card": "生命の雫", "result": {"name": "ゼリーフィッシュ",   "hp": 10, "atk": 1, "interval": 5.0, "cost": 3, "col": 2}},
-	]
-	for recipe in recipes:
-		var r: Dictionary = recipe["result"]
+	for recipe in _CardDB.SYNTHESIS:
+		var r = _CardDB.UNITS[recipe["result"]]
 		var u = UnitDataScript.new()
-		u.unit_name = r["name"]
-		u.max_hp = r["hp"]
-		u.current_hp = r["hp"]
-		u.attack = r["atk"]
-		u.attack_interval = r["interval"]
-		u.cost = r["cost"]
-		u.assigned_col = r["col"]
+		u.unit_name = recipe["result"]
+		u.max_hp = r["hp"]; u.current_hp = r["hp"]
+		u.attack = r["atk"]; u.attack_interval = r["interval"]
+		u.cost = r["cost"]; u.assigned_col = r["col"]
 		u.race = r.get("race", "スライム")
 		u.attack_range = r.get("range", "1行")
-		u.support_effect = r.get("support", "")
-		u.active_skill = r.get("active", "")
+		u.support_effect = ""; u.active_skill = ""
 		u.skills = r.get("skills", []).duplicate(true)
 		board_manager.synthesis_registry.append({
 			"base": recipe["base"],

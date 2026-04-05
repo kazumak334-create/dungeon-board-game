@@ -1,7 +1,7 @@
 # EffectExecutor.gd
 # 効果実行エンジン
 # context構造: {trigger, side, row, col, source, target, damage, board_manager, deck_manager, enemy_ai, event_queue}
-class_name EffectExecutor
+# class_name を使わない（Main.gdからpreload()で参照）
 extends RefCounted
 
 var _EffectDB = null  # EffectDB スクリプト参照（循環参照回避）
@@ -148,7 +148,7 @@ func execute(effect_id: String, params: Dictionary, context: Dictionary) -> void
 		"summon":
 			var unit_id: String = merged.get("unit_id", "スライム")
 			var range_type: String = merged.get("range", "same_row")
-			var chain: bool = merged.get("chain", false)
+			var _chain: bool = merged.get("chain", false)  # 将来使用（連鎖召喚制御）
 			if range_type == "same_row" and bm != null:
 				# 同行の空きマスにスライムを召喚
 				var UnitDataScript = load("res://scripts/UnitData.gd")
@@ -538,7 +538,7 @@ func _resolve_target(merged: Dictionary, context: Dictionary, ally_side: bool) -
 	var source: Object = context.get("source", null)
 	var target: Object = context.get("target", null)
 	var enemy_side: int = 1 - side
-	var tgt_side: int = side if ally_side else enemy_side
+	var _tgt_side: int = side if ally_side else enemy_side  # 将来使用（範囲指定拡張）
 
 	var tgt_str: String = merged.get("target", "")
 	if tgt_str == "":
@@ -636,6 +636,14 @@ func _resolve_target(merged: Dictionary, context: Dictionary, ally_side: bool) -
 			var front: int = 0 if enemy_side == 1 else 2
 			for r2 in range(3):
 				var u = bm.board[enemy_side][r2][front]
+				if u != null and u.is_alive():
+					return [u]
+			return []
+		"front_one":
+			# 自分の前のマス1体（side0: col+1方向、side1: col-1方向）
+			var front_c: int = col + 1 if side == 0 else col - 1
+			if front_c >= 0 and front_c < 3:
+				var u = bm.board[side][row][front_c]
 				if u != null and u.is_alive():
 					return [u]
 			return []

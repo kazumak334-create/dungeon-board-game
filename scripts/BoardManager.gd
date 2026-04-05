@@ -498,8 +498,10 @@ func _apply_support_effects() -> void:
 				if u != null:
 					_process_unit_support(s, r, c, u)
 	# skills配列のtrigger=="always"を処理（新方式）
+	# サポート効果は前列以外でのみ発動（原則）
 	if effect_executor != null:
 		for s in range(2):
+			var front_col: int = 2 if s == 0 else 0
 			for r in range(3):
 				for c in range(3):
 					var u = board[s][r][c]
@@ -507,6 +509,11 @@ func _apply_support_effects() -> void:
 						continue
 					for skill in u.skills:
 						if skill.get("trigger", "") == "always":
+							# 前列チェック：skill_flagタイプ（狙撃/支援攻撃）は位置制限なし
+							var eid = skill.get("effect_id", "")
+							var is_skill_flag = eid in ["snipe", "support_fire", "support_revive", "enemy_mana_drain", "debuff_spread"]
+							if c == front_col and not is_skill_flag:
+								continue  # 前列ユニットはサポート効果を発動しない
 							effect_executor.execute(skill["effect_id"], skill.get("params", {}), {
 								"trigger": "always", "side": s, "row": r, "col": c,
 								"source": u, "target": null, "damage": 0,
@@ -537,6 +544,9 @@ func _apply_support_effects() -> void:
 				u._atk_bonus = min(u._atk_bonus, 10)  # ATKバフ重複上限+10
 
 func _process_unit_support(side: int, row: int, col: int, unit: Object) -> void:
+	var front_col: int = 2 if side == 0 else 0
+	if col == front_col:
+		return
 	for entry in unit.support_effect.split(" / "):
 		if "常時発動" not in entry:
 			continue
@@ -754,22 +764,24 @@ func _apply_regen_buff() -> void:
 		for r in range(3):
 			for c in range(3):
 				var u = board[s][r][c]
-				if u != null and u._regen_stacks > 0:
+				if u == null:
+					continue  # nullユニットはスキップ
+				# リジェネ回復 + スタック減少
+				if u._regen_stacks > 0:
 					var heal: int = max(1, u.max_hp * 5 * u._regen_stacks / 100)
 					event_queue.push(
 						EventQueue.PRIORITY_IMMEDIATE,
 						null, u, "heal", float(heal),
 						{"src_side": s, "src_row": r, "src_col": c}
 					)
-					u._regen_stacks -= 1  # 2秒ごとに1スタック減少
-				# 吸血・貫通・鎧も2秒ごとに1スタック減少
+					u._regen_stacks -= 1
+				# 吸血・貫通も2秒ごとに1スタック減少
 				if u.lifesteal_stacks > 0:
 					u.lifesteal_stacks -= 1
 					u._has_lifesteal = u.lifesteal_stacks > 0
 				if u.penetrate_stacks > 0:
 					u.penetrate_stacks -= 1
 					u._has_penetrate = u.penetrate_stacks > 0
-				# 鎧は被弾で減少（時間減衰なし）
 
 # ---- 時間経過スキルシステム ----
 
