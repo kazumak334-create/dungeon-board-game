@@ -123,6 +123,12 @@ func process_ai(delta: float, board: Node) -> void:
 
 	if next_card == null:
 		return
+	# マナ上限超過チェック：コスト > マナ上限 → スキップ（捨て札へ）
+	if next_card.cost > int(MANA_MAX) and next_card.cost != -1:
+		enemy_deck.remove_at(0)
+		enemy_discard.append(next_card)
+		_pick_next_card()
+		return
 	if mana < next_card.cost:
 		return  # マナが足りるまで先頭で待機
 

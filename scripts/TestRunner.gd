@@ -420,7 +420,7 @@ func _test_placement_logic() -> void:
 	_assert_eq(config.size(), 3, "config数=デッキ枚数")
 	_assert_eq(config[0]["side"], 0, "スライム: 自陣")
 	_assert_eq(config[0]["col"], 1, "スライムcol1→中列")
-	_assert_eq(config[0]["row"], -1, "ユニットデフォルト→空きマス優先")
+	_assert_eq(config[0]["row"], 0, "ユニットデフォルト→上段(ラウンドロビン)")
 	_assert_eq(config[0]["fallback_same_col"], true, "デフォルトfallback=true")
 	_assert_eq(config[1]["col"], 0, "ゴブリンcol0→後列")
 	_assert_eq(config[2]["col"], -1, "呪文→列おまかせ")

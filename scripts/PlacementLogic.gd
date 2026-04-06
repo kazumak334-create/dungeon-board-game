@@ -159,19 +159,21 @@ static func get_highlight_cells(card_entry: Dictionary, placed_side: int, placed
 # 新データ構造: {side, row, col, fallback_same_col}
 static func generate_default_config(deck: Array) -> Array:
 	var config: Array = []
+	var name_row_counter: Dictionary = {}  # カード名→次の行番号（0,1,2をラウンドロビン）
 	for entry in deck:
 		var card_name: String = entry.get("name", "") if entry is Dictionary else str(entry)
 
 		if CardDB.UNITS.has(card_name):
-			# ユニット: assigned_colからデフォルト列、行は0（上段）から順に埋める
 			var assigned_col: int = entry.get("col", 1) if entry is Dictionary else 1
-			# player側: col0=後列, col1=中列, col2=前列
 			var col: int = clampi(assigned_col, 0, 2)
+			# 同名カードは行をばらけさせる（上段→中段→下段→上段...）
+			var row_idx: int = name_row_counter.get(card_name, 0)
+			name_row_counter[card_name] = (row_idx + 1) % 3
 			config.append({
 				"side": 0,
-				"row": -1,   # -1 = 空きマス優先（自動配置）
+				"row": row_idx,
 				"col": col,
-				"fallback_same_col": true,  # 指定セル埋まり時に同列他行へ
+				"fallback_same_col": true,
 			})
 		elif CardDB.SPELLS.has(card_name):
 			var d = CardDB.SPELLS[card_name]
