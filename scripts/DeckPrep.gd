@@ -4,35 +4,21 @@ extends Control
 
 const UIF = preload("res://scripts/UIFactory.gd")
 var _PL = null
+var _board = null  # DeckPrepBoard インスタンス
 
 var _tab_buttons: Array = []
 var _tab_container: Control = null
 var _info_container: Control = null  # 右側解説レーン
 var _current_tab: String = "placement"
 
-# 配置タブ用
-var _cell_rects: Array = []
-var _cell_card_containers: Array = []
+# 選択状態（_boardと同期）
 var _selected_card_idx: int = -1
-var _expanded_cell: Array = [-1, -1, -1]
-var _dragging: bool = false
-var _drag_node: Control = null
-var _drag_offset: Vector2 = Vector2.ZERO
-var _drag_source_idx: int = -1
 
 # レイアウト定数（全座標はここから自動計算）
 const TAB_BAR_H = 30       # タブバー高さ
 const TAB_BAR_Y = 4        # タブバーY位置
 const CONTENT_Y = TAB_BAR_Y + TAB_BAR_H + 4  # タブコンテンツ開始Y
 const INFO_W = 280          # 解説レーン幅
-const BOARD_X = 20
-const BOARD_Y = 5
-const CELL_W = 118
-const CELL_H = 105
-const CELL_GAP = 3
-const CENTER_GAP = 24
-const ROW_LABEL_W = 35
-const BOARD_H = BOARD_Y + 40 + 3 * (CELL_H + CELL_GAP) + 30  # 盤面+トグルの高さ
 const STATUS_H = 180        # ステータスパネル高さ
 
 const RACE_COLORS = {
@@ -47,6 +33,14 @@ func _ready() -> void:
 	_PL = load("res://scripts/PlacementLogic.gd")
 	if GameSession.placement_config.size() == 0 and GameSession.selected_deck.size() > 0:
 		GameSession.placement_config = _PL.generate_default_config(GameSession.selected_deck)
+	var BoardClass = load("res://scripts/DeckPrepBoard.gd")
+	_board = BoardClass.new()
+	_board.main_node = self
+	_board._PL = _PL
+	_board.on_card_selected = func(idx: int):
+		_selected_card_idx = idx
+		_update_info_lane()
+		_board.update_highlight()
 	_build_ui()
 
 func _build_ui() -> void:
@@ -174,17 +168,20 @@ func _show_tab(tab_id: String) -> void:
 		(tb["button"] as Button).modulate = Color(1, 1, 0.6) if tb["id"] == tab_id else Color(1, 1, 1)
 	for child in _tab_container.get_children():
 		child.queue_free()
-	_cell_rects = []
-	_cell_card_containers = []
 	# _selected_card_idx は保持（タブ切替で解説レーンを消さない）
-	_expanded_cell = [-1, -1, -1]
 
 	match tab_id:
-		"placement": _build_placement_tab()
+		"placement":
+			_board.tab_container = _tab_container
+			_board.build_placement_tab(_tab_container, _PL)
 		"items": _build_items_tab()
 		_: _build_placeholder_tab(tab_id)
 
 	_update_info_lane()
+
+func _process(delta: float) -> void:
+	if _board != null:
+		_board.process_drag(delta)
 
 # ===== 右側解説レーン =====
 
@@ -411,386 +408,6 @@ func _info_section(text: String, y: float) -> float:
 	lbl.add_theme_color_override("font_color", Color(0.45, 0.45, 0.55))
 	_info_container.add_child(lbl)
 	return y + 20
-
-# ===== 配置タブ =====
-
-func _build_placement_tab() -> void:
-	var guide = Label.new()
-	guide.text = "カードをドラッグして配置先を設定  │  自陣=召喚先  敵陣=呪文対象"
-	guide.position = Vector2(BOARD_X, BOARD_Y - 3)
-	guide.add_theme_font_size_override("font_size", 11)
-	guide.add_theme_color_override("font_color", Color(0.5, 0.55, 0.65))
-	_tab_container.add_child(guide)
-
-	# 陣営ラベル
-	var ally_lbl = Label.new()
-	ally_lbl.text = "── 自陣 ──"
-	ally_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	ally_lbl.position = Vector2(BOARD_X + ROW_LABEL_W, BOARD_Y + 8)
-	ally_lbl.size = Vector2(3 * (CELL_W + CELL_GAP), 18)
-	ally_lbl.add_theme_font_size_override("font_size", 11)
-	ally_lbl.add_theme_color_override("font_color", Color(0.4, 0.7, 0.5))
-	_tab_container.add_child(ally_lbl)
-
-	var enemy_x = BOARD_X + ROW_LABEL_W + 3 * (CELL_W + CELL_GAP) + CENTER_GAP
-	var enemy_lbl = Label.new()
-	enemy_lbl.text = "── 敵陣 ──"
-	enemy_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	enemy_lbl.position = Vector2(enemy_x, BOARD_Y + 8)
-	enemy_lbl.size = Vector2(3 * (CELL_W + CELL_GAP), 18)
-	enemy_lbl.add_theme_font_size_override("font_size", 11)
-	enemy_lbl.add_theme_color_override("font_color", Color(0.7, 0.4, 0.4))
-	_tab_container.add_child(enemy_lbl)
-
-	# 列ヘッダー
-	var ally_cols = ["後列", "中列", "前列"]
-	var enemy_cols = ["前列", "中列", "後列"]
-	for ci in range(3):
-		var al = Label.new()
-		al.text = ally_cols[ci]
-		al.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		al.position = Vector2(BOARD_X + ROW_LABEL_W + ci * (CELL_W + CELL_GAP), BOARD_Y + 22)
-		al.size = Vector2(CELL_W, 16)
-		al.add_theme_font_size_override("font_size", 10)
-		al.add_theme_color_override("font_color", Color(0.5, 0.65, 0.55))
-		_tab_container.add_child(al)
-
-		var el = Label.new()
-		el.text = enemy_cols[ci]
-		el.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		el.position = Vector2(enemy_x + ci * (CELL_W + CELL_GAP), BOARD_Y + 22)
-		el.size = Vector2(CELL_W, 16)
-		el.add_theme_font_size_override("font_size", 10)
-		el.add_theme_color_override("font_color", Color(0.65, 0.5, 0.5))
-		_tab_container.add_child(el)
-
-	# セル生成
-	var row_names = ["上段", "中段", "下段"]
-	_cell_rects = [
-		[[null,null,null],[null,null,null],[null,null,null]],
-		[[null,null,null],[null,null,null],[null,null,null]]
-	]
-	_cell_card_containers = [
-		[[null,null,null],[null,null,null],[null,null,null]],
-		[[null,null,null],[null,null,null],[null,null,null]]
-	]
-
-	for ri in range(3):
-		var rl = Label.new()
-		rl.text = row_names[ri]
-		rl.position = Vector2(BOARD_X, BOARD_Y + 40 + ri * (CELL_H + CELL_GAP) + 40)
-		rl.add_theme_font_size_override("font_size", 10)
-		rl.add_theme_color_override("font_color", Color(0.6, 0.6, 0.7))
-		_tab_container.add_child(rl)
-
-		for si in range(2):
-			for ci in range(3):
-				var bx: float
-				if si == 0:
-					bx = BOARD_X + ROW_LABEL_W + ci * (CELL_W + CELL_GAP)
-				else:
-					bx = enemy_x + ci * (CELL_W + CELL_GAP)
-				var by = BOARD_Y + 40 + ri * (CELL_H + CELL_GAP)
-
-				var cell = ColorRect.new()
-				cell.position = Vector2(bx, by)
-				cell.size = Vector2(CELL_W, CELL_H)
-				cell.color = Color(0.1, 0.12, 0.16) if si == 0 else Color(0.14, 0.1, 0.1)
-				_tab_container.add_child(cell)
-
-				var border = ReferenceRect.new()
-				border.position = Vector2(bx, by)
-				border.size = Vector2(CELL_W, CELL_H)
-				border.border_color = Color(0.2, 0.3, 0.25) if si == 0 else Color(0.3, 0.2, 0.2)
-				border.border_width = 1.0
-				border.editor_only = false
-				_tab_container.add_child(border)
-
-				var vbox = VBoxContainer.new()
-				vbox.position = Vector2(bx + 3, by + 3)
-				vbox.size = Vector2(CELL_W - 6, CELL_H - 6)
-				vbox.add_theme_constant_override("separation", 1)
-				_tab_container.add_child(vbox)
-
-				_cell_rects[si][ri][ci] = cell
-				_cell_card_containers[si][ri][ci] = vbox
-
-	_populate_cards()
-
-	# グローバルトグル
-	var toggle_y = BOARD_H
-	var toggle = CheckBox.new()
-	toggle.text = "指定セルが埋まっている場合、同じ列の他の空セルに召喚する"
-	toggle.button_pressed = true
-	toggle.position = Vector2(BOARD_X + ROW_LABEL_W, toggle_y)
-	toggle.add_theme_font_size_override("font_size", 11)
-	toggle.toggled.connect(func(on: bool): _set_global_fallback(on))
-	_tab_container.add_child(toggle)
-
-	# ステータスパネル（盤面下部）
-	# ステータスパネルは_build_uiで常時表示済み
-
-func _set_global_fallback(on: bool) -> void:
-	for cfg in GameSession.placement_config:
-		cfg["fallback_same_col"] = on
-
-func _populate_cards() -> void:
-	for si in range(2):
-		for ri in range(3):
-			for ci in range(3):
-				var vbox = _cell_card_containers[si][ri][ci]
-				if vbox != null:
-					for child in vbox.get_children():
-						child.queue_free()
-
-	var cell_cards: Dictionary = {}
-	for i in range(GameSession.selected_deck.size()):
-		var entry = GameSession.selected_deck[i]
-		var config = GameSession.placement_config[i] if i < GameSession.placement_config.size() else {}
-		var side = config.get("side", 0)
-		var row = config.get("row", -1)
-		var col = config.get("col", -1)
-		if row < 0: row = 0
-		if col < 0: col = 2
-		var key = "%d_%d_%d" % [side, row, col]
-		if not cell_cards.has(key):
-			cell_cards[key] = []
-		var card_name = entry.get("name", "???") if entry is Dictionary else str(entry)
-		cell_cards[key].append({"idx": i, "name": card_name})
-
-	for key in cell_cards:
-		var parts = key.split("_")
-		var si = int(parts[0])
-		var ri = int(parts[1])
-		var ci = int(parts[2])
-		var vbox = _cell_card_containers[si][ri][ci]
-		if vbox == null:
-			continue
-
-		var cards = cell_cards[key]
-		var is_expanded = (_expanded_cell[0] == si and _expanded_cell[1] == ri and _expanded_cell[2] == ci)
-
-		if is_expanded:
-			for card in cards:
-				vbox.add_child(_create_card_tag(card["idx"], card["name"], true))
-		else:
-			var groups: Dictionary = {}
-			var order: Array = []
-			for card in cards:
-				if not groups.has(card["name"]):
-					groups[card["name"]] = {"count": 0, "idx_first": card["idx"]}
-					order.append(card["name"])
-				groups[card["name"]]["count"] += 1
-			for gname in order:
-				var g = groups[gname]
-				vbox.add_child(_create_grouped_tag(g["idx_first"], gname, g["count"]))
-
-		var cell_rect = _cell_rects[si][ri][ci]
-		if not cell_rect.has_meta("click_connected"):
-			var s = si; var r = ri; var c = ci
-			cell_rect.gui_input.connect(func(event):
-				if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
-					_toggle_cell_expand(s, r, c)
-			)
-			cell_rect.set_meta("click_connected", true)
-
-func _create_grouped_tag(idx: int, card_name: String, count: int) -> Control:
-	var chip = PanelContainer.new()
-	chip.custom_minimum_size = Vector2(CELL_W - 10, 15)
-	var style = StyleBoxFlat.new()
-	style.bg_color = _get_card_color(card_name)
-	style.set_corner_radius_all(3)
-	chip.add_theme_stylebox_override("panel", style)
-
-	var lbl = Label.new()
-	var cost = _get_card_cost(card_name)
-	lbl.text = "%s ×%d [%d]" % [card_name, count, cost] if count > 1 else "%s [%d]" % [card_name, cost]
-	lbl.add_theme_font_size_override("font_size", 9)
-	lbl.add_theme_color_override("font_color", Color(0.95, 0.95, 0.95))
-	chip.add_child(lbl)
-
-	chip.gui_input.connect(func(event):
-		if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
-			chip.accept_event()
-			_start_drag(idx, chip, event.global_position)
-			_select_card(idx)
-	)
-	return chip
-
-func _create_card_tag(idx: int, card_name: String, draggable: bool) -> Control:
-	var chip = PanelContainer.new()
-	chip.custom_minimum_size = Vector2(CELL_W - 10, 15)
-	var style = StyleBoxFlat.new()
-	style.bg_color = _get_card_color(card_name).lightened(0.1)
-	style.set_corner_radius_all(3)
-	style.set_border_width_all(1)
-	style.border_color = Color(0.5, 0.5, 0.6)
-	chip.add_theme_stylebox_override("panel", style)
-
-	var lbl = Label.new()
-	lbl.text = "%s [%d]" % [card_name, _get_card_cost(card_name)]
-	lbl.add_theme_font_size_override("font_size", 9)
-	lbl.add_theme_color_override("font_color", Color(1, 1, 0.9))
-	chip.add_child(lbl)
-
-	if draggable:
-		chip.gui_input.connect(func(event):
-			if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
-				chip.accept_event()
-				_start_drag(idx, chip, event.global_position)
-				_select_card(idx)
-		)
-	return chip
-
-func _get_card_color(card_name: String) -> Color:
-	if CardDB.UNITS.has(card_name):
-		return RACE_COLORS.get(CardDB.UNITS[card_name].get("race", ""), DEFAULT_COLOR)
-	return SPELL_COLOR
-
-func _get_card_cost(card_name: String) -> int:
-	if CardDB.UNITS.has(card_name):
-		return CardDB.UNITS[card_name].get("cost", 0)
-	if CardDB.SPELLS.has(card_name):
-		return CardDB.SPELLS[card_name].get("cost", 0)
-	if CardDB.STATUS_SPELLS.has(card_name):
-		return CardDB.STATUS_SPELLS[card_name].get("cost", 0)
-	return 0
-
-func _toggle_cell_expand(si: int, ri: int, ci: int) -> void:
-	if _expanded_cell[0] == si and _expanded_cell[1] == ri and _expanded_cell[2] == ci:
-		_expanded_cell = [-1, -1, -1]
-	else:
-		_expanded_cell = [si, ri, ci]
-	_populate_cards()
-
-# ---- ドラッグ&ドロップ ----
-
-func _start_drag(idx: int, source_node: Control, mouse_pos: Vector2) -> void:
-	_dragging = true
-	_drag_source_idx = idx
-	_drag_offset = source_node.global_position - mouse_pos
-
-	var entry = GameSession.selected_deck[idx] if idx < GameSession.selected_deck.size() else {}
-	var card_name = entry.get("name", "???") if entry is Dictionary else str(entry)
-
-	_drag_node = PanelContainer.new()
-	_drag_node.size = Vector2(CELL_W - 10, 15)
-	_drag_node.z_index = 100
-	var style = StyleBoxFlat.new()
-	style.bg_color = _get_card_color(card_name).lightened(0.2)
-	style.set_corner_radius_all(3)
-	_drag_node.add_theme_stylebox_override("panel", style)
-	var lbl = Label.new()
-	lbl.text = card_name
-	lbl.add_theme_font_size_override("font_size", 9)
-	lbl.add_theme_color_override("font_color", Color(1, 1, 0.8))
-	_drag_node.add_child(lbl)
-	add_child(_drag_node)
-	_drag_node.global_position = mouse_pos + _drag_offset
-
-func _end_drag() -> void:
-	if _drag_node != null:
-		_drag_node.queue_free()
-		_drag_node = null
-	_dragging = false
-	_drag_source_idx = -1
-
-func _process(_delta: float) -> void:
-	if _dragging and _drag_node != null:
-		_drag_node.global_position = get_viewport().get_mouse_position() + _drag_offset
-	if _dragging and not Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT):
-		_try_drop_at_mouse()
-
-func _try_drop_at_mouse() -> void:
-	if not _dragging or _drag_source_idx < 0:
-		_end_drag()
-		return
-
-	var mouse = get_viewport().get_mouse_position()
-	var local = mouse - _tab_container.global_position
-	var enemy_x = BOARD_X + ROW_LABEL_W + 3 * (CELL_W + CELL_GAP) + CENTER_GAP
-
-	for si in range(2):
-		for ri in range(3):
-			for ci in range(3):
-				var bx: float
-				if si == 0:
-					bx = BOARD_X + ROW_LABEL_W + ci * (CELL_W + CELL_GAP)
-				else:
-					bx = enemy_x + ci * (CELL_W + CELL_GAP)
-				var by = BOARD_Y + 40 + ri * (CELL_H + CELL_GAP)
-
-				if local.x >= bx and local.x < bx + CELL_W and local.y >= by and local.y < by + CELL_H:
-					_try_drop_card(_drag_source_idx, si, ri, ci)
-					return
-	_end_drag()
-
-func _try_drop_card(idx: int, new_side: int, new_row: int, new_col: int) -> void:
-	var entry = GameSession.selected_deck[idx] if idx < GameSession.selected_deck.size() else {}
-	if new_side == 0 and not _PL.can_place_ally(entry):
-		_end_drag()
-		return
-	if new_side == 1 and not _PL.can_place_enemy(entry):
-		_end_drag()
-		return
-
-	if idx < GameSession.placement_config.size():
-		GameSession.placement_config[idx]["side"] = new_side
-		GameSession.placement_config[idx]["row"] = new_row
-		GameSession.placement_config[idx]["col"] = new_col
-
-	_end_drag()
-	_expanded_cell = [-1, -1, -1]
-	_populate_cards()
-
-func _select_card(idx: int) -> void:
-	_selected_card_idx = idx
-	_update_info_lane()
-	_update_highlight()
-
-func _update_highlight() -> void:
-	# 全セルの色をリセット
-	if _cell_rects.size() < 2:
-		return
-	for si in range(2):
-		for ri in range(3):
-			for ci in range(3):
-				var cell = _cell_rects[si][ri][ci]
-				if cell != null:
-					cell.color = Color(0.1, 0.12, 0.16) if si == 0 else Color(0.14, 0.1, 0.1)
-
-	if _selected_card_idx < 0 or _selected_card_idx >= GameSession.selected_deck.size():
-		return
-
-	var entry = GameSession.selected_deck[_selected_card_idx]
-	var config = GameSession.placement_config[_selected_card_idx] if _selected_card_idx < GameSession.placement_config.size() else {}
-	var p_side = config.get("side", 0)
-	var p_row = config.get("row", 0)
-	var p_col = config.get("col", 0)
-	if p_row < 0: p_row = 0
-	if p_col < 0: p_col = 2
-
-	# 配置マスを白枠でハイライト
-	var placed_cell = _cell_rects[p_side][p_row][p_col]
-	if placed_cell != null:
-		placed_cell.color = Color(0.2, 0.22, 0.28) if p_side == 0 else Color(0.22, 0.18, 0.18)
-
-	# 効果範囲ハイライト
-	var highlights = _PL.get_highlight_cells(entry, p_side, p_row, p_col)
-	var highlight_colors = {
-		"green": Color(0.15, 0.3, 0.15),  # 味方バフ
-		"red": Color(0.3, 0.12, 0.12),    # 敵攻撃/デバフ
-		"blue": Color(0.12, 0.18, 0.3),   # 自己
-	}
-	for h in highlights:
-		var hs = h.get("side", 0)
-		var hr = h.get("row", 0)
-		var hc = h.get("col", 0)
-		var hcolor = h.get("color", "green")
-		if hs >= 0 and hs < 2 and hr >= 0 and hr < 3 and hc >= 0 and hc < 3:
-			var cell = _cell_rects[hs][hr][hc]
-			if cell != null:
-				cell.color = highlight_colors.get(hcolor, highlight_colors["green"])
 
 # ===== アイテムタブ =====
 
