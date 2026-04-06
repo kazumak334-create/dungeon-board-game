@@ -2,6 +2,18 @@
 
 ## [Unreleased]
 
+### feat: cards.jsonの全エントリにrarityフィールドを追加 — 2026-04-06
+
+#### 変更ファイル
+- `data/cards.json` — units/spells/status_spells/system_spells/artifactsの全エントリに`rarity`フィールドを追加（`anim`の直後に配置）
+
+#### レアリティ内訳
+- units: common×5, uncommon×8, rare×15, epic×5, legend×4, god×2
+- spells: common×6, uncommon×11, rare×5, epic×2, legend×1
+- status_spells: common×4
+- system_spells: common×1
+- artifacts: epic×7
+
 ### refactor: シーン名文字列リテラルをSceneManager定数参照に置換 — 2026-04-06
 
 #### 変更ファイル
