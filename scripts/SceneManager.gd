@@ -2,12 +2,30 @@
 # Autoload: 全画面遷移を一元管理
 extends Node
 
-# シーン登録（.tscnが存在しない場合はnull。存在確認後にpreloadに切り替え）
+# シーン名定数（typo防止・全画面で参照）
+const TITLE          = "title"
+const MATERIAL_SELECT = "material_select"
+const DECK_PREP      = "deck_prep"
+const MAP_SELECT     = "map_select"
+const BATTLE         = "battle"
+const RESULT         = "result"
+const SHOP           = "shop"
+const EVENT          = "event"
+const GATHER         = "gather"
+const BOSS_REWARD    = "boss_reward"
+
+# シーン登録
 var _scenes: Dictionary = {
-	"title": null,
-	"class_select": null,
+	"title": "res://scenes/Title.tscn",
+	"material_select": "res://scenes/MaterialSelect.tscn",
+	"deck_prep": "res://scenes/DeckPrep.tscn",
+	"map_select": "res://scenes/MapSelect.tscn",
 	"battle": "res://scenes/Main.tscn",
-	"result": null,
+	"result": "res://scenes/Result.tscn",
+	"shop": "res://scenes/Shop.tscn",
+	"event": "res://scenes/Event.tscn",
+	"gather": "res://scenes/Gather.tscn",
+	"boss_reward": "res://scenes/BossReward.tscn",
 }
 
 func go_to(scene_name: String) -> void:
@@ -25,4 +43,4 @@ func go_to(scene_name: String) -> void:
 func go_to_battle(class_id: String) -> void:
 	GameSession.class_id = class_id
 	print("[SceneManager] go_to_battle: class_id=%s" % class_id)
-	go_to("battle")
+	go_to(BATTLE)

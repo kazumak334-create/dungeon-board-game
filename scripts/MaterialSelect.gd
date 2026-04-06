@@ -114,7 +114,7 @@ func _build_ui() -> void:
 	back_button.position = Vector2(40, 500)
 	back_button.size = Vector2(120, 45)
 	back_button.add_theme_font_size_override("font_size", 16)
-	back_button.pressed.connect(func(): SceneManager.go_to("title"))
+	back_button.pressed.connect(func(): SceneManager.go_to(SceneManager.TITLE))
 	add_child(back_button)
 
 func _create_material_panel(index: int, mat: Dictionary) -> PanelContainer:
@@ -438,4 +438,4 @@ func _on_decide_pressed() -> void:
 					deck.append({"name": spell_names[0], "col": -1})
 
 	GameSession.selected_deck = deck
-	SceneManager.go_to("deck_prep")
+	SceneManager.go_to(SceneManager.DECK_PREP)

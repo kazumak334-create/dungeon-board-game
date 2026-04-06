@@ -305,7 +305,7 @@ func _check_game_over() -> void:
 
 func _transition_to_result_timer() -> void:
 	var timer = get_tree().create_timer(2.0)
-	timer.timeout.connect(func(): SceneManager.go_to("result"))
+	timer.timeout.connect(func(): SceneManager.go_to(SceneManager.RESULT))
 
 func _on_restart_pressed() -> void:
 	get_tree().reload_current_scene()

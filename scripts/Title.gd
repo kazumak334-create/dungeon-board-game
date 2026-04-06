@@ -171,14 +171,14 @@ func _on_start_pressed() -> void:
 	if _selected_class_id == "":
 		return
 	GameSession.class_id = _selected_class_id
-	SceneManager.go_to("material_select")
+	SceneManager.go_to(SceneManager.MATERIAL_SELECT)
 
 func _on_dev_mode_pressed() -> void:
 	if _selected_class_id == "":
 		return
 	GameSession.class_id = _selected_class_id
 	GameSession.dev_mode = true
-	SceneManager.go_to("battle")
+	SceneManager.go_to(SceneManager.BATTLE)
 
 func _on_run_tests() -> void:
 	print("=== テスト開始 ===")

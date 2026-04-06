@@ -2,6 +2,21 @@
 
 ## [Unreleased]
 
+### refactor: シーン名文字列リテラルをSceneManager定数参照に置換 — 2026-04-06
+
+#### 変更ファイル
+- `scripts/SceneManager.gd` — go_to_battle内の"battle"をBATALLE定数に変更
+- `scripts/BossReward.gd` — "deck_prep" → SceneManager.DECK_PREP
+- `scripts/DeckPrep.gd` — "map_select"/"title" → SceneManager.MAP_SELECT/TITLE
+- `scripts/Event.gd` — "map_select"×2 → SceneManager.MAP_SELECT
+- `scripts/Gather.gd` — "map_select" → SceneManager.MAP_SELECT
+- `scripts/Main.gd` — "result" → SceneManager.RESULT
+- `scripts/MaterialSelect.gd` — "title"/"deck_prep" → SceneManager.TITLE/DECK_PREP
+- `scripts/MapSelect.gd` — "deck_prep"/"battle"×3 → SceneManager.DECK_PREP/BATTLE
+- `scripts/Result.gd` — "boss_reward"/"deck_prep"/"title" → SceneManager定数
+- `scripts/Shop.gd` — "map_select" → SceneManager.MAP_SELECT
+- `scripts/Title.gd` — "material_select"/"battle" → SceneManager.MATERIAL_SELECT/BATTLE
+
 ### refactor: EffectExecutor.gd を3ファイルに分割（R10対応） — 2026-04-06
 
 #### 変更ファイル

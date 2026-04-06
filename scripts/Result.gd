@@ -125,7 +125,7 @@ func _build_ui() -> void:
 		continue_btn.size = Vector2(250, 55)
 		continue_btn.add_theme_font_size_override("font_size", 22)
 		# ボス戦ならボス報酬画面へ、通常はデッキ準備へ
-		var next_scene = "boss_reward" if GameSession.battle_type == "boss" else "deck_prep"
+		var next_scene = SceneManager.BOSS_REWARD if GameSession.battle_type == "boss" else SceneManager.DECK_PREP
 		continue_btn.pressed.connect(func(): SceneManager.go_to(next_scene))
 		add_child(continue_btn)
 
@@ -137,6 +137,6 @@ func _build_ui() -> void:
 	title_btn.add_theme_font_size_override("font_size", 18)
 	title_btn.pressed.connect(func():
 		GameSession.reset()
-		SceneManager.go_to("title")
+		SceneManager.go_to(SceneManager.TITLE)
 	)
 	add_child(title_btn)
