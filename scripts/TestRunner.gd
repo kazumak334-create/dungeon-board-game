@@ -44,6 +44,7 @@ func run_all() -> String:
 	_test_card_queue_data()
 	_test_spell_speed_skip()
 	_test_cast_gauge()
+	_test_tile_triggers()
 
 	var summary: String = "テスト結果: %d passed / %d failed" % [_pass_count, _fail_count]
 	_results.insert(0, summary)
@@ -729,3 +730,28 @@ func _test_cast_gauge() -> void:
 	timer = 1.0
 	ratio = 1.0 - (timer / max(0.01, interval))
 	_assert_eq(ratio, 0.0, "キャスト: timer1.0/interval1.0 → ratio0（クールダウン中）")
+
+func _test_tile_triggers() -> void:
+	# 棘(tile_thorn)のtriggerがon_enterであること
+	var _edb = load("res://scripts/EffectDB.gd")
+	var thorn = _edb.EFFECTS.get("tile_thorn", {})
+	_assert_eq(thorn.get("trigger", ""), "on_enter", "棘: trigger=on_enter")
+	_assert_true(thorn.has("damage"), "棘: damageフィールドあり")
+
+	# 鉄壁(tile_fortress)のon_enter効果
+	var fortress = _edb.EFFECTS.get("tile_fortress", {})
+	_assert_eq(fortress.get("trigger", ""), "on_enter", "鉄壁: trigger=on_enter")
+	_assert_true(fortress.has("armor_stacks"), "鉄壁: armor_stacksあり")
+
+	# 呪い(tile_curse)はon_stay
+	var curse = _edb.EFFECTS.get("tile_curse", {})
+	_assert_eq(curse.get("trigger", ""), "on_stay", "呪い: trigger=on_stay")
+
+	# ヒビ(tile_crack)はon_leave
+	var crack = _edb.EFFECTS.get("tile_crack", {})
+	_assert_eq(crack.get("trigger", ""), "on_leave", "ヒビ: trigger=on_leave")
+	_assert_true(crack.has("transform_to"), "ヒビ: transform_toあり")
+
+	# 毒沼(tile_poison)はon_tick
+	var poison = _edb.EFFECTS.get("tile_poison", {})
+	_assert_eq(poison.get("trigger", ""), "on_tick", "毒沼: trigger=on_tick")

@@ -45,6 +45,8 @@ func _process_pending_revives() -> void:
 					bm.attack_timers[s][r][c] = u.attack_interval
 					bm.emit_signal("unit_revived", s, r, c)
 					bm.on_board_changed()
+					# 復活時も盤面効果を発動（棘ダメージ等）
+					bm.tile_system.check_tile_on_enter(s, r, c, u)
 					placed = true
 					break
 			if not placed:
