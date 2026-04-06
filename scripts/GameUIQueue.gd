@@ -124,15 +124,18 @@ func _build_card_queue_ui() -> void:
 	var item_gap: float = 6.0      # 各パーツ間の隙間
 	var center_x: float = 640.0
 
-	# ---- 座標計算（中央寄せ） ----
-	# 自分側（右から左: 1st → マナ → デッキ → 捨て）
+	# ---- 座標計算（中央寄せ・2-3枚目の重ねスペース確保） ----
+	var stack_offset: float = 30.0  # 2-3枚目の重ねずらし幅
+	var stack_space: float = stack_offset * 2  # 2-3枚目分のスペース
+
+	# 自分側（右から左: 1st[+重ねスペース] → マナ → デッキ）
 	var self_card_x: float = center_x - gap / 2.0 - card_w           # 自1stカード左端
-	var self_mana_x: float = self_card_x - item_gap - mana_w          # マナ左端
+	var self_mana_x: float = self_card_x - stack_space - item_gap - mana_w  # マナ左端（重ねスペースの外）
 	var self_deck_x: float = self_mana_x - item_gap - deck_w          # デッキ左端
 
-	# 敵側（左から右: 1st → マナ → デッキ → 捨て）
+	# 敵側（左から右: 1st[+重ねスペース] → マナ → デッキ）
 	var enemy_card_x: float = center_x + gap / 2.0                   # 敵1stカード左端
-	var enemy_mana_x: float = enemy_card_x + card_w + item_gap        # 敵マナ左端
+	var enemy_mana_x: float = enemy_card_x + card_w + stack_space + item_gap  # 敵マナ左端
 	var enemy_deck_x: float = enemy_mana_x + mana_w + item_gap        # 敵デッキ左端
 
 	# ---- 自分側デッキ山パネル ----
