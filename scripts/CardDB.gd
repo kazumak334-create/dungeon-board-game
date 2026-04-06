@@ -1,6 +1,6 @@
 # CardDB.gd
 # カードデータベース（JSONファイルから読み込み）
-extends RefCounted
+extends Node
 
 var UNITS: Dictionary = {}
 var SPELLS: Dictionary = {}
@@ -13,8 +13,10 @@ var SYNTHESIS: Array = []
 var PLAYER_DECK: Array = []
 var PLAYER_SPELLS: Array = []
 var ENEMY_DECK: Array = []
+var BASE_DECK: Array = []
+var MATERIALS: Array = []
 
-func _init() -> void:
+func _ready() -> void:
 	var file = FileAccess.open("res://data/cards.json", FileAccess.READ)
 	if file == null:
 		print("[CardDB] ERROR: data/cards.json not found")
@@ -36,3 +38,5 @@ func _init() -> void:
 	PLAYER_DECK = data.get("player_deck", [])
 	PLAYER_SPELLS = data.get("player_spells", [])
 	ENEMY_DECK = data.get("enemy_deck", [])
+	BASE_DECK = data.get("base_deck", [])
+	MATERIALS = data.get("materials", [])

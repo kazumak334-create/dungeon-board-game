@@ -78,44 +78,35 @@ static func get_highlight_cells(card_entry: Dictionary, placed_side: int, placed
 		skills = CardDB.STATUS_SPELLS[card_name].get("skills", [])
 
 	if skills.size() == 0:
-		# ユニットでスキルなし→前列なら攻撃範囲を表示
-		if CardDB.UNITS.has(card_name) and placed_col == 2:
-			# 対面の敵マスを赤
-			result.append({"side": 1, "row": placed_row, "col": 0, "color": "red"})
+		# スキルなし→ハイライトなし
 		return result
 
 	for skill in skills:
 		var target = skill.get("target", "")
 		var trigger = skill.get("trigger", "")
 
-		# パッシブ効果（自分のみに影響）はハイライトしない
-		if trigger in ["on_summon", "on_death", "on_hp_threshold"]:
+		# サポート効果（always / timer+target≠self）のみハイライト
+		# 攻撃時効果（on_hit/on_kill）→ ハイライトしない（命中相手or自分に発動）
+		# パッシブ（on_summon/on_death等）→ ハイライトしない（自身に影響）
+		if trigger in ["on_hit", "on_kill", "on_summon", "on_death", "on_hp_threshold"]:
 			continue
 		if trigger == "timer" and target == "self":
 			continue
+		if trigger != "always" and trigger != "timer":
+			continue
 
-		# 攻撃時効果=赤、サポート効果=緑
-		var color: String
-		if trigger in ["on_hit", "on_kill"]:
-			color = "red"  # 攻撃時効果 → 敵に影響
-		else:
-			color = "green"  # サポート効果 → 味方に影響（デフォルト）
-
-		# 敵対象targetは強制的に赤
+		# サポート効果のみ到達：デフォルト緑、敵対象は赤
+		var color: String = "green"
 		if target in ["all_enemies", "enemy_random_col", "enemy_front_one", "random_front_enemy", "front_enemy"]:
 			color = "red"
 
 		match target:
 			"self":
-				continue  # 自己対象はアクティブ扱い、ハイライトしない
+				continue  # 自己対象→ハイライトしない
 			"front_one":
-				# 前のマス（自陣ならcol+1方向）。攻撃時効果なら敵陣に跨ぐ
-				if trigger in ["on_hit", "on_kill"] and placed_col == 2 and placed_side == 0:
-					result.append({"side": 1, "row": placed_row, "col": 0, "color": "red"})
-				else:
-					var fc = placed_col + 1 if placed_side == 0 else placed_col - 1
-					if fc >= 0 and fc <= 2:
-						result.append({"side": placed_side, "row": placed_row, "col": fc, "color": color})
+				var fc = placed_col + 1 if placed_side == 0 else placed_col - 1
+				if fc >= 0 and fc <= 2:
+					result.append({"side": placed_side, "row": placed_row, "col": fc, "color": color})
 			"adjacent":
 				for dr in [-1, 0, 1]:
 					for dc in [-1, 0, 1]:
@@ -160,10 +151,6 @@ static func get_highlight_cells(card_entry: Dictionary, placed_side: int, placed
 				var enemy = 1 - placed_side
 				var efc = 0 if placed_side == 0 else 2
 				result.append({"side": enemy, "row": placed_row, "col": efc, "color": "red"})
-
-	# ユニットが前列にいる場合、攻撃範囲も追加
-	if CardDB.UNITS.has(card_name) and placed_col == 2 and placed_side == 0:
-		result.append({"side": 1, "row": placed_row, "col": 0, "color": "red"})
 
 	return result
 
@@ -255,10 +242,115 @@ static func resolve_placement(config_entry: Dictionary, board: Array, enemy_boar
 		row_candidates = [0, 1, 2]
 		row_candidates.shuffle()
 
-	# 候補マスから空きを探す
-	for r in row_candidates:
-		for c in col_candidates:
+	# 候補マスから空きを探す（同列の他行を優先）
+	for c in col_candidates:
+		for r in row_candidates:
 			if board[side][r][c] == null:
 				return [r, c]
 
 	return [-1, -1]  # 配置不可
+
+# ---- DeckPrep操作（データ層・UIなし） ----
+
+# カード1枚を移動。成功=true, 制約違反=false
+static func move_card(idx: int, new_side: int, new_row: int, new_col: int,
+		deck: Array, config: Array) -> bool:
+	if idx < 0 or idx >= deck.size() or idx >= config.size():
+		return false
+	var entry = deck[idx]
+	if new_side == 0 and not can_place_ally(entry):
+		return false
+	if new_side == 1 and not can_place_enemy(entry):
+		return false
+	config[idx]["side"] = new_side
+	config[idx]["row"] = new_row
+	config[idx]["col"] = new_col
+	return true
+
+# カードグループを一括移動。全て同じセルへ。1枚でも制約違反ならfalse（全て移動しない）
+static func move_group(indices: Array, new_side: int, new_row: int, new_col: int,
+		deck: Array, config: Array) -> bool:
+	# 事前チェック
+	for idx in indices:
+		if idx < 0 or idx >= deck.size() or idx >= config.size():
+			return false
+		var entry = deck[idx]
+		if new_side == 0 and not can_place_ally(entry):
+			return false
+		if new_side == 1 and not can_place_enemy(entry):
+			return false
+	# 全カード移動
+	for idx in indices:
+		config[idx]["side"] = new_side
+		config[idx]["row"] = new_row
+		config[idx]["col"] = new_col
+	return true
+
+# 同一セル内の同名カードのインデックス一覧を返す
+static func get_same_name_group_in_cell(idx: int, deck: Array, config: Array) -> Array:
+	if idx < 0 or idx >= deck.size() or idx >= config.size():
+		return []
+	var entry = deck[idx]
+	var card_name = entry.get("name", "") if entry is Dictionary else str(entry)
+	var src = config[idx]
+	var ss = src.get("side", 0)
+	var sr = src.get("row", 0)
+	var sc = src.get("col", 0)
+	if sr < 0: sr = 0
+	if sc < 0: sc = 2
+
+	var group: Array = []
+	for i in range(deck.size()):
+		if i >= config.size():
+			break
+		var e = deck[i]
+		var n = e.get("name", "") if e is Dictionary else str(e)
+		if n != card_name:
+			continue
+		var cfg = config[i]
+		var cs = cfg.get("side", 0)
+		var cr = cfg.get("row", 0)
+		var cc = cfg.get("col", 0)
+		if cr < 0: cr = 0
+		if cc < 0: cc = 2
+		if cs == ss and cr == sr and cc == sc:
+			group.append(i)
+	return group
+
+# セル内の全カードのインデックス一覧を返す
+static func get_cell_group(side: int, row: int, col: int, config: Array) -> Array:
+	var group: Array = []
+	for i in range(config.size()):
+		var cfg = config[i]
+		var cs = cfg.get("side", 0)
+		var cr = cfg.get("row", 0)
+		var cc = cfg.get("col", 0)
+		if cr < 0: cr = 0
+		if cc < 0: cc = 2
+		if cs == side and cr == row and cc == col:
+			group.append(i)
+	return group
+
+# 行内の全カードのインデックス一覧を返す（陣営指定）
+static func get_row_group(side: int, row: int, config: Array) -> Array:
+	var group: Array = []
+	for i in range(config.size()):
+		var cfg = config[i]
+		var cs = cfg.get("side", 0)
+		var cr = cfg.get("row", 0)
+		if cr < 0: cr = 0
+		if cs == side and cr == row:
+			group.append(i)
+	return group
+
+# 列内の全カードのインデックス一覧を返す（陣営指定）
+static func get_col_group(side: int, col: int, config: Array) -> Array:
+	var group: Array = []
+	for i in range(config.size()):
+		var cfg = config[i]
+		var cs = cfg.get("side", 0)
+		var cc = cfg.get("col", 0)
+		if cc < 0: cc = 2
+		if cs == side and cc == col:
+			group.append(i)
+	return group

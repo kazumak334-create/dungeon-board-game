@@ -19,11 +19,13 @@ var spell_id: String = ""         # 呪文識別子
 var spell_target: String = ""     # "self" | "single_ally" | "all_allies" | "all_enemies" | "front_all" | "column" | "enemy_queue"
 var spell_effect: String = ""     # 効果記述
 var is_consumable: bool = false   # true = 発動後消滅（捨て札に行かない）
+var persistence: String = "permanent"  # "permanent"=通常, "battle"=バトル後消滅, "run"=ラン中引継ぎ
 # 盤面合成フィールド
 var synthesis_base: String = ""   # 盤面合成の盤面ユニット名（空=合成不可）
 var synthesis_card: String = ""   # 盤面合成の発動カード名
 # 効果テーブルシステム（新方式）
 var skills: Array = []            # [{trigger, effect_id, params}]
+var _deck_index: int = -1         # GameSession.placement_config参照用
 
 # ランタイムサポートボーナス（毎フレームBoardManagerが再計算・cloneには引き継がない）
 var _atk_bonus: int = 0
@@ -33,7 +35,7 @@ var _can_attack_from_back: bool = false   # 後列から攻撃可能（狙撃/�
 var _can_attack_from_mid: bool = false   # 中列から攻撃可能（支援攻撃）
 var _back_atk_factor: float = 1.0
 var _back_target_rear: bool = false      # 敵最後列を優先（狙撃）
-var _back_no_on_hit: bool = false        # 命中時アクティブを発動しない
+var _back_no_on_hit: bool = false        # 命中時スキルを発動しない
 var _is_flying: bool = false             # 飛行スキル：盤面効果を受けない
 var _auto_promote: bool = false          # 自動前進：前マスが空いたら自動移動
 var _damage_reduction: int = 0  # 鎧バフ：被ダメージ-N

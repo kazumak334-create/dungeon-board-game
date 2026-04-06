@@ -78,14 +78,32 @@ func _setup() -> void:
 
 var synthesis_registry: Array = []  # [{base, card, result_name, result_data}] Main.gdで設定
 
-func place_unit(side: int, unit_data: Object) -> bool:
-	var col: int = unit_data.assigned_col
-	if side == 0:
-		col = 2 - col  # 自陣は前列=col2なのでインデックスを反転
-	var rows: Array = [0, 1, 2]
-	rows.shuffle()
-	# 抽選で1行を決定
-	var row: int = rows[0]
+func place_unit(side: int, unit_data: Object, config_entry: Dictionary = {}) -> bool:
+	var row: int = -1
+	var col: int = -1
+	if config_entry.size() > 0:
+		# PlacementLogicで空きマスを探す
+		var PL = load("res://scripts/PlacementLogic.gd")
+		var result = PL.resolve_placement(config_entry, board, board)
+		if result[0] >= 0:
+			row = result[0]
+			col = result[1]
+		else:
+			# 空きマスなし → 合成候補を探す（優先列の全マス）
+			var pref_col = config_entry.get("col", -1)
+			var synthesis_found = _try_synthesis_in_area(side, pref_col, unit_data)
+			if synthesis_found:
+				return true
+			print("[BoardManager] PlacementLogic: 配置・合成先なし")
+			return false
+	else:
+		# 従来ロジック（後方互換：DevUI等）
+		col = unit_data.assigned_col
+		if side == 0:
+			col = 2 - col
+		var rows: Array = [0, 1, 2]
+		rows.shuffle()
+		row = rows[0]
 	if board[side][row][col] == null:
 		# アーティファクト排他チェック
 		if board_artifacts[side][row][col] != null:
@@ -137,6 +155,28 @@ func place_unit(side: int, unit_data: Object) -> bool:
 			return true
 	# 合成不成立 → 召喚失敗
 	print("[BoardManager] 召喚失敗: side=%d row=%d col=%d" % [side, row, col])
+	return false
+
+func _try_synthesis_in_area(side: int, pref_col: int, unit_data: Object) -> bool:
+	# 優先列→他列の順で合成可能なマスを探す
+	var cols: Array
+	if pref_col >= 0 and pref_col <= 2:
+		cols = [pref_col]
+		for c in range(3):
+			if c != pref_col:
+				cols.append(c)
+	else:
+		cols = [0, 1, 2]
+	var rows = [0, 1, 2]
+	rows.shuffle()
+	for c in cols:
+		for r in rows:
+			var existing = board[side][r][c]
+			if existing != null:
+				var result = _check_synthesis(existing.unit_name, unit_data)
+				if result != null:
+					_execute_synthesis(side, r, c, existing, result)
+					return true
 	return false
 
 func _check_synthesis(base_name: String, card: Object) -> Object:

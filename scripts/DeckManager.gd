@@ -27,11 +27,18 @@ func _ready() -> void:
 	_UnitDataScript = load("res://scripts/UnitData.gd")
 	_build_default_deck()
 
+func _get_placement_config(card: Object) -> Dictionary:
+	var idx = card._deck_index if card._deck_index >= 0 else -1
+	if idx >= 0 and idx < GameSession.placement_config.size():
+		return GameSession.placement_config[idx]
+	return {}
+
 func _build_default_deck() -> void:
 	# GameSession.selected_deckがあればそれを使う
 	var session_deck = GameSession.selected_deck if GameSession.selected_deck.size() > 0 else []
 	if session_deck.size() > 0:
-		for entry in session_deck:
+		for i in range(session_deck.size()):
+			var entry = session_deck[i]
 			var card_name = entry.get("name", "") if entry is Dictionary else str(entry)
 			var col = entry.get("col", 1) if entry is Dictionary else 1
 			# ユニット？呪文？判定
@@ -45,6 +52,7 @@ func _build_default_deck() -> void:
 				u.race = d["race"]; u.attack_range = d["range"]
 				u.support_effect = ""; u.passive_skill = ""
 				u.skills = d.get("skills", []).duplicate(true)
+				u._deck_index = i
 				deck.append(u)
 			elif CardDB.SPELLS.has(card_name):
 				var d: Dictionary = CardDB.SPELLS[card_name]
@@ -53,6 +61,7 @@ func _build_default_deck() -> void:
 				u.spell_id = card_name; u.cost = d["cost"]
 				u.spell_target = d["target"]; u.spell_effect = d["effect"]
 				u.skills = d.get("skills", []).duplicate(true)
+				u._deck_index = i
 				deck.append(u)
 			elif CardDB.STATUS_SPELLS.has(card_name):
 				var d: Dictionary = CardDB.STATUS_SPELLS[card_name]
@@ -60,8 +69,10 @@ func _build_default_deck() -> void:
 				u.unit_name = card_name; u.card_type = "status_spell"
 				u.spell_id = card_name; u.cost = d["cost"]
 				u.is_consumable = d.get("is_consumable", false)
+				u.persistence = d.get("persistence", "permanent")
 				u.spell_target = d.get("target", ""); u.spell_effect = d.get("effect", "")
 				u.skills = d.get("skills", []).duplicate(true)
+				u._deck_index = i
 				deck.append(u)
 		deck.shuffle()
 		return
@@ -183,7 +194,8 @@ func process_deck(delta: float, board: Node) -> void:
 	# カードタイプ別処理
 	emit_signal("card_played", top)
 	if top.card_type == "unit":
-		board.place_unit(0, top)
+		var cfg = _get_placement_config(top)
+		board.place_unit(0, top, cfg)
 		discard.append(top)
 	elif top.card_type in ["spell", "status_spell"]:
 		# 呪文・異常状態カード → 盤面合成チェック
@@ -228,7 +240,8 @@ func force_play_card(board: Node) -> void:
 	var top = deck[0]
 	deck.remove_at(0)
 	if top.card_type == "unit":
-		board.place_unit(0, top)
+		var cfg = _get_placement_config(top)
+		board.place_unit(0, top, cfg)
 		emit_signal("card_played", top)
 		discard.append(top)
 	elif top.card_type == "spell":

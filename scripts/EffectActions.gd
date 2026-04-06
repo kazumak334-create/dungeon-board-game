@@ -258,6 +258,7 @@ func do_deck_add(merged: Dictionary, ctx: Dictionary) -> void:
 			for _i in range(count):
 				var card = source.clone()
 				card.current_hp = card.max_hp
+				card.persistence = "battle"  # バトル中追加カードはバトル後消滅
 				var deck_arr: Array = deck_mgr.deck
 				match position:
 					"bottom":
@@ -697,6 +698,7 @@ func _inject_status_card_internal(deck_mgr: Node, card_name: String, _side: int)
 	card.spell_id = card_name
 	card.cost = 0
 	card.is_consumable = true
+	card.persistence = "battle"  # バトル終了後にデッキから除去
 	card.spell_target = "single_ally"
 	match card_name:
 		"毒カード":

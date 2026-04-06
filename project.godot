@@ -14,12 +14,13 @@ config/name="DungeonBoardGame"
 config/description="リアルタイム盤面カードゲーム プロトタイプ"
 config/version="0.1.0"
 config/tags=PackedStringArray("prototype")
-run/main_scene="res://scenes/Main.tscn"
+run/main_scene="res://scenes/Title.tscn"
 config/features=PackedStringArray("4.6", "Forward Plus")
 config/icon="res://icon.svg"
 
 [autoload]
 
+CardDB="*res://scripts/CardDB.gd"
 GameSession="*res://scripts/GameSession.gd"
 SceneManager="*res://scripts/SceneManager.gd"
 
@@ -27,3 +28,5 @@ SceneManager="*res://scripts/SceneManager.gd"
 
 window/size/viewport_width=1280
 window/size/viewport_height=720
+window/stretch/mode="canvas_items"
+window/stretch/aspect="keep"

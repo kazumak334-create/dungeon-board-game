@@ -49,7 +49,7 @@ func apply_support_effects() -> void:
 							var _eid_check = skill.get("effect_id", "")
 							var _edef_check = _EDB.EFFECTS.get(_eid_check, {})
 							var _etype_check = _edef_check.get("type", "")
-							# サポート効果系typeのみ前列で発動しない。スキル/アクティブ常時は位置無関係
+							# サポート効果系typeのみ前列で発動しない。スキル/パッシブは位置無関係
 							var _is_support_type = _etype_check in ["buff_apply", "debuff_apply", "mana_drain", "debuff_spread"]
 							if c == front_col and _is_support_type:
 								continue
@@ -119,7 +119,7 @@ func _process_unit_support(side: int, row: int, col: int, unit: Object) -> void:
 	for entry in unit.support_effect.split(" / "):
 		if "常時発動" not in entry:
 			continue
-		# 狙撃：後列のみ、敵最後列優先、命中時アクティブ発動なし
+		# 狙撃：後列のみ、敵最後列優先、命中時スキル発動なし
 		if "狙撃" in entry:
 			unit._can_attack_from_back = true
 			unit._back_atk_factor = 0.3 if "極低ATK" in entry else 1.0
@@ -131,7 +131,7 @@ func _process_unit_support(side: int, row: int, col: int, unit: Object) -> void:
 			unit._can_attack_from_back = true
 			unit._can_attack_from_mid = true
 			unit._back_atk_factor = 0.3 if "極低ATK" in entry else 1.0
-			if "命中時アクティブ発動なし" in entry or "命中時アクティブは発動しない" in entry:
+			if "命中時スキル発動なし" in entry or "命中時スキルは発動しない" in entry:
 				unit._back_no_on_hit = true
 			continue
 		# 後列攻撃（後方互換）
@@ -140,7 +140,7 @@ func _process_unit_support(side: int, row: int, col: int, unit: Object) -> void:
 			unit._back_atk_factor = 0.3 if "極低ATK" in entry else 1.0
 			if "最後列優先" in entry:
 				unit._back_target_rear = true
-			if "命中時アクティブ発動なし" in entry or "命中時アクティブは発動しない" in entry:
+			if "命中時スキル発動なし" in entry or "命中時スキルは発動しない" in entry:
 				unit._back_no_on_hit = true
 			continue
 		# 〈〉内のターゲット記述を取得

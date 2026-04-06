@@ -337,7 +337,7 @@ func _on_unit_damaged(side: int, row: int, col: int) -> void:
 func _on_unit_revived(side: int, row: int, col: int) -> void:
 	var unit = board_manager.get_unit(side, row, col)
 	var name: String = unit.unit_name if unit != null else "?"
-	_add_log("[アクティブ] %s の 自己再起 発動（撃破時）HP5で復活" % name)
+	_add_log("[スキル] %s の 自己再起 発動（撃破時）HP5で復活" % name)
 	skill_flash_timers[side][row][col] = 1.0
 	skill_flash_names[side][row][col]  = "再起"
 	_cell_dirty[side][row][col] = true

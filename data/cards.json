@@ -921,6 +921,7 @@
 			"anim": "",
 			"cost": 0,
 			"effect": "味方ランダム1体に凍結2付与",
+			"persistence": "battle",
 			"sfx": "",
 			"skills": [
 				{
@@ -939,6 +940,7 @@
 			"anim": "",
 			"cost": 0,
 			"effect": "味方ランダム1体に毒2付与",
+			"persistence": "battle",
 			"sfx": "",
 			"skills": [
 				{
@@ -957,6 +959,7 @@
 			"anim": "",
 			"cost": 0,
 			"effect": "味方ランダム1体に火傷2付与",
+			"persistence": "battle",
 			"sfx": "",
 			"skills": [
 				{
@@ -975,6 +978,7 @@
 			"anim": "",
 			"cost": 0,
 			"effect": "味方ランダム1体に麻痺2付与",
+			"persistence": "battle",
 			"sfx": "",
 			"skills": [
 				{
@@ -990,6 +994,139 @@
 			"texture": ""
 		}
 	},
+	"base_deck": [
+		{"name": "スライム", "col": 1},
+		{"name": "スライム", "col": 1},
+		{"name": "ゴブリン", "col": 0},
+		{"name": "ゴブリン", "col": 0},
+		{"name": "スケルトン", "col": 0},
+		{"name": "スケルトン", "col": 0},
+		{"name": "召喚加速", "col": -1},
+		{"name": "生命の雫", "col": -1},
+		{"name": "盤面強化", "col": -1}
+	],
+	"materials": [
+		{
+			"id": "iron_ore",
+			"display": "鉄鉱石",
+			"description": "堅牢な鉄の防具を作れる",
+			"is_cursed": false,
+			"benefits": [{"type": "equipment", "id": "iron_shield"}],
+			"demerits": []
+		},
+		{
+			"id": "herb_bundle",
+			"display": "薬草束",
+			"description": "回復の呪文を1つ追加",
+			"is_cursed": false,
+			"benefits": [{"type": "add_spell", "name": "生命の雫"}],
+			"demerits": []
+		},
+		{
+			"id": "magic_stone",
+			"display": "魔石",
+			"description": "初期マナが少し増える",
+			"is_cursed": false,
+			"benefits": [{"type": "initial_mana", "amount": 1}],
+			"demerits": []
+		},
+		{
+			"id": "beast_fang",
+			"display": "獣の牙",
+			"description": "獣ユニットを1体追加",
+			"is_cursed": false,
+			"benefits": [{"type": "add_unit", "name": "ウルフ", "col": 0}],
+			"demerits": []
+		},
+		{
+			"id": "old_bone",
+			"display": "古い骨",
+			"description": "アンデッドを1体追加",
+			"is_cursed": false,
+			"benefits": [{"type": "add_unit", "name": "グール", "col": 1}],
+			"demerits": []
+		},
+		{
+			"id": "slime_core",
+			"display": "スライム核",
+			"description": "スライムを1体追加",
+			"is_cursed": false,
+			"benefits": [{"type": "add_unit", "name": "スライム", "col": 1}],
+			"demerits": []
+		},
+		{
+			"id": "whetstone",
+			"display": "砥石",
+			"description": "前列の攻撃力が上がる",
+			"is_cursed": false,
+			"benefits": [{"type": "start_buff", "effect_id": "atk_buff_apply", "stacks": 2, "target": "front_ally_all"}],
+			"demerits": []
+		},
+		{
+			"id": "scroll",
+			"display": "古びた巻物",
+			"description": "ランダムな呪文を1つ追加",
+			"is_cursed": false,
+			"benefits": [{"type": "add_random_spell"}],
+			"demerits": []
+		},
+		{
+			"id": "purifier",
+			"display": "浄化の粉",
+			"description": "デッキからカードを1枚除去",
+			"is_cursed": false,
+			"benefits": [{"type": "remove_card", "count": 1}],
+			"demerits": []
+		},
+		{
+			"id": "thorn_seed",
+			"display": "棘の種",
+			"description": "敵陣に棘床を1つ配置して開始",
+			"is_cursed": false,
+			"benefits": [{"type": "start_tile", "tile_id": "tile_thorn", "side": "enemy"}],
+			"demerits": []
+		},
+		{
+			"id": "cursed_blade",
+			"display": "呪いの刃",
+			"description": "強大な力を得るが、命を削る",
+			"is_cursed": true,
+			"benefits": [{"type": "start_buff", "effect_id": "atk_buff_apply", "stacks": 5, "target": "all_allies"}],
+			"demerits": [{"type": "max_hp_pct", "amount": -0.2}]
+		},
+		{
+			"id": "cursed_tome",
+			"display": "呪いの魔導書",
+			"description": "マナが溢れるが、やがて枯れる",
+			"is_cursed": true,
+			"benefits": [{"type": "initial_mana", "amount": 3}],
+			"demerits": [{"type": "mana_regen", "amount": -0.3, "duration": 60}]
+		},
+		{
+			"id": "cursed_armor",
+			"display": "呪いの鎧",
+			"description": "鉄壁の守りだが動きが鈍る",
+			"is_cursed": true,
+			"benefits": [{"type": "start_buff", "effect_id": "armor_apply", "stacks": 5, "target": "all_allies"}],
+			"demerits": [{"type": "spd_pct", "amount": -0.3}]
+		},
+		{
+			"id": "blood_pact",
+			"display": "血の契約",
+			"description": "デッキを研ぎ澄ますが本拠地が脆くなる",
+			"is_cursed": true,
+			"benefits": [{"type": "remove_card", "count": 2}, {"type": "add_random_spell"}],
+			"demerits": [{"type": "base_hp", "amount": -10}]
+		},
+		{
+			"id": "void_crystal",
+			"display": "虚空の結晶",
+			"description": "強力な装備だが毒が回る",
+			"is_cursed": true,
+			"benefits": [{"type": "equipment", "id": "虚空のオーブ"}],
+			"demerits": [{"type": "start_debuff", "effect_id": "poison_apply", "stacks": 2, "interval": 30}]
+		}
+	],
 	"synthesis": [
 		{
 			"base": "スライム",

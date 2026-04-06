@@ -38,6 +38,7 @@ var _drag_node: Control = null
 var _drag_offset: Vector2 = Vector2.ZERO
 var _drag_source_idx: int = -1
 var _drag_group_indices: Array = []
+var _drag_full_group: Array = []  # Ctrl切替用：元のグループを保持
 
 func build_placement_tab(_tab_container_arg: Control, PL) -> void:
 	tab_container = _tab_container_arg
@@ -349,6 +350,7 @@ func start_drag(idx: int, source_node: Control, mouse_pos: Vector2) -> void:
 
 func start_drag_group(idx: int, group: Array, source_node: Control, mouse_pos: Vector2) -> void:
 	_dragging = true; _drag_source_idx = idx; _drag_group_indices = group
+	_drag_full_group = group.duplicate()  # Ctrl切替用に元グループを保存
 	_drag_offset = source_node.global_position - mouse_pos
 	var entry = GameSession.selected_deck[idx] if idx < GameSession.selected_deck.size() else {}
 	var card_name = entry.get("name", "???") if entry is Dictionary else str(entry)
@@ -365,6 +367,18 @@ func start_drag_group(idx: int, group: Array, source_node: Control, mouse_pos: V
 	_drag_node.add_child(lbl); main_node.add_child(_drag_node)
 	_drag_node.global_position = mouse_pos + _drag_offset
 
+func _update_drag_label() -> void:
+	if _drag_node == null or _drag_source_idx < 0:
+		return
+	var entry = GameSession.selected_deck[_drag_source_idx] if _drag_source_idx < GameSession.selected_deck.size() else {}
+	var card_name = entry.get("name", "???") if entry is Dictionary else str(entry)
+	var count = _drag_group_indices.size()
+	# ラベル更新（PanelContainerの最初の子がLabel）
+	for child in _drag_node.get_children():
+		if child is Label:
+			child.text = "%s x%d" % [card_name, count] if count > 1 else card_name
+			return
+
 func end_drag() -> void:
 	if _drag_node != null:
 		_drag_node.queue_free()
@@ -372,10 +386,21 @@ func end_drag() -> void:
 	_dragging = false
 	_drag_source_idx = -1
 	_drag_group_indices = []
+	_drag_full_group = []
 
 func process_drag(_delta: float) -> void:
 	if _dragging and _drag_node != null:
 		_drag_node.global_position = main_node.get_viewport().get_mouse_position() + _drag_offset
+		# ドラッグ中のCtrl切り替え：1枚⇔グループ
+		var ctrl_now = Input.is_key_pressed(KEY_CTRL)
+		if ctrl_now and _drag_group_indices.size() > 1:
+			# Ctrl押された → 1枚に絞る
+			_drag_group_indices = [_drag_source_idx]
+			_update_drag_label()
+		elif not ctrl_now and _drag_group_indices.size() == 1 and _drag_full_group.size() > 1:
+			# Ctrl離された → 元のグループに戻す
+			_drag_group_indices = _drag_full_group.duplicate()
+			_update_drag_label()
 	if _dragging and not Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT):
 		try_drop_at_mouse(tab_container)
 
