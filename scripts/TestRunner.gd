@@ -76,6 +76,8 @@ func _test_effectdb_integrity() -> void:
 # ---- CardDB整合性 ----
 func _test_carddb_integrity() -> void:
 
+	var valid_rarities = ["common", "uncommon", "rare", "epic", "legend", "god"]
+	var valid_races = ["スライム", "獣", "アンデッド"]
 	# ユニット
 	for name in CardDB.UNITS:
 		var d = CardDB.UNITS[name]
@@ -86,12 +88,28 @@ func _test_carddb_integrity() -> void:
 		_assert_true(d.has("race"), "UNITS[%s] にraceがない" % name)
 		_assert_true(d.has("skills"), "UNITS[%s] にskillsがない" % name)
 		_assert_true(d.has("texture"), "UNITS[%s] にtextureがない" % name)
+		_assert_true(d.has("rarity"), "UNITS[%s] にrarityがない" % name)
+		_assert_true(d.has("col"), "UNITS[%s] にcolがない" % name)
+		_assert_true(d.has("range"), "UNITS[%s] にrangeがない" % name)
+		# 型チェック
+		_assert_true(d["hp"] is float or d["hp"] is int, "UNITS[%s] hpが数値" % name)
+		_assert_true(d["atk"] is float or d["atk"] is int, "UNITS[%s] atkが数値" % name)
+		_assert_true(d["cost"] is float or d["cost"] is int, "UNITS[%s] costが数値" % name)
+		# 値チェック
+		if d.has("rarity"):
+			_assert_true(d["rarity"] in valid_rarities, "UNITS[%s] rarity '%s' が不正" % [name, d["rarity"]])
+		if d.has("race"):
+			_assert_true(d["race"] in valid_races, "UNITS[%s] race '%s' が不正" % [name, d["race"]])
 	# 呪文
 	for name in CardDB.SPELLS:
 		var d = CardDB.SPELLS[name]
 		_assert_true(d.has("cost"), "SPELLS[%s] にcostがない" % name)
 		_assert_true(d.has("skills"), "SPELLS[%s] にskillsがない" % name)
 		_assert_true(d.has("texture"), "SPELLS[%s] にtextureがない" % name)
+		_assert_true(d.has("rarity"), "SPELLS[%s] にrarityがない" % name)
+		if d.has("rarity"):
+			_assert_true(d["rarity"] in valid_rarities, "SPELLS[%s] rarity '%s' が不正" % [name, d["rarity"]])
+		_assert_true(d["cost"] is float or d["cost"] is int, "SPELLS[%s] costが数値" % name)
 
 # ---- skills配列のeffect_idがEffectDBに存在するか ----
 func _test_carddb_skills_reference() -> void:
