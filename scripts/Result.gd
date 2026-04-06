@@ -7,8 +7,38 @@ var _reward_sp: int = 0
 var _reward_material: Dictionary = {}
 
 func _ready() -> void:
+	_cleanup_battle_cards()
 	_generate_rewards()
 	_build_ui()
+
+func _cleanup_battle_cards() -> void:
+	# persistence="battle"のカードをselected_deckから除去
+	# バトル中追加カードはselected_deckに反映されていないので、
+	# selected_deck内のカード定義からpersistenceを判定する
+	var new_deck: Array = []
+	var new_config: Array = []
+	for i in range(GameSession.selected_deck.size()):
+		var entry = GameSession.selected_deck[i]
+		var card_name = entry.get("name", "") if entry is Dictionary else str(entry)
+		var persistence = _get_card_persistence(card_name)
+		if persistence != "battle":
+			new_deck.append(entry)
+			if i < GameSession.placement_config.size():
+				new_config.append(GameSession.placement_config[i])
+	var removed = GameSession.selected_deck.size() - new_deck.size()
+	GameSession.selected_deck = new_deck
+	GameSession.placement_config = new_config
+	if removed > 0:
+		print("[Result] バトル後クリーンアップ: %d枚除去" % removed)
+
+func _get_card_persistence(card_name: String) -> String:
+	if CardDB.STATUS_SPELLS.has(card_name):
+		return CardDB.STATUS_SPELLS[card_name].get("persistence", "permanent")
+	if CardDB.UNITS.has(card_name):
+		return CardDB.UNITS[card_name].get("persistence", "permanent")
+	if CardDB.SPELLS.has(card_name):
+		return CardDB.SPELLS[card_name].get("persistence", "permanent")
+	return "permanent"
 
 func _generate_rewards() -> void:
 	var is_win = GameSession.last_result.get("win", false)

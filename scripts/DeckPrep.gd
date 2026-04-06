@@ -146,7 +146,7 @@ func _build_status_panel() -> void:
 func _build_tab_bar() -> void:
 	var tabs = [
 		{"id": "placement", "label": "配置"},
-		{"id": "items", "label": "アイテム"},
+		{"id": "inventory", "label": "持ち物"},
 		{"id": "skill_tree", "label": "スキル"},
 	]
 	var x = 15
@@ -174,7 +174,7 @@ func _show_tab(tab_id: String) -> void:
 		"placement":
 			_board.tab_container = _tab_container
 			_board.build_placement_tab(_tab_container, _PL)
-		"items": _build_items_tab()
+		"inventory": _build_inventory_tab()
 		_: _build_placeholder_tab(tab_id)
 
 	_update_info_lane()
@@ -409,35 +409,165 @@ func _info_section(text: String, y: float) -> float:
 	_info_container.add_child(lbl)
 	return y + 20
 
-# ===== アイテムタブ =====
+# ===== 持ち物タブ（マス目インベントリ） =====
 
-func _build_items_tab() -> void:
-	var sections = ["消費アイテム", "装備", "素材", "合成"]
-	for i in range(sections.size()):
-		var sp = UIF.create_panel(Vector2(15 + i * 235, 15), Vector2(220, 400))
-		_tab_container.add_child(sp)
-		var hl = Label.new()
-		hl.text = sections[i]
-		hl.position = Vector2(25 + i * 235, 23)
-		hl.add_theme_font_size_override("font_size", 13)
-		hl.add_theme_color_override("font_color", UIF.TITLE_COLOR)
-		_tab_container.add_child(hl)
-		var cl = Label.new()
-		cl.text = "（準備中）"
-		cl.position = Vector2(25 + i * 235, 45)
-		cl.add_theme_font_size_override("font_size", 11)
-		cl.add_theme_color_override("font_color", UIF.DIM_COLOR)
-		_tab_container.add_child(cl)
+const INV_COLS = 6       # グリッド列数
+const INV_CELL = 80      # セルサイズ
+const INV_GAP = 4        # セル間隔
+const INV_X = 20         # 開始X
+const INV_Y = 10         # 開始Y
+const EQUIP_ROWS = 2     # 装備スロット行数
+const INV_ROWS = 6       # 全行数（装備2+アイテム4）
 
-	var mat_y = 65
+func _build_inventory_tab() -> void:
+	# 装備スロットラベル
+	var equip_names = [
+		["武器", "頭", "体", "脚", "飾1", "飾2"],
+		["", "", "", "", "", ""],  # 2行目は値表示用
+	]
+
+	# グリッド描画
+	for r in range(INV_ROWS):
+		for c in range(INV_COLS):
+			var cx = INV_X + c * (INV_CELL + INV_GAP)
+			var cy = INV_Y + r * (INV_CELL + INV_GAP)
+
+			var is_equip = r < EQUIP_ROWS
+			var cell = Panel.new()
+			cell.position = Vector2(cx, cy)
+			cell.size = Vector2(INV_CELL, INV_CELL)
+			var style = StyleBoxFlat.new()
+			if is_equip:
+				style.bg_color = Color(0.15, 0.13, 0.2)
+				style.border_color = Color(0.4, 0.3, 0.5)
+			else:
+				style.bg_color = Color(0.1, 0.12, 0.16)
+				style.border_color = Color(0.25, 0.25, 0.35)
+			style.set_border_width_all(1)
+			style.set_corner_radius_all(4)
+			cell.add_theme_stylebox_override("panel", style)
+			_tab_container.add_child(cell)
+
+			# 装備スロットラベル（1行目のみ）
+			if r == 0 and c < equip_names[0].size():
+				var sl = Label.new()
+				sl.text = equip_names[0][c]
+				sl.position = Vector2(cx + 4, cy + 2)
+				sl.add_theme_font_size_override("font_size", 9)
+				sl.add_theme_color_override("font_color", Color(0.5, 0.4, 0.6))
+				_tab_container.add_child(sl)
+
+	# 装備スロット区切りライン
+	var sep_y = INV_Y + EQUIP_ROWS * (INV_CELL + INV_GAP) - 2
+	var sep = ColorRect.new()
+	sep.position = Vector2(INV_X, sep_y)
+	sep.size = Vector2(INV_COLS * (INV_CELL + INV_GAP) - INV_GAP, 1)
+	sep.color = Color(0.4, 0.3, 0.5, 0.5)
+	_tab_container.add_child(sep)
+
+	# アイテム配置（装備行の下）
+	var item_cells: Array = []  # [{row, col, type, data}]
+
+	# 消費アイテム（左上優先）
+	# 仮: GameSessionに消費アイテムリストがないので、materialsから消費可能なものを抽出
+	var consumables: Array = []
+	var materials_grouped: Dictionary = {}  # id -> {data, count}
+
 	for mat in GameSession.materials:
-		var ml = Label.new()
-		ml.text = "  %s" % mat.get("display", "???")
-		ml.position = Vector2(25 + 2 * 235, mat_y)
-		ml.add_theme_font_size_override("font_size", 11)
-		ml.add_theme_color_override("font_color", UIF.BENEFIT_COLOR)
-		_tab_container.add_child(ml)
-		mat_y += 18
+		var mid = mat.get("id", "")
+		# is_cursed等で消費可能か判定（仮: 全素材を素材扱い）
+		if not materials_grouped.has(mid):
+			materials_grouped[mid] = {"data": mat, "count": 0}
+		materials_grouped[mid]["count"] += 1
+
+	# マス目にアイテムを配置
+	var item_row = EQUIP_ROWS
+	var item_col = 0
+
+	# 消費アイテムを先に配置（将来: GameSession.consumablesから）
+	# 現状は消費アイテムなし
+
+	# 素材をスタック表示で配置
+	for mid in materials_grouped:
+		var g = materials_grouped[mid]
+		var mat = g["data"]
+		var count = g["count"]
+
+		if item_row >= INV_ROWS:
+			break
+
+		var cx = INV_X + item_col * (INV_CELL + INV_GAP)
+		var cy = INV_Y + item_row * (INV_CELL + INV_GAP)
+
+		# アイテム名
+		var name_lbl = Label.new()
+		name_lbl.text = mat.get("display", "???")
+		name_lbl.position = Vector2(cx + 4, cy + 15)
+		name_lbl.size = Vector2(INV_CELL - 8, 20)
+		name_lbl.add_theme_font_size_override("font_size", 10)
+		name_lbl.add_theme_color_override("font_color", UIF.TEXT_COLOR)
+		_tab_container.add_child(name_lbl)
+
+		# スタック数
+		if count > 1:
+			var count_lbl = Label.new()
+			count_lbl.text = "×%d" % count
+			count_lbl.position = Vector2(cx + INV_CELL - 28, cy + INV_CELL - 18)
+			count_lbl.add_theme_font_size_override("font_size", 11)
+			count_lbl.add_theme_color_override("font_color", Color(0.9, 0.85, 0.5))
+			_tab_container.add_child(count_lbl)
+
+		# クリックで解説レーン更新
+		var click_area = Button.new()
+		click_area.position = Vector2(cx, cy)
+		click_area.size = Vector2(INV_CELL, INV_CELL)
+		click_area.flat = true
+		click_area.modulate = Color(1, 1, 1, 0)  # 透明
+		var mat_data = mat
+		click_area.pressed.connect(func():
+			_selected_card_idx = -1
+			_show_material_info(mat_data, materials_grouped.get(mat_data.get("id", ""), {}).get("count", 0))
+		)
+		_tab_container.add_child(click_area)
+
+		item_col += 1
+		if item_col >= INV_COLS:
+			item_col = 0
+			item_row += 1
+
+	# 空グリッドの場合のエンプティステート
+	if materials_grouped.size() == 0:
+		var empty = Label.new()
+		empty.text = "アイテムなし"
+		empty.position = Vector2(INV_X + 10, INV_Y + EQUIP_ROWS * (INV_CELL + INV_GAP) + 30)
+		empty.add_theme_font_size_override("font_size", 14)
+		empty.add_theme_color_override("font_color", UIF.DIM_COLOR)
+		_tab_container.add_child(empty)
+
+func _show_material_info(mat: Dictionary, count: int) -> void:
+	# 解説レーンを素材情報で更新
+	var children = _info_container.get_children()
+	for i in range(children.size() - 1, 1, -1):
+		children[i].queue_free()
+
+	var y: float = 15
+	y = _info_label(mat.get("display", "???"), y, 18, UIF.TITLE_COLOR)
+	y = _info_label("素材  ×%d" % count, y, 13, Color(0.6, 0.7, 0.5))
+	y += 5
+
+	var desc = mat.get("description", "")
+	if desc != "":
+		y = _info_label_wrap(desc, y, 12, UIF.TEXT_COLOR)
+	y += 10
+
+	# 合成先一覧（将来: craftingテーブルから逆引き）
+	y = _info_section("── 合成先 ──", y)
+	y = _info_label("（工房ノードで合成可能）", y, 11, UIF.DIM_COLOR)
+
+	# 呪い表示
+	if mat.get("is_cursed", false):
+		y += 10
+		y = _info_label("呪いの素材", y, 12, UIF.DEMERIT_COLOR)
 
 func _build_placeholder_tab(tab_id: String) -> void:
 	var names = {"skill_tree": "スキル"}

@@ -13,6 +13,7 @@ const SHOP           = "shop"
 const EVENT          = "event"
 const GATHER         = "gather"
 const BOSS_REWARD    = "boss_reward"
+const WORKSHOP       = "workshop"
 
 # シーン登録
 var _scenes: Dictionary = {
@@ -26,6 +27,7 @@ var _scenes: Dictionary = {
 	"event": "res://scenes/Event.tscn",
 	"gather": "res://scenes/Gather.tscn",
 	"boss_reward": "res://scenes/BossReward.tscn",
+	"workshop": "res://scenes/Workshop.tscn",
 }
 
 func go_to(scene_name: String) -> void:

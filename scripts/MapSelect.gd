@@ -27,6 +27,7 @@ func _build_ui() -> void:
 		{"text": "エリート", "scene": "battle_elite", "color": Color(0.9, 0.5, 0.2), "desc": "強敵+良報酬"},
 		{"text": "素材採集", "scene": "gather", "color": Color(0.3, 0.7, 0.4), "desc": "素材を入手"},
 		{"text": "ショップ", "scene": "shop", "color": Color(0.9, 0.8, 0.3), "desc": "素材やカードを売買"},
+		{"text": "工房", "scene": "workshop", "color": Color(0.7, 0.5, 0.3), "desc": "装備・カードを合成"},
 		{"text": "イベント", "scene": "event", "color": Color(0.5, 0.5, 0.9), "desc": "ランダムな出来事"},
 		{"text": "ボス", "scene": "battle_boss", "color": Color(0.9, 0.2, 0.5), "desc": "エリアボスと戦う"},
 	]
@@ -81,5 +82,7 @@ func _go_to_node(scene_id: String) -> void:
 		"battle_boss":
 			GameSession.battle_type = "boss"
 			SceneManager.go_to(SceneManager.BATTLE)
+		"workshop":
+			SceneManager.go_to(SceneManager.WORKSHOP)
 		_:
 			SceneManager.go_to(scene_id)
