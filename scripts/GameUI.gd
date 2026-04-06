@@ -625,7 +625,9 @@ func _update_cells() -> void:
 				var has_flash: bool = main.skill_flash_timers[side][r][c] > 0.0
 				var has_tile_effect: bool = main.board_manager.board_effects[side][r][c] != null
 				var has_artifact: bool = main.board_manager.board_artifacts[side][r][c] != null
-				if not main._cell_dirty[side][r][c] and not has_flash and not has_tile_effect and not has_artifact:
+				var has_unit: bool = main.board_manager.board[side][r][c] != null
+				# ユニットがいるセルはチャージアニメーションのため常時再描画
+				if not main._cell_dirty[side][r][c] and not has_flash and not has_tile_effect and not has_artifact and not has_unit:
 					continue
 				render_cell(side, r, c)
 				if not has_flash:
@@ -651,23 +653,25 @@ func render_cell(side: int, r: int, c: int) -> void:
 		return
 	if unit != null:
 		var hp_ratio: float = float(unit.current_hp) / float(unit.max_hp)
+		# 背景色: スキル発動 > 攻撃チャージ > 通常
+		var base_color = Color(0.11, 0.11, 0.17)
 		if main.skill_flash_timers[side][r][c] > 0.0:
 			var f: float = main.skill_flash_timers[side][r][c]
-			rect.color = Color(0.9, 0.75 * f + 0.1, 0.0)
+			base_color = Color(0.9, 0.75 * f + 0.1, 0.0)
 		else:
-			rect.color = Color(0.11, 0.11, 0.17)
+			# 攻撃チャージアニメーション（残り1秒以下で光り始める）
+			var atk_timer = main.board_manager.attack_timers[side][r][c]
+			if atk_timer < 1.0 and atk_timer >= 0.0:
+				var charge = 1.0 - atk_timer  # 0→1に増加
+				var is_ally = (side == 0)
+				if is_ally:
+					base_color = Color(0.11 + 0.15 * charge, 0.11 + 0.2 * charge, 0.17 + 0.1 * charge)
+				else:
+					base_color = Color(0.11 + 0.2 * charge, 0.11 + 0.1 * charge, 0.17 + 0.05 * charge)
+		rect.color = base_color
 		var flash_line: String = ""
 		if main.skill_flash_timers[side][r][c] > 0.0:
 			flash_line = "★" + main.skill_flash_names[side][r][c] + "!"
-		# 攻撃タイマー表示
-		var atk_timer = main.board_manager.attack_timers[side][r][c]
-		var effective_interval = unit.attack_interval - unit._interval_bonus
-		var atk_timer_text = ""
-		if effective_interval > 0:
-			var ratio = atk_timer / effective_interval
-			var bar_len = 5
-			var filled = int((1.0 - ratio) * bar_len)
-			atk_timer_text = "⚔" + "█".repeat(filled) + "░".repeat(bar_len - filled)
 
 		# デバフ残ターン集約表示
 		var debuffs: Array = []
@@ -689,7 +693,7 @@ func render_cell(side: int, r: int, c: int) -> void:
 
 		var lines: Array = [
 			unit.unit_name,
-			"ATK%d %s" % [unit.attack, atk_timer_text],
+			"ATK%d" % unit.attack,
 		]
 		if buff_only_line != "": lines.append(buff_only_line)
 		if debuff_line != "": lines.append(debuff_line)
