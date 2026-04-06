@@ -113,73 +113,70 @@ func _build_next_card_panel() -> void:
 	_build_card_queue_ui()
 
 func _build_card_queue_ui() -> void:
-	# ④ 左右完全ミラー配置
-	# ⑥ 1stカード上部に「▶ NEXT」ラベル
-	# 山札/捨て/除外をカード下部に表示（独立パネル廃止）
-	var queue_y: int = main.BOARD_TOP + 3 * main.CELL_H + 20 + 40
-	var card_w: float = 160.0
+	# キュー3枚を盤面後列のX座標に揃える
+	var cell_w: float = main.CELL_W
+	var queue_y: int = main.BOARD_TOP + 3 * main.CELL_H + 15
 	var card_h: float = 220.0
-	var gap: float = 10.0
-	var center_x: float = 640.0
-	var deck_label_h: float = 18.0  # カード下部デッキ情報ラベル高さ
 
-	# ④ ミラー座標計算
-	# 自分側: 中央左に1stカード
-	var self_1st_x: float = center_x - gap / 2.0 - card_w
-	# 敵側: 中央右に1stカード（完全ミラー）
-	var enemy_1st_x: float = center_x + gap / 2.0
+	# 自陣後列左端 = _cell_x(0, 0)
+	var self_back_x: float = main.CENTER_X - main.GAP / 2.0 - 3 * cell_w
+	# 敵陣後列右端 = _cell_x(1, 2) + CELL_W
+	var enemy_back_right: float = main.CENTER_X + main.GAP / 2.0 + 3 * cell_w
 
-	# ---- 自分側 1stカード「▶ NEXT」ラベル ----
+	# 自キュー: 左端を自陣後列に揃える（Q1=後列, Q2=中列, Q3=前列位置）
+	# 敵キュー: 右端を敵陣後列に揃える（Q1=後列位置, Q2=中列, Q3=前列）
+
+	# ---- 自分側 NEXTラベル ----
 	var self_next_label := Label.new()
 	self_next_label.text = "▶ NEXT"
-	self_next_label.position = Vector2(self_1st_x, queue_y - 18)
-	self_next_label.size = Vector2(card_w, 16)
+	self_next_label.position = Vector2(self_back_x, queue_y - 16)
+	self_next_label.size = Vector2(cell_w, 14)
 	self_next_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	self_next_label.add_theme_font_size_override("font_size", 12)
+	self_next_label.add_theme_font_size_override("font_size", 11)
 	self_next_label.add_theme_color_override("font_color", Color(0.4, 0.9, 0.4))
 	main.add_child(self_next_label)
 
-	# ---- 自分1stカード配置親（160x220） ----
+	# ---- 自分1stカード（後列位置） ----
 	var self_card_holder := Control.new()
-	self_card_holder.position = Vector2(self_1st_x, queue_y)
-	self_card_holder.custom_minimum_size = Vector2(card_w, card_h)
-	self_card_holder.size = Vector2(card_w, card_h)
+	self_card_holder.position = Vector2(self_back_x, queue_y)
+	self_card_holder.custom_minimum_size = Vector2(cell_w, card_h)
+	self_card_holder.size = Vector2(cell_w, card_h)
 	main.add_child(self_card_holder)
 	_queue_card_parent_self = self_card_holder
 
-	# ---- 自分側デッキ情報ラベル（カード直下） ----
+	# ---- 自分側デッキ情報（カード直下） ----
 	_queue_self_deck_label = Label.new()
-	_queue_self_deck_label.position = Vector2(self_1st_x, queue_y + card_h + 4)
-	_queue_self_deck_label.size = Vector2(card_w, deck_label_h)
-	_queue_self_deck_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_queue_self_deck_label.add_theme_font_size_override("font_size", 11)
+	_queue_self_deck_label.position = Vector2(self_back_x, queue_y + card_h + 2)
+	_queue_self_deck_label.size = Vector2(cell_w * 3, 16)
+	_queue_self_deck_label.add_theme_font_size_override("font_size", 10)
 	_queue_self_deck_label.add_theme_color_override("font_color", Color(0.6, 0.8, 1.0))
 	main.add_child(_queue_self_deck_label)
 
-	# ---- 敵側 1stカード「▶ NEXT」ラベル ----
+	# ---- 敵側 NEXTラベル ----
+	var enemy_1st_x: float = enemy_back_right - cell_w  # 敵Q1は後列位置（右端から1枚分左）
 	var enemy_next_label := Label.new()
-	enemy_next_label.text = "▶ NEXT"
-	enemy_next_label.position = Vector2(enemy_1st_x, queue_y - 18)
-	enemy_next_label.size = Vector2(card_w, 16)
+	enemy_next_label.text = "NEXT ◀"
+	enemy_next_label.position = Vector2(enemy_1st_x, queue_y - 16)
+	enemy_next_label.size = Vector2(cell_w, 14)
 	enemy_next_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	enemy_next_label.add_theme_font_size_override("font_size", 12)
+	enemy_next_label.add_theme_font_size_override("font_size", 11)
 	enemy_next_label.add_theme_color_override("font_color", Color(0.9, 0.4, 0.4))
 	main.add_child(enemy_next_label)
 
-	# ---- 敵1stカード配置親 ----
+	# ---- 敵1stカード（後列位置） ----
 	var enemy_card_holder := Control.new()
 	enemy_card_holder.position = Vector2(enemy_1st_x, queue_y)
-	enemy_card_holder.custom_minimum_size = Vector2(card_w, card_h)
-	enemy_card_holder.size = Vector2(card_w, card_h)
+	enemy_card_holder.custom_minimum_size = Vector2(cell_w, card_h)
+	enemy_card_holder.size = Vector2(cell_w, card_h)
 	main.add_child(enemy_card_holder)
 	_queue_card_parent_enemy = enemy_card_holder
 
-	# ---- 敵側デッキ情報ラベル（カード直下） ----
+	# ---- 敵側デッキ情報（カード直下） ----
 	_queue_enemy_deck_label = Label.new()
-	_queue_enemy_deck_label.position = Vector2(enemy_1st_x, queue_y + card_h + 4)
-	_queue_enemy_deck_label.size = Vector2(card_w, deck_label_h)
-	_queue_enemy_deck_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_queue_enemy_deck_label.add_theme_font_size_override("font_size", 11)
+	_queue_enemy_deck_label.position = Vector2(enemy_back_right - cell_w * 3, queue_y + card_h + 2)
+	_queue_enemy_deck_label.size = Vector2(cell_w * 3, 16)
+	_queue_enemy_deck_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	_queue_enemy_deck_label.add_theme_font_size_override("font_size", 10)
 	_queue_enemy_deck_label.add_theme_color_override("font_color", Color(1.0, 0.5, 0.5))
 	main.add_child(_queue_enemy_deck_label)
 
@@ -215,14 +212,14 @@ func _rebuild_queue_card_self(next) -> void:
 	var CardUI = load("res://scripts/CardUIComponent.gd")
 	if next.card_type == "unit":
 		var unit_def: Dictionary = CardDB.UNITS.get(next.unit_name, {})
-		_queue_card_self = CardUI.create_unit_card(next.unit_name, unit_def, 160.0, 220.0)
+		_queue_card_self = CardUI.create_unit_card(next.unit_name, unit_def, float(main.CELL_W), 220.0)
 	else:
 		var spell_def: Dictionary = CardDB.SPELLS.get(next.unit_name, {})
 		if spell_def.is_empty():
 			spell_def = CardDB.STATUS_SPELLS.get(next.unit_name, {})
 		if spell_def.is_empty():
 			spell_def = CardDB.SYSTEM_SPELLS.get(next.unit_name, {})
-		_queue_card_self = CardUI.create_spell_card(next.unit_name, spell_def, 160.0, 220.0)
+		_queue_card_self = CardUI.create_spell_card(next.unit_name, spell_def, float(main.CELL_W), 220.0)
 	_queue_card_self.position = Vector2(0, 0)
 	_queue_card_parent_self.add_child(_queue_card_self)
 
@@ -237,14 +234,14 @@ func _rebuild_queue_card_enemy(enemy_next) -> void:
 	var CardUI = load("res://scripts/CardUIComponent.gd")
 	if enemy_next.card_type == "unit":
 		var unit_def: Dictionary = CardDB.UNITS.get(enemy_next.unit_name, {})
-		_queue_card_enemy = CardUI.create_unit_card(enemy_next.unit_name, unit_def, 160.0, 220.0)
+		_queue_card_enemy = CardUI.create_unit_card(enemy_next.unit_name, unit_def, float(main.CELL_W), 220.0)
 	else:
 		var spell_def: Dictionary = CardDB.SPELLS.get(enemy_next.unit_name, {})
 		if spell_def.is_empty():
 			spell_def = CardDB.STATUS_SPELLS.get(enemy_next.unit_name, {})
 		if spell_def.is_empty():
 			spell_def = CardDB.SYSTEM_SPELLS.get(enemy_next.unit_name, {})
-		_queue_card_enemy = CardUI.create_spell_card(enemy_next.unit_name, spell_def, 160.0, 220.0)
+		_queue_card_enemy = CardUI.create_spell_card(enemy_next.unit_name, spell_def, float(main.CELL_W), 220.0)
 	_queue_card_enemy.position = Vector2(0, 0)
 	_queue_card_parent_enemy.add_child(_queue_card_enemy)
 
