@@ -2,9 +2,9 @@
 class_name EnemyAI
 extends Node
 
-var mana: float = 3.0
-const MANA_MAX: float = 10.0
-const MANA_REGEN: float = 1.0
+var mana: float = 0.0
+var MANA_MAX: float = 3.0    # マナ吸収で成長（constからvarに変更）
+var MANA_REGEN: float = 1.0
 var check_interval: float = 1.0
 var _check_timer: float = 0.0
 

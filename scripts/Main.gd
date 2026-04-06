@@ -295,7 +295,7 @@ func _dev_update_drag() -> void:
 		dev_ui._drag_label.position = get_viewport().get_mouse_position() + Vector2(12, -8)
 
 # ---- ゲームループ ----
-func _unhandled_key_input(event: InputEvent) -> void:
+func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventKey and event.pressed and event.keycode == KEY_L:
 		log_label.visible = not log_label.visible
 
