@@ -1942,8 +1942,8 @@
 			"range": "1行",
 			"sfx": "",
 			"skills": [
-				{"trigger": "always", "target": "random_front_ally", "effect_id": "buff_apply", "params": {"buff": "atk_buff", "stacks": 2}},
-				{"trigger": "on_hit", "target": "self", "effect_id": "atk_permanent", "params": {"amount": 1}}
+				{"trigger": "always", "target": "random_front_ally", "effect_id": "atk_buff_apply", "params": {"stacks": 2}},
+				{"trigger": "on_hit", "target": "self", "effect_id": "atk_accumulate", "params": {"amount": 1}}
 			],
 			"texture": ""
 		},
@@ -1958,7 +1958,7 @@
 			"range": "1行",
 			"sfx": "",
 			"skills": [
-				{"trigger": "on_hit", "target": "front_one", "effect_id": "debuff_apply", "params": {"status": "freeze", "stacks": 3}},
+				{"trigger": "on_hit", "target": "front_one", "effect_id": "freeze_apply", "params": {"stacks": 3}},
 				{"trigger": "always", "target": "same_row", "effect_id": "debuff_spread", "params": {}}
 			],
 			"texture": ""
@@ -1974,8 +1974,8 @@
 			"range": "1行",
 			"sfx": "",
 			"skills": [
-				{"trigger": "always", "target": "adjacent", "effect_id": "buff_apply", "params": {"buff": "armor", "stacks": 1}},
-				{"trigger": "on_summon", "target": "self", "effect_id": "skill_flag", "params": {"flag": "penetrate"}}
+				{"trigger": "always", "target": "adjacent", "effect_id": "armor_apply", "params": {"stacks": 1}},
+				{"trigger": "on_summon", "target": "self", "effect_id": "penetrate", "params": {}}
 			],
 			"texture": ""
 		},
@@ -1990,8 +1990,8 @@
 			"range": "上下含む3行",
 			"sfx": "",
 			"skills": [
-				{"trigger": "always", "target": "same_row", "effect_id": "buff_apply", "params": {"buff": "atk_buff", "stacks": 2}},
-				{"trigger": "timer", "target": "self", "effect_id": "draw", "params": {"count": 1, "interval": 15.0}}
+				{"trigger": "always", "target": "same_row", "effect_id": "atk_buff_apply", "params": {"stacks": 2}},
+				{"trigger": "timer", "target": "self", "effect_id": "draw_cards", "params": {"count": 1, "interval": 15.0}}
 			],
 			"texture": ""
 		},
@@ -2006,10 +2006,10 @@
 			"range": "上下含む3行",
 			"sfx": "",
 			"skills": [
-				{"trigger": "always", "target": "all_allies", "effect_id": "skill_flag", "params": {"flag": "revive"}},
-				{"trigger": "on_hit", "target": "front_one", "effect_id": "debuff_apply", "params": {"status": "freeze", "stacks": 3}},
-				{"trigger": "on_hit", "target": "front_one", "effect_id": "debuff_apply", "params": {"status": "poison", "stacks": 2}},
-				{"trigger": "on_kill", "target": "all_enemies", "effect_id": "debuff_apply", "params": {"status": "poison", "stacks": 3}}
+				{"trigger": "always", "target": "all_allies", "effect_id": "support_revive", "params": {}},
+				{"trigger": "on_hit", "target": "front_one", "effect_id": "freeze_apply", "params": {"stacks": 3}},
+				{"trigger": "on_hit", "target": "front_one", "effect_id": "poison_apply", "params": {"stacks": 2}},
+				{"trigger": "on_kill", "target": "all_enemies", "effect_id": "poison_apply", "params": {"stacks": 3}}
 			],
 			"texture": ""
 		},
@@ -2024,8 +2024,8 @@
 			"range": "上含む2行",
 			"sfx": "",
 			"skills": [
-				{"trigger": "on_hit", "target": "front_one", "effect_id": "debuff_apply", "params": {"status": "paralysis", "stacks": 2}},
-				{"trigger": "timer", "target": "same_row", "effect_id": "debuff_apply", "params": {"status": "paralysis", "stacks": 1, "interval": 10.0}}
+				{"trigger": "on_hit", "target": "front_one", "effect_id": "paralysis_apply", "params": {"stacks": 2}},
+				{"trigger": "timer", "target": "same_row", "effect_id": "paralysis_apply", "params": {"stacks": 1, "interval": 10.0}}
 			],
 			"texture": ""
 		},
@@ -2040,7 +2040,7 @@
 			"range": "1行",
 			"sfx": "",
 			"skills": [
-				{"trigger": "always", "target": "adjacent", "effect_id": "buff_apply", "params": {"buff": "spd_buff", "stacks": 2}},
+				{"trigger": "always", "target": "adjacent", "effect_id": "spd_buff_apply", "params": {"stacks": 2}},
 				{"trigger": "timer", "target": "self_deck", "effect_id": "summon_low_cost", "params": {"interval": 10.0}}
 			],
 			"texture": ""
@@ -2056,8 +2056,8 @@
 			"range": "下含む2行",
 			"sfx": "",
 			"skills": [
-				{"trigger": "on_hit", "target": "front_one", "effect_id": "debuff_apply", "params": {"status": "poison", "stacks": 2}},
-				{"trigger": "on_summon", "target": "self", "effect_id": "skill_flag", "params": {"flag": "penetrate"}},
+				{"trigger": "on_hit", "target": "front_one", "effect_id": "poison_apply", "params": {"stacks": 2}},
+				{"trigger": "on_summon", "target": "self", "effect_id": "penetrate", "params": {}},
 				{"trigger": "always", "target": "same_row", "effect_id": "debuff_spread", "params": {}}
 			],
 			"texture": ""
@@ -2073,9 +2073,9 @@
 			"range": "1行",
 			"sfx": "",
 			"skills": [
-				{"trigger": "always", "target": "all_allies", "effect_id": "buff_apply", "params": {"buff": "atk_buff", "stacks": 1}},
-				{"trigger": "on_summon", "target": "all_allies", "effect_id": "heal", "params": {"factor": 0.15}},
-				{"trigger": "timer", "target": "all_allies", "effect_id": "buff_apply", "params": {"buff": "regen", "stacks": 1, "interval": 20.0}}
+				{"trigger": "always", "target": "all_allies", "effect_id": "atk_buff_apply", "params": {"stacks": 1}},
+				{"trigger": "on_summon", "target": "all_allies", "effect_id": "heal_pct", "params": {"factor": 0.15}},
+				{"trigger": "timer", "target": "all_allies", "effect_id": "regen_apply", "params": {"stacks": 1, "interval": 20.0}}
 			],
 			"texture": ""
 		},
@@ -2090,8 +2090,8 @@
 			"range": "上下含む3行",
 			"sfx": "",
 			"skills": [
-				{"trigger": "always", "target": "same_col_ally", "effect_id": "buff_apply", "params": {"buff": "atk_buff", "stacks": 2}},
-				{"trigger": "always", "target": "same_col_ally", "effect_id": "buff_apply", "params": {"buff": "spd_buff", "stacks": 2}}
+				{"trigger": "always", "target": "same_col_ally", "effect_id": "atk_buff_apply", "params": {"stacks": 2}},
+				{"trigger": "always", "target": "same_col_ally", "effect_id": "spd_buff_apply", "params": {"stacks": 2}}
 			],
 			"texture": ""
 		},
@@ -2106,9 +2106,9 @@
 			"range": "上下含む3行",
 			"sfx": "",
 			"skills": [
-				{"trigger": "on_summon", "target": "self", "effect_id": "skill_flag", "params": {"flag": "flying"}},
-				{"trigger": "on_summon", "target": "self", "effect_id": "skill_flag", "params": {"flag": "support_attack"}},
-				{"trigger": "timer", "target": "all_allies", "effect_id": "buff_apply", "params": {"buff": "atk_buff", "stacks": 2, "interval": 25.0}}
+				{"trigger": "on_summon", "target": "self", "effect_id": "flying", "params": {}},
+				{"trigger": "on_summon", "target": "self", "effect_id": "support_fire", "params": {}},
+				{"trigger": "timer", "target": "all_allies", "effect_id": "atk_buff_apply", "params": {"stacks": 2, "interval": 25.0}}
 			],
 			"texture": ""
 		},
@@ -2123,9 +2123,9 @@
 			"range": "上下含む3行",
 			"sfx": "",
 			"skills": [
-				{"trigger": "on_summon", "target": "all_enemies", "effect_id": "debuff_apply", "params": {"status": "burn", "stacks": 5}},
-				{"trigger": "always", "target": "all_allies", "effect_id": "buff_apply", "params": {"buff": "spd_buff", "stacks": 3}},
-				{"trigger": "on_hit", "target": "front_one", "effect_id": "debuff_apply", "params": {"status": "burn", "stacks": 3}}
+				{"trigger": "on_summon", "target": "all_enemies", "effect_id": "burn_apply", "params": {"stacks": 5}},
+				{"trigger": "always", "target": "all_allies", "effect_id": "spd_buff_apply", "params": {"stacks": 3}},
+				{"trigger": "on_hit", "target": "front_one", "effect_id": "burn_apply", "params": {"stacks": 3}}
 			],
 			"texture": ""
 		},
@@ -2141,8 +2141,8 @@
 			"sfx": "",
 			"skills": [
 				{"trigger": "on_hit", "target": "front_one", "effect_id": "steal_buffs", "params": {"factor": 1.5}},
-				{"trigger": "on_kill", "target": "self", "effect_id": "atk_permanent", "params": {"amount": 3}},
-				{"trigger": "on_kill", "target": "self", "effect_id": "heal", "params": {"factor": 0.30}}
+				{"trigger": "on_kill", "target": "self", "effect_id": "atk_accumulate", "params": {"amount": 3}},
+				{"trigger": "on_kill", "target": "self", "effect_id": "heal_pct", "params": {"factor": 0.30}}
 			],
 			"texture": ""
 		},
@@ -2157,10 +2157,10 @@
 			"range": "上下含む3行",
 			"sfx": "",
 			"skills": [
-				{"trigger": "on_summon", "target": "self", "effect_id": "skill_flag", "params": {"flag": "sniper"}},
-				{"trigger": "on_hit", "target": "front_one", "effect_id": "debuff_apply", "params": {"status": "poison", "stacks": 3}},
-				{"trigger": "timer", "target": "enemy_deck", "effect_id": "inject_status", "params": {"card_id": "毒カード", "interval": 12.0}},
-				{"trigger": "on_death", "target": "all_enemies", "effect_id": "debuff_apply", "params": {"status": "poison", "stacks": 5}}
+				{"trigger": "on_summon", "target": "self", "effect_id": "snipe", "params": {}},
+				{"trigger": "on_hit", "target": "front_one", "effect_id": "poison_apply", "params": {"stacks": 3}},
+				{"trigger": "timer", "target": "enemy_deck", "effect_id": "inject_status_card", "params": {"card_id": "毒カード", "interval": 12.0}},
+				{"trigger": "on_death", "target": "all_enemies", "effect_id": "poison_apply", "params": {"stacks": 5}}
 			],
 			"texture": ""
 		},
@@ -2175,9 +2175,9 @@
 			"range": "1行",
 			"sfx": "",
 			"skills": [
-				{"trigger": "on_summon", "target": "self", "effect_id": "skill_flag", "params": {"flag": "flying"}},
+				{"trigger": "on_summon", "target": "self", "effect_id": "flying", "params": {}},
 				{"trigger": "on_hit", "target": "front_one", "effect_id": "critical", "params": {"first_only": true, "factor": 2.0}},
-				{"trigger": "always", "target": "same_col_ally", "effect_id": "buff_apply", "params": {"buff": "spd_buff", "stacks": 2}}
+				{"trigger": "always", "target": "same_col_ally", "effect_id": "spd_buff_apply", "params": {"stacks": 2}}
 			],
 			"texture": ""
 		},
@@ -2192,10 +2192,10 @@
 			"range": "1行",
 			"sfx": "",
 			"skills": [
-				{"trigger": "on_summon", "target": "self", "effect_id": "skill_flag", "params": {"flag": "big_penetrate"}},
-				{"trigger": "on_summon", "target": "self", "effect_id": "skill_flag", "params": {"flag": "impact"}},
-				{"trigger": "on_hit", "target": "front_one", "effect_id": "debuff_apply", "params": {"status": "burn", "stacks": 4}},
-				{"trigger": "timer", "target": "self", "effect_id": "buff_apply", "params": {"buff": "atk_buff", "stacks": 3, "interval": 5.0}}
+				{"trigger": "on_summon", "target": "self", "effect_id": "big_penetrate", "params": {}},
+				{"trigger": "on_summon", "target": "self", "effect_id": "impact", "params": {}},
+				{"trigger": "on_hit", "target": "front_one", "effect_id": "burn_apply", "params": {"stacks": 4}},
+				{"trigger": "timer", "target": "self", "effect_id": "atk_buff_apply", "params": {"stacks": 3, "interval": 5.0}}
 			],
 			"texture": ""
 		},
@@ -2211,7 +2211,7 @@
 			"sfx": "",
 			"skills": [
 				{"trigger": "on_death", "target": "self", "effect_id": "mana_boost", "params": {"amount": 1}},
-				{"trigger": "always", "target": "self", "effect_id": "skill_flag", "params": {"flag": "self_revive", "hp": 3, "delay": 3.0}}
+				{"trigger": "always", "target": "self", "effect_id": "self_revive", "params": {"hp": 3, "delay": 3.0}}
 			],
 			"texture": ""
 		},
@@ -2226,8 +2226,8 @@
 			"range": "1行",
 			"sfx": "",
 			"skills": [
-				{"trigger": "on_summon", "target": "random_front_ally", "effect_id": "buff_apply", "params": {"buff": "atk_buff", "stacks": 2}},
-				{"trigger": "on_kill", "target": "self", "effect_id": "atk_permanent", "params": {"amount": 2}}
+				{"trigger": "on_summon", "target": "random_front_ally", "effect_id": "atk_buff_apply", "params": {"stacks": 2}},
+				{"trigger": "on_kill", "target": "self", "effect_id": "atk_accumulate", "params": {"amount": 2}}
 			],
 			"texture": ""
 		}
