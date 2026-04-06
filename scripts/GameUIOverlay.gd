@@ -8,6 +8,8 @@ var _EDB = null
 var _char_hp_bars: Array = [null, null]    # [side] -> ColorRect (HPバー)
 var _char_hp_labels: Array = [null, null]  # [side] -> Label (HP数値)
 var _char_panels: Array = [null, null]     # [side] -> Panel
+var _char_mana_bars: Array = [null, null]  # [side] -> ColorRect (マナバー)
+var _char_mana_labels: Array = [null, null] # [side] -> Label (マナ数値)
 var _damage_floats: Array = []             # [{label, timer, velocity}]
 var _event_bubble: Label = null            # 重要イベントフキダシ
 var _bubble_timer: float = 0.0             # フキダシ残り表示時間
@@ -107,13 +109,13 @@ func _refresh_equipment_ui() -> void:
 
 func _build_character_panel(side: int) -> void:
 	var panel_w = 80
-	var panel_h = 120
+	var panel_h = 175  # 装備行+マナ行を追加して拡張
 	var panel_x: int
 	if side == 0:
 		panel_x = _cell_x(0, 0) - panel_w - 15  # プレイヤー側：盤面左端のさらに左
 	else:
 		panel_x = _cell_x(1, 2) + main.CELL_W + 15  # 敵側：盤面右端のさらに右
-	var panel_y = main.BOARD_TOP + 1 * main.CELL_H - 15  # 中段の高さ
+	var panel_y = main.BOARD_TOP + 1 * main.CELL_H - 40  # 中段の高さ（拡張分で上にずらす）
 
 	# パネル背景
 	var panel = Panel.new()
@@ -134,37 +136,47 @@ func _build_character_panel(side: int) -> void:
 	# キャラ名
 	var name_label = Label.new()
 	name_label.text = "プレイヤー" if side == 0 else "敵"
-	name_label.position = Vector2(panel_x + 5, panel_y + 5)
-	name_label.size = Vector2(panel_w - 10, 18)
+	name_label.position = Vector2(panel_x + 5, panel_y + 4)
+	name_label.size = Vector2(panel_w - 10, 16)
 	name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	name_label.add_theme_font_size_override("font_size", 11)
+	name_label.add_theme_font_size_override("font_size", 10)
 	name_label.add_theme_color_override("font_color", Color(0.8, 0.85, 0.7) if side == 0 else Color(0.85, 0.7, 0.7))
 	main.add_child(name_label)
 
+	# 装備効果アイコン行（将来プレースホルダ）
+	var equip_label = Label.new()
+	equip_label.text = "装備なし"
+	equip_label.position = Vector2(panel_x + 4, panel_y + 22)
+	equip_label.size = Vector2(panel_w - 8, 14)
+	equip_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	equip_label.add_theme_font_size_override("font_size", 9)
+	equip_label.add_theme_color_override("font_color", Color(0.5, 0.5, 0.5))
+	main.add_child(equip_label)
+
 	# 立絵プレースホルダ（将来テクスチャに差し替え）
 	var portrait = ColorRect.new()
-	portrait.position = Vector2(panel_x + 15, panel_y + 25)
+	portrait.position = Vector2(panel_x + 15, panel_y + 38)
 	portrait.size = Vector2(50, 50)
 	portrait.color = Color(0.25, 0.3, 0.2) if side == 0 else Color(0.3, 0.2, 0.2)
 	main.add_child(portrait)
 
 	var portrait_label = Label.new()
 	portrait_label.text = "P" if side == 0 else "E"
-	portrait_label.position = Vector2(panel_x + 30, panel_y + 38)
+	portrait_label.position = Vector2(panel_x + 30, panel_y + 51)
 	portrait_label.add_theme_font_size_override("font_size", 20)
 	portrait_label.add_theme_color_override("font_color", Color(0.6, 0.8, 0.5) if side == 0 else Color(0.8, 0.5, 0.5))
 	main.add_child(portrait_label)
 
 	# HPバー背景
 	var hp_bg = ColorRect.new()
-	hp_bg.position = Vector2(panel_x + 5, panel_y + 82)
+	hp_bg.position = Vector2(panel_x + 5, panel_y + 94)
 	hp_bg.size = Vector2(70, 10)
 	hp_bg.color = Color(0.2, 0.2, 0.2)
 	main.add_child(hp_bg)
 
 	# HPバー
 	var hp_bar = ColorRect.new()
-	hp_bar.position = Vector2(panel_x + 5, panel_y + 82)
+	hp_bar.position = Vector2(panel_x + 5, panel_y + 94)
 	hp_bar.size = Vector2(70, 10)
 	hp_bar.color = Color(0.3, 0.9, 0.4) if side == 0 else Color(0.9, 0.3, 0.3)
 	main.add_child(hp_bar)
@@ -172,14 +184,50 @@ func _build_character_panel(side: int) -> void:
 
 	# HP数値
 	var hp_label = Label.new()
-	hp_label.position = Vector2(panel_x + 5, panel_y + 95)
-	hp_label.size = Vector2(70, 18)
+	hp_label.position = Vector2(panel_x + 5, panel_y + 107)
+	hp_label.size = Vector2(70, 16)
 	hp_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	hp_label.add_theme_font_size_override("font_size", 12)
+	hp_label.add_theme_font_size_override("font_size", 11)
 	hp_label.add_theme_color_override("font_color", Color(0.9, 0.9, 0.9))
 	hp_label.text = "%d" % main.base_hp[side]
 	main.add_child(hp_label)
 	_char_hp_labels[side] = hp_label
+
+	# マナゲージ背景
+	var mana_bg = ColorRect.new()
+	mana_bg.position = Vector2(panel_x + 5, panel_y + 127)
+	mana_bg.size = Vector2(70, 10)
+	mana_bg.color = Color(0.1, 0.1, 0.07)
+	main.add_child(mana_bg)
+
+	# マナゲージ
+	var mana_bar = ColorRect.new()
+	mana_bar.position = Vector2(panel_x + 5, panel_y + 127)
+	mana_bar.size = Vector2(0, 10)
+	mana_bar.color = Color(0.2, 0.5, 1.0) if side == 0 else Color(1.0, 0.3, 0.2)
+	main.add_child(mana_bar)
+	_char_mana_bars[side] = mana_bar
+
+	# マナ数値
+	var mana_label = Label.new()
+	mana_label.position = Vector2(panel_x + 4, panel_y + 140)
+	mana_label.size = Vector2(panel_w - 8, 14)
+	mana_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	mana_label.add_theme_font_size_override("font_size", 10)
+	mana_label.add_theme_color_override("font_color", Color(1.0, 0.9, 0.3) if side == 0 else Color(1.0, 0.6, 0.3))
+	mana_label.text = "0 / 10"
+	main.add_child(mana_label)
+	_char_mana_labels[side] = mana_label
+
+	# マナラベル（タイトル）
+	var mana_title = Label.new()
+	mana_title.text = "マナ"
+	mana_title.position = Vector2(panel_x + 4, panel_y + 155)
+	mana_title.size = Vector2(panel_w - 8, 14)
+	mana_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	mana_title.add_theme_font_size_override("font_size", 9)
+	mana_title.add_theme_color_override("font_color", Color(1.0, 0.85, 0.2) if side == 0 else Color(1.0, 0.5, 0.2))
+	main.add_child(mana_title)
 
 func spawn_damage_float(side: int, row: int, col: int, amount: int, is_heal: bool = false) -> void:
 	if amount == 0:

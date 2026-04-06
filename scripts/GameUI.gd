@@ -502,11 +502,30 @@ func _update_mana() -> void:
 	var bar_w: int = 220
 	if _mana_gauge_bar != null:
 		_mana_gauge_bar.size.x = int(bar_w * ratio)
-		# 色: 低(青) → 高(黄)
 		var gauge_color: Color = Color(0.2, 0.5, 1.0).lerp(Color(1.0, 0.85, 0.1), ratio)
 		_mana_gauge_bar.color = gauge_color
 	if _mana_gauge_label != null:
 		_mana_gauge_label.text = "%.1f / %d（上限%d）" % [mana, int(mana_max), int(mana_max)]
+
+	# ---- overlayの立絵パネル内マナバー更新 ----
+	var bar_inner_w: float = 70.0  # パネル幅(80) - 余白10
+	# 自分側マナ
+	if _overlay._char_mana_bars[0] != null:
+		_overlay._char_mana_bars[0].size.x = int(bar_inner_w * ratio)
+		var color0: Color = Color(0.2, 0.5, 1.0).lerp(Color(1.0, 0.85, 0.1), ratio)
+		_overlay._char_mana_bars[0].color = color0
+	if _overlay._char_mana_labels[0] != null:
+		_overlay._char_mana_labels[0].text = "%.1f / %d" % [mana, int(mana_max)]
+	# 敵側マナ
+	var e_mana: float = main.enemy_ai.mana
+	var e_mana_max: float = main.enemy_ai.MANA_MAX
+	var e_ratio: float = clamp(e_mana / max(1.0, e_mana_max), 0.0, 1.0)
+	if _overlay._char_mana_bars[1] != null:
+		_overlay._char_mana_bars[1].size.x = int(bar_inner_w * e_ratio)
+		var color1: Color = Color(1.0, 0.3, 0.2).lerp(Color(1.0, 0.7, 0.1), e_ratio)
+		_overlay._char_mana_bars[1].color = color1
+	if _overlay._char_mana_labels[1] != null:
+		_overlay._char_mana_labels[1].text = "%.1f / %d" % [e_mana, int(e_mana_max)]
 
 func mark_all_cells_dirty() -> void:
 	for s in range(2):

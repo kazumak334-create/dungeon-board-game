@@ -116,137 +116,89 @@ func _build_card_queue_ui() -> void:
 	var queue_y: int = main.BOARD_TOP + 3 * main.CELL_H + 20 + 40
 	var card_w: float = 160.0
 	var card_h: float = 220.0
-	var deck_w: float = 70.0
-	var deck_h: float = 60.0
-	var mana_w: float = 100.0
-	var mana_h: float = 60.0
+	var deck_panel_w: float = 70.0
+	var deck_panel_h: float = 70.0
 	var gap: float = 10.0          # 1stカード間の隙間
 	var item_gap: float = 6.0      # 各パーツ間の隙間
 	var center_x: float = 640.0
+	var stack_offset: float = 30.0  # 2ndカードの重ねずらし幅
 
-	# ---- 座標計算（中央寄せ・2-3枚目の重ねスペース確保） ----
-	var stack_offset: float = 30.0  # 2-3枚目の重ねずらし幅
-	var stack_space: float = stack_offset * 2  # 2-3枚目分のスペース
+	# ---- 座標計算 ----
+	# 自分側（右から左: 1st → 2nd → デッキパネル）
+	var self_1st_x: float = center_x - gap / 2.0 - card_w
+	var self_2nd_x: float = self_1st_x - stack_offset
+	var self_deck_x: float = self_2nd_x - stack_offset - item_gap - deck_panel_w
 
-	# 自分側（右から左: 1st[+重ねスペース] → マナ → デッキ）
-	var self_card_x: float = center_x - gap / 2.0 - card_w           # 自1stカード左端
-	var self_mana_x: float = self_card_x - stack_space - item_gap - mana_w  # マナ左端（重ねスペースの外）
-	var self_deck_x: float = self_mana_x - item_gap - deck_w          # デッキ左端
+	# 敵側（左から右: 1st → 2nd → デッキパネル）
+	var enemy_1st_x: float = center_x + gap / 2.0
+	var enemy_2nd_x: float = enemy_1st_x + stack_offset
+	var enemy_deck_x: float = enemy_2nd_x + card_w + item_gap
 
-	# 敵側（左から右: 1st[+重ねスペース] → マナ → デッキ）
-	var enemy_card_x: float = center_x + gap / 2.0                   # 敵1stカード左端
-	var enemy_mana_x: float = enemy_card_x + card_w + stack_space + item_gap  # 敵マナ左端
-	var enemy_deck_x: float = enemy_mana_x + mana_w + item_gap        # 敵デッキ左端
-
-	# ---- 自分側デッキ山パネル ----
+	# ---- 自分側デッキ山パネル（山札/捨て/除外） ----
 	var self_deck_panel := ColorRect.new()
 	self_deck_panel.position = Vector2(self_deck_x, queue_y)
-	self_deck_panel.size = Vector2(deck_w, deck_h)
+	self_deck_panel.size = Vector2(deck_panel_w, deck_panel_h)
 	self_deck_panel.color = Color(0.08, 0.10, 0.17)
 	main.add_child(self_deck_panel)
 	var self_deck_border := ColorRect.new()
 	self_deck_border.position = Vector2(self_deck_x - 1, queue_y - 1)
-	self_deck_border.size = Vector2(deck_w + 2, deck_h + 2)
+	self_deck_border.size = Vector2(deck_panel_w + 2, deck_panel_h + 2)
 	self_deck_border.color = Color(0.3, 0.5, 0.7, 0.5)
 	self_deck_border.z_index = -1
 	main.add_child(self_deck_border)
 	_queue_self_deck_label = Label.new()
-	_queue_self_deck_label.position = Vector2(self_deck_x + 4, queue_y + 6)
-	_queue_self_deck_label.size = Vector2(deck_w - 8, deck_h - 8)
+	_queue_self_deck_label.position = Vector2(self_deck_x + 4, queue_y + 4)
+	_queue_self_deck_label.size = Vector2(deck_panel_w - 8, deck_panel_h - 8)
 	_queue_self_deck_label.add_theme_font_size_override("font_size", 11)
 	_queue_self_deck_label.add_theme_color_override("font_color", Color(0.6, 0.8, 1.0))
 	_queue_self_deck_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	main.add_child(_queue_self_deck_label)
 
-	# ---- 自分側マナ表示 ----
-	var self_mana_panel := ColorRect.new()
-	self_mana_panel.position = Vector2(self_mana_x, queue_y)
-	self_mana_panel.size = Vector2(mana_w, mana_h)
-	self_mana_panel.color = Color(0.06, 0.08, 0.14)
-	main.add_child(self_mana_panel)
-	var mana_title := Label.new()
-	mana_title.text = "マナ"
-	mana_title.position = Vector2(self_mana_x + 4, queue_y + 4)
-	mana_title.add_theme_font_size_override("font_size", 11)
-	mana_title.add_theme_color_override("font_color", Color(1.0, 0.85, 0.2))
-	main.add_child(mana_title)
-	_queue_mana_label = Label.new()
-	_queue_mana_label.position = Vector2(self_mana_x + 4, queue_y + 20)
-	_queue_mana_label.size = Vector2(mana_w - 8, 18)
-	_queue_mana_label.add_theme_font_size_override("font_size", 11)
-	_queue_mana_label.add_theme_color_override("font_color", Color(1.0, 0.9, 0.3))
-	main.add_child(_queue_mana_label)
-	var mana_bar_bg := ColorRect.new()
-	mana_bar_bg.position = Vector2(self_mana_x + 4, queue_y + 40)
-	mana_bar_bg.size = Vector2(mana_w - 8, 12)
-	mana_bar_bg.color = Color(0.1, 0.1, 0.07)
-	main.add_child(mana_bar_bg)
-	_queue_mana_bar = ColorRect.new()
-	_queue_mana_bar.position = Vector2(self_mana_x + 4, queue_y + 40)
-	_queue_mana_bar.size = Vector2(0, 12)
-	_queue_mana_bar.color = Color(0.2, 0.5, 1.0)
-	main.add_child(_queue_mana_bar)
+	# ---- 自分2ndカード配置親（1stの下に重ねて表示） ----
+	var self_2nd_holder := Control.new()
+	self_2nd_holder.position = Vector2(self_2nd_x, queue_y)
+	self_2nd_holder.custom_minimum_size = Vector2(card_w, card_h)
+	self_2nd_holder.size = Vector2(card_w, card_h)
+	main.add_child(self_2nd_holder)
 
-	# ---- 自分カード配置親（160x220） ----
+	# ---- 自分1stカード配置親（160x220） ----
 	var self_card_holder := Control.new()
-	self_card_holder.position = Vector2(self_card_x, queue_y)
+	self_card_holder.position = Vector2(self_1st_x, queue_y)
 	self_card_holder.custom_minimum_size = Vector2(card_w, card_h)
 	self_card_holder.size = Vector2(card_w, card_h)
 	main.add_child(self_card_holder)
 	_queue_card_parent_self = self_card_holder
 
-	# ---- 敵カード配置親 ----
+	# ---- 敵1stカード配置親 ----
 	var enemy_card_holder := Control.new()
-	enemy_card_holder.position = Vector2(enemy_card_x, queue_y)
+	enemy_card_holder.position = Vector2(enemy_1st_x, queue_y)
 	enemy_card_holder.custom_minimum_size = Vector2(card_w, card_h)
 	enemy_card_holder.size = Vector2(card_w, card_h)
 	main.add_child(enemy_card_holder)
 	_queue_card_parent_enemy = enemy_card_holder
 
-	# ---- 敵マナ表示 ----
-	var enemy_mana_panel := ColorRect.new()
-	enemy_mana_panel.position = Vector2(enemy_mana_x, queue_y)
-	enemy_mana_panel.size = Vector2(mana_w, mana_h)
-	enemy_mana_panel.color = Color(0.14, 0.06, 0.06)
-	main.add_child(enemy_mana_panel)
-	var enemy_mana_title := Label.new()
-	enemy_mana_title.text = "敵マナ"
-	enemy_mana_title.position = Vector2(enemy_mana_x + 4, queue_y + 4)
-	enemy_mana_title.add_theme_font_size_override("font_size", 11)
-	enemy_mana_title.add_theme_color_override("font_color", Color(1.0, 0.5, 0.2))
-	main.add_child(enemy_mana_title)
-	_queue_enemy_mana_label = Label.new()
-	_queue_enemy_mana_label.position = Vector2(enemy_mana_x + 4, queue_y + 20)
-	_queue_enemy_mana_label.size = Vector2(mana_w - 8, 18)
-	_queue_enemy_mana_label.add_theme_font_size_override("font_size", 11)
-	_queue_enemy_mana_label.add_theme_color_override("font_color", Color(1.0, 0.6, 0.3))
-	main.add_child(_queue_enemy_mana_label)
-	var enemy_mana_bar_bg := ColorRect.new()
-	enemy_mana_bar_bg.position = Vector2(enemy_mana_x + 4, queue_y + 40)
-	enemy_mana_bar_bg.size = Vector2(mana_w - 8, 12)
-	enemy_mana_bar_bg.color = Color(0.1, 0.07, 0.07)
-	main.add_child(enemy_mana_bar_bg)
-	_queue_enemy_mana_bar = ColorRect.new()
-	_queue_enemy_mana_bar.position = Vector2(enemy_mana_x + 4, queue_y + 40)
-	_queue_enemy_mana_bar.size = Vector2(0, 12)
-	_queue_enemy_mana_bar.color = Color(1.0, 0.3, 0.2)
-	main.add_child(_queue_enemy_mana_bar)
+	# ---- 敵2ndカード配置親 ----
+	var enemy_2nd_holder := Control.new()
+	enemy_2nd_holder.position = Vector2(enemy_2nd_x, queue_y)
+	enemy_2nd_holder.custom_minimum_size = Vector2(card_w, card_h)
+	enemy_2nd_holder.size = Vector2(card_w, card_h)
+	main.add_child(enemy_2nd_holder)
 
-	# ---- 敵デッキ山パネル ----
+	# ---- 敵デッキ山パネル（山札/捨て/除外） ----
 	var enemy_deck_panel := ColorRect.new()
 	enemy_deck_panel.position = Vector2(enemy_deck_x, queue_y)
-	enemy_deck_panel.size = Vector2(deck_w, deck_h)
+	enemy_deck_panel.size = Vector2(deck_panel_w, deck_panel_h)
 	enemy_deck_panel.color = Color(0.14, 0.08, 0.08)
 	main.add_child(enemy_deck_panel)
 	var enemy_deck_border := ColorRect.new()
 	enemy_deck_border.position = Vector2(enemy_deck_x - 1, queue_y - 1)
-	enemy_deck_border.size = Vector2(deck_w + 2, deck_h + 2)
+	enemy_deck_border.size = Vector2(deck_panel_w + 2, deck_panel_h + 2)
 	enemy_deck_border.color = Color(0.7, 0.3, 0.3, 0.5)
 	enemy_deck_border.z_index = -1
 	main.add_child(enemy_deck_border)
 	_queue_enemy_deck_label = Label.new()
-	_queue_enemy_deck_label.position = Vector2(enemy_deck_x + 4, queue_y + 6)
-	_queue_enemy_deck_label.size = Vector2(deck_w - 8, deck_h - 8)
+	_queue_enemy_deck_label.position = Vector2(enemy_deck_x + 4, queue_y + 4)
+	_queue_enemy_deck_label.size = Vector2(deck_panel_w - 8, deck_panel_h - 8)
 	_queue_enemy_deck_label.add_theme_font_size_override("font_size", 11)
 	_queue_enemy_deck_label.add_theme_color_override("font_color", Color(1.0, 0.5, 0.5))
 	_queue_enemy_deck_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -271,28 +223,7 @@ func _update_next_card() -> void:
 		_last_enemy_card_name = enemy_card_name
 		_rebuild_queue_card_enemy(enemy_next)
 
-	# ---- 自分マナゲージ更新（毎フレーム） ----
-	var mana: float = main.deck_manager.mana
-	var mana_max: float = main.deck_manager.MANA_MAX
-	var mana_ratio: float = clamp(mana / max(1.0, mana_max), 0.0, 1.0)
-	var bar_inner_w: float = 92.0  # mana_w(100) - 8
-	if _queue_mana_label != null:
-		_queue_mana_label.text = "%.1f / %d" % [mana, int(mana_max)]
-	if _queue_mana_bar != null:
-		_queue_mana_bar.size.x = int(bar_inner_w * mana_ratio)
-		var gauge_color: Color = Color(0.2, 0.5, 1.0).lerp(Color(1.0, 0.85, 0.1), mana_ratio)
-		_queue_mana_bar.color = gauge_color
-
-	# ---- 敵マナゲージ更新（毎フレーム） ----
-	var e_mana: float = main.enemy_ai.mana
-	var e_mana_max: float = main.enemy_ai.MANA_MAX
-	var e_mana_ratio: float = clamp(e_mana / max(1.0, e_mana_max), 0.0, 1.0)
-	if _queue_enemy_mana_label != null:
-		_queue_enemy_mana_label.text = "%.1f / %d" % [e_mana, int(e_mana_max)]
-	if _queue_enemy_mana_bar != null:
-		_queue_enemy_mana_bar.size.x = int(bar_inner_w * e_mana_ratio)
-		var e_gauge_color: Color = Color(1.0, 0.3, 0.2).lerp(Color(1.0, 0.7, 0.1), e_mana_ratio)
-		_queue_enemy_mana_bar.color = e_gauge_color
+	# マナゲージはoverlayの立絵パネル下に移動（GameUI._update_manaで更新）
 
 func _rebuild_queue_card_self(next) -> void:
 	if _queue_card_parent_self == null:
@@ -344,12 +275,12 @@ func _update_deck_counts() -> void:
 	main.enemy_deck_count_label.text = "敵デッキ: %d枚\n敵捨て札: %d枚" % [
 		main.enemy_ai.enemy_deck.size(), main.enemy_ai.enemy_discard.size()
 	]
-	# キューエリアのデッキ山ラベル更新
+	# キューエリアのデッキ山ラベル更新（山札/捨て/除外）
 	if _queue_self_deck_label != null:
-		_queue_self_deck_label.text = "デッキ\n%d枚\n捨て %d枚" % [
+		_queue_self_deck_label.text = "山札 %d枚\n捨て %d枚\n除外 0枚" % [
 			main.deck_manager.deck.size(), main.deck_manager.discard.size()
 		]
 	if _queue_enemy_deck_label != null:
-		_queue_enemy_deck_label.text = "デッキ\n%d枚\n捨て %d枚" % [
+		_queue_enemy_deck_label.text = "山札 %d枚\n捨て %d枚\n除外 0枚" % [
 			main.enemy_ai.enemy_deck.size(), main.enemy_ai.enemy_discard.size()
 		]
