@@ -10,6 +10,8 @@ var _char_panels: Array = [null, null]     # [side] -> Panel
 var _damage_floats: Array = []             # [{label, timer, velocity}]
 var _event_bubble: Label = null            # 重要イベントフキダシ
 var _bubble_timer: float = 0.0             # フキダシ残り表示時間
+var _log_bg: ColorRect = null              # ログ背景
+var _log_title: Label = null               # ログタイトル
 var _cell_hp_bars: Array = []             # [side][r][c] -> ColorRect（セル内HPバー）
 var _cell_hp_labels: Array = []           # [side][r][c] -> Label（セル内HP数値）
 var _mana_gauge_bar: ColorRect = null     # マナゲージバー
@@ -208,18 +210,20 @@ func build_ui() -> void:
 	# ---- 次カードパネル ----
 	_build_next_card_panel()
 
-	# ---- ログ ----
-	var log_bg := ColorRect.new()
-	log_bg.position = Vector2(1020, main.BOARD_TOP - 10)
-	log_bg.size     = Vector2(245, 3 * main.CELL_H + 30)
-	log_bg.color    = Color(0.04, 0.04, 0.07)
-	main.add_child(log_bg)
+	# ---- ログ（デフォルト非表示・Lキーでトグル） ----
+	_log_bg = ColorRect.new()
+	_log_bg.position = Vector2(1020, main.BOARD_TOP - 10)
+	_log_bg.size     = Vector2(245, 3 * main.CELL_H + 30)
+	_log_bg.color    = Color(0.04, 0.04, 0.07)
+	_log_bg.visible = false
+	main.add_child(_log_bg)
 
-	var log_title := Label.new()
-	log_title.text     = "ログ"
-	log_title.position = Vector2(1028, main.BOARD_TOP - 6)
-	log_title.modulate = Color(0.7, 0.7, 0.5)
-	main.add_child(log_title)
+	_log_title = Label.new()
+	_log_title.text     = "ログ（Lキーで表示）"
+	_log_title.position = Vector2(1028, main.BOARD_TOP - 6)
+	_log_title.modulate = Color(0.7, 0.7, 0.5)
+	_log_title.visible = false
+	main.add_child(_log_title)
 
 	main.log_label = Label.new()
 	main.log_label.position       = Vector2(1025, main.BOARD_TOP + 14)
@@ -227,7 +231,7 @@ func build_ui() -> void:
 	main.log_label.add_theme_font_size_override("font_size", 11)
 	main.log_label.autowrap_mode  = TextServer.AUTOWRAP_WORD_SMART
 	main.log_label.modulate       = Color(0.78, 0.78, 0.78)
-	main.log_label.visible = false  # デフォルト非表示（Lキーでトグル）
+	main.log_label.visible = false
 	main.add_child(main.log_label)
 
 	# 重要イベントフキダシ（画面下部・3秒で消える）
@@ -938,6 +942,12 @@ func mark_all_cells_dirty() -> void:
 		for r in range(3):
 			for c in range(3):
 				main._cell_dirty[s][r][c] = true
+
+func toggle_log() -> void:
+	var visible = not main.log_label.visible
+	main.log_label.visible = visible
+	if _log_bg != null: _log_bg.visible = visible
+	if _log_title != null: _log_title.visible = visible
 
 func add_log(text: String) -> void:
 	var ms: float = float(Time.get_ticks_msec()) * 0.001

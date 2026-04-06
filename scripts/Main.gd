@@ -10,8 +10,8 @@ const SpellExecutorScript  = preload("res://scripts/SpellExecutor.gd")
 var EffectExecutorScript = null  # 遅延ロード（preloadだとコンパイル時にフリーズ）
 
 # ---- レイアウト定数 ----
-const CELL_W    := 105
-const CELL_H    := 85
+const CELL_W    := 130
+const CELL_H    := 95
 const BOARD_TOP := 110   # 盤面上端Y
 
 # 中央GAP: 自陣前列と敵陣前列の間隔
@@ -297,7 +297,7 @@ func _dev_update_drag() -> void:
 # ---- ゲームループ ----
 func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventKey and event.pressed and event.keycode == KEY_L:
-		log_label.visible = not log_label.visible
+		game_ui.toggle_log()
 
 func _process(delta: float) -> void:
 	# ダメージフロート+フキダシ更新
