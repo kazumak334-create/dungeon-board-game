@@ -248,15 +248,7 @@ func _build_character_panel(side: int) -> void:
 	main.add_child(cast_bar)
 	_char_cast_bars[side] = cast_bar
 
-	# --- 6. "▶ NEXT"ラベル ---
-	var next_label = Label.new()
-	next_label.text = "▶ NEXT"
-	next_label.position = Vector2(px, panel_y + 158)
-	next_label.size = Vector2(inner_w, 13)
-	next_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	next_label.add_theme_font_size_override("font_size", 9)
-	next_label.add_theme_color_override("font_color", Color(0.6, 0.9, 0.6) if side == 0 else Color(0.9, 0.6, 0.6))
-	main.add_child(next_label)
+	# NEXTラベルはキューQ1上部に移動済み。プレース内からは削除
 
 	# --- デッキ情報（縦3段VBoxContainer）: パネル下端に配置 ---
 	var deck_block_y: int = panel_y + panel_h + 4  # パネル直下から開始

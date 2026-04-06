@@ -47,9 +47,11 @@ func build_ui() -> void:
 	if env_id != "" and env_id != "env_none":
 		var env_def: Dictionary = CardDB.ENVIRONMENTS.get(env_id, {})
 		env_display = env_def.get("display", env_id)
-	_env_label.text = "環境: %s" % env_display if env_display != "" else ""
-	_env_label.position = Vector2(20, 8)
-	_env_label.add_theme_font_size_override("font_size", 12)
+	_env_label.text = env_display if env_display != "" else ""
+	_env_label.position = Vector2(0, 8)
+	_env_label.size = Vector2(1280, 20)
+	_env_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_env_label.add_theme_font_size_override("font_size", 13)
 	_env_label.modulate = Color(0.7, 0.9, 0.7)
 	main.add_child(_env_label)
 
