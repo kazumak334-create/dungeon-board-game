@@ -153,10 +153,10 @@ func process_deck(delta: float, board: Node) -> void:
 	mana = min(MANA_MAX, mana + effective_regen * delta)
 	emit_signal("mana_changed", mana)
 
-	_check_timer -= delta
+	# クールダウン中は発動しない
 	if _check_timer > 0.0:
+		_check_timer -= delta
 		return
-	_check_timer = check_interval
 
 	if deck.is_empty():
 		# フォールバック：デッキが空になった場合
@@ -195,6 +195,7 @@ func process_deck(delta: float, board: Node) -> void:
 		return
 	mana -= effective_cost
 	deck.remove_at(0)
+	_check_timer = check_interval  # 発動後にクールダウン開始
 	if _cost_reduction_remaining > 0 and top.cost != -1:
 		_cost_reduction_remaining -= 1
 	# カードタイプ別処理

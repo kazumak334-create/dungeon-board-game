@@ -116,10 +116,10 @@ func process_ai(delta: float, board: Node) -> void:
 	var effective_regen: float = max(0.1, MANA_REGEN + drain_count_ai * per_unit_ai)
 	mana = min(MANA_MAX, mana + effective_regen * delta)
 
-	_check_timer -= delta
+	# クールダウン中は発動しない
 	if _check_timer > 0.0:
+		_check_timer -= delta
 		return
-	_check_timer = check_interval
 
 	if next_card == null:
 		return
@@ -134,6 +134,7 @@ func process_ai(delta: float, board: Node) -> void:
 
 	mana -= next_card.cost
 	enemy_deck.remove_at(0)
+	_check_timer = check_interval  # 発動後にクールダウン開始
 	if next_card.card_type == "unit":
 		board.place_unit(1, next_card)
 		enemy_discard.append(next_card)
