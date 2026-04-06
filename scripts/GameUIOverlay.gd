@@ -21,7 +21,7 @@ func _cell_x(side: int, col: int) -> int:
 func build() -> void:
 	_build_character_panel(0)
 	_build_character_panel(1)
-	_build_equipment_ui()
+	# _build_equipment_ui()  # 将来実装（現在は非表示）
 	# 重要イベントフキダシ（画面下部・3秒で消える）
 	_event_bubble = Label.new()
 	_event_bubble.position = Vector2(200, 680)
@@ -125,6 +125,9 @@ func _build_character_panel(side: int) -> void:
 	style.set_border_width_all(2)
 	style.border_color = Color(0.3, 0.5, 0.3) if side == 0 else Color(0.5, 0.3, 0.3)
 	panel.add_theme_stylebox_override("panel", style)
+	panel.mouse_filter = Control.MOUSE_FILTER_STOP
+	panel.mouse_entered.connect(func(): _on_char_hover(side))
+	panel.mouse_exited.connect(func(): _on_char_hover_end())
 	main.add_child(panel)
 	_char_panels[side] = panel
 
@@ -317,6 +320,28 @@ func on_cell_hover(side: int, r: int, c: int) -> void:
 	main._cell_tooltip_panel.size = Vector2(265, 0)
 
 func on_cell_hover_end() -> void:
+	main._cell_tooltip_panel.visible = false
+
+func _on_char_hover(side: int) -> void:
+	var text: String = ""
+	if side == 0:
+		var cls: Dictionary = CardDB.CLASSES.get(GameSession.class_id, {})
+		text = "クラス: %s\n" % cls.get("display", "（未選択）")
+		var _edb = load("res://scripts/EffectDB.gd")
+		for skill in cls.get("skills", []):
+			var eid: String = skill.get("effect_id", "")
+			var edef: Dictionary = _edb.EFFECTS.get(eid, {})
+			text += "  [%s] %s\n" % [skill.get("trigger", ""), edef.get("display", eid)]
+		text += "\n装備: なし\n消費アイテム: なし"
+	else:
+		text = "敵"
+	main._cell_tooltip_label.text = text
+	var panel: Panel = _char_panels[side]
+	if panel != null:
+		main._cell_tooltip_panel.position = Vector2(panel.position.x + 90, panel.position.y)
+	main._cell_tooltip_panel.visible = true
+
+func _on_char_hover_end() -> void:
 	main._cell_tooltip_panel.visible = false
 
 func _is_important_event(text: String) -> bool:
