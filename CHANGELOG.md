@@ -2,6 +2,19 @@
 
 ## [Unreleased]
 
+### refactor: GameUI.gd R10分割（1136行→3ファイル） — 2026-04-06
+
+#### 変更ファイル
+- `scripts/GameUI.gd` — 551行（メイン・盤面描画・デリゲート）
+- `scripts/GameUIQueue.gd` — 292行（新規: キュー+デッキ情報UI）
+- `scripts/GameUIOverlay.gd` — 350行（新規: キャラパネル・装備・ホバー・ダメージフロート）
+
+#### 変更内容
+- ロジック変更なし、ファイル分割のみ
+- Main.gdへの外部インターフェース（spawn_damage_float等）はGameUI.gdのデリゲートで維持
+- GameUIQueue/Overlay は `extends RefCounted`、setup時にmain/_EDB参照を注入
+- GameUI.gd build_ui()内で `_overlay.build()` / `_queue.build()` を呼ぶ構成
+
 ### feat: バトル画面UI改善 — 2026-04-06
 
 #### 変更ファイル
