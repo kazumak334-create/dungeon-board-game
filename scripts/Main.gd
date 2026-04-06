@@ -223,7 +223,6 @@ func _apply_environment() -> void:
 	all_cells.shuffle()
 
 	var placed = 0
-	var _EDB = load("res://scripts/EffectDB.gd")
 	for cell in all_cells:
 		if placed >= count:
 			break
@@ -231,7 +230,7 @@ func _apply_environment() -> void:
 		var r = cell[1]
 		var c = cell[2]
 		if board_manager.board_effects[s][r][c] == null:
-			board_manager.tile_system.set_tile_effect(s, r, c, tile_id, _EDB)
+			board_manager.tile_system.set_tile_effect(s, r, c, tile_id)
 			placed += 1
 
 	# 環境変化（上書き）の適用
@@ -242,7 +241,7 @@ func _apply_environment() -> void:
 			for c in range(3):
 				if board_manager.board_effects[side][r][c] != null:
 					board_manager.tile_system.clear_tile_effect(side, r, c)
-				board_manager.tile_system.set_tile_effect(side, r, c, override_tile, _EDB)
+				board_manager.tile_system.set_tile_effect(side, r, c, override_tile)
 
 	_add_log("[環境] %s: %s ×%d" % [env_def.get("display", env_id), tile_id, placed])
 

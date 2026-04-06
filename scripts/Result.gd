@@ -1,20 +1,38 @@
 # Result.gd
-# バトル結果画面（スタブ）: 勝敗表示 + 仮報酬 + 遷移
+# バトル結果画面: 勝敗表示 + 報酬 + カード3択（StS方式）
 extends Control
+
+const UIF = preload("res://scripts/UIFactory.gd")
 
 var _reward_gold: int = 0
 var _reward_sp: int = 0
 var _reward_material: Dictionary = {}
+var _card_choices: Array = []  # 3択カードの{name, data, is_unit}
+var _card_selected: bool = false
+
+# レアリティ色
+const RARITY_COLORS = {
+	"common": Color(0.7, 0.7, 0.7),
+	"uncommon": Color(0.3, 0.8, 0.3),
+	"rare": Color(0.3, 0.5, 0.9),
+	"epic": Color(0.7, 0.3, 0.9),
+	"legend": Color(0.9, 0.7, 0.2),
+	"god": Color(0.9, 0.3, 0.3),
+}
+
+# レアリティ重み（run_depthで変化）
+const RARITY_WEIGHTS_EARLY = {"common": 60, "uncommon": 25, "rare": 10, "epic": 4, "legend": 1, "god": 0}
+const RARITY_WEIGHTS_MID = {"common": 30, "uncommon": 35, "rare": 20, "epic": 10, "legend": 4, "god": 1}
+const RARITY_WEIGHTS_LATE = {"common": 10, "uncommon": 25, "rare": 30, "epic": 20, "legend": 10, "god": 5}
 
 func _ready() -> void:
 	_cleanup_battle_cards()
 	_generate_rewards()
+	if GameSession.last_result.get("win", false):
+		_generate_card_choices()
 	_build_ui()
 
 func _cleanup_battle_cards() -> void:
-	# persistence="battle"のカードをselected_deckから除去
-	# バトル中追加カードはselected_deckに反映されていないので、
-	# selected_deck内のカード定義からpersistenceを判定する
 	var new_deck: Array = []
 	var new_config: Array = []
 	for i in range(GameSession.selected_deck.size()):
@@ -44,25 +62,63 @@ func _generate_rewards() -> void:
 	var is_win = GameSession.last_result.get("win", false)
 	if not is_win:
 		return
-	# 仮報酬（将来: 敵に応じたアルゴリズム）
 	_reward_gold = 100
 	_reward_sp = 1
 	if CardDB.MATERIALS.size() > 0:
 		var pool = CardDB.MATERIALS.duplicate()
 		pool.shuffle()
 		_reward_material = pool[0]
-	# GameSessionに反映
 	GameSession.gold += _reward_gold
 	GameSession.skill_points += _reward_sp
 	if _reward_material.size() > 0:
 		GameSession.materials.append(_reward_material)
 
+func _generate_card_choices() -> void:
+	# run_depthに応じた重みテーブル選択
+	var weights: Dictionary
+	if GameSession.run_depth <= 3:
+		weights = RARITY_WEIGHTS_EARLY
+	elif GameSession.run_depth <= 7:
+		weights = RARITY_WEIGHTS_MID
+	else:
+		weights = RARITY_WEIGHTS_LATE
+
+	# 全ユニット+呪文からレアリティ付きプールを構築
+	var pool: Array = []
+	for name in CardDB.UNITS:
+		var d = CardDB.UNITS[name]
+		var rarity = d.get("rarity", "common")
+		pool.append({"name": name, "data": d, "is_unit": true, "rarity": rarity})
+	for name in CardDB.SPELLS:
+		var d = CardDB.SPELLS[name]
+		var rarity = d.get("rarity", "common")
+		pool.append({"name": name, "data": d, "is_unit": false, "rarity": rarity})
+
+	# 重み付きランダム選択で3枚
+	_card_choices = []
+	var used_names: Array = []
+	for _i in range(3):
+		var card = _weighted_pick(pool, weights, used_names)
+		if card.size() > 0:
+			_card_choices.append(card)
+			used_names.append(card["name"])
+
+func _weighted_pick(pool: Array, weights: Dictionary, exclude: Array) -> Dictionary:
+	# 重み付きプールを構築
+	var weighted: Array = []
+	for card in pool:
+		if card["name"] in exclude:
+			continue
+		var w = weights.get(card["rarity"], 0)
+		if w > 0:
+			for _j in range(w):
+				weighted.append(card)
+	if weighted.size() == 0:
+		return {}
+	return weighted[randi() % weighted.size()]
+
 func _build_ui() -> void:
-	# 背景
-	var bg = ColorRect.new()
-	bg.color = Color(0.08, 0.08, 0.12)
-	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
-	add_child(bg)
+	UIF.add_bg(self)
 
 	var result = GameSession.last_result
 	var is_win = result.get("win", false)
@@ -71,98 +127,203 @@ func _build_ui() -> void:
 	var result_label = Label.new()
 	result_label.text = "VICTORY" if is_win else "DEFEAT"
 	result_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	result_label.position = Vector2(0, 80)
-	result_label.size = Vector2(1280, 60)
-	result_label.add_theme_font_size_override("font_size", 48)
+	result_label.position = Vector2(0, 30)
+	result_label.size = Vector2(1280, 50)
+	result_label.add_theme_font_size_override("font_size", 42)
 	result_label.add_theme_color_override("font_color", Color(0.9, 0.85, 0.3) if is_win else Color(0.8, 0.2, 0.2))
 	add_child(result_label)
 
-	# バトル情報
-	var info_panel = PanelContainer.new()
-	info_panel.position = Vector2(390, 180)
-	info_panel.size = Vector2(500, 150)
+	# 報酬サマリ（1行）
+	if is_win:
+		var reward_text = "%dG  SP+%d  素材:%s" % [_reward_gold, _reward_sp, _reward_material.get("display", "なし")]
+		var reward_label = Label.new()
+		reward_label.text = reward_text
+		reward_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		reward_label.position = Vector2(0, 80)
+		reward_label.size = Vector2(1280, 25)
+		reward_label.add_theme_font_size_override("font_size", 14)
+		reward_label.add_theme_color_override("font_color", Color(0.7, 0.7, 0.5))
+		add_child(reward_label)
+
+	# カード3択（勝利時のみ）
+	if is_win and _card_choices.size() > 0:
+		var pick_label = Label.new()
+		pick_label.text = "── カードを1枚選べ ──"
+		pick_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		pick_label.position = Vector2(0, 115)
+		pick_label.size = Vector2(1280, 25)
+		pick_label.add_theme_font_size_override("font_size", 16)
+		pick_label.add_theme_color_override("font_color", Color(0.9, 0.85, 0.6))
+		add_child(pick_label)
+
+		var card_container = HBoxContainer.new()
+		card_container.position = Vector2(140, 150)
+		card_container.size = Vector2(1000, 350)
+		card_container.add_theme_constant_override("separation", 30)
+		add_child(card_container)
+
+		for i in range(_card_choices.size()):
+			var card = _card_choices[i]
+			var panel = _create_card_panel(i, card)
+			card_container.add_child(panel)
+
+		# スキップボタン
+		var skip_btn = Button.new()
+		skip_btn.text = "スキップ（カードを取らない）"
+		skip_btn.position = Vector2(440, 520)
+		skip_btn.size = Vector2(400, 40)
+		skip_btn.add_theme_font_size_override("font_size", 14)
+		skip_btn.pressed.connect(func(): _on_continue())
+		add_child(skip_btn)
+	else:
+		# 敗北時 or カード選択なし
+		_build_defeat_ui(is_win)
+
+func _create_card_panel(idx: int, card: Dictionary) -> PanelContainer:
+	var panel = PanelContainer.new()
+	panel.custom_minimum_size = Vector2(290, 350)
+
+	var rarity = card.get("rarity", "common")
+	var rarity_color = RARITY_COLORS.get(rarity, Color(0.7, 0.7, 0.7))
+
 	var style = StyleBoxFlat.new()
 	style.bg_color = Color(0.1, 0.1, 0.15)
-	style.set_corner_radius_all(6)
-	info_panel.add_theme_stylebox_override("panel", style)
-	add_child(info_panel)
+	style.set_corner_radius_all(10)
+	style.set_border_width_all(2)
+	style.border_color = rarity_color
+	panel.add_theme_stylebox_override("panel", style)
 
-	var info_vbox = VBoxContainer.new()
-	info_vbox.position = Vector2(400, 195)
-	info_vbox.size = Vector2(480, 130)
-	info_vbox.add_theme_constant_override("separation", 5)
-	add_child(info_vbox)
+	var vbox = VBoxContainer.new()
+	vbox.add_theme_constant_override("separation", 8)
 
-	var hp_label = Label.new()
-	hp_label.text = "残りHP: %d" % result.get("player_hp_remaining", 0)
-	hp_label.add_theme_font_size_override("font_size", 16)
-	hp_label.add_theme_color_override("font_color", Color(0.8, 0.8, 0.8))
-	info_vbox.add_child(hp_label)
+	# レアリティ
+	var rarity_label = Label.new()
+	rarity_label.text = rarity.to_upper()
+	rarity_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	rarity_label.add_theme_font_size_override("font_size", 11)
+	rarity_label.add_theme_color_override("font_color", rarity_color)
+	vbox.add_child(rarity_label)
 
-	var turns_label = Label.new()
-	turns_label.text = "ターン数: %d" % result.get("turns", 0)
-	turns_label.add_theme_font_size_override("font_size", 16)
-	turns_label.add_theme_color_override("font_color", Color(0.8, 0.8, 0.8))
-	info_vbox.add_child(turns_label)
+	# カード名
+	var name_label = Label.new()
+	name_label.text = card["name"]
+	name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	name_label.add_theme_font_size_override("font_size", 20)
+	name_label.add_theme_color_override("font_color", Color(0.95, 0.95, 0.95))
+	vbox.add_child(name_label)
 
-	# 仮報酬
-	var reward_header = Label.new()
-	reward_header.text = "── 報酬 ──"
-	reward_header.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	reward_header.position = Vector2(0, 360)
-	reward_header.size = Vector2(1280, 25)
-	reward_header.add_theme_font_size_override("font_size", 16)
-	reward_header.add_theme_color_override("font_color", Color(0.6, 0.6, 0.7))
-	add_child(reward_header)
+	# ステータス
+	var data = card["data"]
+	if card["is_unit"]:
+		var stats = "コスト:%d  HP:%d  ATK:%d  SPD:%.1fs" % [
+			data.get("cost", 0), data.get("hp", 0), data.get("atk", 0), data.get("interval", 0)]
+		var stats_label = Label.new()
+		stats_label.text = stats
+		stats_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		stats_label.add_theme_font_size_override("font_size", 12)
+		stats_label.add_theme_color_override("font_color", Color(0.6, 0.7, 0.8))
+		vbox.add_child(stats_label)
 
-	var reward_vbox = VBoxContainer.new()
-	reward_vbox.position = Vector2(490, 395)
-	reward_vbox.size = Vector2(300, 100)
-	reward_vbox.add_theme_constant_override("separation", 5)
-	add_child(reward_vbox)
-
-	if is_win:
-		var gold_label = Label.new()
-		gold_label.text = "通貨: %dG" % _reward_gold
-		gold_label.add_theme_font_size_override("font_size", 15)
-		gold_label.add_theme_color_override("font_color", Color(0.9, 0.8, 0.3))
-		reward_vbox.add_child(gold_label)
-
-		var sp_label = Label.new()
-		sp_label.text = "スキルポイント: %d" % _reward_sp
-		sp_label.add_theme_font_size_override("font_size", 15)
-		sp_label.add_theme_color_override("font_color", Color(0.5, 0.8, 0.9))
-		reward_vbox.add_child(sp_label)
-
-		var mat_name = _reward_material.get("display", "なし")
-		var mat_label = Label.new()
-		mat_label.text = "素材: %s" % mat_name
-		mat_label.add_theme_font_size_override("font_size", 15)
-		mat_label.add_theme_color_override("font_color", Color(0.7, 0.85, 0.5))
-		reward_vbox.add_child(mat_label)
+		var race_label = Label.new()
+		race_label.text = "種族: %s" % data.get("race", "")
+		race_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		race_label.add_theme_font_size_override("font_size", 12)
+		race_label.add_theme_color_override("font_color", Color(0.6, 0.6, 0.5))
+		vbox.add_child(race_label)
 	else:
-		var no_reward = Label.new()
-		no_reward.text = "報酬なし"
-		no_reward.add_theme_font_size_override("font_size", 15)
-		no_reward.add_theme_color_override("font_color", Color(0.5, 0.5, 0.5))
-		reward_vbox.add_child(no_reward)
+		var cost_label = Label.new()
+		cost_label.text = "コスト:%d  [呪文]" % data.get("cost", 0)
+		cost_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		cost_label.add_theme_font_size_override("font_size", 12)
+		cost_label.add_theme_color_override("font_color", Color(0.5, 0.6, 0.8))
+		vbox.add_child(cost_label)
 
-	# 続けるボタン（勝利時）
+		var effect_label = Label.new()
+		effect_label.text = data.get("effect", "")
+		effect_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		effect_label.autowrap_mode = TextServer.AUTOWRAP_WORD
+		effect_label.add_theme_font_size_override("font_size", 11)
+		effect_label.add_theme_color_override("font_color", Color(0.7, 0.7, 0.7))
+		vbox.add_child(effect_label)
+
+	# スキル表示
+	var _edb = load("res://scripts/EffectDB.gd")
+	var skills = data.get("skills", [])
+	if skills.size() > 0:
+		var skill_header = Label.new()
+		skill_header.text = "── スキル ──"
+		skill_header.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		skill_header.add_theme_font_size_override("font_size", 10)
+		skill_header.add_theme_color_override("font_color", Color(0.4, 0.4, 0.5))
+		vbox.add_child(skill_header)
+
+		var shown = 0
+		for skill in skills:
+			if shown >= 3:
+				break
+			var eid = skill.get("effect_id", "")
+			var edef = _edb.EFFECTS.get(eid, {})
+			var sl = Label.new()
+			sl.text = "[%s] %s" % [skill.get("trigger", ""), edef.get("display", eid)]
+			sl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+			sl.add_theme_font_size_override("font_size", 10)
+			sl.add_theme_color_override("font_color", Color(0.5, 0.7, 0.6))
+			vbox.add_child(sl)
+			shown += 1
+
+	# 選択ボタン
+	var select_btn = Button.new()
+	select_btn.text = "選択"
+	select_btn.add_theme_font_size_override("font_size", 16)
+	var card_idx = idx
+	select_btn.pressed.connect(func(): _on_card_selected(card_idx))
+	vbox.add_child(select_btn)
+
+	panel.add_child(vbox)
+	return panel
+
+func _on_card_selected(idx: int) -> void:
+	if _card_selected:
+		return
+	_card_selected = true
+
+	var card = _card_choices[idx]
+	var card_name = card["name"]
+	var data = card["data"]
+
+	# デッキに追加
+	var col = data.get("col", 1) if card["is_unit"] else -1
+	GameSession.selected_deck.append({"name": card_name, "col": col})
+
+	# placement_config生成
+	var PL = load("res://scripts/PlacementLogic.gd")
+	var new_config = PL.generate_default_config([{"name": card_name, "col": col}])
+	if new_config.size() > 0:
+		GameSession.placement_config.append(new_config[0])
+
+	GameSession.run_depth += 1
+	print("[Result] カード選択: %s (run_depth: %d)" % [card_name, GameSession.run_depth])
+	_on_continue()
+
+func _on_continue() -> void:
+	var next_scene = SceneManager.BOSS_REWARD if GameSession.battle_type == "boss" else SceneManager.DECK_PREP
+	SceneManager.go_to(next_scene)
+
+func _build_defeat_ui(is_win: bool) -> void:
 	if is_win:
+		# 勝利だがカード選択がない場合
 		var continue_btn = Button.new()
 		continue_btn.text = "続ける"
-		continue_btn.position = Vector2(515, 540)
+		continue_btn.position = Vector2(515, 400)
 		continue_btn.size = Vector2(250, 55)
 		continue_btn.add_theme_font_size_override("font_size", 22)
-		# ボス戦ならボス報酬画面へ、通常はデッキ準備へ
-		var next_scene = SceneManager.BOSS_REWARD if GameSession.battle_type == "boss" else SceneManager.DECK_PREP
-		continue_btn.pressed.connect(func(): SceneManager.go_to(next_scene))
+		continue_btn.pressed.connect(func(): _on_continue())
 		add_child(continue_btn)
 
 	# タイトルへボタン
 	var title_btn = Button.new()
 	title_btn.text = "タイトルへ"
-	title_btn.position = Vector2(515, 610)
+	title_btn.position = Vector2(515, 580)
 	title_btn.size = Vector2(250, 45)
 	title_btn.add_theme_font_size_override("font_size", 18)
 	title_btn.pressed.connect(func():
