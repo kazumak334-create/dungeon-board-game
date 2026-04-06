@@ -2,6 +2,28 @@
 
 ## [Unreleased]
 
+### CheckAgent — 2026-04-06: 確認完了・修正なし
+
+#### 対象ファイル
+- scripts/DeckPrep.gd（新規）
+- scripts/Result.gd（新規）
+- scripts/SceneManager.gd
+- scripts/GameSession.gd
+- scripts/MaterialSelect.gd
+- scripts/Main.gd
+- scenes/DeckPrep.tscn（新規）
+- scenes/Result.tscn（新規）
+
+#### 検証結果
+- GDScript構文・インデント: 全ファイル問題なし
+- SceneManagerパス名とtscnの一致: deck_prep/result/battle 全て一致
+- GameSession.reset(): 全9フィールド（materials/gold/skill_points含む）リセット確認
+- Autoload参照（GameSession/SceneManager）: 全画面で正しく参照
+- nullアクセス危険箇所: なし
+- _transition_to_result_timer: create_timer(process_always=true)のため game_over 後も正常動作、二重呼び出しなし
+- tscnスクリプトパス: DeckPrep.tscn/Result.tscn 共に正しいパスを参照
+- MaterialSelect 遷移先: battle→deck_prep 変更済み確認
+
 ### Fixed — 2026-04-06: CheckAgent: Title.gd / MaterialSelect.gd EffectDB参照キー修正
 
 #### scripts/Title.gd
