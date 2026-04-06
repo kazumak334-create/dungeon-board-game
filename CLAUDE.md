@@ -184,10 +184,13 @@ row2(下段)  [2,0]      [2,1]      [2,2]
 
 ### Mana & Deck Loop (DeckManager)
 
-- Mana regenerates at 1.0/s up to max 10
+- マナ上限は3からスタート（全クラス共通）。マナ吸収カード発動で+1成長
+- マナリジェネは1.0/s（全クラス共通）
+- コスト > マナ上限のカード → スキップ（発動なし、マナ消費なし、捨て札へ）
 - Every `check_interval` seconds (default 1.0s), if `mana >= deck[0].cost` the card is played and moved to `discard`
 - When `deck` is empty, `discard` is shuffled back into `deck` (infinite cycling)
 - `get_next_card()` peeks `deck[0]` without consuming
+- マナ吸収カード（旧シャッフル）: コスト0、発動時にマナ上限+1+デッキリシャッフル+自身を末尾に再挿入
 
 ### Enemy AI (EnemyAI)
 
@@ -333,7 +336,7 @@ row2(下段)  [2,0]      [2,1]      [2,2]
 **プレイヤークラスシステム:**
 - 3クラス: 錬金術師(スライム)/バーサーカー(獣)/死霊術師(アンデッド)
 - PlayerData.gd: class_id, initial_mana, mana_max, mana_regen, skills, equipment
-- クラスパラメータ: 初期マナ統一(3)、マナ上限はクラスで異なる(8/10/12)
+- クラスパラメータ: マナ上限3（全クラス共通、マナ吸収で成長）、リジェネ1.0/s（共通）
 - クラススキル: パッシブのみ（skills配列で定義、trigger/target/effect_id）
 - 装備: 将来実装（枠のみ）
 - スキルツリー: 将来実装（枠のみ）

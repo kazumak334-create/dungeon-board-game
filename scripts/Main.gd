@@ -126,10 +126,10 @@ func _ready() -> void:
 	player_data.mana_max = class_def["mana_max"]
 	player_data.mana_regen = class_def["mana_regen"]
 	player_data.skills = class_def["skills"].duplicate(true)
-	# DeckManager に反映
-	deck_manager.mana = player_data.initial_mana
-	deck_manager.MANA_MAX = player_data.mana_max
-	deck_manager.MANA_REGEN = player_data.mana_regen
+	# DeckManager に反映（マナ上限3固定、リジェネ1.0/s固定）
+	deck_manager.mana = 0.0
+	deck_manager.MANA_MAX = 3.0
+	deck_manager.MANA_REGEN = 1.0
 	# BoardManager に設定
 	board_manager.player_data = player_data
 	# 装備効果の適用（初期装備なし）
@@ -296,6 +296,8 @@ func _dev_update_drag() -> void:
 
 # ---- ゲームループ ----
 func _process(delta: float) -> void:
+	# ダメージフロート更新
+	game_ui.update_damage_floats(delta)
 	# ドラッグ中のラベル追従
 	if dev_mode:
 		_dev_update_drag()
@@ -377,6 +379,10 @@ func _on_unit_died(side: int, row: int, col: int) -> void:
 func _on_unit_damaged(side: int, row: int, col: int) -> void:
 	if side >= 0 and row >= 0 and col >= 0:
 		_cell_dirty[side][row][col] = true
+		# ダメージフロート（ダメージ量はunitのHP差分から取れないのでシグナル拡張が必要。仮で表示）
+		var unit = board_manager.get_unit(side, row, col)
+		if unit != null:
+			game_ui.spawn_damage_float(side, row, col, 0, false)  # 仮：量は後で対応
 
 func _on_unit_revived(side: int, row: int, col: int) -> void:
 	var unit = board_manager.get_unit(side, row, col)
@@ -389,6 +395,7 @@ func _on_unit_revived(side: int, row: int, col: int) -> void:
 func _on_base_damaged(side: int, amount: int) -> void:
 	var side_name: String = "自陣" if side == 0 else "敵陣"
 	_add_log("! %s本体 -%d (残:%d)" % [side_name, amount, base_hp[side]])
+	game_ui.spawn_base_damage_float(side, amount)
 
 func _on_skill_triggered(side: int, row: int, col: int, skill_name: String) -> void:
 	var unit = board_manager.get_unit(side, row, col)

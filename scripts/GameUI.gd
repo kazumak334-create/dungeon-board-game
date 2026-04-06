@@ -4,6 +4,10 @@ extends RefCounted
 
 var main: Node = null
 var _EDB = null  # EffectDBキャッシュ
+var _char_hp_bars: Array = [null, null]    # [side] -> ColorRect (HPバー)
+var _char_hp_labels: Array = [null, null]  # [side] -> Label (HP数値)
+var _char_panels: Array = [null, null]     # [side] -> Panel
+var _damage_floats: Array = []             # [{label, timer, velocity}]
 
 func setup(p_main: Node) -> void:
 	main = p_main
@@ -104,18 +108,24 @@ func build_ui() -> void:
 				main.add_child(lbl)
 				main.cell_labels[side][r].append(lbl)
 
-	# ---- 本体HP ----
+	# ---- プレイヤー/敵キャラ立絵+HPバー ----
+	_build_character_panel(0)  # プレイヤー側
+	_build_character_panel(1)  # 敵側
+
+	# 旧HP表示（互換）
 	var base_y: int = main.BOARD_TOP + 3 * main.CELL_H + 12
 	main.player_base_label = Label.new()
 	main.player_base_label.position = Vector2(_cell_x(0, 0), base_y)
 	main.player_base_label.add_theme_font_size_override("font_size", 14)
 	main.player_base_label.modulate = Color(0.4, 0.9, 0.4)
+	main.player_base_label.visible = false  # 立絵+HPバーに移行
 	main.add_child(main.player_base_label)
 
 	main.enemy_base_label = Label.new()
 	main.enemy_base_label.position = Vector2(_cell_x(1, 0), base_y)
 	main.enemy_base_label.add_theme_font_size_override("font_size", 14)
 	main.enemy_base_label.modulate = Color(1.0, 0.45, 0.45)
+	main.enemy_base_label.visible = false
 	main.add_child(main.enemy_base_label)
 
 	# 盤面セルホバー用ツールチップ
@@ -382,6 +392,125 @@ func _build_next_card_panel() -> void:
 	main.enemy_deck_count_label.modulate = Color(1.0, 0.5, 0.5)
 	main.add_child(main.enemy_deck_count_label)
 
+# ---- キャラクターパネル ----
+
+func _build_character_panel(side: int) -> void:
+	var panel_w = 80
+	var panel_h = 120
+	var panel_x: int
+	if side == 0:
+		panel_x = _cell_x(0, 0) - panel_w - 15  # プレイヤー側：盤面左端のさらに左
+	else:
+		panel_x = _cell_x(1, 2) + main.CELL_W + 15  # 敵側：盤面右端のさらに右
+	var panel_y = main.BOARD_TOP + 1 * main.CELL_H - 15  # 中段の高さ
+
+	# パネル背景
+	var panel = Panel.new()
+	panel.position = Vector2(panel_x, panel_y)
+	panel.size = Vector2(panel_w, panel_h)
+	var style = StyleBoxFlat.new()
+	style.bg_color = Color(0.12, 0.12, 0.18)
+	style.set_corner_radius_all(8)
+	style.set_border_width_all(2)
+	style.border_color = Color(0.3, 0.5, 0.3) if side == 0 else Color(0.5, 0.3, 0.3)
+	panel.add_theme_stylebox_override("panel", style)
+	main.add_child(panel)
+	_char_panels[side] = panel
+
+	# キャラ名
+	var name_label = Label.new()
+	name_label.text = "プレイヤー" if side == 0 else "敵"
+	name_label.position = Vector2(panel_x + 5, panel_y + 5)
+	name_label.size = Vector2(panel_w - 10, 18)
+	name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	name_label.add_theme_font_size_override("font_size", 11)
+	name_label.add_theme_color_override("font_color", Color(0.8, 0.85, 0.7) if side == 0 else Color(0.85, 0.7, 0.7))
+	main.add_child(name_label)
+
+	# 立絵プレースホルダ（将来テクスチャに差し替え）
+	var portrait = ColorRect.new()
+	portrait.position = Vector2(panel_x + 15, panel_y + 25)
+	portrait.size = Vector2(50, 50)
+	portrait.color = Color(0.25, 0.3, 0.2) if side == 0 else Color(0.3, 0.2, 0.2)
+	main.add_child(portrait)
+
+	var portrait_label = Label.new()
+	portrait_label.text = "P" if side == 0 else "E"
+	portrait_label.position = Vector2(panel_x + 30, panel_y + 38)
+	portrait_label.add_theme_font_size_override("font_size", 20)
+	portrait_label.add_theme_color_override("font_color", Color(0.6, 0.8, 0.5) if side == 0 else Color(0.8, 0.5, 0.5))
+	main.add_child(portrait_label)
+
+	# HPバー背景
+	var hp_bg = ColorRect.new()
+	hp_bg.position = Vector2(panel_x + 5, panel_y + 82)
+	hp_bg.size = Vector2(70, 10)
+	hp_bg.color = Color(0.2, 0.2, 0.2)
+	main.add_child(hp_bg)
+
+	# HPバー
+	var hp_bar = ColorRect.new()
+	hp_bar.position = Vector2(panel_x + 5, panel_y + 82)
+	hp_bar.size = Vector2(70, 10)
+	hp_bar.color = Color(0.3, 0.9, 0.4) if side == 0 else Color(0.9, 0.3, 0.3)
+	main.add_child(hp_bar)
+	_char_hp_bars[side] = hp_bar
+
+	# HP数値
+	var hp_label = Label.new()
+	hp_label.position = Vector2(panel_x + 5, panel_y + 95)
+	hp_label.size = Vector2(70, 18)
+	hp_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	hp_label.add_theme_font_size_override("font_size", 12)
+	hp_label.add_theme_color_override("font_color", Color(0.9, 0.9, 0.9))
+	hp_label.text = "%d" % main.base_hp[side]
+	main.add_child(hp_label)
+	_char_hp_labels[side] = hp_label
+
+# ---- ダメージフロート ----
+
+func spawn_damage_float(side: int, row: int, col: int, amount: int, is_heal: bool = false) -> void:
+	var x = _cell_x(side, col) + main.CELL_W / 2 - 15
+	var y = main.BOARD_TOP + row * main.CELL_H + 10
+	var label = Label.new()
+	label.text = "+%d" % amount if is_heal else "-%d" % amount
+	label.position = Vector2(x, y)
+	label.add_theme_font_size_override("font_size", 18)
+	label.add_theme_color_override("font_color", Color(0.3, 0.9, 0.3) if is_heal else Color(0.9, 0.3, 0.2))
+	label.z_index = 50
+	main.add_child(label)
+	_damage_floats.append({"label": label, "timer": 1.0, "y_start": y})
+
+func spawn_base_damage_float(side: int, amount: int) -> void:
+	var panel = _char_panels[side]
+	if panel == null:
+		return
+	var x = panel.position.x + 20
+	var y = panel.position.y + 40
+	var label = Label.new()
+	label.text = "-%d" % amount
+	label.position = Vector2(x, y)
+	label.add_theme_font_size_override("font_size", 22)
+	label.add_theme_color_override("font_color", Color(1.0, 0.2, 0.2))
+	label.z_index = 50
+	main.add_child(label)
+	_damage_floats.append({"label": label, "timer": 1.2, "y_start": y})
+
+func update_damage_floats(delta: float) -> void:
+	var to_remove: Array = []
+	for i in range(_damage_floats.size()):
+		var d = _damage_floats[i]
+		d["timer"] -= delta
+		if d["timer"] <= 0:
+			d["label"].queue_free()
+			to_remove.append(i)
+		else:
+			# 上に浮かぶ + フェードアウト
+			d["label"].position.y = d["y_start"] - (1.0 - d["timer"]) * 30.0
+			d["label"].modulate.a = d["timer"]
+	for i in range(to_remove.size() - 1, -1, -1):
+		_damage_floats.remove_at(to_remove[i])
+
 # ---- セルのX座標計算 ----
 func _cell_x(side: int, col: int) -> int:
 	if side == 0:
@@ -488,6 +617,17 @@ func render_cell(side: int, r: int, c: int) -> void:
 func update_base_hp() -> void:
 	main.player_base_label.text = "自陣 本体HP: %d / 30" % main.base_hp[0]
 	main.enemy_base_label.text  = "敵陣 本体HP: %d / 30" % main.base_hp[1]
+	# HPバー更新
+	for side in range(2):
+		if _char_hp_bars[side] != null:
+			var ratio = float(main.base_hp[side]) / 30.0
+			_char_hp_bars[side].size.x = int(70.0 * max(0.0, ratio))
+			var color = Color(0.3, 0.9, 0.4) if side == 0 else Color(0.9, 0.3, 0.3)
+			if ratio < 0.3:
+				color = Color(0.9, 0.2, 0.2)
+			_char_hp_bars[side].color = color
+		if _char_hp_labels[side] != null:
+			_char_hp_labels[side].text = "%d" % main.base_hp[side]
 
 func _update_mana() -> void:
 	var filled: int = int(main.deck_manager.mana)

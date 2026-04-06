@@ -163,7 +163,7 @@
 				"盤面強化"
 			],
 			"initial_mana": 3,
-			"mana_max": 12,
+			"mana_max": 3,
 			"mana_regen": 1,
 			"sfx": "",
 			"skills": [
@@ -202,7 +202,7 @@
 				"盤面強化"
 			],
 			"initial_mana": 3,
-			"mana_max": 10,
+			"mana_max": 3,
 			"mana_regen": 1,
 			"sfx": "",
 			"skills": [
@@ -242,7 +242,7 @@
 				"弱体の呪詛"
 			],
 			"initial_mana": 3,
-			"mana_max": 8,
+			"mana_max": 3,
 			"mana_regen": 1,
 			"sfx": "",
 			"skills": [
@@ -1430,11 +1430,11 @@
 		}
 	],
 	"system_spells": {
-		"シャッフル": {
+		"マナ吸収": {
 			"anim": "",
 			"rarity": "common",
 			"cost": 0,
-			"effect": "山札をシャッフル＋自身を山札最下部に追加",
+			"effect": "マナ上限+1＋山札をシャッフル＋自身を山札最下部に追加",
 			"is_consumable": true,
 			"sfx": "",
 			"skills": [

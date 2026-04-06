@@ -2,9 +2,9 @@
 class_name DeckManager
 extends Node
 
-var mana: float = 3.0
-var MANA_MAX: float = 10.0    # PlayerDataから設定可能
-var MANA_REGEN: float = 1.0   # PlayerDataから設定可能
+var mana: float = 0.0
+var MANA_MAX: float = 3.0     # 初期マナ上限（マナ吸収で成長）
+var MANA_REGEN: float = 1.0   # 全クラス共通
 
 var deck: Array = []
 var discard: Array = []
@@ -102,16 +102,16 @@ func _build_default_deck() -> void:
 func ensure_shuffle_card() -> void:
 	# 既存のシャッフルカードを除去（位置リセット）
 	for i in range(deck.size() - 1, -1, -1):
-		if deck[i].unit_name == "シャッフル":
+		if deck[i].unit_name == "マナ吸収":
 			deck.remove_at(i)
 	# 最下部に新規追加
-	if not CardDB.SYSTEM_SPELLS.has("シャッフル"):
+	if not CardDB.SYSTEM_SPELLS.has("マナ吸収"):
 		return
-	var sd = CardDB.SYSTEM_SPELLS["シャッフル"]
+	var sd = CardDB.SYSTEM_SPELLS["マナ吸収"]
 	var card = _UnitDataScript.new()
-	card.unit_name = "シャッフル"
+	card.unit_name = "マナ吸収"
 	card.card_type = "spell"
-	card.spell_id = "シャッフル"
+	card.spell_id = "マナ吸収"
 	card.cost = 0
 	card.is_consumable = true
 	card.spell_target = sd["target"]
@@ -185,6 +185,12 @@ func process_deck(delta: float, board: Node) -> void:
 					var amount = sk.get("params", {}).get("amount", edef.get("amount", -1))
 					effective_cost = max(0, effective_cost + amount)
 					print("[DeckManager] 錬金術師コスト軽減: %s %d→%d" % [top.unit_name, top.cost, effective_cost])
+	# マナ上限超過チェック：コスト > マナ上限 → スキップ（捨て札へ）
+	if top.cost > int(MANA_MAX) and top.cost != -1:
+		deck.remove_at(0)
+		discard.append(top)
+		print("[DeckManager] スキップ: %s (コスト%d > マナ上限%d)" % [top.unit_name, top.cost, int(MANA_MAX)])
+		return
 	if mana < effective_cost:
 		return
 	mana -= effective_cost

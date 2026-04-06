@@ -45,15 +45,15 @@ func _build_enemy_deck() -> void:
 
 func ensure_shuffle_card() -> void:
 	for i in range(enemy_deck.size() - 1, -1, -1):
-		if enemy_deck[i].unit_name == "シャッフル":
+		if enemy_deck[i].unit_name == "マナ吸収":
 			enemy_deck.remove_at(i)
-	if not CardDB.SYSTEM_SPELLS.has("シャッフル"):
+	if not CardDB.SYSTEM_SPELLS.has("マナ吸収"):
 		return
-	var sd = CardDB.SYSTEM_SPELLS["シャッフル"]
+	var sd = CardDB.SYSTEM_SPELLS["マナ吸収"]
 	var card = _UnitDataScript.new()
-	card.unit_name = "シャッフル"
+	card.unit_name = "マナ吸収"
 	card.card_type = "spell"
-	card.spell_id = "シャッフル"
+	card.spell_id = "マナ吸収"
 	card.cost = 0
 	card.is_consumable = true
 	card.spell_target = sd["target"]
