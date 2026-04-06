@@ -485,15 +485,15 @@ func update_base_hp() -> void:
 	main.enemy_base_label.text  = "敵陣 本体HP: %d / 30" % main.base_hp[1]
 	# HPバー更新
 	for side in range(2):
-		if _char_hp_bars[side] != null:
+		if _overlay._char_hp_bars[side] != null:
 			var ratio = float(main.base_hp[side]) / 30.0
-			_char_hp_bars[side].size.x = int(70.0 * max(0.0, ratio))
+			_overlay._char_hp_bars[side].size.x = int(70.0 * max(0.0, ratio))
 			var color = Color(0.3, 0.9, 0.4) if side == 0 else Color(0.9, 0.3, 0.3)
 			if ratio < 0.3:
 				color = Color(0.9, 0.2, 0.2)
-			_char_hp_bars[side].color = color
-		if _char_hp_labels[side] != null:
-			_char_hp_labels[side].text = "%d" % main.base_hp[side]
+			_overlay._char_hp_bars[side].color = color
+		if _overlay._char_hp_labels[side] != null:
+			_overlay._char_hp_labels[side].text = "%d" % main.base_hp[side]
 
 func _update_mana() -> void:
 	var mana: float = main.deck_manager.mana
