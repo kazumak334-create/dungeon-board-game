@@ -1,5 +1,5 @@
 # CardUIComponent.gd
-# キュー用カードUIコンポーネント（ポケカ風レイアウト）
+# キュー用カードUIコンポーネント
 extends RefCounted
 
 # レアリティ枠色
