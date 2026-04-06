@@ -205,14 +205,13 @@ func execute(effect_id: String, params: Dictionary, context: Dictionary) -> void
 		"summon_on_death":
 			# 分裂：死亡時に合成元ユニットを同段に復活（SYNTHESIS定義から自動参照）
 			if source != null and bm != null:
-				var _CDB = load("res://scripts/CardDB.gd").new()
 				var base_name: String = ""
-				for recipe in _CDB.SYNTHESIS:
+				for recipe in CardDB.SYNTHESIS:
 					if recipe["result"] == source.unit_name:
 						base_name = recipe["base"]
 						break
-				if base_name != "" and _CDB.UNITS.has(base_name):
-					var ud = _CDB.UNITS[base_name]
+				if base_name != "" and CardDB.UNITS.has(base_name):
+					var ud = CardDB.UNITS[base_name]
 					var UDS = load("res://scripts/UnitData.gd")
 					var new_unit = UDS.new()
 					new_unit.unit_name = base_name

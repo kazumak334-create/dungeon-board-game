@@ -21,19 +21,17 @@ var spell_executor: RefCounted = null  # SpellExecutor（Main.gd が設定）
 var deck_manager_ref: Node = null      # DeckManager参照（Main.gd が設定）
 
 var _EDB = null
-var _CardDB = null
 var _UnitDataScript = null
 
 func _ready() -> void:
 	_EDB = load("res://scripts/EffectDB.gd")
-	_CardDB = load("res://scripts/CardDB.gd").new()
 	_UnitDataScript = load("res://scripts/UnitData.gd")
 	_build_enemy_deck()
 	_pick_next_card()
 
 func _build_enemy_deck() -> void:
-	for entry in _CardDB.ENEMY_DECK:
-		var d: Dictionary = _CardDB.UNITS[entry["name"]]
+	for entry in CardDB.ENEMY_DECK:
+		var d: Dictionary = CardDB.UNITS[entry["name"]]
 		var u = _UnitDataScript.new()
 		u.unit_name = entry["name"]
 		u.max_hp = d["hp"]; u.current_hp = d["hp"]
@@ -49,9 +47,9 @@ func ensure_shuffle_card() -> void:
 	for i in range(enemy_deck.size() - 1, -1, -1):
 		if enemy_deck[i].unit_name == "シャッフル":
 			enemy_deck.remove_at(i)
-	if not _CardDB.SYSTEM_SPELLS.has("シャッフル"):
+	if not CardDB.SYSTEM_SPELLS.has("シャッフル"):
 		return
-	var sd = _CardDB.SYSTEM_SPELLS["シャッフル"]
+	var sd = CardDB.SYSTEM_SPELLS["シャッフル"]
 	var card = _UnitDataScript.new()
 	card.unit_name = "シャッフル"
 	card.card_type = "spell"

@@ -4,19 +4,18 @@
 extends RefCounted
 
 static func export() -> void:
-	var _CDB = load("res://scripts/CardDB.gd")
 	var data: Dictionary = {
-		"units": _CDB.UNITS,
-		"spells": _CDB.SPELLS,
-		"status_spells": _CDB.STATUS_SPELLS,
-		"system_spells": _CDB.SYSTEM_SPELLS,
-		"artifacts": _CDB.ARTIFACTS,
-		"equipment": _CDB.EQUIPMENT,
-		"classes": _CDB.CLASSES,
-		"synthesis": _CDB.SYNTHESIS,
-		"player_deck": _CDB.PLAYER_DECK,
-		"player_spells": _CDB.PLAYER_SPELLS,
-		"enemy_deck": _CDB.ENEMY_DECK,
+		"units": CardDB.UNITS,
+		"spells": CardDB.SPELLS,
+		"status_spells": CardDB.STATUS_SPELLS,
+		"system_spells": CardDB.SYSTEM_SPELLS,
+		"artifacts": CardDB.ARTIFACTS,
+		"equipment": CardDB.EQUIPMENT,
+		"classes": CardDB.CLASSES,
+		"synthesis": CardDB.SYNTHESIS,
+		"player_deck": CardDB.PLAYER_DECK,
+		"player_spells": CardDB.PLAYER_SPELLS,
+		"enemy_deck": CardDB.ENEMY_DECK,
 	}
 	var json_text: String = JSON.stringify(data, "\t")
 	var file = FileAccess.open("res://data/cards.json", FileAccess.WRITE)

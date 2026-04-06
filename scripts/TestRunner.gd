@@ -28,6 +28,11 @@ func run_all() -> String:
 	_test_artifact_exclusion()
 	_test_promote()
 	_test_revive_delay()
+	# 画面遷移・セッション
+	_test_game_session()
+	_test_materials_integrity()
+	_test_base_deck_integrity()
+	_test_scene_manager_paths()
 
 	var summary: String = "テスト結果: %d passed / %d failed" % [_pass_count, _fail_count]
 	_results.insert(0, summary)
@@ -65,10 +70,10 @@ func _test_effectdb_integrity() -> void:
 
 # ---- CardDB整合性 ----
 func _test_carddb_integrity() -> void:
-	var _CDB = load("res://scripts/CardDB.gd").new()
+
 	# ユニット
-	for name in _CDB.UNITS:
-		var d = _CDB.UNITS[name]
+	for name in CardDB.UNITS:
+		var d = CardDB.UNITS[name]
 		_assert_true(d.has("hp"), "UNITS[%s] にhpがない" % name)
 		_assert_true(d.has("atk"), "UNITS[%s] にatkがない" % name)
 		_assert_true(d.has("interval"), "UNITS[%s] にintervalがない" % name)
@@ -77,38 +82,38 @@ func _test_carddb_integrity() -> void:
 		_assert_true(d.has("skills"), "UNITS[%s] にskillsがない" % name)
 		_assert_true(d.has("texture"), "UNITS[%s] にtextureがない" % name)
 	# 呪文
-	for name in _CDB.SPELLS:
-		var d = _CDB.SPELLS[name]
+	for name in CardDB.SPELLS:
+		var d = CardDB.SPELLS[name]
 		_assert_true(d.has("cost"), "SPELLS[%s] にcostがない" % name)
 		_assert_true(d.has("skills"), "SPELLS[%s] にskillsがない" % name)
 		_assert_true(d.has("texture"), "SPELLS[%s] にtextureがない" % name)
 
 # ---- skills配列のeffect_idがEffectDBに存在するか ----
 func _test_carddb_skills_reference() -> void:
-	var _CDB = load("res://scripts/CardDB.gd").new()
+
 	var _EDB = load("res://scripts/EffectDB.gd")
 	# ユニット
-	for name in _CDB.UNITS:
-		for skill in _CDB.UNITS[name].get("skills", []):
+	for name in CardDB.UNITS:
+		for skill in CardDB.UNITS[name].get("skills", []):
 			var eid = skill.get("effect_id", "")
 			_assert_true(_EDB.EFFECTS.has(eid), "UNITS[%s] のeffect_id '%s' がEffectDBに存在しない" % [name, eid])
 	# 呪文
-	for name in _CDB.SPELLS:
-		for skill in _CDB.SPELLS[name].get("skills", []):
+	for name in CardDB.SPELLS:
+		for skill in CardDB.SPELLS[name].get("skills", []):
 			var eid = skill.get("effect_id", "")
 			_assert_true(_EDB.EFFECTS.has(eid), "SPELLS[%s] のeffect_id '%s' がEffectDBに存在しない" % [name, eid])
 	# アーティファクト
-	for name in _CDB.ARTIFACTS:
-		for skill in _CDB.ARTIFACTS[name].get("skills", []):
+	for name in CardDB.ARTIFACTS:
+		for skill in CardDB.ARTIFACTS[name].get("skills", []):
 			var eid = skill.get("effect_id", "")
 			_assert_true(_EDB.EFFECTS.has(eid), "ARTIFACTS[%s] のeffect_id '%s' がEffectDBに存在しない" % [name, eid])
 
 # ---- クラス定義 ----
 func _test_class_definitions() -> void:
-	var _CDB = load("res://scripts/CardDB.gd").new()
+
 	var _EDB = load("res://scripts/EffectDB.gd")
-	for cid in _CDB.CLASSES:
-		var d = _CDB.CLASSES[cid]
+	for cid in CardDB.CLASSES:
+		var d = CardDB.CLASSES[cid]
 		_assert_true(d.has("display"), "CLASSES[%s] にdisplayがない" % cid)
 		_assert_true(d.has("initial_mana"), "CLASSES[%s] にinitial_manaがない" % cid)
 		_assert_true(d.has("mana_max"), "CLASSES[%s] にmana_maxがない" % cid)
@@ -119,10 +124,10 @@ func _test_class_definitions() -> void:
 
 # ---- 装備定義 ----
 func _test_equipment_definitions() -> void:
-	var _CDB = load("res://scripts/CardDB.gd").new()
+
 	var _EDB = load("res://scripts/EffectDB.gd")
-	for name in _CDB.EQUIPMENT:
-		var d = _CDB.EQUIPMENT[name]
+	for name in CardDB.EQUIPMENT:
+		var d = CardDB.EQUIPMENT[name]
 		_assert_true(d.has("display"), "EQUIPMENT[%s] にdisplayがない" % name)
 		_assert_true(d.has("skills"), "EQUIPMENT[%s] にskillsがない" % name)
 		for skill in d.get("skills", []):
@@ -131,19 +136,19 @@ func _test_equipment_definitions() -> void:
 
 # ---- 合成レシピの参照先 ----
 func _test_synthesis_references() -> void:
-	var _CDB = load("res://scripts/CardDB.gd").new()
-	for recipe in _CDB.SYNTHESIS:
+
+	for recipe in CardDB.SYNTHESIS:
 		var base = recipe.get("base", "")
 		var card = recipe.get("card", "")
 		var result = recipe.get("result", "")
-		_assert_true(_CDB.UNITS.has(result), "SYNTHESIS結果 '%s' がUNITSに存在しない" % result)
+		_assert_true(CardDB.UNITS.has(result), "SYNTHESIS結果 '%s' がUNITSに存在しない" % result)
 
 # ==== シナリオテスト ====
 
 func _create_unit(unit_name: String) -> Object:
-	var _CDB = load("res://scripts/CardDB.gd").new()
+
 	var UDS = load("res://scripts/UnitData.gd")
-	var d = _CDB.UNITS[unit_name]
+	var d = CardDB.UNITS[unit_name]
 	var u = UDS.new()
 	u.unit_name = unit_name
 	u.max_hp = d["hp"]; u.current_hp = d["hp"]
@@ -242,9 +247,9 @@ func _test_tile_effect_damage() -> void:
 # ---- アーティファクト排他テスト ----
 func _test_artifact_exclusion() -> void:
 	# アーティファクトとユニットの排他はデータレベルで確認
-	var _CDB = load("res://scripts/CardDB.gd").new()
-	for name in _CDB.ARTIFACTS:
-		var d = _CDB.ARTIFACTS[name]
+
+	for name in CardDB.ARTIFACTS:
+		var d = CardDB.ARTIFACTS[name]
 		if d.get("card_type", "") == "artifact":
 			_assert_true(d.has("hp"), "ARTIFACT[%s] にhpがある" % name)
 			_assert_true(d.has("skills"), "ARTIFACT[%s] にskillsがある" % name)
@@ -313,3 +318,56 @@ func _test_display_logic_consistency() -> void:
 	var burn_reduction: float = 0.8 * float(u.burn_turns) / float(u.burn_turns + 2)
 	var burned_atk: int = max(1, int(float(u.attack) * (1.0 - burn_reduction)))
 	_assert_eq(burned_atk, 3, "火傷2: ATK5→3（表示と戦闘計算が同じ式）")
+
+# ---- 画面遷移・セッション ----
+
+func _test_game_session() -> void:
+	# reset()で全フィールドが初期化されるか
+	GameSession.class_id = "test"
+	GameSession.dev_mode = true
+	GameSession.gold = 999
+	GameSession.skill_points = 5
+	GameSession.materials = [{"id": "test"}]
+	GameSession.selected_deck = [{"name": "test"}]
+	GameSession.selected_material = {"id": "test"}
+	GameSession.reset()
+	_assert_eq(GameSession.class_id, "", "reset: class_id空")
+	_assert_eq(GameSession.dev_mode, false, "reset: dev_mode=false")
+	_assert_eq(GameSession.gold, 0, "reset: gold=0")
+	_assert_eq(GameSession.skill_points, 0, "reset: skill_points=0")
+	_assert_eq(GameSession.materials.size(), 0, "reset: materials空")
+	_assert_eq(GameSession.selected_deck.size(), 0, "reset: selected_deck空")
+	_assert_eq(GameSession.selected_material.size(), 0, "reset: selected_material空")
+
+func _test_materials_integrity() -> void:
+
+	_assert_true(CardDB.MATERIALS.size() > 0, "MATERIALS: 1個以上存在")
+	for mat in CardDB.MATERIALS:
+		_assert_true(mat.has("id"), "素材にid: %s" % mat.get("display", "???"))
+		_assert_true(mat.has("display"), "素材にdisplay: %s" % mat.get("id", "???"))
+		_assert_true(mat.has("is_cursed"), "素材にis_cursed: %s" % mat.get("id", "???"))
+		_assert_true(mat.has("benefits"), "素材にbenefits: %s" % mat.get("id", "???"))
+		_assert_true(mat.has("demerits"), "素材にdemerits: %s" % mat.get("id", "???"))
+	# 呪い素材はデメリット必須
+	for mat in CardDB.MATERIALS:
+		if mat.get("is_cursed", false):
+			_assert_true(mat.get("demerits", []).size() > 0, "呪い素材にデメリット: %s" % mat.get("id", ""))
+
+func _test_base_deck_integrity() -> void:
+
+	_assert_true(CardDB.BASE_DECK.size() > 0, "BASE_DECK: 1個以上存在")
+	for entry in CardDB.BASE_DECK:
+		var name = entry.get("name", "")
+		_assert_true(name != "", "BASE_DECKエントリにname")
+		var is_unit = CardDB.UNITS.has(name)
+		var is_spell = CardDB.SPELLS.has(name)
+		var is_status = CardDB.STATUS_SPELLS.has(name)
+		_assert_true(is_unit or is_spell or is_status, "BASE_DECKカードがDB存在: %s" % name)
+
+func _test_scene_manager_paths() -> void:
+	# SceneManagerの全パスにファイルが存在するか
+	var scenes = SceneManager._scenes
+	for key in scenes:
+		var path = scenes[key]
+		if path != null:
+			_assert_true(FileAccess.file_exists(path), "シーン存在: %s -> %s" % [key, path])

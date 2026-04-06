@@ -17,7 +17,6 @@ var check_interval: float = 1.0
 var _check_timer: float = 0.0
 
 var _EDB = null
-var _CardDB = null
 var _UnitDataScript = null
 
 signal card_played(unit: Object)
@@ -25,7 +24,6 @@ signal mana_changed(current: float)
 
 func _ready() -> void:
 	_EDB = load("res://scripts/EffectDB.gd")
-	_CardDB = load("res://scripts/CardDB.gd").new()
 	_UnitDataScript = load("res://scripts/UnitData.gd")
 	_build_default_deck()
 
@@ -37,8 +35,8 @@ func _build_default_deck() -> void:
 			var card_name = entry.get("name", "") if entry is Dictionary else str(entry)
 			var col = entry.get("col", 1) if entry is Dictionary else 1
 			# ユニット？呪文？判定
-			if _CardDB.UNITS.has(card_name):
-				var d: Dictionary = _CardDB.UNITS[card_name]
+			if CardDB.UNITS.has(card_name):
+				var d: Dictionary = CardDB.UNITS[card_name]
 				var u = _UnitDataScript.new()
 				u.unit_name = card_name
 				u.max_hp = d["hp"]; u.current_hp = d["hp"]
@@ -48,16 +46,16 @@ func _build_default_deck() -> void:
 				u.support_effect = ""; u.active_skill = ""
 				u.skills = d.get("skills", []).duplicate(true)
 				deck.append(u)
-			elif _CardDB.SPELLS.has(card_name):
-				var d: Dictionary = _CardDB.SPELLS[card_name]
+			elif CardDB.SPELLS.has(card_name):
+				var d: Dictionary = CardDB.SPELLS[card_name]
 				var u = _UnitDataScript.new()
 				u.unit_name = card_name; u.card_type = "spell"
 				u.spell_id = card_name; u.cost = d["cost"]
 				u.spell_target = d["target"]; u.spell_effect = d["effect"]
 				u.skills = d.get("skills", []).duplicate(true)
 				deck.append(u)
-			elif _CardDB.STATUS_SPELLS.has(card_name):
-				var d: Dictionary = _CardDB.STATUS_SPELLS[card_name]
+			elif CardDB.STATUS_SPELLS.has(card_name):
+				var d: Dictionary = CardDB.STATUS_SPELLS[card_name]
 				var u = _UnitDataScript.new()
 				u.unit_name = card_name; u.card_type = "status_spell"
 				u.spell_id = card_name; u.cost = d["cost"]
@@ -68,8 +66,8 @@ func _build_default_deck() -> void:
 		deck.shuffle()
 		return
 	# フォールバック: cards.jsonのデフォルトデッキ
-	for entry in _CardDB.PLAYER_DECK:
-		var d: Dictionary = _CardDB.UNITS[entry["name"]]
+	for entry in CardDB.PLAYER_DECK:
+		var d: Dictionary = CardDB.UNITS[entry["name"]]
 		var u = _UnitDataScript.new()
 		u.unit_name = entry["name"]
 		u.max_hp = d["hp"]; u.current_hp = d["hp"]
@@ -79,8 +77,8 @@ func _build_default_deck() -> void:
 		u.support_effect = ""; u.active_skill = ""
 		u.skills = d.get("skills", []).duplicate(true)
 		deck.append(u)
-	for spell_name in _CardDB.PLAYER_SPELLS:
-		var d: Dictionary = _CardDB.SPELLS[spell_name]
+	for spell_name in CardDB.PLAYER_SPELLS:
+		var d: Dictionary = CardDB.SPELLS[spell_name]
 		var u = _UnitDataScript.new()
 		u.unit_name = spell_name; u.card_type = "spell"
 		u.spell_id = spell_name; u.cost = d["cost"]
@@ -96,9 +94,9 @@ func ensure_shuffle_card() -> void:
 		if deck[i].unit_name == "シャッフル":
 			deck.remove_at(i)
 	# 最下部に新規追加
-	if not _CardDB.SYSTEM_SPELLS.has("シャッフル"):
+	if not CardDB.SYSTEM_SPELLS.has("シャッフル"):
 		return
-	var sd = _CardDB.SYSTEM_SPELLS["シャッフル"]
+	var sd = CardDB.SYSTEM_SPELLS["シャッフル"]
 	var card = _UnitDataScript.new()
 	card.unit_name = "シャッフル"
 	card.card_type = "spell"

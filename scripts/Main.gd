@@ -117,10 +117,9 @@ func _ready() -> void:
 
 	# PlayerData 生成（GameSessionから取得）
 	var PlayerDataScript = load("res://scripts/PlayerData.gd")
-	var _CardDB = load("res://scripts/CardDB.gd").new()
 	var player_data = PlayerDataScript.new()
 	var _class_id = GameSession.class_id if GameSession.class_id != "" else "berserker"
-	var class_def = _CardDB.CLASSES.get(_class_id, _CardDB.CLASSES["berserker"])
+	var class_def = CardDB.CLASSES.get(_class_id, CardDB.CLASSES["berserker"])
 	player_data.class_id = _class_id
 	player_data.class_name_jp = class_def["display"]
 	player_data.initial_mana = class_def["initial_mana"]
@@ -159,10 +158,9 @@ func _ready() -> void:
 
 # ---- 盤面合成レジストリ ----
 func _build_synthesis_registry() -> void:
-	var _CardDB = load("res://scripts/CardDB.gd").new()
 	var UnitDataScript = preload("res://scripts/UnitData.gd")
-	for recipe in _CardDB.SYNTHESIS:
-		var r = _CardDB.UNITS[recipe["result"]]
+	for recipe in CardDB.SYNTHESIS:
+		var r = CardDB.UNITS[recipe["result"]]
 		var u = UnitDataScript.new()
 		u.unit_name = recipe["result"]
 		u.max_hp = r["hp"]; u.current_hp = r["hp"]
@@ -194,10 +192,14 @@ func _build_mode_select() -> void:
 		_add_log("=== 開発者モード開始（一時停止・デッキ空）===")
 	else:
 		# 通常モード: 即座にバトル開始（モード選択パネル不要）
+		# リプレイ用シード設定
+		GameSession.battle_seed = randi()
+		GameSession.battle_log.clear()
+		seed(GameSession.battle_seed)
 		game_started = true
 		deck_manager.ensure_shuffle_card()
 		enemy_ai.ensure_shuffle_card()
-		_add_log("=== バトル開始 ===")
+		_add_log("=== バトル開始 (seed: %d) ===" % GameSession.battle_seed)
 
 # ---- UI委譲ラッパー ----
 func _add_log(text: String) -> void: game_ui.add_log(text)

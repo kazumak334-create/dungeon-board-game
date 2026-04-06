@@ -2,7 +2,6 @@
 # 素材選択画面: 15素材プールから3つランダム提示 + 運命に委ねる
 extends Control
 
-var _card_db: RefCounted
 var _materials: Array = []       # 提示中の3素材
 var _all_materials: Array = []   # 全素材プール
 var _selected_index: int = -1    # 0-2: 素材選択, 3: 運命に委ねる
@@ -25,8 +24,7 @@ const COLOR_BENEFIT    := Color(0.4, 0.85, 0.5)
 const COLOR_DEMERIT    := Color(0.9, 0.35, 0.35)
 
 func _ready() -> void:
-	_card_db = load("res://scripts/CardDB.gd").new()
-	_all_materials = _card_db.MATERIALS.duplicate()
+	_all_materials = CardDB.MATERIALS.duplicate()
 	_pick_random_materials()
 	_build_ui()
 
@@ -53,7 +51,7 @@ func _build_ui() -> void:
 	add_child(title)
 
 	# クラス表示
-	var cls = _card_db.CLASSES.get(GameSession.class_id, {})
+	var cls = CardDB.CLASSES.get(GameSession.class_id, {})
 	var class_label = Label.new()
 	class_label.text = "クラス: %s" % cls.get("display", GameSession.class_id)
 	class_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -291,11 +289,11 @@ func _update_deck_preview() -> void:
 
 	# 基本デッキ
 	var deck_cards: Array = []
-	for entry in _card_db.BASE_DECK:
+	for entry in CardDB.BASE_DECK:
 		deck_cards.append(entry.get("name", "???"))
 
 	# クラス固有（initial_deckの先頭1枚を追加 — 仮）
-	var cls = _card_db.CLASSES.get(GameSession.class_id, {})
+	var cls = CardDB.CLASSES.get(GameSession.class_id, {})
 	var initial = cls.get("initial_deck", [])
 	if initial.size() > 0:
 		deck_cards.append(initial[0] + " (固有)")
@@ -417,11 +415,11 @@ func _on_decide_pressed() -> void:
 
 	# デッキ構築
 	var deck: Array = []
-	for entry in _card_db.BASE_DECK:
+	for entry in CardDB.BASE_DECK:
 		deck.append(entry.duplicate())
 
 	# クラス固有カード追加
-	var cls = _card_db.CLASSES.get(GameSession.class_id, {})
+	var cls = CardDB.CLASSES.get(GameSession.class_id, {})
 	var initial = cls.get("initial_deck", [])
 	if initial.size() > 0:
 		deck.append({"name": initial[0], "col": 1})
@@ -434,10 +432,10 @@ func _on_decide_pressed() -> void:
 			"add_spell":
 				deck.append({"name": b.get("name", ""), "col": -1})
 			"add_random_spell":
-				var spell_names = _card_db.SPELLS.keys()
+				var spell_names = CardDB.SPELLS.keys()
 				if spell_names.size() > 0:
 					spell_names.shuffle()
 					deck.append({"name": spell_names[0], "col": -1})
 
 	GameSession.selected_deck = deck
-	SceneManager.go_to_battle(GameSession.class_id)
+	SceneManager.go_to("deck_prep")

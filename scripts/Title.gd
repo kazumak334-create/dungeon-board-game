@@ -2,7 +2,6 @@
 # TOP画面: クラス選択 + 出発
 extends Control
 
-var _card_db: RefCounted
 var _selected_class_id: String = ""
 var _class_buttons: Dictionary = {}
 var _description_label: Label
@@ -10,10 +9,9 @@ var _skill_label: Label
 var _start_button: Button
 
 func _ready() -> void:
-	_card_db = load("res://scripts/CardDB.gd").new()
 	_build_ui()
 	# デフォルト選択
-	var class_ids = _card_db.CLASSES.keys()
+	var class_ids = CardDB.CLASSES.keys()
 	if class_ids.size() > 0:
 		_select_class(class_ids[0])
 
@@ -41,8 +39,8 @@ func _build_ui() -> void:
 	button_container.add_theme_constant_override("separation", 40)
 	add_child(button_container)
 
-	for class_id in _card_db.CLASSES:
-		var cls = _card_db.CLASSES[class_id]
+	for class_id in CardDB.CLASSES:
+		var cls = CardDB.CLASSES[class_id]
 		var btn = _create_class_button(class_id, cls)
 		button_container.add_child(btn)
 		_class_buttons[class_id] = btn
@@ -69,11 +67,30 @@ func _build_ui() -> void:
 	# 出発ボタン
 	_start_button = Button.new()
 	_start_button.text = "出  発"
-	_start_button.position = Vector2(515, 560)
-	_start_button.size = Vector2(250, 60)
+	_start_button.position = Vector2(515, 530)
+	_start_button.size = Vector2(250, 55)
 	_start_button.add_theme_font_size_override("font_size", 24)
 	_start_button.pressed.connect(_on_start_pressed)
 	add_child(_start_button)
+
+	# 開発者モードボタン
+	var dev_btn = Button.new()
+	dev_btn.text = "開発者モード"
+	dev_btn.position = Vector2(515, 600)
+	dev_btn.size = Vector2(250, 40)
+	dev_btn.add_theme_font_size_override("font_size", 16)
+	dev_btn.pressed.connect(_on_dev_mode_pressed)
+	add_child(dev_btn)
+
+	# テスト実行ボタン
+	var test_btn = Button.new()
+	test_btn.text = "テスト実行"
+	test_btn.position = Vector2(515, 650)
+	test_btn.size = Vector2(250, 40)
+	test_btn.add_theme_font_size_override("font_size", 16)
+	test_btn.modulate = Color(1.0, 1.0, 0.3)
+	test_btn.pressed.connect(_on_run_tests)
+	add_child(test_btn)
 
 func _create_class_button(class_id: String, cls: Dictionary) -> PanelContainer:
 	var panel = PanelContainer.new()
@@ -126,7 +143,7 @@ func _create_class_button(class_id: String, cls: Dictionary) -> PanelContainer:
 
 func _select_class(class_id: String) -> void:
 	_selected_class_id = class_id
-	var cls = _card_db.CLASSES.get(class_id, {})
+	var cls = CardDB.CLASSES.get(class_id, {})
 
 	_description_label.text = cls.get("description", "")
 
@@ -155,3 +172,23 @@ func _on_start_pressed() -> void:
 		return
 	GameSession.class_id = _selected_class_id
 	SceneManager.go_to("material_select")
+
+func _on_dev_mode_pressed() -> void:
+	if _selected_class_id == "":
+		return
+	GameSession.class_id = _selected_class_id
+	GameSession.dev_mode = true
+	SceneManager.go_to("battle")
+
+func _on_run_tests() -> void:
+	print("=== テスト開始 ===")
+	var TestRunnerScript = load("res://scripts/TestRunner.gd")
+	if TestRunnerScript == null:
+		print("ERROR: TestRunner.gd ロード失敗")
+		return
+	var runner = TestRunnerScript.new()
+	var result_text: String = runner.run_all()
+	for line in result_text.split("\n"):
+		if line != "":
+			print(line)
+	print("=== テスト完了 ===")

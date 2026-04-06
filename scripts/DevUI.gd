@@ -35,22 +35,21 @@ func setup(p_main: Node, p_board: Node, p_deck: Node, p_enemy: Node) -> void:
 	_build_dev_panel()
 
 func _build_all_cards() -> void:
-	var _CardDB = load("res://scripts/CardDB.gd").new()
-	for name in _CardDB.UNITS:
-		var d = _CardDB.UNITS[name]
+	for name in CardDB.UNITS:
+		var d = CardDB.UNITS[name]
 		_all_cards.append({"name": name, "data": d, "type": "unit"})
-	for name in _CardDB.SPELLS:
-		var d = _CardDB.SPELLS[name]
+	for name in CardDB.SPELLS:
+		var d = CardDB.SPELLS[name]
 		_all_cards.append({"name": name, "data": d, "type": "spell"})
-	for name in _CardDB.STATUS_SPELLS:
-		var d = _CardDB.STATUS_SPELLS[name]
+	for name in CardDB.STATUS_SPELLS:
+		var d = CardDB.STATUS_SPELLS[name]
 		_all_cards.append({"name": name, "data": d, "type": "status_spell"})
-	for name in _CardDB.SYSTEM_SPELLS:
-		var d = _CardDB.SYSTEM_SPELLS[name]
+	for name in CardDB.SYSTEM_SPELLS:
+		var d = CardDB.SYSTEM_SPELLS[name]
 		_all_cards.append({"name": name, "data": d, "type": "spell"})
 	# アーティファクト（盤面出現型 + 永久効果型）
-	for aname in _CardDB.ARTIFACTS:
-		var d = _CardDB.ARTIFACTS[aname]
+	for aname in CardDB.ARTIFACTS:
+		var d = CardDB.ARTIFACTS[aname]
 		_all_cards.append({"name": aname, "data": d, "type": d.get("card_type", "artifact")})
 
 func _build_dev_panel() -> void:
@@ -198,9 +197,8 @@ func _build_dev_panel() -> void:
 
 	# 装備選択（CardDB.EQUIPMENTから動的生成）
 	_add_section_header("── 装備 ──")
-	var _CardDB_eq = load("res://scripts/CardDB.gd")
-	for eq_name in _CardDB_eq.EQUIPMENT:
-		var eq_def = _CardDB_eq.EQUIPMENT[eq_name]
+	for eq_name in CardDB.EQUIPMENT:
+		var eq_def = CardDB.EQUIPMENT[eq_name]
 		var eq_btn := Button.new()
 		eq_btn.text = "%s" % eq_def.get("display", eq_name)
 		eq_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -220,9 +218,8 @@ func _build_dev_panel() -> void:
 
 	# クラス選択
 	_add_section_header("── クラス選択 ──")
-	var _CardDB_cls = load("res://scripts/CardDB.gd").new()
-	for class_id in _CardDB_cls.CLASSES:
-		var cdef = _CardDB_cls.CLASSES[class_id]
+	for class_id in CardDB.CLASSES:
+		var cdef = CardDB.CLASSES[class_id]
 		var cls_btn := Button.new()
 		cls_btn.text = cdef["display"]
 		cls_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -519,8 +516,7 @@ func _normal_play(card: Object) -> void:
 		return
 	elif card.card_type == "permanent_artifact":
 		# 永久効果型: player_artifactsに追加
-		var _CDB_np = load("res://scripts/CardDB.gd")
-		var art_def_np = _CDB_np.ARTIFACTS.get(card.unit_name, {})
+		var art_def_np = CardDB.ARTIFACTS.get(card.unit_name, {})
 		var art_entry_np: Dictionary = {"name": card.unit_name, "skills": art_def_np.get("skills", []).duplicate(true)}
 		board_manager.player_artifacts.append(art_entry_np)
 		board_manager.on_board_changed()
@@ -550,8 +546,7 @@ func _manual_place(card: Object, side: int, row: int, col: int) -> void:
 		return
 	elif card.card_type == "permanent_artifact":
 		# 永久効果型: player_artifacts / enemy_artifactsに追加
-		var _CDB_pa = load("res://scripts/CardDB.gd")
-		var art_def_pa = _CDB_pa.ARTIFACTS.get(card.unit_name, {})
+		var art_def_pa = CardDB.ARTIFACTS.get(card.unit_name, {})
 		var art_entry: Dictionary = {"name": card.unit_name, "skills": art_def_pa.get("skills", []).duplicate(true)}
 		if side == 0:
 			board_manager.player_artifacts.append(art_entry)
@@ -790,8 +785,7 @@ func _on_tile_effect_clear() -> void:
 func _on_equip_toggle(eq_name: String) -> void:
 	if board_manager.player_data == null:
 		return
-	var _CardDB_eq = load("res://scripts/CardDB.gd")
-	var eq_def = _CardDB_eq.EQUIPMENT.get(eq_name, {})
+	var eq_def = CardDB.EQUIPMENT.get(eq_name, {})
 	if eq_def.is_empty():
 		return
 	var pdata = board_manager.player_data
@@ -821,8 +815,7 @@ func _on_equip_clear_all() -> void:
 	main._add_log("[DEV] 装備全解除")
 
 func _on_class_select(class_id: String) -> void:
-	var _CardDB = load("res://scripts/CardDB.gd").new()
-	var cdef = _CardDB.CLASSES[class_id]
+	var cdef = CardDB.CLASSES[class_id]
 	var PlayerDataScript = load("res://scripts/PlayerData.gd")
 	var pdata = PlayerDataScript.new()
 	pdata.class_id = class_id
