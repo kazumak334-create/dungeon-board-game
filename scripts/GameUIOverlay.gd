@@ -112,11 +112,12 @@ func _build_character_panel(side: int) -> void:
 	var panel_w = 80
 	var panel_h = 175  # 装備行+マナ行を追加して拡張
 	var panel_x: int
+	# ① 盤面内（row2の隣）に密着配置
 	if side == 0:
-		panel_x = _cell_x(0, 0) - panel_w - 15  # プレイヤー側：盤面左端のさらに左
+		panel_x = _cell_x(0, 0) - panel_w - 5  # 自陣col0の左に密着
 	else:
-		panel_x = _cell_x(1, 2) + main.CELL_W + 15  # 敵側：盤面右端のさらに右
-	var panel_y = main.BOARD_TOP + 1 * main.CELL_H - 40  # 中段の高さ（拡張分で上にずらす）
+		panel_x = _cell_x(1, 2) + main.CELL_W + 5  # 敵陣col2の右に密着
+	var panel_y = main.BOARD_TOP + 2 * main.CELL_H  # row2（下段）の高さに合わせる
 
 	# パネル背景
 	var panel = Panel.new()
@@ -188,7 +189,7 @@ func _build_character_panel(side: int) -> void:
 	hp_label.position = Vector2(panel_x + 5, panel_y + 107)
 	hp_label.size = Vector2(70, 16)
 	hp_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	hp_label.add_theme_font_size_override("font_size", 11)
+	hp_label.add_theme_font_size_override("font_size", 13)  # ⑦ 視認性向上 11→13
 	hp_label.add_theme_color_override("font_color", Color(0.9, 0.9, 0.9))
 	hp_label.text = "%d" % main.base_hp[side]
 	main.add_child(hp_label)

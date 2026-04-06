@@ -12,7 +12,7 @@ var EffectExecutorScript = null  # 遅延ロード（preloadだとコンパイ�
 # ---- レイアウト定数 ----
 const CELL_W    := 130
 const CELL_H    := 95
-const BOARD_TOP := 110   # 盤面上端Y
+const BOARD_TOP := 40    # 盤面上端Y（速度ボタン直下: ボタンY=5 + 高さ30 + 余白5）
 
 # 中央GAP: 自陣前列と敵陣前列の間隔
 const CENTER_X  := 640

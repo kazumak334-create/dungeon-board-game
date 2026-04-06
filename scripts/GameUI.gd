@@ -14,6 +14,7 @@ var _cell_hp_labels: Array = []           # [side][r][c] -> Label（セル内HP�
 var _mana_gauge_bar: ColorRect = null     # マナゲージバー
 var _mana_gauge_label: Label = null       # マナ数値ラベル
 var _pause_button: Button = null          # 一時停止ボタン
+var _speed_buttons: Array = []            # 速度ボタン配列（ハイライト用）
 var _env_label: Label = null              # 環境表示ラベル
 
 func setup(p_main: Node) -> void:
@@ -35,13 +36,8 @@ func build_ui() -> void:
 	bg.size  = Vector2(1280, 720)
 	main.add_child(bg)
 
-	# タイトル
-	var title := Label.new()
-	title.text = "Dungeon Board Game  Phase 1 Prototype"
-	title.position = Vector2(20, 8)
-	title.add_theme_font_size_override("font_size", 17)
-	title.modulate = Color(0.9, 0.85, 0.55)
-	main.add_child(title)
+	# タイトル（非表示）
+	# var title := Label.new()  # ② タイトル削除
 
 	# 環境表示
 	_env_label = Label.new()
@@ -51,8 +47,8 @@ func build_ui() -> void:
 		var env_def: Dictionary = CardDB.ENVIRONMENTS.get(env_id, {})
 		env_display = env_def.get("display", env_id)
 	_env_label.text = "環境: %s" % env_display if env_display != "" else ""
-	_env_label.position = Vector2(20, 32)
-	_env_label.add_theme_font_size_override("font_size", 13)
+	_env_label.position = Vector2(20, 8)
+	_env_label.add_theme_font_size_override("font_size", 12)
 	_env_label.modulate = Color(0.7, 0.9, 0.7)
 	main.add_child(_env_label)
 
@@ -261,7 +257,7 @@ func _build_speed_buttons() -> void:
 	var speeds = [1.0, 2.0, 4.0]
 	var labels = ["x1", "x2", "x4"]
 	var base_x = 1020
-	var base_y = 8
+	var base_y = 5  # ⑤ 速度ボタンを最上部に
 
 	var speed_title = Label.new()
 	speed_title.text = "速度:"
@@ -270,29 +266,44 @@ func _build_speed_buttons() -> void:
 	speed_title.add_theme_color_override("font_color", Color(0.6, 0.6, 0.6))
 	main.add_child(speed_title)
 
+	_speed_buttons.clear()
 	for i in range(speeds.size()):
 		var btn = Button.new()
 		btn.text = labels[i]
 		btn.position = Vector2(base_x + i * 50, base_y)
-		btn.size = Vector2(45, 28)
+		btn.size = Vector2(45, 30)
 		btn.add_theme_font_size_override("font_size", 13)
 		var spd = speeds[i]
-		btn.pressed.connect(func(): main.game_speed = spd)
+		btn.pressed.connect(func():
+			main.game_speed = spd
+			_update_speed_highlight()
+		)
 		main.add_child(btn)
+		_speed_buttons.append({"btn": btn, "spd": spd})
 
-	# 一時停止ボタン
+	# 一時停止/再生トグルボタン（③）
 	_pause_button = Button.new()
-	_pause_button.text = "⏸"
+	_pause_button.text = "⏸ 一時停止"
 	_pause_button.position = Vector2(base_x + speeds.size() * 50 + 8, base_y)
-	_pause_button.size = Vector2(45, 28)
-	_pause_button.add_theme_font_size_override("font_size", 14)
+	_pause_button.size = Vector2(100, 30)
+	_pause_button.add_theme_font_size_override("font_size", 12)
 	_pause_button.pressed.connect(_on_pause_pressed)
 	main.add_child(_pause_button)
+	_update_speed_highlight()
+
+func _update_speed_highlight() -> void:
+	for entry in _speed_buttons:
+		var btn: Button = entry["btn"]
+		var spd: float = entry["spd"]
+		if abs(spd - main.game_speed) < 0.01:
+			btn.modulate = Color(1.0, 1.0, 0.4)
+		else:
+			btn.modulate = Color(1.0, 1.0, 1.0)
 
 func _on_pause_pressed() -> void:
 	main.game_paused = not main.game_paused
 	if _pause_button != null:
-		_pause_button.text = "▶" if main.game_paused else "⏸"
+		_pause_button.text = "▶ 再開" if main.game_paused else "⏸ 一時停止"
 
 func _build_mana_bar() -> void:
 	var bar_y: int = main.BOARD_TOP + 3 * main.CELL_H + 42

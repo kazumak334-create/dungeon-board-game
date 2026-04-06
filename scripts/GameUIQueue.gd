@@ -9,8 +9,8 @@ var _queue_card_self: Control = null      # 自分のキューカード
 var _queue_card_enemy: Control = null     # 敵のキューカード
 var _last_self_card_name: String = ""     # 前回の自カード名（変化検出用）
 var _last_enemy_card_name: String = ""    # 前回の敵カード名
-var _queue_self_deck_label: Label = null  # 自デッキ山ラベル
-var _queue_enemy_deck_label: Label = null # 敵デッキ山ラベル
+var _queue_self_deck_label: Label = null  # 自デッキ山ラベル（カード下部）
+var _queue_enemy_deck_label: Label = null # 敵デッキ山ラベル（カード下部）
 var _queue_mana_bar: ColorRect = null     # キューエリア内マナゲージ
 var _queue_mana_label: Label = null       # キューエリア内マナ数値
 var _queue_card_parent_self: Control = null  # 自カード配置親コンテナ
@@ -20,7 +20,7 @@ var _queue_enemy_mana_label: Label = null    # 敵マナ数値
 
 func build() -> void:
 	_build_next_card_panel()
-	_build_card_queue_ui()
+	# _build_card_queue_ui() は _build_next_card_panel 末尾から呼び出し済み
 
 func _build_next_card_panel() -> void:
 	var panel_w: int = 360
@@ -113,53 +113,31 @@ func _build_next_card_panel() -> void:
 	_build_card_queue_ui()
 
 func _build_card_queue_ui() -> void:
+	# ④ 左右完全ミラー配置
+	# ⑥ 1stカード上部に「▶ NEXT」ラベル
+	# 山札/捨て/除外をカード下部に表示（独立パネル廃止）
 	var queue_y: int = main.BOARD_TOP + 3 * main.CELL_H + 20 + 40
 	var card_w: float = 160.0
 	var card_h: float = 220.0
-	var deck_panel_w: float = 70.0
-	var deck_panel_h: float = 70.0
-	var gap: float = 10.0          # 1stカード間の隙間
-	var item_gap: float = 6.0      # 各パーツ間の隙間
+	var gap: float = 10.0
 	var center_x: float = 640.0
-	var stack_offset: float = 30.0  # 2ndカードの重ねずらし幅
+	var deck_label_h: float = 18.0  # カード下部デッキ情報ラベル高さ
 
-	# ---- 座標計算 ----
-	# 自分側（右から左: 1st → 2nd → デッキパネル）
+	# ④ ミラー座標計算
+	# 自分側: 中央左に1stカード
 	var self_1st_x: float = center_x - gap / 2.0 - card_w
-	var self_2nd_x: float = self_1st_x - stack_offset
-	var self_deck_x: float = self_2nd_x - stack_offset - item_gap - deck_panel_w
-
-	# 敵側（左から右: 1st → 2nd → デッキパネル）
+	# 敵側: 中央右に1stカード（完全ミラー）
 	var enemy_1st_x: float = center_x + gap / 2.0
-	var enemy_2nd_x: float = enemy_1st_x + stack_offset
-	var enemy_deck_x: float = enemy_2nd_x + card_w + item_gap
 
-	# ---- 自分側デッキ山パネル（山札/捨て/除外） ----
-	var self_deck_panel := ColorRect.new()
-	self_deck_panel.position = Vector2(self_deck_x, queue_y)
-	self_deck_panel.size = Vector2(deck_panel_w, deck_panel_h)
-	self_deck_panel.color = Color(0.08, 0.10, 0.17)
-	main.add_child(self_deck_panel)
-	var self_deck_border := ColorRect.new()
-	self_deck_border.position = Vector2(self_deck_x - 1, queue_y - 1)
-	self_deck_border.size = Vector2(deck_panel_w + 2, deck_panel_h + 2)
-	self_deck_border.color = Color(0.3, 0.5, 0.7, 0.5)
-	self_deck_border.z_index = -1
-	main.add_child(self_deck_border)
-	_queue_self_deck_label = Label.new()
-	_queue_self_deck_label.position = Vector2(self_deck_x + 4, queue_y + 4)
-	_queue_self_deck_label.size = Vector2(deck_panel_w - 8, deck_panel_h - 8)
-	_queue_self_deck_label.add_theme_font_size_override("font_size", 11)
-	_queue_self_deck_label.add_theme_color_override("font_color", Color(0.6, 0.8, 1.0))
-	_queue_self_deck_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	main.add_child(_queue_self_deck_label)
-
-	# ---- 自分2ndカード配置親（1stの下に重ねて表示） ----
-	var self_2nd_holder := Control.new()
-	self_2nd_holder.position = Vector2(self_2nd_x, queue_y)
-	self_2nd_holder.custom_minimum_size = Vector2(card_w, card_h)
-	self_2nd_holder.size = Vector2(card_w, card_h)
-	main.add_child(self_2nd_holder)
+	# ---- 自分側 1stカード「▶ NEXT」ラベル ----
+	var self_next_label := Label.new()
+	self_next_label.text = "▶ NEXT"
+	self_next_label.position = Vector2(self_1st_x, queue_y - 18)
+	self_next_label.size = Vector2(card_w, 16)
+	self_next_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	self_next_label.add_theme_font_size_override("font_size", 12)
+	self_next_label.add_theme_color_override("font_color", Color(0.4, 0.9, 0.4))
+	main.add_child(self_next_label)
 
 	# ---- 自分1stカード配置親（160x220） ----
 	var self_card_holder := Control.new()
@@ -169,6 +147,25 @@ func _build_card_queue_ui() -> void:
 	main.add_child(self_card_holder)
 	_queue_card_parent_self = self_card_holder
 
+	# ---- 自分側デッキ情報ラベル（カード直下） ----
+	_queue_self_deck_label = Label.new()
+	_queue_self_deck_label.position = Vector2(self_1st_x, queue_y + card_h + 4)
+	_queue_self_deck_label.size = Vector2(card_w, deck_label_h)
+	_queue_self_deck_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_queue_self_deck_label.add_theme_font_size_override("font_size", 11)
+	_queue_self_deck_label.add_theme_color_override("font_color", Color(0.6, 0.8, 1.0))
+	main.add_child(_queue_self_deck_label)
+
+	# ---- 敵側 1stカード「▶ NEXT」ラベル ----
+	var enemy_next_label := Label.new()
+	enemy_next_label.text = "▶ NEXT"
+	enemy_next_label.position = Vector2(enemy_1st_x, queue_y - 18)
+	enemy_next_label.size = Vector2(card_w, 16)
+	enemy_next_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	enemy_next_label.add_theme_font_size_override("font_size", 12)
+	enemy_next_label.add_theme_color_override("font_color", Color(0.9, 0.4, 0.4))
+	main.add_child(enemy_next_label)
+
 	# ---- 敵1stカード配置親 ----
 	var enemy_card_holder := Control.new()
 	enemy_card_holder.position = Vector2(enemy_1st_x, queue_y)
@@ -177,31 +174,13 @@ func _build_card_queue_ui() -> void:
 	main.add_child(enemy_card_holder)
 	_queue_card_parent_enemy = enemy_card_holder
 
-	# ---- 敵2ndカード配置親 ----
-	var enemy_2nd_holder := Control.new()
-	enemy_2nd_holder.position = Vector2(enemy_2nd_x, queue_y)
-	enemy_2nd_holder.custom_minimum_size = Vector2(card_w, card_h)
-	enemy_2nd_holder.size = Vector2(card_w, card_h)
-	main.add_child(enemy_2nd_holder)
-
-	# ---- 敵デッキ山パネル（山札/捨て/除外） ----
-	var enemy_deck_panel := ColorRect.new()
-	enemy_deck_panel.position = Vector2(enemy_deck_x, queue_y)
-	enemy_deck_panel.size = Vector2(deck_panel_w, deck_panel_h)
-	enemy_deck_panel.color = Color(0.14, 0.08, 0.08)
-	main.add_child(enemy_deck_panel)
-	var enemy_deck_border := ColorRect.new()
-	enemy_deck_border.position = Vector2(enemy_deck_x - 1, queue_y - 1)
-	enemy_deck_border.size = Vector2(deck_panel_w + 2, deck_panel_h + 2)
-	enemy_deck_border.color = Color(0.7, 0.3, 0.3, 0.5)
-	enemy_deck_border.z_index = -1
-	main.add_child(enemy_deck_border)
+	# ---- 敵側デッキ情報ラベル（カード直下） ----
 	_queue_enemy_deck_label = Label.new()
-	_queue_enemy_deck_label.position = Vector2(enemy_deck_x + 4, queue_y + 4)
-	_queue_enemy_deck_label.size = Vector2(deck_panel_w - 8, deck_panel_h - 8)
+	_queue_enemy_deck_label.position = Vector2(enemy_1st_x, queue_y + card_h + 4)
+	_queue_enemy_deck_label.size = Vector2(card_w, deck_label_h)
+	_queue_enemy_deck_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_queue_enemy_deck_label.add_theme_font_size_override("font_size", 11)
 	_queue_enemy_deck_label.add_theme_color_override("font_color", Color(1.0, 0.5, 0.5))
-	_queue_enemy_deck_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	main.add_child(_queue_enemy_deck_label)
 
 
@@ -275,12 +254,12 @@ func _update_deck_counts() -> void:
 	main.enemy_deck_count_label.text = "敵デッキ: %d枚\n敵捨て札: %d枚" % [
 		main.enemy_ai.enemy_deck.size(), main.enemy_ai.enemy_discard.size()
 	]
-	# キューエリアのデッキ山ラベル更新（山札/捨て/除外）
+	# カード下部のデッキ情報ラベル更新（1行形式）
 	if _queue_self_deck_label != null:
-		_queue_self_deck_label.text = "山札 %d枚\n捨て %d枚\n除外 0枚" % [
+		_queue_self_deck_label.text = "山札:%d 捨て:%d 除外:0" % [
 			main.deck_manager.deck.size(), main.deck_manager.discard.size()
 		]
 	if _queue_enemy_deck_label != null:
-		_queue_enemy_deck_label.text = "山札 %d枚\n捨て %d枚\n除外 0枚" % [
+		_queue_enemy_deck_label.text = "山札:%d 捨て:%d 除外:0" % [
 			main.enemy_ai.enemy_deck.size(), main.enemy_ai.enemy_discard.size()
 		]
