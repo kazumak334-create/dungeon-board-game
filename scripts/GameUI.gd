@@ -363,6 +363,7 @@ func _update_cells() -> void:
 					continue
 				render_cell(side, r, c)
 				if not has_flash:
+					main._cell_dirty[side][r][c] = false
 
 func render_cell(side: int, r: int, c: int) -> void:
 	var unit   = main.board_manager.get_unit(side, r, c)
