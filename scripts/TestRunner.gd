@@ -37,6 +37,7 @@ func run_all() -> String:
 	_test_placement_logic()
 	_test_placement_operations()
 	_test_persistence()
+	_test_environments()
 
 	var summary: String = "テスト結果: %d passed / %d failed" % [_pass_count, _fail_count]
 	_results.insert(0, summary)
@@ -571,3 +572,27 @@ func _test_persistence() -> void:
 	_assert_eq(after.size(), 2, "クリーンアップ後: battle除去→2枚残る")
 	_assert_eq(after[0]["name"], "スライム", "クリーンアップ後: スライム残る")
 	_assert_eq(after[1]["name"], "ゴブリン", "クリーンアップ後: ゴブリン残る")
+
+func _test_environments() -> void:
+	# ENVIRONMENTS存在確認
+	_assert_true(CardDB.ENVIRONMENTS.size() > 0, "ENVIRONMENTS: 1個以上存在")
+
+	# env_noneは盤面効果なし
+	var none_env = CardDB.ENVIRONMENTS.get("env_none", {})
+	_assert_eq(none_env.get("tile_id", "x"), "", "env_none: tile_id空")
+	_assert_eq(none_env.get("max_tiles", -1), 0, "env_none: max_tiles=0")
+
+	# 各環境のtile_idがEffectDBに存在するか
+	var _EDB = load("res://scripts/EffectDB.gd")
+	for env_id in CardDB.ENVIRONMENTS:
+		var env = CardDB.ENVIRONMENTS[env_id]
+		_assert_true(env.has("display"), "ENV[%s] にdisplay" % env_id)
+		_assert_true(env.has("tile_id"), "ENV[%s] にtile_id" % env_id)
+		var tid = env.get("tile_id", "")
+		if tid != "":
+			_assert_true(_EDB.EFFECTS.has(tid), "ENV[%s] のtile_id '%s' がEffectDBに存在" % [env_id, tid])
+
+	# GameSessionの環境フィールド
+	GameSession.base_environment = "env_curse"
+	GameSession.reset()
+	_assert_eq(GameSession.base_environment, "env_none", "reset: base_environment=env_none")

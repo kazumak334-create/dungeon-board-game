@@ -5,6 +5,8 @@ extends Node
 var class_id: String = ""
 var dev_mode: bool = false
 var battle_type: String = "normal"  # "normal" / "elite" / "boss"
+var base_environment: String = "env_none"  # ベース環境（ボス区間共通）
+var environment_override: Dictionary = {}  # 環境変化（side→tile_id）
 var selected_deck: Array = []
 var selected_material: Dictionary = {}
 var placement_config: Array = []  # デッキインデックス→{col_priority, row_priority, modifiers}
@@ -21,6 +23,8 @@ func reset() -> void:
 	class_id = ""
 	dev_mode = false
 	battle_type = "normal"
+	base_environment = "env_none"
+	environment_override = {}
 	selected_deck = []
 	selected_material = {}
 	placement_config = []

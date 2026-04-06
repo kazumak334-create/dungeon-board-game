@@ -11,11 +11,28 @@ func _build_ui() -> void:
 	UIF.add_bg(self)
 	UIF.add_title(self, "マップ", 30)
 
+	# 環境が未設定ならランダム選択（ボス区間開始時）
+	if GameSession.base_environment == "" or GameSession.base_environment == "env_none":
+		_randomize_environment()
+
+	# 環境表示
+	var env_def = CardDB.ENVIRONMENTS.get(GameSession.base_environment, {})
+	var env_display = env_def.get("display", "平原")
+	var env_desc = env_def.get("description", "")
+	var env_label = Label.new()
+	env_label.text = "環境: %s ─ %s" % [env_display, env_desc]
+	env_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	env_label.position = Vector2(0, 85)
+	env_label.size = Vector2(1280, 25)
+	env_label.add_theme_font_size_override("font_size", 14)
+	env_label.add_theme_color_override("font_color", Color(0.7, 0.6, 0.4))
+	add_child(env_label)
+
 	# 仮マップ表示
 	var map_label = Label.new()
 	map_label.text = "[ 戦闘 ] ─ [ 素材 ] ─ [ イベント ] ─ [ ショップ ] ─ [ エリート ] ─ [ ボス ]"
 	map_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	map_label.position = Vector2(0, 90)
+	map_label.position = Vector2(0, 110)
 	map_label.size = Vector2(1280, 25)
 	map_label.add_theme_font_size_override("font_size", 14)
 	map_label.add_theme_color_override("font_color", Color(0.5, 0.5, 0.6))
@@ -31,7 +48,7 @@ func _build_ui() -> void:
 		{"text": "ボス", "scene": "battle_boss", "color": Color(0.9, 0.2, 0.5), "desc": "エリアボスと戦う"},
 	]
 
-	var start_y = 150
+	var start_y = 170
 	for i in range(nodes.size()):
 		var node = nodes[i]
 		var panel = PanelContainer.new()
@@ -69,6 +86,12 @@ func _build_ui() -> void:
 		add_child(btn)
 
 	UIF.add_back_button(self, "← デッキ準備", func(): SceneManager.go_to(SceneManager.DECK_PREP), 640)
+
+func _randomize_environment() -> void:
+	var env_ids = CardDB.ENVIRONMENTS.keys()
+	if env_ids.size() > 0:
+		env_ids.shuffle()
+		GameSession.base_environment = env_ids[0]
 
 func _go_to_node(scene_id: String) -> void:
 	match scene_id:

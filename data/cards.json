@@ -994,6 +994,57 @@
 			"texture": ""
 		}
 	},
+	"environments": {
+		"env_none": {
+			"display": "平原",
+			"description": "盤面効果なし",
+			"tile_id": "",
+			"min_tiles": 0,
+			"max_tiles": 0
+		},
+		"env_curse": {
+			"display": "呪われた地",
+			"description": "被ダメ+50%のマスがランダム配置",
+			"tile_id": "tile_curse",
+			"min_tiles": 1,
+			"max_tiles": 9
+		},
+		"env_crack": {
+			"display": "ヒビ割れ荒野",
+			"description": "踏むと穴になるヒビがランダム配置",
+			"tile_id": "tile_crack",
+			"min_tiles": 1,
+			"max_tiles": 6
+		},
+		"env_thorn": {
+			"display": "棘地帯",
+			"description": "侵入時5ダメージの棘がランダム配置",
+			"tile_id": "tile_thorn",
+			"min_tiles": 1,
+			"max_tiles": 6
+		},
+		"env_poison": {
+			"display": "毒沼",
+			"description": "毎秒毒ダメージのマスがランダム配置",
+			"tile_id": "tile_poison",
+			"min_tiles": 1,
+			"max_tiles": 6
+		},
+		"env_fortress": {
+			"display": "鉄壁の砦",
+			"description": "侵入時に鎧+2のマスがランダム配置",
+			"tile_id": "tile_fortress",
+			"min_tiles": 1,
+			"max_tiles": 6
+		},
+		"env_beast": {
+			"display": "獣の森",
+			"description": "獣族ATK+3のマスがランダム配置",
+			"tile_id": "tile_beast_forest",
+			"min_tiles": 1,
+			"max_tiles": 6
+		}
+	},
 	"base_deck": [
 		{"name": "スライム", "col": 1},
 		{"name": "スライム", "col": 1},

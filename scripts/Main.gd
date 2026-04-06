@@ -199,7 +199,52 @@ func _build_mode_select() -> void:
 		game_started = true
 		deck_manager.ensure_shuffle_card()
 		enemy_ai.ensure_shuffle_card()
+		_apply_environment()
 		_add_log("=== バトル開始 (seed: %d) ===" % GameSession.battle_seed)
+
+func _apply_environment() -> void:
+	var env_id = GameSession.base_environment
+	if env_id == "" or env_id == "env_none":
+		return
+	var env_def = CardDB.ENVIRONMENTS.get(env_id, {})
+	var tile_id = env_def.get("tile_id", "")
+	if tile_id == "":
+		return
+	var min_tiles = env_def.get("min_tiles", 1)
+	var max_tiles = env_def.get("max_tiles", 6)
+	var count = randi_range(min_tiles, max_tiles)
+
+	# 両陣営のランダムなマスに盤面効果を配置
+	var all_cells: Array = []
+	for s in range(2):
+		for r in range(3):
+			for c in range(3):
+				all_cells.append([s, r, c])
+	all_cells.shuffle()
+
+	var placed = 0
+	var _EDB = load("res://scripts/EffectDB.gd")
+	for cell in all_cells:
+		if placed >= count:
+			break
+		var s = cell[0]
+		var r = cell[1]
+		var c = cell[2]
+		if board_manager.board_effects[s][r][c] == null:
+			board_manager.tile_system.set_tile_effect(s, r, c, tile_id, _EDB)
+			placed += 1
+
+	# 環境変化（上書き）の適用
+	for side_str in GameSession.environment_override:
+		var side = int(side_str)
+		var override_tile = GameSession.environment_override[side_str]
+		for r in range(3):
+			for c in range(3):
+				if board_manager.board_effects[side][r][c] != null:
+					board_manager.tile_system.clear_tile_effect(side, r, c)
+				board_manager.tile_system.set_tile_effect(side, r, c, override_tile, _EDB)
+
+	_add_log("[環境] %s: %s ×%d" % [env_def.get("display", env_id), tile_id, placed])
 
 # ---- UI委譲ラッパー ----
 func _add_log(text: String) -> void: game_ui.add_log(text)
