@@ -320,10 +320,20 @@ func _build_defeat_ui(is_win: bool) -> void:
 		continue_btn.pressed.connect(func(): _on_continue())
 		add_child(continue_btn)
 
+	if not is_win:
+		# 敗北時: もう一度挑戦ボタン
+		var retry_btn = Button.new()
+		retry_btn.text = "もう一度挑戦"
+		retry_btn.position = Vector2(515, 490)
+		retry_btn.size = Vector2(250, 55)
+		retry_btn.add_theme_font_size_override("font_size", 22)
+		retry_btn.pressed.connect(func(): SceneManager.go_to(SceneManager.BATTLE))
+		add_child(retry_btn)
+
 	# タイトルへボタン
 	var title_btn = Button.new()
 	title_btn.text = "タイトルへ"
-	title_btn.position = Vector2(515, 580)
+	title_btn.position = Vector2(515, 560)
 	title_btn.size = Vector2(250, 45)
 	title_btn.add_theme_font_size_override("font_size", 18)
 	title_btn.pressed.connect(func():

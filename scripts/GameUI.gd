@@ -218,21 +218,14 @@ func build_ui() -> void:
 
 	# ---- ゲームオーバー ----
 	main.game_over_label = Label.new()
-	main.game_over_label.position = Vector2(340, 270)
+	main.game_over_label.position = Vector2(0, 270)
+	main.game_over_label.size = Vector2(1280, 100)
+	main.game_over_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	main.game_over_label.add_theme_font_size_override("font_size", 72)
 	main.game_over_label.visible  = false
 	main.add_child(main.game_over_label)
 
-	main.restart_button = Button.new()
-	main.restart_button.text     = "もう一度"
-	main.restart_button.position = Vector2(540, 380)
-	main.restart_button.size     = Vector2(200, 56)
-	main.restart_button.add_theme_font_size_override("font_size", 26)
-	main.restart_button.visible  = false
-	main.restart_button.pressed.connect(main._on_restart_pressed)
-	main.add_child(main.restart_button)
-
-	# ゲームスピード調整
+# ゲームスピード調整
 	_build_speed_buttons()
 
 
@@ -579,3 +572,6 @@ func on_cell_hover_end() -> void:
 
 func _refresh_equipment_ui() -> void:
 	_overlay._refresh_equipment_ui()
+
+func update_battle_timer(remaining: float, delta: float = 0.016) -> void:
+	_overlay.update_battle_timer(remaining, delta)

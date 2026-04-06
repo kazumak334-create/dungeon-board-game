@@ -43,7 +43,6 @@ var player_base_label: Label
 var enemy_base_label:  Label
 var log_label:         Label
 var game_over_label:   Label
-var restart_button:    Button
 var deck_count_label:  Label
 var discard_count_label: Label
 var enemy_deck_count_label: Label
@@ -68,6 +67,11 @@ var skill_flash_timers: Array = []  # [side][row][col] -> float
 var skill_flash_names:  Array = []  # [side][row][col] -> String
 var _cell_dirty:        Array = []  # [side][row][col] -> bool（UI更新フラグ）
 var _support_log_timer: float = 5.0
+
+# ---- バトルタイマー ----
+const BATTLE_TIME_LIMIT: float = 60.0
+var _battle_timer: float = BATTLE_TIME_LIMIT
+var _battle_timer_active: bool = false  # 通常モードのみtrue（dev_modeはfalse）
 
 # ---- 初期化 ----
 func _ready() -> void:
@@ -197,6 +201,7 @@ func _build_mode_select() -> void:
 		GameSession.battle_log.clear()
 		seed(GameSession.battle_seed)
 		game_started = true
+		_battle_timer_active = true
 		deck_manager.ensure_shuffle_card()
 		enemy_ai.ensure_shuffle_card()
 		_apply_environment()
@@ -318,6 +323,15 @@ func _process(delta: float) -> void:
 	if not game_started or game_over:
 		return
 	if not game_paused:
+		# バトルタイマー（リアル経過時間、speed_scale非適用）
+		if _battle_timer_active:
+			_battle_timer -= delta
+			game_ui.update_battle_timer(_battle_timer, delta)
+			if _battle_timer <= 0.0:
+				_battle_timer = 0.0
+				_battle_timer_active = false
+				_on_battle_timeout()
+				return
 		var effective_delta: float = delta * game_speed
 		deck_manager.process_deck(effective_delta, board_manager)
 		enemy_ai.process_ai(effective_delta, board_manager)
@@ -342,7 +356,6 @@ func _check_game_over() -> void:
 		game_over_label.text     = "GAME OVER"
 		game_over_label.modulate = Color(1.0, 0.3, 0.3)
 		game_over_label.visible  = true
-		restart_button.visible   = true
 		GameSession.last_result = {"win": false, "player_hp_remaining": base_hp[0], "turns": 0}
 		_transition_to_result_timer()
 	elif base_hp[1] <= 0:
@@ -350,16 +363,21 @@ func _check_game_over() -> void:
 		game_over_label.text     = "YOU WIN!"
 		game_over_label.modulate = Color(0.3, 1.0, 0.5)
 		game_over_label.visible  = true
-		restart_button.visible   = true
 		GameSession.last_result = {"win": true, "player_hp_remaining": base_hp[0], "turns": 0}
 		_transition_to_result_timer()
+
+func _on_battle_timeout() -> void:
+	game_over = true
+	game_over_label.text     = "TIME UP - DEFEAT"
+	game_over_label.modulate = Color(1.0, 0.5, 0.1)
+	game_over_label.visible  = true
+	GameSession.last_result = {"win": false, "player_hp_remaining": base_hp[0], "turns": 0}
+	_add_log("=== 時間切れ：敗北 ===")
+	_transition_to_result_timer()
 
 func _transition_to_result_timer() -> void:
 	var timer = get_tree().create_timer(2.0)
 	timer.timeout.connect(func(): SceneManager.go_to(SceneManager.RESULT))
-
-func _on_restart_pressed() -> void:
-	get_tree().reload_current_scene()
 
 # ---- シグナルハンドラ ----
 func _on_unit_placed(side: int, row: int, col: int, _unit: Object) -> void:
