@@ -20,14 +20,15 @@ var _env_label: Label = null              # 環境表示ラベル
 func setup(p_main: Node) -> void:
 	main = p_main
 	_EDB = load("res://scripts/EffectDB.gd")
-	var QueueClass = load("res://scripts/GameUIQueue.gd")
-	_queue = QueueClass.new()
-	_queue.main = main
-	_queue._EDB = _EDB
 	var OverlayClass = load("res://scripts/GameUIOverlay.gd")
 	_overlay = OverlayClass.new()
 	_overlay.main = main
 	_overlay._EDB = _EDB
+	var QueueClass = load("res://scripts/GameUIQueue.gd")
+	_queue = QueueClass.new()
+	_queue.main = main
+	_queue._EDB = _EDB
+	_queue._overlay = _overlay
 
 func build_ui() -> void:
 	# 背景
@@ -59,51 +60,29 @@ func build_ui() -> void:
 	line.position = Vector2(main.CENTER_X - 1, main.BOARD_TOP - 5)
 	main.add_child(line)
 
-	# 行ラベル（左端）
-	var row_names := ["上", "中", "下"]
-	for r in range(3):
-		var lbl := Label.new()
-		lbl.text     = row_names[r]
-		lbl.position = Vector2(_cell_x(0, 0) - 22, main.BOARD_TOP + r * main.CELL_H + 35)
-		lbl.add_theme_font_size_override("font_size", 12)
-		lbl.modulate = Color(0.6, 0.6, 0.6)
-		main.add_child(lbl)
-
-	# 列ラベル
-	var player_col_labels := ["後列", "中列", "前列"]
+	# 列アイコンヘッダー（自陣）
+	var player_col_icons := ["🏹", "🚩", "⚔"]
 	for c in range(3):
 		var x: int = _cell_x(0, c)
 		var lbl := Label.new()
-		lbl.text     = player_col_labels[c]
-		lbl.position = Vector2(x + 28, main.BOARD_TOP - 20)
-		lbl.add_theme_font_size_override("font_size", 11)
-		lbl.modulate = Color(0.5, 0.75, 1.0)
+		lbl.text = player_col_icons[c]
+		lbl.position = Vector2(x, main.BOARD_TOP - 18)
+		lbl.size = Vector2(main.CELL_W, 16)
+		lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		lbl.add_theme_font_size_override("font_size", 14)
 		main.add_child(lbl)
 
-	var enemy_col_labels := ["前列", "中列", "後列"]
+	# 列アイコンヘッダー（敵陣）
+	var enemy_col_icons := ["⚔", "🚩", "🏹"]
 	for c in range(3):
 		var x: int = _cell_x(1, c)
 		var lbl := Label.new()
-		lbl.text     = enemy_col_labels[c]
-		lbl.position = Vector2(x + 28, main.BOARD_TOP - 20)
-		lbl.add_theme_font_size_override("font_size", 11)
-		lbl.modulate = Color(1.0, 0.5, 0.5)
+		lbl.text = enemy_col_icons[c]
+		lbl.position = Vector2(x, main.BOARD_TOP - 18)
+		lbl.size = Vector2(main.CELL_W, 16)
+		lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		lbl.add_theme_font_size_override("font_size", 14)
 		main.add_child(lbl)
-
-	# 自陣・敵陣ラベル
-	var pl := Label.new()
-	pl.text     = "自  陣"
-	pl.position = Vector2(_cell_x(0, 0) + 60, main.BOARD_TOP - 40)
-	pl.add_theme_font_size_override("font_size", 15)
-	pl.modulate = Color(0.4, 0.8, 1.0)
-	main.add_child(pl)
-
-	var el := Label.new()
-	el.text     = "敵  陣"
-	el.position = Vector2(_cell_x(1, 0) + 60, main.BOARD_TOP - 40)
-	el.add_theme_font_size_override("font_size", 15)
-	el.modulate = Color(1.0, 0.45, 0.45)
-	main.add_child(el)
 
 	# セル生成
 	main.cell_rects  = [[], []]
@@ -129,10 +108,12 @@ func build_ui() -> void:
 				main.cell_rects[side][r].append(rect)
 
 				var lbl := Label.new()
-				lbl.position  = rect.position + Vector2(5, 4)
-				lbl.size      = Vector2(rect.size.x - 6, 28)
+				lbl.position  = rect.position + Vector2(2, 2)
+				lbl.size      = Vector2(rect.size.x - 4, rect.size.y - 4)
 				lbl.add_theme_font_size_override("font_size", 12)
 				lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+				lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+				lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 				main.add_child(lbl)
 				main.cell_labels[side][r].append(lbl)
 
