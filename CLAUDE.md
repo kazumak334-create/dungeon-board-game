@@ -35,6 +35,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - 新規ファイルはCEOがWriteでスケルトン作成→implementerにEdit実装
 - 影響範囲（変更するファイル）と変更しないファイルを明記
 - EffectDB/CardDBのデータ追加とロジック実装は別タスクに分ける
+- **cards.json変更時は必ず既存IDの正確な一覧を指示に含める**（typo防止）
+  例: effect_idを使う場合→EffectDB.EFFECTSのキー一覧を抜粋して添付
+  例: target名を使う場合→CLAUDE.mdのtarget一覧セクションを引用
 
 **implementer → checker 引き継ぎ:**
 - 「何を実現するためのコードか」（設計意図）を含める
