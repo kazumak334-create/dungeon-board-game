@@ -8,6 +8,8 @@ var _char_hp_bars: Array = [null, null]    # [side] -> ColorRect (HPバー)
 var _char_hp_labels: Array = [null, null]  # [side] -> Label (HP数値)
 var _char_panels: Array = [null, null]     # [side] -> Panel
 var _damage_floats: Array = []             # [{label, timer, velocity}]
+var _event_bubble: Label = null            # 重要イベントフキダシ
+var _bubble_timer: float = 0.0             # フキダシ残り表示時間
 var _cell_hp_bars: Array = []             # [side][r][c] -> ColorRect（セル内HPバー）
 var _cell_hp_labels: Array = []           # [side][r][c] -> Label（セル内HP数値）
 var _mana_gauge_bar: ColorRect = null     # マナゲージバー
@@ -225,7 +227,18 @@ func build_ui() -> void:
 	main.log_label.add_theme_font_size_override("font_size", 11)
 	main.log_label.autowrap_mode  = TextServer.AUTOWRAP_WORD_SMART
 	main.log_label.modulate       = Color(0.78, 0.78, 0.78)
+	main.log_label.visible = false  # デフォルト非表示（Lキーでトグル）
 	main.add_child(main.log_label)
+
+	# 重要イベントフキダシ（画面下部・3秒で消える）
+	_event_bubble = Label.new()
+	_event_bubble.position = Vector2(200, 680)
+	_event_bubble.size = Vector2(880, 25)
+	_event_bubble.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_event_bubble.add_theme_font_size_override("font_size", 14)
+	_event_bubble.add_theme_color_override("font_color", Color(1.0, 0.9, 0.6))
+	_event_bubble.visible = false
+	main.add_child(_event_bubble)
 
 	# ---- ゲームオーバー ----
 	main.game_over_label = Label.new()
@@ -928,3 +941,37 @@ func add_log(text: String) -> void:
 	if main.log_lines.size() > 22:
 		main.log_lines.pop_front()
 	main.log_label.text = "\n".join(main.log_lines)
+	# 重要イベントはフキダシに表示
+	if _is_important_event(text):
+		_show_bubble(text)
+
+func _is_important_event(text: String) -> bool:
+	# 重要イベント判定：死亡、本体ダメージ、スキル発動、合成
+	if "倒 " in text: return true
+	if "本体" in text: return true
+	if "[スキル]" in text: return true
+	if "合成" in text: return true
+	if "マナ吸収" in text: return true
+	if "GAME OVER" in text or "YOU WIN" in text: return true
+	return false
+
+func _show_bubble(text: String) -> void:
+	if _event_bubble == null:
+		return
+	# タイムスタンプを除去して表示
+	var display = text
+	if display.begins_with("["):
+		var bracket_end = display.find("]")
+		if bracket_end >= 0:
+			display = display.substr(bracket_end + 2)
+	_event_bubble.text = display
+	_event_bubble.visible = true
+	_bubble_timer = 3.0
+
+func update_bubble(delta: float) -> void:
+	if _bubble_timer > 0:
+		_bubble_timer -= delta
+		if _event_bubble != null:
+			_event_bubble.modulate.a = min(1.0, _bubble_timer)
+		if _bubble_timer <= 0 and _event_bubble != null:
+			_event_bubble.visible = false

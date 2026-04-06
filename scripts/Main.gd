@@ -295,9 +295,14 @@ func _dev_update_drag() -> void:
 		dev_ui._drag_label.position = get_viewport().get_mouse_position() + Vector2(12, -8)
 
 # ---- ゲームループ ----
+func _unhandled_key_input(event: InputEvent) -> void:
+	if event is InputEventKey and event.pressed and event.keycode == KEY_L:
+		log_label.visible = not log_label.visible
+
 func _process(delta: float) -> void:
-	# ダメージフロート更新
+	# ダメージフロート+フキダシ更新
 	game_ui.update_damage_floats(delta)
+	game_ui.update_bubble(delta)
 	# ドラッグ中のラベル追従
 	if dev_mode:
 		_dev_update_drag()
