@@ -91,7 +91,7 @@ func init_skill_timers(unit: Object) -> void:
 			var interval: float = skill["params"]["interval"]
 			if interval > 0.0:
 				unit._skill_timers["support_" + str(i)] = interval
-	# 旧方式active_skill文字列パース（時間経過）は削除済み。timer triggerをskills配列で処理。
+	# 旧方式passive_skill文字列パース（時間経過）は削除済み。timer triggerをskills配列で処理。
 
 func _parse_skill_interval(entry: String) -> float:
 	var marker: String = "時間経過"
@@ -198,7 +198,7 @@ func _check_hp_thresholds() -> void:
 				var u = bm.board[s][r][c]
 				if u == null or not u.is_alive():
 					continue
-				# 旧方式active_skill文字列パースは削除済み
+				# 旧方式passive_skill文字列パースは削除済み
 				# skills配列のon_hp_threshold処理（新方式）
 				for i in range(u.skills.size()):
 					var skill = u.skills[i]
@@ -241,7 +241,7 @@ func _fire_timed_skill(side: int, row: int, col: int, unit: Object, entry: Strin
 				bm.event_queue.push(4, unit, target, "status_apply", 0.0,
 					{"status": "凍結", "stacks": 2, "side": enemy_side, "row": row, "col": c2,
 					 "src_side": side, "src_row": row, "src_col": col, "skill_name": "SPD低下"})
-		bm.active_skill_used.emit(side, row, col, "SPD低下")
+		bm.skill_triggered.emit(side, row, col, "SPD低下")
 	elif "全体回復" in entry:
 		var hp_cost: int = max(1, unit.max_hp / 5)
 		if unit.current_hp > hp_cost:
@@ -261,14 +261,14 @@ func _fire_timed_skill(side: int, row: int, col: int, unit: Object, entry: Strin
 					bm.event_queue.push(4, unit, target, "status_apply", 0.0,
 						{"status": "火傷", "stacks": 2, "side": enemy_side, "row": r2, "col": c2,
 						 "src_side": side, "src_row": row, "src_col": col, "skill_name": "全体ATK低下"})
-		bm.active_skill_used.emit(side, row, col, "全体ATK低下")
+		bm.skill_triggered.emit(side, row, col, "全体ATK低下")
 	elif "ATKバフ" in entry:
 		for c2 in range(3):
 			var ally = bm.board[side][row][c2]
 			if ally != null and ally.is_alive() and ally.race == "獣":
 				ally._temp_atk_bonus = 3
 				ally._temp_atk_timer = 5.0
-		bm.active_skill_used.emit(side, row, col, "ATKバフ")
+		bm.skill_triggered.emit(side, row, col, "ATKバフ")
 	elif "単体大ダメージ" in entry:
 		var best_target: Object = null
 		var best_info: Dictionary = {}
@@ -282,7 +282,7 @@ func _fire_timed_skill(side: int, row: int, col: int, unit: Object, entry: Strin
 		if best_target != null:
 			var big_dmg: int = unit.attack * 3
 			bm.event_queue.push(4, unit, best_target, "damage", float(big_dmg), best_info)
-			bm.active_skill_used.emit(side, row, col, "単体大ダメージ")
+			bm.skill_triggered.emit(side, row, col, "単体大ダメージ")
 	elif "全バフ奪取" in entry:
 		var best_target: Object = null
 		var best_info: Dictionary = {}
@@ -304,7 +304,7 @@ func _fire_timed_skill(side: int, row: int, col: int, unit: Object, entry: Strin
 						best_info = {"enemy_side": enemy_side, "row": r2, "col": c2}
 		if best_target != null and best_buff_count > 0:
 			bm._steal_buffs(unit, best_target, 1.5)
-			bm.active_skill_used.emit(side, row, col, "全バフ奪取")
+			bm.skill_triggered.emit(side, row, col, "全バフ奪取")
 	elif "呪い付与" in entry:
 		for r2 in range(3):
 			for c2 in range(3):
@@ -313,7 +313,7 @@ func _fire_timed_skill(side: int, row: int, col: int, unit: Object, entry: Strin
 					bm.event_queue.push(4, unit, target, "status_apply", 0.0,
 						{"status": "毒", "stacks": 3, "side": enemy_side, "row": r2, "col": c2,
 						 "src_side": side, "src_row": row, "src_col": col, "skill_name": "呪い付与"})
-		bm.active_skill_used.emit(side, row, col, "呪い付与")
+		bm.skill_triggered.emit(side, row, col, "呪い付与")
 	elif "全体凍結" in entry:
 		for c2 in range(3):
 			var target = bm.board[enemy_side][row][c2]
@@ -321,7 +321,7 @@ func _fire_timed_skill(side: int, row: int, col: int, unit: Object, entry: Strin
 				bm.event_queue.push(4, unit, target, "status_apply", 0.0,
 					{"status": "凍結", "stacks": 4, "side": enemy_side, "row": row, "col": c2,
 					 "src_side": side, "src_row": row, "src_col": col, "skill_name": "全体凍結"})
-		bm.active_skill_used.emit(side, row, col, "全体凍結")
+		bm.skill_triggered.emit(side, row, col, "全体凍結")
 	elif "強力な毒" in entry:
 		for c2 in range(3):
 			var target = bm.board[enemy_side][row][c2]
@@ -329,7 +329,7 @@ func _fire_timed_skill(side: int, row: int, col: int, unit: Object, entry: Strin
 				bm.event_queue.push(4, unit, target, "status_apply", 0.0,
 					{"status": "毒", "stacks": 5, "side": enemy_side, "row": row, "col": c2,
 					 "src_side": side, "src_row": row, "src_col": col, "skill_name": "強力な毒"})
-		bm.active_skill_used.emit(side, row, col, "強力な毒")
+		bm.skill_triggered.emit(side, row, col, "強力な毒")
 	elif "全体麻痺" in entry:
 		for c2 in range(3):
 			var target = bm.board[enemy_side][row][c2]
@@ -337,7 +337,7 @@ func _fire_timed_skill(side: int, row: int, col: int, unit: Object, entry: Strin
 				bm.event_queue.push(4, unit, target, "status_apply", 0.0,
 					{"status": "麻痺", "stacks": 2, "side": enemy_side, "row": row, "col": c2,
 					 "src_side": side, "src_row": row, "src_col": col, "skill_name": "全体麻痺"})
-		bm.active_skill_used.emit(side, row, col, "全体麻痺")
+		bm.skill_triggered.emit(side, row, col, "全体麻痺")
 
 func _process_status_ticks() -> void:
 	for s in range(2):

@@ -28,7 +28,7 @@ signal unit_died(side: int, row: int, col: int)
 signal unit_revived(side: int, row: int, col: int)
 signal unit_damaged(side: int, row: int, col: int)
 signal base_damaged(side: int, amount: int)
-signal active_skill_used(side: int, row: int, col: int, skill_name: String)
+signal skill_triggered(side: int, row: int, col: int, skill_name: String)
 signal status_damage(unit_name: String, status: String, damage: int, stacks: int)
 signal status_applied(unit_name: String, status: String, stacks: int)
 signal status_cleared(unit_name: String, status: String)
@@ -378,11 +378,11 @@ func _fire_hp_threshold_skill(side: int, row: int, col: int, unit: Object, entry
 			board[side][row][col] = null
 			attack_timers[side][row][col] = 0.0
 			on_board_changed()
-			active_skill_used.emit(side, row, back_col, "後退")
+			skill_triggered.emit(side, row, back_col, "後退")
 	# 結晶化（完全無敵3s）
 	elif "結晶化" in entry:
 		unit._invincible_timer = 3.0
-		active_skill_used.emit(side, row, col, "結晶化")
+		skill_triggered.emit(side, row, col, "結晶化")
 	# 前列強制突撃
 	elif "前列強制突撃" in entry:
 		var front_col: int = 2 if side == 0 else 0
@@ -392,14 +392,14 @@ func _fire_hp_threshold_skill(side: int, row: int, col: int, unit: Object, entry
 			board[side][row][col] = null
 			attack_timers[side][row][col] = 0.0
 			on_board_changed()
-			active_skill_used.emit(side, row, front_col, "前列強制突撃")
+			skill_triggered.emit(side, row, front_col, "前列強制突撃")
 	# ATK/SPD2倍（10秒間）
 	elif "2倍" in entry:
 		unit._temp_atk_bonus = unit.attack  # ATK2倍 = 現ATK分を加算
 		unit._temp_atk_timer = 10.0
 		unit._temp_spd_bonus = unit.attack_interval * 0.5  # 攻撃間隔半減
 		unit._temp_spd_timer = 10.0
-		active_skill_used.emit(side, row, col, "ATK/SPD2倍")
+		skill_triggered.emit(side, row, col, "ATK/SPD2倍")
 
 # ---- 盤面効果システム ----
 

@@ -91,7 +91,7 @@ func _do_attack(side: int, row: int, col: int, attacker: Object, enemy_side: int
 		effective_atk = max(1, int(float(effective_atk) * (1.0 - burn_reduction)))
 	# クリティカル（初撃ATK×2）
 	var is_critical: bool = false
-	if attacker._first_attack and "クリティカル" in attacker.active_skill:
+	if attacker._first_attack and "クリティカル" in attacker.passive_skill:
 		effective_atk *= 2
 		attacker._first_attack = false
 		is_critical = true
@@ -167,12 +167,12 @@ func _do_attack(side: int, row: int, col: int, attacker: Object, enemy_side: int
 									attacker, behind_target, "damage", float(pen_dmg),
 									{"enemy_side": enemy_side, "row": target_row, "col": behind_col}
 								)
-				# 命中時アクティブスキル（PRIORITY_ACTIVE）— skip_on_hit時はスキップ
+				# 命中時スキル（PRIORITY_ACTIVE）— skip_on_hit時はスキップ
 				if not skip_on_hit:
 					_push_on_hit_effects(side, row, col, attacker, target,
 						enemy_side, target_row, target_col, actual_damage)
 	if is_critical:
-		bm.active_skill_used.emit(side, row, col, "クリティカル")
+		bm.skill_triggered.emit(side, row, col, "クリティカル")
 	if not hit_any:
 		# 本体ダメージイベントをキューに積む
 		bm.event_queue.push(
@@ -196,7 +196,7 @@ func _push_on_hit_effects(side: int, row: int, col: int, attacker: Object, targe
 					"board_manager": bm, "deck_manager": bm.deck_manager_ref, "enemy_ai": bm.enemy_ai_ref,
 					"event_queue": bm.event_queue
 				})
-	# 旧方式（active_skill文字列パース）は削除済み。全てskills配列で処理。
+	# 旧方式（passive_skill文字列パース）は削除済み。全てskills配列で処理。
 
 func _get_target_rows(attacker_row: int, attack_range: String) -> Array:
 	match attack_range:
@@ -326,7 +326,7 @@ func process_on_kill(killer: Object) -> void:
 					"board_manager": bm, "deck_manager": bm.deck_manager_ref, "enemy_ai": bm.enemy_ai_ref,
 					"event_queue": bm.event_queue
 				})
-	# 旧方式active_skill文字列パースは削除済み。全てskills配列で処理。
+	# 旧方式passive_skill文字列パースは削除済み。全てskills配列で処理。
 
 func process_debuff_spread(killer: Object, victim: Object, victim_side: int, victim_row: int, victim_col: int) -> void:
 	# 死亡した敵の周囲（上下左右）の敵にデバフを波及
@@ -363,4 +363,4 @@ func process_debuff_spread(killer: Object, victim: Object, victim_side: int, vic
 				 "side": victim_side, "row": r2, "col": c2,
 				 "src_side": k_side, "src_row": k_row, "src_col": k_col, "skill_name": "デバフ波及"})
 	if k_side >= 0:
-		bm.active_skill_used.emit(k_side, k_row, k_col, "デバフ波及")
+		bm.skill_triggered.emit(k_side, k_row, k_col, "デバフ波及")

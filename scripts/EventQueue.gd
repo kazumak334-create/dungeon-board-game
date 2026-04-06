@@ -7,7 +7,8 @@ extends Node
 const PRIORITY_IMMEDIATE = 1  # ダメージ・回復・HP変動
 const PRIORITY_STATUS    = 2  # 状態異常付与・解除・スタック変動
 const PRIORITY_SUPPORT   = 3  # サポート効果
-const PRIORITY_ACTIVE    = 4  # アクティブスキル
+const PRIORITY_PASSIVE   = 4  # パッシブスキル
+const PRIORITY_ACTIVE    = PRIORITY_PASSIVE  # 後方互換エイリアス
 const PRIORITY_ARTIFACT  = 5  # アーティファクト効果
 const PRIORITY_BOARD     = 6  # 盤面条件チェック
 const PRIORITY_MERGE     = 7  # 合体判定・位置変化
@@ -115,7 +116,7 @@ func flush(board_manager: Node, base_hp: Array) -> void:
 						tgt.current_hp = min(tgt.max_hp, tgt.current_hp + int(event["value"]))
 						var ex: Dictionary = event["extra"]
 						if ex.has("skill_name"):
-							board_manager.active_skill_used.emit(
+							board_manager.skill_triggered.emit(
 								int(ex["src_side"]), int(ex["src_row"]), int(ex["src_col"]),
 								ex["skill_name"]
 							)
@@ -167,7 +168,7 @@ func flush(board_manager: Node, base_hp: Array) -> void:
 					if stacks > 0:
 						board_manager.status_applied.emit(tgt.unit_name, status, stacks)
 						if ex.has("skill_name"):
-							board_manager.active_skill_used.emit(
+							board_manager.skill_triggered.emit(
 								int(ex["src_side"]), int(ex["src_row"]), int(ex["src_col"]),
 								ex["skill_name"]
 							)
@@ -195,12 +196,12 @@ func flush(board_manager: Node, base_hp: Array) -> void:
 						adj.shuffle()
 						var pos = adj[0]
 						var clone = src.clone()
-						clone.active_skill = ""  # 追加召喚の連鎖防止
+						clone.passive_skill = ""  # 追加召喚の連鎖防止
 						board_manager.board[s][pos[0]][pos[1]] = clone
 						board_manager.attack_timers[s][pos[0]][pos[1]] = clone.attack_interval
 						board_manager.emit_signal("unit_placed", s, pos[0], pos[1], clone)
 						board_manager.on_board_changed()
-					board_manager.active_skill_used.emit(s, sr, sc, "追加召喚")
+					board_manager.skill_triggered.emit(s, sr, sc, "追加召喚")
 
 				"draw_cards":
 					var ex: Dictionary = event["extra"]
@@ -209,7 +210,7 @@ func flush(board_manager: Node, base_hp: Array) -> void:
 					if s >= 0 and count > 0:
 						board_manager.draw_cards_requested.emit(s, count)
 					if ex.has("skill_name"):
-						board_manager.active_skill_used.emit(
+						board_manager.skill_triggered.emit(
 							ex.get("src_side", -1), ex.get("src_row", -1),
 							ex.get("src_col", -1), ex["skill_name"])
 
@@ -232,7 +233,7 @@ func flush(board_manager: Node, base_hp: Array) -> void:
 					board_manager.attack_timers[s][sr][sc] = 0.0
 					board_manager.on_board_changed()
 					if ex.has("skill_name"):
-						board_manager.active_skill_used.emit(s, sr, front, ex["skill_name"])
+						board_manager.skill_triggered.emit(s, sr, front, ex["skill_name"])
 
 				"support_apply":
 					# 同パス内で1回のみ実行（複数 board_change が重なる場合に重複防止）

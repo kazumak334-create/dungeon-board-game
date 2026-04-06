@@ -43,7 +43,7 @@ func _build_default_deck() -> void:
 				u.attack = d["atk"]; u.attack_interval = d["interval"]
 				u.cost = d["cost"]; u.assigned_col = col
 				u.race = d["race"]; u.attack_range = d["range"]
-				u.support_effect = ""; u.active_skill = ""
+				u.support_effect = ""; u.passive_skill = ""
 				u.skills = d.get("skills", []).duplicate(true)
 				deck.append(u)
 			elif CardDB.SPELLS.has(card_name):
@@ -74,7 +74,7 @@ func _build_default_deck() -> void:
 		u.attack = d["atk"]; u.attack_interval = d["interval"]
 		u.cost = d["cost"]; u.assigned_col = entry["col"]
 		u.race = d["race"]; u.attack_range = d["range"]
-		u.support_effect = ""; u.active_skill = ""
+		u.support_effect = ""; u.passive_skill = ""
 		u.skills = d.get("skills", []).duplicate(true)
 		deck.append(u)
 	for spell_name in CardDB.PLAYER_SPELLS:

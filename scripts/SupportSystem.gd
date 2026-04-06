@@ -92,15 +92,15 @@ func apply_support_effects() -> void:
 	# プレイヤークラススキル適用
 	if bm.player_data != null:
 		_apply_class_skills(0, bm.player_data)
-	# アクティブスキル由来のバフ + ATKバフ上限適用
+	# パッシブスキル由来のバフ + ATKバフ上限適用
 	for s in range(2):
 		for r in range(3):
 			for c in range(3):
 				var u = bm.board[s][r][c]
 				if u == null:
 					continue
-				# アクティブスキル文字列に吸血があれば常時スタック維持
-				if "吸血" in u.active_skill and u.lifesteal_stacks < 5:
+				# パッシブスキル文字列に吸血があれば常時スタック維持
+				if "吸血" in u.passive_skill and u.lifesteal_stacks < 5:
 					u.lifesteal_stacks = 5
 				u._has_lifesteal = u.lifesteal_stacks > 0
 				# 貫通はスキル（ON/OFF）のためスタック処理なし
@@ -245,7 +245,7 @@ func push_summon_effects(side: int, row: int, col: int, unit: Object) -> void:
 					"board_manager": bm, "deck_manager": bm.deck_manager_ref, "enemy_ai": bm.enemy_ai_ref,
 					"event_queue": bm.event_queue
 				})
-	# 旧方式（active_skill文字列パース）は削除済み。全てskills配列で処理。
+	# 旧方式（passive_skill文字列パース）は削除済み。全てskills配列で処理。
 
 func _apply_class_skills(side: int, pdata: RefCounted) -> void:
 	for skill in pdata.skills:

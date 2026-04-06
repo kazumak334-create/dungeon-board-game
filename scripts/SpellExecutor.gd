@@ -117,7 +117,7 @@ func execute(spell: Object, side: int, board_manager: Node,
 			for r in range(3):
 				var target = board_manager.board[enemy_side][r][col]
 				if target != null and target.is_alive():
-					event_queue.push(EventQueue.PRIORITY_ACTIVE, null, target, "status_apply", 0.0,
+					event_queue.push(EventQueue.PRIORITY_PASSIVE, null, target, "status_apply", 0.0,
 						{"status": "毒", "stacks": 5, "side": enemy_side, "row": r, "col": col,
 						 "src_side": side, "src_row": -1, "src_col": -1, "skill_name": "毒霧"})
 			_inject_status_card(deck_manager, "毒カード")
@@ -236,7 +236,7 @@ func _apply_front_status(side: int, bm: Node, eq: Node, status: String, stacks: 
 		for r in range(3):
 			var u = bm.board[s][r][front]
 			if u != null and u.is_alive():
-				eq.push(EventQueue.PRIORITY_ACTIVE, null, u, "status_apply", 0.0,
+				eq.push(EventQueue.PRIORITY_PASSIVE, null, u, "status_apply", 0.0,
 					{"status": status, "stacks": stacks, "side": s, "row": r, "col": front,
 					 "src_side": side, "src_row": -1, "src_col": -1, "skill_name": status})
 
@@ -248,7 +248,7 @@ func _apply_front_damage_and_status(side: int, bm: Node, eq: Node, dmg: int, sta
 			if u != null and u.is_alive():
 				eq.push(EventQueue.PRIORITY_IMMEDIATE, null, u, "damage", float(dmg),
 					{"enemy_side": s, "row": r, "col": front})
-				eq.push(EventQueue.PRIORITY_ACTIVE, null, u, "status_apply", 0.0,
+				eq.push(EventQueue.PRIORITY_PASSIVE, null, u, "status_apply", 0.0,
 					{"status": status, "stacks": stacks, "side": s, "row": r, "col": front,
 					 "src_side": side, "src_row": -1, "src_col": -1, "skill_name": status})
 
@@ -256,12 +256,12 @@ func _apply_self_status(side: int, bm: Node, eq: Node, status: String, stacks: i
 	var units = _get_all_units_with_pos(side, bm)
 	if units.is_empty():
 		return
-	# スライム種族のユニットを優先（active_skill文字列依存を排除）
+	# スライム種族のユニットを優先（passive_skill文字列依存を排除）
 	var priority: Array = units.filter(func(u):
 		return u["unit"].race == "スライム")
 	var pool: Array = priority if not priority.is_empty() else units
 	var pick = pool[randi() % pool.size()]
-	eq.push(EventQueue.PRIORITY_ACTIVE, null, pick["unit"], "status_apply", 0.0,
+	eq.push(EventQueue.PRIORITY_PASSIVE, null, pick["unit"], "status_apply", 0.0,
 		{"status": status, "stacks": stacks, "side": side, "row": pick["row"], "col": pick["col"],
 		 "src_side": side, "src_row": -1, "src_col": -1, "skill_name": status + "カード"})
 

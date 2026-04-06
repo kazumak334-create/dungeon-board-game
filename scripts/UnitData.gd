@@ -12,7 +12,7 @@ var assigned_col: int = 0
 var race: String = ""
 var attack_range: String = "1行"
 var support_effect: String = ""   # サポート効果（常時発動/召喚時/条件達成時）
-var active_skill: String = ""     # アクティブスキル（命中時/撃破時/HP閾値時/時間経過/その他）
+var passive_skill: String = ""     # パッシブスキル（召喚時/死亡時/HP閾値時等、位置無関係）
 # 呪文カード用フィールド（ユニットカードでは使用しない）
 var card_type: String = "unit"    # "unit" | "spell" | "status_spell"
 var spell_id: String = ""         # 呪文識別子
@@ -43,7 +43,7 @@ var _has_impact: bool = false     # 衝撃：後ろ1マス50%
 var _has_big_penetrate: bool = false  # 大貫通：後ろ1マス100% + 後ろ2マス50%
 var lifesteal_stacks: int = 0    # 吸血スタック：回復率3%/スタック、2秒ごと-1
 var _regen_stacks: int = 0       # リジェネバフ：2秒ごとにHP5%×スタック数回復（重複可）
-# アクティブスキル状態（永続・cloneには引き継がない）
+# パッシブスキル状態（永続・cloneには引き継がない）
 var _has_revived: bool = false
 var _support_revive: bool = false    # サポート効果由来の再起（毎フレーム再計算）
 var _support_revive_used: bool = false  # サポート再起を使用済みか（1回限り）
@@ -90,7 +90,7 @@ func clone() -> RefCounted:
 	d.race = race
 	d.attack_range = attack_range
 	d.support_effect = support_effect
-	d.active_skill = active_skill
+	d.passive_skill = passive_skill
 	d.card_type = card_type
 	d.spell_id = spell_id
 	d.spell_target = spell_target

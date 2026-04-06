@@ -429,7 +429,7 @@ func _build_card(index: int) -> Object:
 		obj.unit_name = card["name"]; obj.max_hp = d["hp"]; obj.current_hp = d["hp"]
 		obj.attack = d["atk"]; obj.attack_interval = d["interval"]; obj.cost = d["cost"]
 		obj.assigned_col = d["col"]; obj.race = d["race"]; obj.attack_range = d["range"]
-		obj.support_effect = ""; obj.active_skill = ""
+		obj.support_effect = ""; obj.passive_skill = ""
 		obj.skills = d.get("skills", []).duplicate(true)
 	elif card["type"] in ["artifact", "permanent_artifact"]:
 		# アーティファクト: UnitDataを軽量ラッパーとして使用

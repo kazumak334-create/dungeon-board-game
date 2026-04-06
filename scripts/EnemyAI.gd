@@ -38,7 +38,7 @@ func _build_enemy_deck() -> void:
 		u.attack = d["atk"]; u.attack_interval = d["interval"]
 		u.cost = d["cost"]; u.assigned_col = entry["col"]
 		u.race = d["race"]; u.attack_range = d["range"]
-		u.support_effect = ""; u.active_skill = ""
+		u.support_effect = ""; u.passive_skill = ""
 		u.skills = d.get("skills", []).duplicate(true)
 		enemy_deck.append(u)
 	enemy_deck.shuffle()

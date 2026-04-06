@@ -85,7 +85,7 @@ func _ready() -> void:
 	board_manager.unit_revived.connect(_on_unit_revived)
 	board_manager.unit_damaged.connect(_on_unit_damaged)
 	board_manager.base_damaged.connect(_on_base_damaged)
-	board_manager.active_skill_used.connect(_on_active_skill_used)
+	board_manager.skill_triggered.connect(_on_skill_triggered)
 	board_manager.status_damage.connect(_on_status_damage)
 	board_manager.status_cleared.connect(_on_status_cleared)
 	board_manager.draw_cards_requested.connect(_on_draw_cards_requested)
@@ -168,7 +168,7 @@ func _build_synthesis_registry() -> void:
 		u.cost = r["cost"]; u.assigned_col = r["col"]
 		u.race = r.get("race", "スライム")
 		u.attack_range = r.get("range", "1行")
-		u.support_effect = ""; u.active_skill = ""
+		u.support_effect = ""; u.passive_skill = ""
 		u.skills = r.get("skills", []).duplicate(true)
 		board_manager.synthesis_registry.append({
 			"base": recipe["base"],
@@ -346,10 +346,10 @@ func _on_base_damaged(side: int, amount: int) -> void:
 	var side_name: String = "自陣" if side == 0 else "敵陣"
 	_add_log("! %s本体 -%d (残:%d)" % [side_name, amount, base_hp[side]])
 
-func _on_active_skill_used(side: int, row: int, col: int, skill_name: String) -> void:
+func _on_skill_triggered(side: int, row: int, col: int, skill_name: String) -> void:
 	var unit = board_manager.get_unit(side, row, col)
 	var name: String = unit.unit_name if unit != null else "?"
-	_add_log("[アクティブ] %s の %s 発動" % [name, skill_name])
+	_add_log("[スキル] %s の %s 発動" % [name, skill_name])
 	skill_flash_timers[side][row][col] = 0.6
 	skill_flash_names[side][row][col]  = skill_name
 	_cell_dirty[side][row][col] = true

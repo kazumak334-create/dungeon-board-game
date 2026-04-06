@@ -182,6 +182,32 @@ func build_ui() -> void:
 	main.restart_button.pressed.connect(main._on_restart_pressed)
 	main.add_child(main.restart_button)
 
+	# ゲームスピード調整
+	_build_speed_buttons()
+
+func _build_speed_buttons() -> void:
+	var speeds = [1.0, 2.0, 4.0]
+	var labels = ["x1", "x2", "x4"]
+	var base_x = 1100
+	var base_y = 8
+
+	var speed_title = Label.new()
+	speed_title.text = "速度:"
+	speed_title.position = Vector2(base_x - 40, base_y + 5)
+	speed_title.add_theme_font_size_override("font_size", 13)
+	speed_title.add_theme_color_override("font_color", Color(0.6, 0.6, 0.6))
+	main.add_child(speed_title)
+
+	for i in range(speeds.size()):
+		var btn = Button.new()
+		btn.text = labels[i]
+		btn.position = Vector2(base_x + i * 55, base_y)
+		btn.size = Vector2(50, 28)
+		btn.add_theme_font_size_override("font_size", 13)
+		var spd = speeds[i]
+		btn.pressed.connect(func(): main.game_speed = spd)
+		main.add_child(btn)
+
 func _build_mana_bar() -> void:
 	var bar_y: int = main.BOARD_TOP + 3 * main.CELL_H + 42
 	var bar_x: int = _cell_x(0, 0)
@@ -593,7 +619,7 @@ func on_cell_hover(side: int, r: int, c: int) -> void:
 		lines.append_array(support_lines)
 	if active_lines.size() > 0:
 		lines.append("")
-		lines.append("■ アクティブスキル:")
+		lines.append("■ パッシブスキル:")
 		lines.append_array(active_lines)
 	var buffs_h: Array = []
 	if unit._atk_bonus > 0:        buffs_h.append("ATK+%d" % unit._atk_bonus)
