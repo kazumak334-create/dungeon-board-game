@@ -2,6 +2,17 @@
 
 ## [Unreleased]
 
+### refactor: EffectExecutor.gd を3ファイルに分割（R10対応） — 2026-04-06
+
+#### 変更ファイル
+- `scripts/EffectExecutor.gd` — エントリポイントのみ残存（103行）。match文を`_actions.do_*()`呼び出しに変換
+- `scripts/EffectTargets.gd` — 新規作成。ターゲット解決ロジック（281行）
+- `scripts/EffectActions.gd` — 新規作成。effect type実行関数群（724行）
+
+#### 変更概要
+960行のEffectExecutor.gdをR10ルール（800行超で分離必須）に従い3ファイルへ分割。
+ロジックの変更は一切なく、移動のみ。
+
 ### CheckAgent — 2026-04-06: 修正2件
 
 #### 対象ファイル
