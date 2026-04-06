@@ -124,9 +124,11 @@ func process_ai(delta: float, board: Node) -> void:
 	if next_card == null:
 		return
 	# マナ上限超過チェック：コスト > マナ上限 → スキップ（捨て札へ）
+	# スキップも詠唱扱い（クールダウン消費）
 	if next_card.cost > int(MANA_MAX) and next_card.cost != -1:
 		enemy_deck.remove_at(0)
 		enemy_discard.append(next_card)
+		_check_timer = check_interval  # スキップにもクールダウン適用
 		_pick_next_card()
 		return
 	if mana < next_card.cost:

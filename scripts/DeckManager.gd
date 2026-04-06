@@ -186,9 +186,11 @@ func process_deck(delta: float, board: Node) -> void:
 					effective_cost = max(0, effective_cost + amount)
 					print("[DeckManager] 錬金術師コスト軽減: %s %d→%d" % [top.unit_name, top.cost, effective_cost])
 	# マナ上限超過チェック：コスト > マナ上限 → スキップ（捨て札へ）
+	# スキップも詠唱扱い（クールダウン消費）
 	if top.cost > int(MANA_MAX) and top.cost != -1:
 		deck.remove_at(0)
 		discard.append(top)
+		_check_timer = check_interval  # スキップにもクールダウン適用
 		print("[DeckManager] スキップ: %s (コスト%d > マナ上限%d)" % [top.unit_name, top.cost, int(MANA_MAX)])
 		return
 	if mana < effective_cost:
