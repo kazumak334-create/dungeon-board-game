@@ -8,6 +8,12 @@ var _char_hp_bars: Array = [null, null]    # [side] -> ColorRect (HPバー)
 var _char_hp_labels: Array = [null, null]  # [side] -> Label (HP数値)
 var _char_panels: Array = [null, null]     # [side] -> Panel
 var _damage_floats: Array = []             # [{label, timer, velocity}]
+var _cell_hp_bars: Array = []             # [side][r][c] -> ColorRect（セル内HPバー）
+var _cell_hp_labels: Array = []           # [side][r][c] -> Label（セル内HP数値）
+var _mana_gauge_bar: ColorRect = null     # マナゲージバー
+var _mana_gauge_label: Label = null       # マナ数値ラベル
+var _pause_button: Button = null          # 一時停止ボタン
+var _env_label: Label = null              # 環境表示ラベル
 
 func setup(p_main: Node) -> void:
 	main = p_main
@@ -28,6 +34,19 @@ func build_ui() -> void:
 	title.add_theme_font_size_override("font_size", 17)
 	title.modulate = Color(0.9, 0.85, 0.55)
 	main.add_child(title)
+
+	# 環境表示
+	_env_label = Label.new()
+	var env_id: String = GameSession.base_environment
+	var env_display: String = ""
+	if env_id != "" and env_id != "env_none":
+		var env_def: Dictionary = CardDB.ENVIRONMENTS.get(env_id, {})
+		env_display = env_def.get("display", env_id)
+	_env_label.text = "環境: %s" % env_display if env_display != "" else ""
+	_env_label.position = Vector2(20, 32)
+	_env_label.add_theme_font_size_override("font_size", 13)
+	_env_label.modulate = Color(0.7, 0.9, 0.7)
+	main.add_child(_env_label)
 
 	# 中央ライン
 	var line := ColorRect.new()
@@ -85,15 +104,20 @@ func build_ui() -> void:
 	# セル生成
 	main.cell_rects  = [[], []]
 	main.cell_labels = [[], []]
+	_cell_hp_bars  = [[], []]
+	_cell_hp_labels = [[], []]
 	for side in range(2):
 		for r in range(3):
 			main.cell_rects[side].append([])
 			main.cell_labels[side].append([])
+			_cell_hp_bars[side].append([])
+			_cell_hp_labels[side].append([])
 			for c in range(3):
 				var x: int = _cell_x(side, c)
+				var cell_y: int = main.BOARD_TOP + r * main.CELL_H
 				var rect := ColorRect.new()
 				rect.size     = Vector2(main.CELL_W - 4, main.CELL_H - 4)
-				rect.position = Vector2(x + 2, main.BOARD_TOP + r * main.CELL_H + 2)
+				rect.position = Vector2(x + 2, cell_y + 2)
 				rect.color    = Color(0.13, 0.13, 0.2)
 				rect.mouse_entered.connect(on_cell_hover.bind(side, r, c))
 				rect.mouse_exited.connect(on_cell_hover_end)
@@ -102,11 +126,38 @@ func build_ui() -> void:
 
 				var lbl := Label.new()
 				lbl.position  = rect.position + Vector2(5, 4)
-				lbl.size      = rect.size - Vector2(6, 6)
+				lbl.size      = Vector2(rect.size.x - 6, 28)
 				lbl.add_theme_font_size_override("font_size", 12)
 				lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 				main.add_child(lbl)
 				main.cell_labels[side][r].append(lbl)
+
+				# HPバー背景
+				var hp_bar_bg := ColorRect.new()
+				hp_bar_bg.size     = Vector2(rect.size.x - 10, 7)
+				hp_bar_bg.position = Vector2(x + 7, cell_y + 36)
+				hp_bar_bg.color    = Color(0.2, 0.2, 0.2)
+				hp_bar_bg.visible  = false
+				main.add_child(hp_bar_bg)
+
+				# HPバー前景
+				var hp_bar := ColorRect.new()
+				hp_bar.size     = Vector2(rect.size.x - 10, 7)
+				hp_bar.position = Vector2(x + 7, cell_y + 36)
+				hp_bar.color    = Color(0.2, 0.8, 0.3)
+				hp_bar.visible  = false
+				main.add_child(hp_bar)
+				_cell_hp_bars[side][r].append({"bg": hp_bar_bg, "bar": hp_bar})
+
+				# HP数値ラベル
+				var hp_lbl := Label.new()
+				hp_lbl.position = Vector2(x + 7, cell_y + 45)
+				hp_lbl.size     = Vector2(rect.size.x - 10, 14)
+				hp_lbl.add_theme_font_size_override("font_size", 10)
+				hp_lbl.add_theme_color_override("font_color", Color(0.85, 0.85, 0.85))
+				hp_lbl.visible  = false
+				main.add_child(hp_lbl)
+				_cell_hp_labels[side][r].append(hp_lbl)
 
 	# ---- プレイヤー/敵キャラ立絵+HPバー ----
 	_build_character_panel(0)  # プレイヤー側
@@ -198,7 +249,7 @@ func build_ui() -> void:
 func _build_speed_buttons() -> void:
 	var speeds = [1.0, 2.0, 4.0]
 	var labels = ["x1", "x2", "x4"]
-	var base_x = 1100
+	var base_x = 1020
 	var base_y = 8
 
 	var speed_title = Label.new()
@@ -211,16 +262,32 @@ func _build_speed_buttons() -> void:
 	for i in range(speeds.size()):
 		var btn = Button.new()
 		btn.text = labels[i]
-		btn.position = Vector2(base_x + i * 55, base_y)
-		btn.size = Vector2(50, 28)
+		btn.position = Vector2(base_x + i * 50, base_y)
+		btn.size = Vector2(45, 28)
 		btn.add_theme_font_size_override("font_size", 13)
 		var spd = speeds[i]
 		btn.pressed.connect(func(): main.game_speed = spd)
 		main.add_child(btn)
 
+	# 一時停止ボタン
+	_pause_button = Button.new()
+	_pause_button.text = "⏸"
+	_pause_button.position = Vector2(base_x + speeds.size() * 50 + 8, base_y)
+	_pause_button.size = Vector2(45, 28)
+	_pause_button.add_theme_font_size_override("font_size", 14)
+	_pause_button.pressed.connect(_on_pause_pressed)
+	main.add_child(_pause_button)
+
+func _on_pause_pressed() -> void:
+	main.game_paused = not main.game_paused
+	if _pause_button != null:
+		_pause_button.text = "▶" if main.game_paused else "⏸"
+
 func _build_mana_bar() -> void:
 	var bar_y: int = main.BOARD_TOP + 3 * main.CELL_H + 42
 	var bar_x: int = _cell_x(0, 0)
+	var bar_w: int = 220
+	var bar_h: int = 16
 
 	var bar_title := Label.new()
 	bar_title.text     = "Mana"
@@ -229,20 +296,30 @@ func _build_mana_bar() -> void:
 	bar_title.modulate = Color(1.0, 0.85, 0.2)
 	main.add_child(bar_title)
 
-	main.mana_bar_cells = []
-	for i in range(10):
-		var cell := ColorRect.new()
-		cell.size     = Vector2(22, 18)
-		cell.position = Vector2(bar_x + i * 25, bar_y)
-		cell.color    = Color(0.2, 0.2, 0.1)
-		main.add_child(cell)
-		main.mana_bar_cells.append(cell)
+	# ゲージ背景
+	var gauge_bg := ColorRect.new()
+	gauge_bg.size     = Vector2(bar_w, bar_h)
+	gauge_bg.position = Vector2(bar_x, bar_y)
+	gauge_bg.color    = Color(0.1, 0.1, 0.07)
+	main.add_child(gauge_bg)
 
-	main.mana_value_label = Label.new()
-	main.mana_value_label.position = Vector2(bar_x + 10 * 25 + 6, bar_y)
-	main.mana_value_label.add_theme_font_size_override("font_size", 13)
-	main.mana_value_label.modulate = Color(1.0, 0.9, 0.3)
-	main.add_child(main.mana_value_label)
+	# ゲージ前景
+	_mana_gauge_bar = ColorRect.new()
+	_mana_gauge_bar.size     = Vector2(0, bar_h)
+	_mana_gauge_bar.position = Vector2(bar_x, bar_y)
+	_mana_gauge_bar.color    = Color(0.2, 0.5, 1.0)
+	main.add_child(_mana_gauge_bar)
+
+	# 数値ラベル
+	_mana_gauge_label = Label.new()
+	_mana_gauge_label.position = Vector2(bar_x + bar_w + 8, bar_y - 1)
+	_mana_gauge_label.add_theme_font_size_override("font_size", 13)
+	_mana_gauge_label.modulate = Color(1.0, 0.9, 0.3)
+	main.add_child(_mana_gauge_label)
+
+	# 互換用（参照先が壊れないよう空配列を設定）
+	main.mana_bar_cells = []
+	main.mana_value_label = _mana_gauge_label
 
 func _build_equipment_ui() -> void:
 	var eq_y: int = main.BOARD_TOP + 3 * main.CELL_H + 68
@@ -470,6 +547,8 @@ func _build_character_panel(side: int) -> void:
 # ---- ダメージフロート ----
 
 func spawn_damage_float(side: int, row: int, col: int, amount: int, is_heal: bool = false) -> void:
+	if amount == 0:
+		return
 	var x = _cell_x(side, col) + main.CELL_W / 2 - 15
 	var y = main.BOARD_TOP + row * main.CELL_H + 10
 	var label = Label.new()
@@ -564,8 +643,6 @@ func render_cell(side: int, r: int, c: int) -> void:
 			rect.color = Color(0.9, 0.75 * f + 0.1, 0.0)
 		else:
 			rect.color = Color(0.11, 0.11, 0.17)
-		var bar_filled: int = int(hp_ratio * 8)
-		var hp_bar: String = "█".repeat(bar_filled) + "░".repeat(8 - bar_filled)
 		var buffs: Array = []
 		if unit._atk_bonus > 0:        buffs.append("ATK+%d" % unit._atk_bonus)
 		if unit._interval_bonus > 0.0:  buffs.append("SPD+")
@@ -585,14 +662,38 @@ func render_cell(side: int, r: int, c: int) -> void:
 			flash_line = "★" + main.skill_flash_names[side][r][c] + "!"
 		var lines: Array = [
 			unit.unit_name,
-			"%s HP%d/%d ATK%d" % [hp_bar, unit.current_hp, unit.max_hp, unit.attack],
+			"ATK%d" % unit.attack,
 		]
 		if buff_line != "": lines.append(buff_line)
 		if flash_line != "": lines.append(flash_line)
 		lbl.text = "\n".join(lines)
+		# ColorRect HPバー更新
+		if _cell_hp_bars.size() > side and _cell_hp_bars[side].size() > r and _cell_hp_bars[side][r].size() > c:
+			var hp_dict = _cell_hp_bars[side][r][c]
+			var bar_max_w: float = rect.size.x - 10.0
+			hp_dict["bg"].visible = true
+			hp_dict["bar"].visible = true
+			hp_dict["bar"].size.x = int(bar_max_w * clamp(hp_ratio, 0.0, 1.0))
+			if hp_ratio > 0.5:
+				hp_dict["bar"].color = Color(0.2, 0.8, 0.3)
+			elif hp_ratio > 0.2:
+				hp_dict["bar"].color = Color(0.85, 0.75, 0.1)
+			else:
+				hp_dict["bar"].color = Color(0.9, 0.2, 0.2)
+		if _cell_hp_labels.size() > side and _cell_hp_labels[side].size() > r and _cell_hp_labels[side][r].size() > c:
+			var hp_lbl = _cell_hp_labels[side][r][c]
+			hp_lbl.visible = true
+			hp_lbl.text = "%d/%d" % [unit.current_hp, unit.max_hp]
 	else:
 		rect.color = Color(0.11, 0.11, 0.17)
 		lbl.text   = ""
+		# HPバー非表示
+		if _cell_hp_bars.size() > side and _cell_hp_bars[side].size() > r and _cell_hp_bars[side][r].size() > c:
+			var hp_dict = _cell_hp_bars[side][r][c]
+			hp_dict["bg"].visible = false
+			hp_dict["bar"].visible = false
+		if _cell_hp_labels.size() > side and _cell_hp_labels[side].size() > r and _cell_hp_labels[side][r].size() > c:
+			_cell_hp_labels[side][r][c].visible = false
 	# 盤面効果の可視化
 	var te_vis = main.board_manager.board_effects[side][r][c]
 	if te_vis != null:
@@ -630,14 +731,17 @@ func update_base_hp() -> void:
 			_char_hp_labels[side].text = "%d" % main.base_hp[side]
 
 func _update_mana() -> void:
-	var filled: int = int(main.deck_manager.mana)
-	for i in range(10):
-		var cell: ColorRect = main.mana_bar_cells[i]
-		if i < filled:
-			cell.color = Color(1.0, 0.85, 0.1)
-		else:
-			cell.color = Color(0.18, 0.17, 0.07)
-	main.mana_value_label.text = "%.1f / 10" % main.deck_manager.mana
+	var mana: float = main.deck_manager.mana
+	var mana_max: float = main.deck_manager.MANA_MAX
+	var ratio: float = clamp(mana / max(1.0, mana_max), 0.0, 1.0)
+	var bar_w: int = 220
+	if _mana_gauge_bar != null:
+		_mana_gauge_bar.size.x = int(bar_w * ratio)
+		# 色: 低(青) → 高(黄)
+		var gauge_color: Color = Color(0.2, 0.5, 1.0).lerp(Color(1.0, 0.85, 0.1), ratio)
+		_mana_gauge_bar.color = gauge_color
+	if _mana_gauge_label != null:
+		_mana_gauge_label.text = "%.1f / %d（上限%d）" % [mana, int(mana_max), int(mana_max)]
 
 func _update_next_card() -> void:
 	var next = main.deck_manager.get_next_card()

@@ -2,6 +2,20 @@
 
 ## [Unreleased]
 
+### feat: バトル画面UI改善 — 2026-04-06
+
+#### 変更ファイル
+- `scripts/GameUI.gd` — 7項目のUI改善を実装
+
+#### 変更内容
+1. 環境表示: 画面上部に `GameSession.base_environment` の表示名を追加
+2. セル内HPバー: `render_cell()` でColorRectのHPバー（背景+前景）とHP数値ラベルを表示。HP>50%=緑/20-50%=黄/<20%=赤
+3. マナバー改善: 格子表示廃止→横長ゲージ（ColorRect）+「3.0 / 3（上限3）」テキスト。色は青→黄でグラデーション
+4. ダメージフロート改善: `spawn_damage_float()` でamount=0の時は非表示
+5. 一時停止ボタン: `_build_speed_buttons()` に⏸/▶トグルボタンを追加。`main.game_paused` をトグル
+6. 列ラベル・行ラベル: 既存実装を維持（build_ui内に実装済み）
+7. セル表示改善: ユニット名 + ATK + デバフ行 + HPバー（ColorRect）の構成に変更
+
 ### feat: cards.jsonの全エントリにrarityフィールドを追加 — 2026-04-06
 
 #### 変更ファイル
