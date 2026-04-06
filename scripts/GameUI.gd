@@ -643,28 +643,43 @@ func render_cell(side: int, r: int, c: int) -> void:
 			rect.color = Color(0.9, 0.75 * f + 0.1, 0.0)
 		else:
 			rect.color = Color(0.11, 0.11, 0.17)
-		var buffs: Array = []
-		if unit._atk_bonus > 0:        buffs.append("ATK+%d" % unit._atk_bonus)
-		if unit._interval_bonus > 0.0:  buffs.append("SPD+")
-		if unit._damage_reduction > 0:  buffs.append("鎧%d" % unit._damage_reduction)
-		if unit.lifesteal_stacks > 0:   buffs.append("吸血%d" % unit.lifesteal_stacks)
-		if unit._regen_stacks > 0:      buffs.append("再生%d" % unit._regen_stacks)
-		if unit._temp_atk_bonus > 0:    buffs.append("ATK↑%d" % unit._temp_atk_bonus)
-		if unit._temp_spd_bonus > 0.0:  buffs.append("SPD↑")
-		if unit.burn_turns > 0:         buffs.append("火傷%d" % unit.burn_turns)
-		if unit.frozen_turns > 0:       buffs.append("凍結%d" % unit.frozen_turns)
-		if unit.paralysis_turns > 0:    buffs.append("麻痺%d" % unit.paralysis_turns)
-		if unit.poison_stacks > 0:      buffs.append("毒%d" % unit.poison_stacks)
-		if unit._invincible_timer > 0.0: buffs.append("無敵")
-		var buff_line: String = (" ".join(buffs)) if not buffs.is_empty() else ""
 		var flash_line: String = ""
 		if main.skill_flash_timers[side][r][c] > 0.0:
 			flash_line = "★" + main.skill_flash_names[side][r][c] + "!"
+		# 攻撃タイマー表示
+		var atk_timer = main.board_manager.attack_timers[side][r][c]
+		var effective_interval = unit.attack_interval - unit._interval_bonus
+		var atk_timer_text = ""
+		if effective_interval > 0:
+			var ratio = atk_timer / effective_interval
+			var bar_len = 5
+			var filled = int((1.0 - ratio) * bar_len)
+			atk_timer_text = "⚔" + "█".repeat(filled) + "░".repeat(bar_len - filled)
+
+		# デバフ残ターン集約表示
+		var debuffs: Array = []
+		if unit.burn_turns > 0:         debuffs.append("火%d" % unit.burn_turns)
+		if unit.frozen_turns > 0:       debuffs.append("凍%d" % unit.frozen_turns)
+		if unit.paralysis_turns > 0:    debuffs.append("痺%d" % unit.paralysis_turns)
+		if unit.poison_stacks > 0:      debuffs.append("毒%d" % unit.poison_stacks)
+		var debuff_line = " ".join(debuffs) if debuffs.size() > 0 else ""
+
+		# バフ表示（デバフは分離したので除外）
+		var buff_only: Array = []
+		if unit._atk_bonus > 0:        buff_only.append("ATK+%d" % unit._atk_bonus)
+		if unit._interval_bonus > 0.0:  buff_only.append("SPD+")
+		if unit._damage_reduction > 0:  buff_only.append("鎧%d" % unit._damage_reduction)
+		if unit.lifesteal_stacks > 0:   buff_only.append("吸血%d" % unit.lifesteal_stacks)
+		if unit._regen_stacks > 0:      buff_only.append("再生%d" % unit._regen_stacks)
+		if unit._invincible_timer > 0.0: buff_only.append("無敵")
+		var buff_only_line = " ".join(buff_only) if buff_only.size() > 0 else ""
+
 		var lines: Array = [
 			unit.unit_name,
-			"ATK%d" % unit.attack,
+			"ATK%d %s" % [unit.attack, atk_timer_text],
 		]
-		if buff_line != "": lines.append(buff_line)
+		if buff_only_line != "": lines.append(buff_only_line)
+		if debuff_line != "": lines.append(debuff_line)
 		if flash_line != "": lines.append(flash_line)
 		lbl.text = "\n".join(lines)
 		# ColorRect HPバー更新
@@ -776,7 +791,16 @@ func _update_next_card() -> void:
 
 	var remain: float = main.deck_manager._check_timer
 	var interval: float = main.deck_manager.check_interval
-	main.next_card_timer_label.text = "発動チェック: %.1fs 後（間隔 %.1fs）" % [remain, interval]
+	# 次2-3枚のプレビュー
+	var upcoming: Array = []
+	for i in range(1, min(4, main.deck_manager.deck.size())):
+		var card = main.deck_manager.deck[i]
+		var skip_mark = ""
+		if card.cost > int(main.deck_manager.MANA_MAX) and card.cost != -1:
+			skip_mark = "✕"  # マナ上限超過でスキップされる
+		upcoming.append("%s[%d]%s" % [card.unit_name, card.cost, skip_mark])
+	var upcoming_text = " → ".join(upcoming) if upcoming.size() > 0 else ""
+	main.next_card_timer_label.text = "%.1fs後  次: %s" % [remain, upcoming_text]
 
 	var enemy_next = main.enemy_ai.get_next_card()
 	if enemy_next != null:
