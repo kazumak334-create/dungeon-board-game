@@ -2,6 +2,27 @@
 
 ## [Unreleased]
 
+### CheckAgent — 2026-04-06: 修正2件
+
+#### 対象ファイル
+- scripts/Title.gd
+- scripts/Main.gd
+- scripts/DeckManager.gd
+- scripts/GameSession.gd
+- scripts/SceneManager.gd
+- scripts/DeckPrep.gd
+- scripts/MapSelect.gd（新規スタブ）
+
+#### 検証結果
+
+- Title.gd: ✅ 開発者モードボタン・テスト実行ボタン追加正常。_on_dev_mode_pressedでGameSession.dev_mode=trueをセットしてbattle遷移。正常。
+- GameSession.gd: ✅ dev_modeフィールド宣言・reset()での初期化あり。正常。
+- SceneManager.gd: ✅ map_selectパス追加済み。正常。
+- DeckPrep.gd: ✅ 「マップへ」ボタンでmap_select遷移。正常。
+- MapSelect.gd: ✅ スタブとして最低限の構造。正常。
+- Main.gd: ❌ 廃止済み `mode_select_panel: Control = null` 変数が残存 → 削除。_build_mode_selectはGameSession.dev_mode分岐で正常動作確認。_check_game_overはgame_overフラグで二重遷移防止済み。
+- DeckManager.gd: ❌ STATUS_SPELLSブロックでcard_typeが "spell" のまま → "status_spell" に修正。錬金術師コスト軽減・status_spell専用処理が正常適用される。
+
 ### CheckAgent — 2026-04-06: 確認完了・修正なし
 
 #### 対象ファイル

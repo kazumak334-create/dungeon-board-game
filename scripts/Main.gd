@@ -57,7 +57,6 @@ var _EDB = null  # EffectDBキャッシュ
 
 var dev_mode: bool = false
 var dev_ui: RefCounted = null  # DevUI インスタンス
-var mode_select_panel: Control = null  # モード選択画面
 var game_started: bool = false
 var game_paused: bool = false
 
@@ -116,12 +115,13 @@ func _ready() -> void:
 	board_manager.enemy_ai_ref = enemy_ai
 	spell_executor.effect_executor = effect_executor
 
-	# PlayerData 生成（デフォルト: バーサーカー）
+	# PlayerData 生成（GameSessionから取得）
 	var PlayerDataScript = load("res://scripts/PlayerData.gd")
 	var _CardDB = load("res://scripts/CardDB.gd").new()
 	var player_data = PlayerDataScript.new()
-	var class_def = _CardDB.CLASSES["berserker"]
-	player_data.class_id = "berserker"
+	var _class_id = GameSession.class_id if GameSession.class_id != "" else "berserker"
+	var class_def = _CardDB.CLASSES.get(_class_id, _CardDB.CLASSES["berserker"])
+	player_data.class_id = _class_id
 	player_data.class_name_jp = class_def["display"]
 	player_data.initial_mana = class_def["initial_mana"]
 	player_data.mana_max = class_def["mana_max"]
@@ -180,82 +180,24 @@ func _build_synthesis_registry() -> void:
 
 
 func _build_mode_select() -> void:
-	mode_select_panel = Control.new()
-	add_child(mode_select_panel)
-
-	var overlay := ColorRect.new()
-	overlay.color = Color(0.0, 0.0, 0.0, 0.85)
-	overlay.size = Vector2(1280, 720)
-	mode_select_panel.add_child(overlay)
-
-	var title := Label.new()
-	title.text = "Dungeon Board Game"
-	title.position = Vector2(390, 180)
-	title.add_theme_font_size_override("font_size", 42)
-	title.modulate = Color(0.9, 0.85, 0.55)
-	mode_select_panel.add_child(title)
-
-	var play_btn := Button.new()
-	play_btn.text = "PLAY"
-	play_btn.position = Vector2(440, 320)
-	play_btn.size = Vector2(400, 60)
-	play_btn.add_theme_font_size_override("font_size", 28)
-	play_btn.pressed.connect(_on_mode_play)
-	mode_select_panel.add_child(play_btn)
-
-	var dev_btn := Button.new()
-	dev_btn.text = "開発者モード"
-	dev_btn.position = Vector2(440, 400)
-	dev_btn.size = Vector2(400, 60)
-	dev_btn.add_theme_font_size_override("font_size", 28)
-	dev_btn.pressed.connect(_on_mode_dev)
-	mode_select_panel.add_child(dev_btn)
-
-	var test_btn := Button.new()
-	test_btn.text = "テスト実行"
-	test_btn.position = Vector2(440, 480)
-	test_btn.size = Vector2(400, 60)
-	test_btn.add_theme_font_size_override("font_size", 28)
-	test_btn.modulate = Color(1.0, 1.0, 0.3)
-	test_btn.pressed.connect(_on_run_tests)
-	mode_select_panel.add_child(test_btn)
-
-func _on_run_tests() -> void:
-	print("=== テスト開始 ===")
-	var TestRunnerScript = load("res://scripts/TestRunner.gd")
-	if TestRunnerScript == null:
-		print("ERROR: TestRunner.gd ロード失敗")
-		return
-	var runner = TestRunnerScript.new()
-	var result: String = runner.run_all()
-	for line in result.split("\n"):
-		if line != "":
-			print(line)
-	print("=== テスト完了 ===")
-
-func _on_mode_play() -> void:
-	mode_select_panel.queue_free()
-	mode_select_panel = null
-	game_started = true
-	# バトル開始時にシャッフルカードをデッキ最下部に挿入
-	deck_manager.ensure_shuffle_card()
-	enemy_ai.ensure_shuffle_card()
-	_add_log("=== PLAY モード開始 ===")
-
-func _on_mode_dev() -> void:
-	mode_select_panel.queue_free()
-	mode_select_panel = null
-	dev_mode = true
-	game_started = true
-	game_paused = true  # 一時停止状態で開始
-	# 初期デッキを空にする（開発者モードは手動構築、シャッフルカードは常に最下部に存在）
-	deck_manager.deck.clear()
-	deck_manager.discard.clear()
-	deck_manager.ensure_shuffle_card()
-	var DevUIScript = load("res://scripts/DevUI.gd")
-	dev_ui = DevUIScript.new()
-	dev_ui.setup(self, board_manager, deck_manager, enemy_ai)
-	_add_log("=== 開発者モード開始（一時停止・デッキ空）===")
+	if GameSession.dev_mode:
+		# 開発者モード: Title画面から直接遷移
+		dev_mode = true
+		game_started = true
+		game_paused = true
+		deck_manager.deck.clear()
+		deck_manager.discard.clear()
+		deck_manager.ensure_shuffle_card()
+		var DevUIScript = load("res://scripts/DevUI.gd")
+		dev_ui = DevUIScript.new()
+		dev_ui.setup(self, board_manager, deck_manager, enemy_ai)
+		_add_log("=== 開発者モード開始（一時停止・デッキ空）===")
+	else:
+		# 通常モード: 即座にバトル開始（モード選択パネル不要）
+		game_started = true
+		deck_manager.ensure_shuffle_card()
+		enemy_ai.ensure_shuffle_card()
+		_add_log("=== バトル開始 ===")
 
 # ---- UI委譲ラッパー ----
 func _add_log(text: String) -> void: game_ui.add_log(text)
@@ -348,12 +290,20 @@ func _check_game_over() -> void:
 		game_over_label.modulate = Color(1.0, 0.3, 0.3)
 		game_over_label.visible  = true
 		restart_button.visible   = true
+		GameSession.last_result = {"win": false, "player_hp_remaining": base_hp[0], "turns": 0}
+		_transition_to_result_timer()
 	elif base_hp[1] <= 0:
 		game_over = true
 		game_over_label.text     = "YOU WIN!"
 		game_over_label.modulate = Color(0.3, 1.0, 0.5)
 		game_over_label.visible  = true
 		restart_button.visible   = true
+		GameSession.last_result = {"win": true, "player_hp_remaining": base_hp[0], "turns": 0}
+		_transition_to_result_timer()
+
+func _transition_to_result_timer() -> void:
+	var timer = get_tree().create_timer(2.0)
+	timer.timeout.connect(func(): SceneManager.go_to("result"))
 
 func _on_restart_pressed() -> void:
 	get_tree().reload_current_scene()

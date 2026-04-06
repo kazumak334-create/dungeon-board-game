@@ -30,6 +30,44 @@ func _ready() -> void:
 	_build_default_deck()
 
 func _build_default_deck() -> void:
+	# GameSession.selected_deckがあればそれを使う
+	var session_deck = GameSession.selected_deck if GameSession.selected_deck.size() > 0 else []
+	if session_deck.size() > 0:
+		for entry in session_deck:
+			var card_name = entry.get("name", "") if entry is Dictionary else str(entry)
+			var col = entry.get("col", 1) if entry is Dictionary else 1
+			# ユニット？呪文？判定
+			if _CardDB.UNITS.has(card_name):
+				var d: Dictionary = _CardDB.UNITS[card_name]
+				var u = _UnitDataScript.new()
+				u.unit_name = card_name
+				u.max_hp = d["hp"]; u.current_hp = d["hp"]
+				u.attack = d["atk"]; u.attack_interval = d["interval"]
+				u.cost = d["cost"]; u.assigned_col = col
+				u.race = d["race"]; u.attack_range = d["range"]
+				u.support_effect = ""; u.active_skill = ""
+				u.skills = d.get("skills", []).duplicate(true)
+				deck.append(u)
+			elif _CardDB.SPELLS.has(card_name):
+				var d: Dictionary = _CardDB.SPELLS[card_name]
+				var u = _UnitDataScript.new()
+				u.unit_name = card_name; u.card_type = "spell"
+				u.spell_id = card_name; u.cost = d["cost"]
+				u.spell_target = d["target"]; u.spell_effect = d["effect"]
+				u.skills = d.get("skills", []).duplicate(true)
+				deck.append(u)
+			elif _CardDB.STATUS_SPELLS.has(card_name):
+				var d: Dictionary = _CardDB.STATUS_SPELLS[card_name]
+				var u = _UnitDataScript.new()
+				u.unit_name = card_name; u.card_type = "status_spell"
+				u.spell_id = card_name; u.cost = d["cost"]
+				u.is_consumable = d.get("is_consumable", false)
+				u.spell_target = d.get("target", ""); u.spell_effect = d.get("effect", "")
+				u.skills = d.get("skills", []).duplicate(true)
+				deck.append(u)
+		deck.shuffle()
+		return
+	# フォールバック: cards.jsonのデフォルトデッキ
 	for entry in _CardDB.PLAYER_DECK:
 		var d: Dictionary = _CardDB.UNITS[entry["name"]]
 		var u = _UnitDataScript.new()
