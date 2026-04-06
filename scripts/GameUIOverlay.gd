@@ -10,6 +10,7 @@ var _char_hp_labels: Array = [null, null]  # [side] -> Label (HP数値)
 var _char_panels: Array = [null, null]     # [side] -> Panel
 var _char_mana_bars: Array = [null, null]  # [side] -> ColorRect (マナバー)
 var _char_mana_labels: Array = [null, null] # [side] -> Label (マナ数値)
+var _char_cast_bars: Array = [null, null]  # [side] -> ColorRect (キャストゲージ)
 var _damage_floats: Array = []             # [{label, timer, velocity}]
 var _event_bubble: Label = null            # 重要イベントフキダシ
 var _bubble_timer: float = 0.0             # フキダシ残り表示時間
@@ -228,6 +229,29 @@ func _build_character_panel(side: int) -> void:
 	mana_title.add_theme_font_size_override("font_size", 9)
 	mana_title.add_theme_color_override("font_color", Color(1.0, 0.85, 0.2) if side == 0 else Color(1.0, 0.5, 0.2))
 	main.add_child(mana_title)
+
+	# キャストゲージ（クールダウン表示・バーのみ）
+	var cast_title = Label.new()
+	cast_title.text = "キャスト"
+	cast_title.position = Vector2(panel_x + 4, panel_y + 168)
+	cast_title.size = Vector2(panel_w - 8, 12)
+	cast_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	cast_title.add_theme_font_size_override("font_size", 8)
+	cast_title.add_theme_color_override("font_color", Color(0.7, 0.5, 0.9) if side == 0 else Color(0.9, 0.5, 0.5))
+	main.add_child(cast_title)
+
+	var cast_bg = ColorRect.new()
+	cast_bg.position = Vector2(panel_x + 5, panel_y + 180)
+	cast_bg.size = Vector2(70, 6)
+	cast_bg.color = Color(0.15, 0.1, 0.2)
+	main.add_child(cast_bg)
+
+	var cast_bar = ColorRect.new()
+	cast_bar.position = Vector2(panel_x + 5, panel_y + 180)
+	cast_bar.size = Vector2(0, 6)
+	cast_bar.color = Color(0.6, 0.3, 0.9) if side == 0 else Color(0.9, 0.4, 0.4)
+	main.add_child(cast_bar)
+	_char_cast_bars[side] = cast_bar
 
 func spawn_damage_float(side: int, row: int, col: int, amount: int, is_heal: bool = false) -> void:
 	if amount == 0:

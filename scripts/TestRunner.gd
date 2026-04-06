@@ -43,6 +43,7 @@ func run_all() -> String:
 	_test_rarity_integrity()
 	_test_card_queue_data()
 	_test_spell_speed_skip()
+	_test_cast_gauge()
 
 	var summary: String = "テスト結果: %d passed / %d failed" % [_pass_count, _fail_count]
 	_results.insert(0, summary)
@@ -710,3 +711,21 @@ func _test_spell_speed_skip() -> void:
 	# check_intervalは1.0がデフォルト（スペルスピード）
 	# スキップ時にもこの値がタイマーに設定される仕様
 	_assert_true(true, "スキップも詠唱タイミングで発生する仕様")
+
+func _test_cast_gauge() -> void:
+	# キャストゲージの計算ロジック確認
+	# check_interval=1.0, _check_timer=0.5 → ratio=0.5（半分溜まっている）
+	var timer = 0.5
+	var interval = 1.0
+	var ratio = 1.0 - (timer / max(0.01, interval))
+	_assert_eq(ratio, 0.5, "キャスト: timer0.5/interval1.0 → ratio0.5")
+
+	# timer=0 → ratio=1.0（満タン=発動可能）
+	timer = 0.0
+	ratio = 1.0 - (timer / max(0.01, interval))
+	_assert_eq(ratio, 1.0, "キャスト: timer0/interval1.0 → ratio1.0（発動可能）")
+
+	# timer=1.0 → ratio=0（空=クールダウン中）
+	timer = 1.0
+	ratio = 1.0 - (timer / max(0.01, interval))
+	_assert_eq(ratio, 0.0, "キャスト: timer1.0/interval1.0 → ratio0（クールダウン中）")

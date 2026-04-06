@@ -527,6 +527,21 @@ func _update_mana() -> void:
 	if _overlay._char_mana_labels[1] != null:
 		_overlay._char_mana_labels[1].text = "%.1f / %d" % [e_mana, int(e_mana_max)]
 
+	# ---- キャストゲージ更新 ----
+	var cast_bar_w: float = 70.0
+	# 自分側キャスト
+	var self_timer = main.deck_manager._check_timer
+	var self_interval = main.deck_manager.check_interval
+	var self_cast_ratio = 1.0 - clamp(self_timer / max(0.01, self_interval), 0.0, 1.0)
+	if _overlay._char_cast_bars[0] != null:
+		_overlay._char_cast_bars[0].size.x = int(cast_bar_w * self_cast_ratio)
+	# 敵側キャスト
+	var enemy_timer = main.enemy_ai._check_timer
+	var enemy_interval = main.enemy_ai.check_interval
+	var enemy_cast_ratio = 1.0 - clamp(enemy_timer / max(0.01, enemy_interval), 0.0, 1.0)
+	if _overlay._char_cast_bars[1] != null:
+		_overlay._char_cast_bars[1].size.x = int(cast_bar_w * enemy_cast_ratio)
+
 func mark_all_cells_dirty() -> void:
 	for s in range(2):
 		for r in range(3):
