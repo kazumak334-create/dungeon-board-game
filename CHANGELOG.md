@@ -2,6 +2,14 @@
 
 ## [Unreleased]
 
+### Fixed — 2026-04-06: CheckAgent: Title.gd / MaterialSelect.gd EffectDB参照キー修正
+
+#### scripts/Title.gd
+- `_edb.DB.get()` を `_edb.EFFECTS.get()` に修正（EffectDBの定数名は `EFFECTS`、`DB` は存在しない）
+
+#### scripts/MaterialSelect.gd
+- `_edb.DB.get()` を `_edb.EFFECTS.get()` に修正（同上、2箇所）
+
 ### Added — 2026-04-05: data/cards.json ユニット18体追加
 
 #### data/cards.json
