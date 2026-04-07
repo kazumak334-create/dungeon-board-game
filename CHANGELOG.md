@@ -2,6 +2,22 @@
 
 ## [Unreleased]
 
+### CheckAgent：確認完了・修正なし — 2026-04-07 DeckPrep UI追加修正5項目検証
+
+#### 検証内容: DeckPrep.gd(530行) / DeckPrepInfo.gd(623行) — 装備縦配置・合成カード化・詳細大型化・ホバー動作
+
+**全10項目正常:**
+1. EQUIP_SLOTS 6個固定（head/body/feet/accessory1/2/3）— 正常
+2. 装備3行×2列配置 — 左サイドバー200px内に収まる（右端約151px）— 正常
+3. create_mini_card_icon() 60×78px — ヘッダー帯+グラフィック+ステータス — 正常
+4. _build_card_frame_header frame_h=175, 戻り値y+183 — 正常
+5. mouse_filter: ミニカードSTOP / row_ctrl IGNORE / STATUS_SPELLS対応 — 正常
+6. クロージャキャプチャ: icon_name/icon_x をローカル変数化済み — 正常
+7. _build_synthesis_row 参照残りなし — 正常
+8. R1/R7: EffectDB.display参照、ハードコードなし — 正常（フレーバーテキストはUI固有ラベル）
+9. テスト: 1875件全パス / 0件失敗
+10. R10警告: DeckPrepInfo.gd 623行・DeckPrepBoard.gd 562行（既存警告、今回変化なし）
+
 ### CheckAgent：確認完了・修正なし — 2026-04-07 DeckPrep UI修正10項目検証
 
 #### 検証内容: DeckPrepInfo.gd新規分離 + DeckPrepBoard/DeckPrep修正 + テスト4追加
