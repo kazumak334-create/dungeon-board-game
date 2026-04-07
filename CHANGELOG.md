@@ -2,6 +2,21 @@
 
 ## [Unreleased]
 
+### CheckAgent：確認完了・修正なし — 2026-04-07 DeckPrep持ち物タブ実装検証
+
+#### 検証内容: DeckPrep.gd 持ち物タブ（カテゴリフィルタ + 素材グリッド）
+
+1. 装備スロット6個固定（head/body/feet/accessory1/2/3）— 変更なし — 正常
+2. INV_TOTAL_SLOTS = 30 固定 — 正常
+3. カテゴリID 4種 ["all","normal","cursed","consumable"] — 正常
+4. グリッド 5列×6行、座標計算 8+145×5+10×4=773px ≤ 790px — 正常
+5. CardDB.MATERIALS 経由取得、ハードコードなし (R1/R7準拠) — 正常
+6. カテゴリフィルタロジック（all/normal/cursed/consumable分岐）— 正常
+7. 解説レーン更新（クリック→選択→表示、呪い素材ラベル、タブ切替リセット）— 正常
+8. R10チェック — 727行（500-800範囲内）、次回機能追加前に分離検討
+9. テスト全パス — 1841件 / 0 failed（TestDeckPrepLayout 7テスト含む）— 正常
+10. 構文・インデント — ヘッドレス起動成功 — 正常
+
 ### CheckAgent：確認完了・修正なし — 2026-04-07 DeckPrepレイアウト（パターンB）検証
 
 #### 検証内容: DeckPrep.gd パターンB（左サイドバー型）レイアウト
