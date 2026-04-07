@@ -16,6 +16,7 @@ var ENEMY_DECK: Array = []
 var BASE_DECK: Array = []
 var MATERIALS: Array = []
 var ENVIRONMENTS: Dictionary = {}
+var BOSSES: Dictionary = {}
 
 func _ready() -> void:
 	var file = FileAccess.open("res://data/cards.json", FileAccess.READ)
@@ -42,3 +43,4 @@ func _ready() -> void:
 	BASE_DECK = data.get("base_deck", [])
 	MATERIALS = data.get("materials", [])
 	ENVIRONMENTS = data.get("environments", {})
+	BOSSES = data.get("bosses", {})

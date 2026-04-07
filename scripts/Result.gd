@@ -3,7 +3,9 @@
 extends Control
 
 const UIF = preload("res://scripts/UIFactory.gd")
+const TaskbarClass = preload("res://scripts/CommonTaskbar.gd")
 
+var _taskbar: RefCounted = null
 var _reward_gold: int = 0
 var _reward_sp: int = 0
 var _reward_material: Dictionary = {}
@@ -125,6 +127,10 @@ func _weighted_pick(pool: Array, weights: Dictionary, exclude: Array) -> Diction
 
 func _build_ui() -> void:
 	UIF.add_bg(self)
+
+	# 共通タスクバー（最上部36px）
+	_taskbar = TaskbarClass.new()
+	_taskbar.attach(self, SceneManager.RESULT)
 
 	var result = GameSession.last_result
 	var is_win = result.get("win", false)
@@ -368,12 +374,15 @@ func _on_card_selected(idx: int) -> void:
 	if new_config.size() > 0:
 		GameSession.placement_config.append(new_config[0])
 
-	GameSession.run_depth += 1
-	print("[Result] カード選択: %s (run_depth: %d)" % [card_name, GameSession.run_depth])
+	print("[Result] カード選択: %s" % card_name)
 	_on_continue()
 
 func _on_continue() -> void:
-	var next_scene = SceneManager.BOSS_REWARD if GameSession.battle_type == "boss" else SceneManager.DECK_PREP
+	# run_depth加算（勝利時は必ずここで加算、カード選択スキップでも加算）
+	if GameSession.last_result.get("win", false):
+		GameSession.run_depth += 1
+		print("[Result] run_depth: %d" % GameSession.run_depth)
+	var next_scene = SceneManager.BOSS_REWARD if GameSession.battle_type == "boss" else SceneManager.MAP_SELECT
 	SceneManager.go_to(next_scene)
 
 func _build_defeat_ui(is_win: bool) -> void:

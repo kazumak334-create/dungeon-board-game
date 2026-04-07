@@ -2804,5 +2804,46 @@
 			],
 			"texture": ""
 		}
+	},
+	"bosses": {
+		"boss_beast_king": {
+			"display": "獣王",
+			"act": 1,
+			"race_theme": "beast",
+			"description": "オオカミの群れを率いる古代の王",
+			"difficulty": 3,
+			"enemy_deck_id": "boss_act1_beast",
+			"hp_multiplier": 1.5,
+			"atk_multiplier": 1.2,
+			"reward_gold": 200,
+			"reward_sp": 2,
+			"texture": ""
+		},
+		"boss_slime_mother": {
+			"display": "母なるスライム",
+			"act": 1,
+			"race_theme": "slime",
+			"description": "無限に分裂し続ける巨大スライム",
+			"difficulty": 2,
+			"enemy_deck_id": "boss_act1_slime",
+			"hp_multiplier": 2.0,
+			"atk_multiplier": 0.8,
+			"reward_gold": 200,
+			"reward_sp": 2,
+			"texture": ""
+		},
+		"boss_death_lord": {
+			"display": "死霊領主",
+			"act": 1,
+			"race_theme": "undead",
+			"description": "何度倒しても蘇る不死の王",
+			"difficulty": 4,
+			"enemy_deck_id": "boss_act1_undead",
+			"hp_multiplier": 1.3,
+			"atk_multiplier": 1.1,
+			"reward_gold": 220,
+			"reward_sp": 2,
+			"texture": ""
+		}
 	}
 }

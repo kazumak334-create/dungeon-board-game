@@ -42,6 +42,16 @@ var battle_seed: int = 0       # リプレイ用ランダムシード
 var battle_log: Array = []     # リプレイ用イベントログ
 var current_battle_gold: int = 0  # バトル中に獲得した累積通貨（敵撃破ドロップ）
 var battle_drops: Array = []      # バトル中に獲得したアイテムドロップ（Phase 3で実装）
+# Phase 3: マップシステム
+var map_data: Dictionary = {}        # MapGenerator.generate()の結果
+var race_theme: String = ""          # "slime"/"beast"/"undead" - ラン開始時に決定
+var map_seed: int = 0                # マップ生成シード
+var current_act: int = 1             # 現在のAct（1-3）
+var current_node: String = ""        # 現在地ノードID
+var completed_nodes: Array = []      # 通過済みノードID
+var boss_candidates: Array = []      # 表示するボス候補
+var selected_boss_id: String = ""    # 選択したボスID
+var last_scene: String = ""          # 直前のシーン名（戻るボタン用）
 
 func reset() -> void:
 	battle_config = DEFAULT_BATTLE_CONFIG.duplicate(true)
@@ -63,4 +73,14 @@ func reset() -> void:
 	battle_log = []
 	current_battle_gold = 0
 	battle_drops = []
+	# Phase 3: マップシステム
+	map_data = {}
+	race_theme = ""
+	map_seed = 0
+	current_act = 1
+	current_node = ""
+	completed_nodes = []
+	boss_candidates = []
+	selected_boss_id = ""
+	last_scene = ""
 	print("[GameSession] reset")

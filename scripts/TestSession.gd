@@ -15,6 +15,11 @@ func run(runner: RefCounted) -> void:
 	_test_battle_gold_to_result(runner)
 	_test_result_reward_panel_fields(runner)
 	_test_result_3card_choices(runner)
+	_test_game_session_map_fields(runner)
+	_test_game_session_map_reset(runner)
+	_test_map_generator_seed_reproducibility(runner)
+	_test_map_generator_acts_count(runner)
+	_test_cards_bosses_count(runner)
 
 func _test_game_session(r: RefCounted) -> void:
 	# reset()で全フィールドが初期化されるか
@@ -219,3 +224,74 @@ func _test_result_3card_choices(r: RefCounted) -> void:
 	for entry in pool.slice(0, min(3, pool.size())):
 		r._assert_true(not (entry["name"] in used), "card_choices: 3択に重複なし: %s" % entry["name"])
 		used.append(entry["name"])
+
+# Phase 3テスト: GameSessionマップフィールドの存在確認
+func _test_game_session_map_fields(r: RefCounted) -> void:
+	r._assert_true("map_data" in GameSession, "map_fields: map_data存在")
+	r._assert_true("race_theme" in GameSession, "map_fields: race_theme存在")
+	r._assert_true("map_seed" in GameSession, "map_fields: map_seed存在")
+	r._assert_true("current_act" in GameSession, "map_fields: current_act存在")
+	r._assert_true("current_node" in GameSession, "map_fields: current_node存在")
+	r._assert_true("completed_nodes" in GameSession, "map_fields: completed_nodes存在")
+	r._assert_true("boss_candidates" in GameSession, "map_fields: boss_candidates存在")
+	r._assert_true("selected_boss_id" in GameSession, "map_fields: selected_boss_id存在")
+
+# Phase 3テスト: reset()でマップフィールドがクリアされる
+func _test_game_session_map_reset(r: RefCounted) -> void:
+	GameSession.map_data = {"seed": 12345, "acts": []}
+	GameSession.race_theme = "beast"
+	GameSession.map_seed = 12345
+	GameSession.current_act = 2
+	GameSession.current_node = "act1_boss"
+	GameSession.completed_nodes = ["act1_d0_n0", "act1_d0_n1"]
+	GameSession.boss_candidates = ["boss_beast_king"]
+	GameSession.selected_boss_id = "boss_beast_king"
+	GameSession.reset()
+	r._assert_eq(GameSession.map_data.size(), 0, "map_reset: map_data空")
+	r._assert_eq(GameSession.race_theme, "", "map_reset: race_theme空")
+	r._assert_eq(GameSession.map_seed, 0, "map_reset: map_seed=0")
+	r._assert_eq(GameSession.current_act, 1, "map_reset: current_act=1")
+	r._assert_eq(GameSession.current_node, "", "map_reset: current_node空")
+	r._assert_eq(GameSession.completed_nodes.size(), 0, "map_reset: completed_nodes空")
+	r._assert_eq(GameSession.boss_candidates.size(), 0, "map_reset: boss_candidates空")
+	r._assert_eq(GameSession.selected_boss_id, "", "map_reset: selected_boss_id空")
+
+# Phase 3テスト: 同じseedで同じマップが生成される
+func _test_map_generator_seed_reproducibility(r: RefCounted) -> void:
+	var gen = MapGenerator.new()
+	var seed_val: int = 999
+	var map1 = gen.generate(seed_val, "slime")
+	var map2 = gen.generate(seed_val, "slime")
+	r._assert_eq(map1.get("seed"), map2.get("seed"), "map_seed: seed一致")
+	r._assert_eq(map1.get("acts", []).size(), map2.get("acts", []).size(), "map_seed: acts数一致")
+	# 各Act内のノード数が一致
+	var acts1 = map1.get("acts", [])
+	var acts2 = map2.get("acts", [])
+	for i in range(acts1.size()):
+		r._assert_eq(acts1[i].get("nodes", []).size(), acts2[i].get("nodes", []).size(),
+			"map_seed: Act%dノード数一致" % (i + 1))
+
+# Phase 3テスト: 3Act生成される
+func _test_map_generator_acts_count(r: RefCounted) -> void:
+	var gen = MapGenerator.new()
+	var map_data = gen.generate(42, "undead")
+	r._assert_eq(map_data.get("acts", []).size(), 3, "map_acts: 3Act生成")
+	var acts = map_data.get("acts", [])
+	for i in range(acts.size()):
+		var act = acts[i]
+		r._assert_eq(act.get("act_num", 0), i + 1, "map_acts: act_num=%d" % (i + 1))
+		r._assert_true(act.get("nodes", []).size() >= 5, "map_acts: Act%dに5ノード以上" % (i + 1))
+		r._assert_true(act.get("boss_candidates", []).size() >= 0, "map_acts: Act%dにboss_candidates存在" % (i + 1))
+		# 連結性検証
+		r._assert_true(gen.validate_connectivity(act), "map_connectivity: Act%d連結" % (i + 1))
+
+# Phase 3テスト: bossesが最低3体読み込まれる
+func _test_cards_bosses_count(r: RefCounted) -> void:
+	r._assert_true(CardDB.BOSSES.size() >= 3, "bosses: 3体以上存在")
+	for boss_id in CardDB.BOSSES:
+		var boss = CardDB.BOSSES[boss_id]
+		r._assert_true(boss.has("display"), "bosses: display存在: %s" % boss_id)
+		r._assert_true(boss.has("act"), "bosses: act存在: %s" % boss_id)
+		r._assert_true(boss.has("race_theme"), "bosses: race_theme存在: %s" % boss_id)
+		r._assert_true(boss.has("hp_multiplier"), "bosses: hp_multiplier存在: %s" % boss_id)
+		r._assert_true(boss.has("atk_multiplier"), "bosses: atk_multiplier存在: %s" % boss_id)
