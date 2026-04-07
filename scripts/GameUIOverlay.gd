@@ -19,6 +19,7 @@ var _discard_count_labels: Array = [null, null] # [side] -> Label（捨て札枚
 var _exile_count_labels: Array = [null, null]   # [side] -> Label（除外枚数）
 var _battle_timer_label: Label = null            # バトル残り時間ラベル
 var _timer_blink_acc: float = 0.0               # 点滅用アキュムレータ
+var _battle_gold_label: Label = null             # バトル中獲得通貨ラベル（プレイヤー側パネル下）
 
 func _cell_x(side: int, col: int) -> int:
 	if side == 0:
@@ -260,6 +261,18 @@ func _build_character_panel(side: int) -> void:
 	cast_bar.color = Color(0.6, 0.3, 0.9) if side == 0 else Color(0.9, 0.4, 0.4)
 	main.add_child(cast_bar)
 	_char_cast_bars[side] = cast_bar
+
+	# --- 6. 獲得通貨ラベル（プレイヤー側のみ・キャストゲージ下） ---
+	if side == 0:
+		var gold_label = Label.new()
+		gold_label.text = "G: 0"
+		gold_label.position = Vector2(px, panel_y + 159)
+		gold_label.size = Vector2(inner_w, 14)
+		gold_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		gold_label.add_theme_font_size_override("font_size", 10)
+		gold_label.add_theme_color_override("font_color", Color(0.9, 0.8, 0.3))
+		main.add_child(gold_label)
+		_battle_gold_label = gold_label
 
 	# NEXTラベルはキューQ1上部に移動済み。プレース内からは削除
 
@@ -511,6 +524,10 @@ func update_bubble(delta: float) -> void:
 			_event_bubble.modulate.a = min(1.0, _bubble_timer)
 		if _bubble_timer <= 0 and _event_bubble != null:
 			_event_bubble.visible = false
+
+func update_battle_gold_label(total_gold: int) -> void:
+	if _battle_gold_label != null:
+		_battle_gold_label.text = "G: %d" % total_gold
 
 func update_battle_timer(remaining: float, delta: float = 0.016) -> void:
 	if _battle_timer_label == null:

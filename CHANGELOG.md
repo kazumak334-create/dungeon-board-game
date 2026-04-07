@@ -2,6 +2,21 @@
 
 ## [Unreleased]
 
+### 2026-04-07 段階5: 報酬システム（バトル中gold累積 + Result報酬パネル分離 + キャストゲージ下表示）
+
+**変更ファイル:**
+- `scripts/GameSession.gd`: `current_battle_gold`, `battle_drops` フィールド追加 + reset()対応
+- `scripts/BoardManager.gd`: `unit_died` シグナルに `unit: Object` 引数追加（撃破ユニット情報引き継ぎ）
+- `scripts/Main.gd`: `_on_unit_died` で敵撃破時に `cost × 5G × reward_multiplier` を累積。`last_result` に `battle_gold` フィールド追加
+- `scripts/GameUIOverlay.gd`: キャストゲージ下に獲得通貨ラベル追加（プレイヤー側のみ）、`update_battle_gold_label()` メソッド追加
+- `scripts/Result.gd`: 報酬パネルを独立エリア（`_build_reward_panel()`）に分離。カード3択を大きく（355×400）。撃破ドロップgold加算処理追加
+- `scripts/TestSession.gd`: テスト4件追加（battle_gold累積/引き継ぎ/報酬フィールド/カード3択）
+
+**設計:**
+- gold計算はハードコードせず `battle_config.reward_multiplier` で倍率調整可能
+- アイテムドロップ枠はPhase 3実装予定としてプレースホルダー表示
+- `battle_drops` フィールドはPhase 3で活用予定（今回は枠のみ）
+
 ### CheckAgent：確認完了・修正なし — 2026-04-07 DeckPrep UI追加修正5項目検証
 
 #### 検証内容: DeckPrep.gd(530行) / DeckPrepInfo.gd(623行) — 装備縦配置・合成カード化・詳細大型化・ホバー動作

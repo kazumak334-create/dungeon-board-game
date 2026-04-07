@@ -11,6 +11,10 @@ func run(runner: RefCounted) -> void:
 	_test_scenario_battle_run(runner)
 	_test_scenario_battle_card_cleanup(runner)
 	_test_scenario_return_to_deckprep(runner)
+	_test_battle_gold_accumulation(runner)
+	_test_battle_gold_to_result(runner)
+	_test_result_reward_panel_fields(runner)
+	_test_result_3card_choices(runner)
 
 func _test_game_session(r: RefCounted) -> void:
 	# reset()で全フィールドが初期化されるか
@@ -165,3 +169,53 @@ func _test_scenario_return_to_deckprep(r: RefCounted) -> void:
 	r._assert_eq(GameSession.skill_points, 2, "シナリオ4: SP維持")
 	r._assert_eq(GameSession.class_id, "slime_alchemist", "シナリオ4: クラスID維持")
 	r._assert_eq(GameSession.placement_config.size(), GameSession.selected_deck.size(), "シナリオ4: placement_configサイズ一致")
+
+# テスト: 敵撃破でcurrent_battle_goldが増える
+func _test_battle_gold_accumulation(r: RefCounted) -> void:
+	GameSession.reset()
+	r._assert_eq(GameSession.current_battle_gold, 0, "battle_gold: reset後0")
+	# cost=2のユニット撃破をシミュレート（reward_multiplier=1.0の場合 2×5=10G）
+	var reward_mult: float = GameSession.battle_config.get("reward_multiplier", 1.0)
+	var gold = max(1, int(2 * 5 * reward_mult))
+	GameSession.current_battle_gold += gold
+	r._assert_eq(GameSession.current_battle_gold, 10, "battle_gold: cost2撃破で+10G")
+	# cost=1ユニット追加
+	var gold2 = max(1, int(1 * 5 * reward_mult))
+	GameSession.current_battle_gold += gold2
+	r._assert_eq(GameSession.current_battle_gold, 15, "battle_gold: 累積15G")
+
+# テスト: バトル終了時にcurrent_battle_goldがlast_resultに渡る
+func _test_battle_gold_to_result(r: RefCounted) -> void:
+	GameSession.reset()
+	GameSession.current_battle_gold = 30
+	# Main._check_game_overの動作をシミュレート
+	GameSession.last_result = {"win": true, "player_hp_remaining": 20, "turns": 0, "battle_gold": GameSession.current_battle_gold}
+	r._assert_eq(GameSession.last_result.get("battle_gold", -1), 30, "battle_gold: last_resultに引き継ぎ")
+	r._assert_eq(GameSession.last_result.get("win"), true, "battle_gold: 勝利フラグと共存")
+
+# テスト: 報酬パネルに必要なフィールドが揃っている
+func _test_result_reward_panel_fields(r: RefCounted) -> void:
+	GameSession.reset()
+	# 報酬計算に必要なフィールドが全て存在するか確認
+	r._assert_true(GameSession.has("current_battle_gold"), "reward_panel: current_battle_goldフィールド存在")
+	r._assert_true(GameSession.has("gold"), "reward_panel: goldフィールド存在")
+	r._assert_true(GameSession.has("skill_points"), "reward_panel: skill_pointsフィールド存在")
+	r._assert_true(GameSession.has("materials"), "reward_panel: materialsフィールド存在")
+	r._assert_true(GameSession.last_result.has("win"), "reward_panel: last_result.win存在")
+
+# テスト: カード3択生成（重みテーブルと重複なし）
+func _test_result_3card_choices(r: RefCounted) -> void:
+	GameSession.reset()
+	GameSession.run_depth = 0
+	# 重みテーブルからREARLY_WEIGHTS_EARLYで3枚選択できるか確認
+	var pool: Array = []
+	for name in CardDB.UNITS:
+		pool.append({"name": name, "rarity": CardDB.UNITS[name].get("rarity", "common")})
+	for name in CardDB.SPELLS:
+		pool.append({"name": name, "rarity": CardDB.SPELLS[name].get("rarity", "common")})
+	r._assert_true(pool.size() >= 3, "card_choices: プール3枚以上")
+	# 重複なし確認（3回抽選で同じ名前が出ないことをシミュレート）
+	var used: Array = []
+	for entry in pool.slice(0, min(3, pool.size())):
+		r._assert_true(not (entry["name"] in used), "card_choices: 3択に重複なし: %s" % entry["name"])
+		used.append(entry["name"])

@@ -24,7 +24,7 @@ var combat_system: RefCounted = null  # CombatSystem（攻撃ループ・ダメ�
 var support_system: RefCounted = null  # SupportSystem（サポート効果再計算）
 
 signal unit_placed(side: int, row: int, col: int, unit: Object)
-signal unit_died(side: int, row: int, col: int)
+signal unit_died(side: int, row: int, col: int, unit: Object)
 signal unit_revived(side: int, row: int, col: int)
 signal unit_damaged(side: int, row: int, col: int)
 signal base_damaged(side: int, amount: int)
@@ -324,9 +324,10 @@ func remove_unit(side: int, row: int, col: int) -> void:
 		return
 	# 盤面効果 on_leave チェック
 	tile_system.check_tile_on_leave(side, row, col, unit)
+	var died_unit = unit  # emit後もunitを参照できるよう保持
 	board[side][row][col] = null
 	attack_timers[side][row][col] = 0.0
-	emit_signal("unit_died", side, row, col)
+	emit_signal("unit_died", side, row, col, died_unit)
 	# 前列が空になったら promote_check を遅延キューに積む（イベント駆動・1フレームラグ）
 	var front_col_ref: int = 2 if side == 0 else 0
 	if col == front_col_ref and event_queue != null:

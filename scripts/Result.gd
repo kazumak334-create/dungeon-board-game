@@ -62,6 +62,10 @@ func _generate_rewards() -> void:
 	var is_win = GameSession.last_result.get("win", false)
 	if not is_win:
 		return
+	# バトル中の撃破ドロップgoldを確定加算
+	var battle_gold: int = GameSession.last_result.get("battle_gold", GameSession.current_battle_gold)
+	GameSession.gold += battle_gold
+	# 固定報酬: 勝利ボーナス
 	_reward_gold = 100
 	_reward_sp = 1
 	if CardDB.MATERIALS.size() > 0:
@@ -72,6 +76,8 @@ func _generate_rewards() -> void:
 	GameSession.skill_points += _reward_sp
 	if _reward_material.size() > 0:
 		GameSession.materials.append(_reward_material)
+	# current_battle_goldをリセット（次バトルに持ち越さない）
+	GameSession.current_battle_gold = 0
 
 func _generate_card_choices() -> void:
 	# run_depthに応じた重みテーブル選択
@@ -122,44 +128,37 @@ func _build_ui() -> void:
 
 	var result = GameSession.last_result
 	var is_win = result.get("win", false)
+	var battle_gold_drop: int = result.get("battle_gold", 0)
 
 	# 勝敗表示
 	var result_label = Label.new()
 	result_label.text = "VICTORY" if is_win else "DEFEAT"
 	result_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	result_label.position = Vector2(0, 30)
+	result_label.position = Vector2(0, 20)
 	result_label.size = Vector2(1280, 50)
 	result_label.add_theme_font_size_override("font_size", 42)
 	result_label.add_theme_color_override("font_color", Color(0.9, 0.85, 0.3) if is_win else Color(0.8, 0.2, 0.2))
 	add_child(result_label)
 
-	# 報酬サマリ（1行）
+	# 報酬パネル（勝利時）
 	if is_win:
-		var reward_text = "%dG  SP+%d  素材:%s" % [_reward_gold, _reward_sp, _reward_material.get("display", "なし")]
-		var reward_label = Label.new()
-		reward_label.text = reward_text
-		reward_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		reward_label.position = Vector2(0, 80)
-		reward_label.size = Vector2(1280, 25)
-		reward_label.add_theme_font_size_override("font_size", 14)
-		reward_label.add_theme_color_override("font_color", Color(0.7, 0.7, 0.5))
-		add_child(reward_label)
+		_build_reward_panel(battle_gold_drop)
 
 	# カード3択（勝利時のみ）
 	if is_win and _card_choices.size() > 0:
 		var pick_label = Label.new()
 		pick_label.text = "── カードを1枚選べ ──"
 		pick_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		pick_label.position = Vector2(0, 115)
+		pick_label.position = Vector2(0, 210)
 		pick_label.size = Vector2(1280, 25)
 		pick_label.add_theme_font_size_override("font_size", 16)
 		pick_label.add_theme_color_override("font_color", Color(0.9, 0.85, 0.6))
 		add_child(pick_label)
 
 		var card_container = HBoxContainer.new()
-		card_container.position = Vector2(140, 150)
-		card_container.size = Vector2(1000, 350)
-		card_container.add_theme_constant_override("separation", 30)
+		card_container.position = Vector2(80, 245)
+		card_container.size = Vector2(1120, 400)
+		card_container.add_theme_constant_override("separation", 20)
 		add_child(card_container)
 
 		for i in range(_card_choices.size()):
@@ -170,8 +169,8 @@ func _build_ui() -> void:
 		# スキップボタン
 		var skip_btn = Button.new()
 		skip_btn.text = "スキップ（カードを取らない）"
-		skip_btn.position = Vector2(440, 520)
-		skip_btn.size = Vector2(400, 40)
+		skip_btn.position = Vector2(440, 670)
+		skip_btn.size = Vector2(400, 38)
 		skip_btn.add_theme_font_size_override("font_size", 14)
 		skip_btn.pressed.connect(func(): _on_continue())
 		add_child(skip_btn)
@@ -179,9 +178,77 @@ func _build_ui() -> void:
 		# 敗北時 or カード選択なし
 		_build_defeat_ui(is_win)
 
+func _build_reward_panel(battle_gold_drop: int) -> void:
+	# 報酬パネル背景
+	var panel_bg = PanelContainer.new()
+	panel_bg.position = Vector2(390, 75)
+	panel_bg.size = Vector2(500, 120)
+	var panel_style = StyleBoxFlat.new()
+	panel_style.bg_color = Color(0.08, 0.09, 0.14, 0.92)
+	panel_style.set_corner_radius_all(10)
+	panel_style.set_border_width_all(1)
+	panel_style.border_color = Color(0.5, 0.45, 0.2)
+	panel_bg.add_theme_stylebox_override("panel", panel_style)
+	add_child(panel_bg)
+
+	var vbox = VBoxContainer.new()
+	vbox.add_theme_constant_override("separation", 4)
+
+	# タイトル行
+	var title_lbl = Label.new()
+	title_lbl.text = "── 報酬 ──"
+	title_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	title_lbl.add_theme_font_size_override("font_size", 13)
+	title_lbl.add_theme_color_override("font_color", Color(0.85, 0.8, 0.5))
+	vbox.add_child(title_lbl)
+
+	# ドロップ通貨（バトル中撃破）
+	if battle_gold_drop > 0:
+		var drop_lbl = Label.new()
+		drop_lbl.text = "撃破ドロップ:  %dG" % battle_gold_drop
+		drop_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		drop_lbl.add_theme_font_size_override("font_size", 13)
+		drop_lbl.add_theme_color_override("font_color", Color(0.95, 0.85, 0.3))
+		vbox.add_child(drop_lbl)
+
+	# 勝利ボーナス通貨
+	var gold_lbl = Label.new()
+	gold_lbl.text = "勝利ボーナス:  %dG" % _reward_gold
+	gold_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	gold_lbl.add_theme_font_size_override("font_size", 13)
+	gold_lbl.add_theme_color_override("font_color", Color(0.9, 0.8, 0.3))
+	vbox.add_child(gold_lbl)
+
+	# スキルポイント
+	var sp_lbl = Label.new()
+	sp_lbl.text = "スキルポイント:  +%d SP" % _reward_sp
+	sp_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	sp_lbl.add_theme_font_size_override("font_size", 13)
+	sp_lbl.add_theme_color_override("font_color", Color(0.6, 0.8, 0.95))
+	vbox.add_child(sp_lbl)
+
+	# 素材
+	var mat_name: String = _reward_material.get("display", "なし")
+	var mat_lbl = Label.new()
+	mat_lbl.text = "素材:  %s" % mat_name
+	mat_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	mat_lbl.add_theme_font_size_override("font_size", 13)
+	mat_lbl.add_theme_color_override("font_color", Color(0.6, 0.85, 0.6))
+	vbox.add_child(mat_lbl)
+
+	# ドロップアイテム（Phase 3実装予定枠）
+	var drop_items_lbl = Label.new()
+	drop_items_lbl.text = "アイテムドロップ:  （Phase 3で実装予定）"
+	drop_items_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	drop_items_lbl.add_theme_font_size_override("font_size", 10)
+	drop_items_lbl.add_theme_color_override("font_color", Color(0.45, 0.45, 0.45))
+	vbox.add_child(drop_items_lbl)
+
+	panel_bg.add_child(vbox)
+
 func _create_card_panel(idx: int, card: Dictionary) -> PanelContainer:
 	var panel = PanelContainer.new()
-	panel.custom_minimum_size = Vector2(290, 350)
+	panel.custom_minimum_size = Vector2(355, 400)
 
 	var rarity = card.get("rarity", "common")
 	var rarity_color = RARITY_COLORS.get(rarity, Color(0.7, 0.7, 0.7))

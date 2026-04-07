@@ -40,6 +40,8 @@ var run_depth: int = 0
 var artifacts_acquired: Array = []
 var battle_seed: int = 0       # リプレイ用ランダムシード
 var battle_log: Array = []     # リプレイ用イベントログ
+var current_battle_gold: int = 0  # バトル中に獲得した累積通貨（敵撃破ドロップ）
+var battle_drops: Array = []      # バトル中に獲得したアイテムドロップ（Phase 3で実装）
 
 func reset() -> void:
 	battle_config = DEFAULT_BATTLE_CONFIG.duplicate(true)
@@ -59,4 +61,6 @@ func reset() -> void:
 	artifacts_acquired = []
 	battle_seed = 0
 	battle_log = []
+	current_battle_gold = 0
+	battle_drops = []
 	print("[GameSession] reset")

@@ -371,14 +371,14 @@ func _check_game_over() -> void:
 		game_over_label.text     = "GAME OVER"
 		game_over_label.modulate = Color(1.0, 0.3, 0.3)
 		game_over_label.visible  = true
-		GameSession.last_result = {"win": false, "player_hp_remaining": base_hp[0], "turns": 0}
+		GameSession.last_result = {"win": false, "player_hp_remaining": base_hp[0], "turns": 0, "battle_gold": GameSession.current_battle_gold}
 		_transition_to_result_timer()
 	elif base_hp[1] <= 0:
 		game_over = true
 		game_over_label.text     = "YOU WIN!"
 		game_over_label.modulate = Color(0.3, 1.0, 0.5)
 		game_over_label.visible  = true
-		GameSession.last_result = {"win": true, "player_hp_remaining": base_hp[0], "turns": 0}
+		GameSession.last_result = {"win": true, "player_hp_remaining": base_hp[0], "turns": 0, "battle_gold": GameSession.current_battle_gold}
 		_transition_to_result_timer()
 
 func _on_battle_timeout() -> void:
@@ -387,15 +387,15 @@ func _on_battle_timeout() -> void:
 	if result == "win":
 		game_over_label.text     = "TIME UP - VICTORY"
 		game_over_label.modulate = Color(0.3, 1.0, 0.5)
-		GameSession.last_result = {"win": true, "player_hp_remaining": base_hp[0], "turns": 0}
+		GameSession.last_result = {"win": true, "player_hp_remaining": base_hp[0], "turns": 0, "battle_gold": GameSession.current_battle_gold}
 	elif result == "draw":
 		game_over_label.text     = "TIME UP - DRAW"
 		game_over_label.modulate = Color(0.7, 0.7, 0.3)
-		GameSession.last_result = {"win": false, "player_hp_remaining": base_hp[0], "turns": 0}
+		GameSession.last_result = {"win": false, "player_hp_remaining": base_hp[0], "turns": 0, "battle_gold": GameSession.current_battle_gold}
 	else:  # "lose"（デフォルト）
 		game_over_label.text     = "TIME UP - DEFEAT"
 		game_over_label.modulate = Color(1.0, 0.5, 0.1)
-		GameSession.last_result = {"win": false, "player_hp_remaining": base_hp[0], "turns": 0}
+		GameSession.last_result = {"win": false, "player_hp_remaining": base_hp[0], "turns": 0, "battle_gold": GameSession.current_battle_gold}
 	game_over_label.visible = true
 	_add_log("=== 時間切れ：%s ===" % result)
 	_transition_to_result_timer()
@@ -408,11 +408,20 @@ func _transition_to_result_timer() -> void:
 func _on_unit_placed(side: int, row: int, col: int, _unit: Object) -> void:
 	_mark_all_cells_dirty()
 
-func _on_unit_died(side: int, row: int, col: int) -> void:
+func _on_unit_died(side: int, row: int, col: int, died_unit: Object) -> void:
 	var side_name: String = "自陣" if side == 0 else "敵陣"
 	var display_col: int = (2 - col) if side == 0 else col
 	var col_names: Array  = ["前列", "中列", "後列"]
 	_add_log("倒 %s %d行%s" % [side_name, row + 1, col_names[display_col]])
+	# 敵ユニット撃破時: cost × 5G を累積（reward_multiplierで倍率調整可能）
+	if side == 1 and died_unit != null:
+		var unit_cost: int = died_unit.cost if "cost" in died_unit else 1
+		var reward_mult: float = GameSession.battle_config.get("reward_multiplier", 1.0)
+		var gold_gained: int = max(1, int(unit_cost * 5 * reward_mult))
+		GameSession.current_battle_gold += gold_gained
+		print("[Drop] 敵撃破 gold+%d (cost:%d, 累計:%d)" % [gold_gained, unit_cost, GameSession.current_battle_gold])
+		if game_ui != null and game_ui._overlay != null:
+			game_ui._overlay.update_battle_gold_label(GameSession.current_battle_gold)
 	if side == 0 and board_manager.player_data != null:
 		for skill in board_manager.player_data.skills:
 			if skill.get("trigger", "") == "on_unit_died_ally":
