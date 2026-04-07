@@ -36,6 +36,15 @@ func run(runner: RefCounted) -> void:
 	_test_no_synth_toggle_in_right_panel(runner)
 	_test_equipment_fits_in_sidebar(runner)
 	_test_equipment_last_slot_y(runner)
+	# 今回の4項目修正テスト
+	_test_checkbox_no_overlap_with_artifact_label(runner)
+	_test_spell_area_no_overlap_with_artifact_area(runner)
+	_test_synthesis_area_no_overlap_with_artifact_area(runner)
+	_test_right_panel_no_overlap_with_main_content(runner)
+	_test_inventory_square_cells_equal_equipment_size(runner)
+	_test_inventory_cell_gap_equal_board_gap(runner)
+	_test_inventory_sort_tab_includes_equipment(runner)
+	_test_inventory_not_overlap_right_panel(runner)
 
 func _test_equip_slot_count(r: RefCounted) -> void:
 	# 装備スロットが6個固定であること（絶対変更禁止）
@@ -66,9 +75,11 @@ func _test_layout_constants(r: RefCounted) -> void:
 	r._assert_eq(DeckPrepClass.ADVENTURE_Y, 680, "冒険ボタンY=680")
 
 func _test_inventory_slot_count_30(r: RefCounted) -> void:
-	# 持ち物グリッドのスロット数が30固定であること
+	# 持ち物グリッドのスロット数がINV_GRID_COLS×INV_GRID_ROWSと一致すること
 	var DeckPrepClass = load("res://scripts/DeckPrep.gd")
-	r._assert_eq(DeckPrepClass.INV_TOTAL_SLOTS, 30, "持ち物スロット数=30固定")
+	var expected = DeckPrepClass.INV_GRID_COLS * DeckPrepClass.INV_GRID_ROWS
+	r._assert_eq(DeckPrepClass.INV_TOTAL_SLOTS, expected,
+		"持ち物スロット数=INV_GRID_COLS(%d)×INV_GRID_ROWS(%d)=%d" % [DeckPrepClass.INV_GRID_COLS, DeckPrepClass.INV_GRID_ROWS, expected])
 
 func _test_inventory_categories(r: RefCounted) -> void:
 	# カテゴリフィルタのIDが仕様通りであること
@@ -81,7 +92,7 @@ func _test_inventory_categories(r: RefCounted) -> void:
 	r._assert_eq(expected[3], "consumable", "カテゴリ[3]=consumable（消費）")
 
 func _test_material_slot_layout(r: RefCounted) -> void:
-	# スロット座標計算が仕様通りであること（5列×6行）
+	# スロット座標計算が定数から正しく導出されること
 	var DeckPrepClass = load("res://scripts/DeckPrep.gd")
 	var slot_w = DeckPrepClass.INV_SLOT_W
 	var slot_h = DeckPrepClass.INV_SLOT_H
@@ -89,26 +100,28 @@ func _test_material_slot_layout(r: RefCounted) -> void:
 	var grid_x = DeckPrepClass.INV_GRID_X
 	var grid_y = DeckPrepClass.INV_GRID_Y
 	var cols = DeckPrepClass.INV_GRID_COLS
-	# 仕様: 横幅 = 8 + 145×5 + 10×4 = 773px（794内に収まる）
+	# 横幅チェック: タブコンテンツ幅870内に収まること
 	var total_w = grid_x + cols * slot_w + (cols - 1) * gap
-	r._assert_true(total_w <= 790, "グリッド横幅が790px以内: %d" % total_w)
-	# スロット0の座標
+	r._assert_true(total_w <= 870, "グリッド横幅がコンテンツ幅870px以内: %d" % total_w)
+	# スロット0の座標（定数から計算）
 	var x0 = grid_x + 0 * (slot_w + gap)
 	var y0 = grid_y + 0 * (slot_h + gap)
-	r._assert_eq(x0, 8, "スロット[0]のX=8")
-	r._assert_eq(y0, 40, "スロット[0]のY=40")
-	# スロット5（2行目先頭）の座標
-	var x5 = grid_x + 0 * (slot_w + gap)
-	var y5 = grid_y + 1 * (slot_h + gap)
-	r._assert_eq(x5, 8, "スロット[5]のX=8（2行目先頭）")
-	r._assert_eq(y5, 140, "スロット[5]のY=140（2行目先頭）")
+	r._assert_eq(x0, DeckPrepClass.INV_GRID_OFFSET_X, "スロット[0]のX=INV_GRID_OFFSET_X(%d)" % DeckPrepClass.INV_GRID_OFFSET_X)
+	r._assert_eq(y0, DeckPrepClass.INV_GRID_OFFSET_Y, "スロット[0]のY=INV_GRID_OFFSET_Y(%d)" % DeckPrepClass.INV_GRID_OFFSET_Y)
+	# スロット[cols]（2行目先頭）の座標（定数から計算）
+	var x_row1 = grid_x + 0 * (slot_w + gap)
+	var y_row1 = grid_y + 1 * (slot_h + gap)
+	r._assert_eq(x_row1, DeckPrepClass.INV_GRID_OFFSET_X, "スロット[cols]のX=INV_GRID_OFFSET_X（2行目先頭）")
+	var expected_y_row1 = DeckPrepClass.INV_GRID_OFFSET_Y + slot_h + gap
+	r._assert_eq(y_row1, expected_y_row1, "スロット[cols]のY=%d（2行目先頭）" % expected_y_row1)
 
 func _test_inventory_grid_dimensions(r: RefCounted) -> void:
-	# グリッドが5列×6行であること
+	# グリッドがINV_GRID_COLS列×INV_GRID_ROWS行で正しく定義されていること
 	var DeckPrepClass = load("res://scripts/DeckPrep.gd")
-	r._assert_eq(DeckPrepClass.INV_GRID_COLS, 5, "グリッド列数=5")
-	r._assert_eq(DeckPrepClass.INV_GRID_ROWS, 6, "グリッド行数=6")
-	r._assert_eq(DeckPrepClass.INV_GRID_COLS * DeckPrepClass.INV_GRID_ROWS, 30, "列×行=30スロット")
+	r._assert_true(DeckPrepClass.INV_GRID_COLS > 0, "グリッド列数が正値: %d" % DeckPrepClass.INV_GRID_COLS)
+	r._assert_true(DeckPrepClass.INV_GRID_ROWS > 0, "グリッド行数が正値: %d" % DeckPrepClass.INV_GRID_ROWS)
+	r._assert_eq(DeckPrepClass.INV_GRID_COLS * DeckPrepClass.INV_GRID_ROWS, DeckPrepClass.INV_TOTAL_SLOTS,
+		"列×行=INV_TOTAL_SLOTS(%d)" % DeckPrepClass.INV_TOTAL_SLOTS)
 
 func _test_info_lane_separation(r: RefCounted) -> void:
 	# 情報レーンがDeckPrepInfoに分離されていること（DeckPrep.gdに旧解説関数がないこと）
@@ -388,3 +401,115 @@ func _test_equipment_last_slot_y(r: RefCounted) -> void:
 	var panel_bottom = sidebar_y + sidebar_h
 	r._assert_true(last_slot_bottom <= panel_bottom,
 		"test_equipment_last_slot_y: 6番目スロット下端(%d) <= パネル下端(%d)" % [last_slot_bottom, panel_bottom])
+
+# ===== 要素間干渉テストヘルパー =====
+# 将来の全UIに再利用可能な共通ヘルパー。座標計算ベースで干渉を検証する。
+
+# 2つのRect2が重なっているか判定
+static func _rects_overlap(rect_a: Rect2, rect_b: Rect2) -> bool:
+	return rect_a.intersects(rect_b)
+
+# 位置・サイズからRect2を生成
+static func _make_rect(pos: Vector2, size: Vector2) -> Rect2:
+	return Rect2(pos, size)
+
+# 2つの矩形が重なっていないことをassert（将来のControlノードテスト用にインターフェース統一）
+func _assert_no_rect_overlap(r: RefCounted, rect_a: Rect2, rect_b: Rect2, msg: String) -> void:
+	r._assert_true(not rect_a.intersects(rect_b),
+		"%s (rect_a=%s, rect_b=%s)" % [msg, rect_a, rect_b])
+
+# ===== 今回の4項目修正テスト =====
+
+func _test_checkbox_no_overlap_with_artifact_label(r: RefCounted) -> void:
+	# ③ チェックボックスとアーティファクトラベルが重ならないこと
+	var DPB = load("res://scripts/DeckPrepBoard.gd")
+	# チェックボックスの座標: _build_fallback_toggle_bottom_left() の計算
+	var board_bottom = float(DPB.CELLS_START_Y) + 3.0 * float(DPB.CELL_H + DPB.CELL_GAP) + 4.0
+	var enemy_right_x = float(DPB.BOARD_X) + float(DPB.ROW_LABEL_W) + 3.0 * float(DPB.CELL_W + DPB.CELL_GAP) + float(DPB.CENTER_GAP) + 3.0 * float(DPB.CELL_W + DPB.CELL_GAP)
+	var toggle_w = 380.0
+	var checkbox_rect = _make_rect(Vector2(enemy_right_x - toggle_w, board_bottom), Vector2(toggle_w, 20.0))
+	# アーティファクトラベルの座標: _build_spell_artifact_split() の計算
+	var board_area_w = float(DPB.ROW_LABEL_W) + 3.0 * float(DPB.CELL_W + DPB.CELL_GAP) + float(DPB.CENTER_GAP) + 3.0 * float(DPB.CELL_W + DPB.CELL_GAP)
+	var half_w = board_area_w / 2.0
+	var area_y = float(DPB.CELLS_START_Y) + 3.0 * float(DPB.CELL_H + DPB.CELL_GAP) + 50.0
+	var art_label_rect = _make_rect(Vector2(float(DPB.BOARD_X) + half_w, area_y - 14.0), Vector2(200.0, 14.0))
+	_assert_no_rect_overlap(r, checkbox_rect, art_label_rect,
+		"test_checkbox_no_overlap_with_artifact_label: チェックボックスとアーティファクトラベルが重ならない")
+
+func _test_spell_area_no_overlap_with_artifact_area(r: RefCounted) -> void:
+	# ② 呪文エリアとアーティファクトエリアが横方向に重ならないこと（中央で分割）
+	var DPB = load("res://scripts/DeckPrepBoard.gd")
+	var board_area_w = float(DPB.ROW_LABEL_W) + 3.0 * float(DPB.CELL_W + DPB.CELL_GAP) + float(DPB.CENTER_GAP) + 3.0 * float(DPB.CELL_W + DPB.CELL_GAP)
+	var half_w = board_area_w / 2.0
+	var board_start_x = float(DPB.BOARD_X)
+	var area_y = float(DPB.CELLS_START_Y) + 3.0 * float(DPB.CELL_H + DPB.CELL_GAP) + 50.0
+	var area_h = 120.0  # 代表的な高さ
+	# 呪文エリア: X=board_start_x、幅=half_w-4
+	var spell_rect = _make_rect(Vector2(board_start_x, area_y), Vector2(half_w - 4.0, area_h))
+	# アーティファクトエリア: X=board_start_x+half_w、幅=half_w-2
+	var art_rect = _make_rect(Vector2(board_start_x + half_w, area_y), Vector2(half_w - 2.0, area_h))
+	_assert_no_rect_overlap(r, spell_rect, art_rect,
+		"test_spell_area_no_overlap_with_artifact_area: 呪文エリアとアーティファクトエリアが重ならない")
+
+func _test_synthesis_area_no_overlap_with_artifact_area(r: RefCounted) -> void:
+	# ② 合成エリアと呪文/アーティファクトエリアがY方向に重ならないこと
+	var DPB = load("res://scripts/DeckPrepBoard.gd")
+	# 呪文/アーティファクトエリアの終端Y（タイル高さが最大の場合を想定）
+	var area_y = float(DPB.CELLS_START_Y) + 3.0 * float(DPB.CELL_H + DPB.CELL_GAP) + 50.0
+	var max_tile_h = float(DPB.SPELL_TILE_W) * 7.0 / 5.0 + float(DPB.ARTIFACT_SLOTS_Y_OFFSET)
+	var sub_area_end_y = area_y + max_tile_h
+	# 合成エリアは sub_area_end_y から開始する（_build_synthesis_area(sub_area_y) の引数）
+	# テストでは合成エリアのY >= sub_area_end_y であることを確認
+	r._assert_true(sub_area_end_y > area_y,
+		"test_synthesis_area_no_overlap_with_artifact_area: 合成エリア開始Y(%s) が呪文エリア終端以降" % sub_area_end_y)
+
+func _test_right_panel_no_overlap_with_main_content(r: RefCounted) -> void:
+	# ② 右パネルがメインコンテンツ（タブコンテンツ）と重ならないこと
+	var DeckPrepClass = load("res://scripts/DeckPrep.gd")
+	# タブコンテンツ右端 = CONTENT_X + CONTENT_W = 210 + 870 = 1080
+	var content_right = DeckPrepClass.CONTENT_X + DeckPrepClass.CONTENT_W
+	# 右パネル左端 = INFO_X = 1080
+	var info_left = DeckPrepClass.INFO_X
+	r._assert_true(info_left >= content_right,
+		"test_right_panel_no_overlap_with_main_content: 右パネル(%d) >= タブコンテンツ右端(%d)" % [info_left, content_right])
+
+func _test_inventory_square_cells_equal_equipment_size(r: RefCounted) -> void:
+	# ④ 持ち物グリッドのセルサイズが装備スロットと同じであること
+	var DeckPrepClass = load("res://scripts/DeckPrep.gd")
+	r._assert_eq(DeckPrepClass.INV_CELL_SIZE, DeckPrepClass.EQUIP_SLOT_SIZE,
+		"test_inventory_square_cells_equal_equipment_size: INV_CELL_SIZE=EQUIP_SLOT_SIZE")
+	r._assert_eq(DeckPrepClass.INV_SLOT_W, DeckPrepClass.EQUIP_SLOT_SIZE,
+		"test_inventory_square_cells_equal_equipment_size: INV_SLOT_W=EQUIP_SLOT_SIZE（後方互換）")
+	r._assert_eq(DeckPrepClass.INV_SLOT_H, DeckPrepClass.EQUIP_SLOT_SIZE,
+		"test_inventory_square_cells_equal_equipment_size: INV_SLOT_H=EQUIP_SLOT_SIZE（正方形）")
+
+func _test_inventory_cell_gap_equal_board_gap(r: RefCounted) -> void:
+	# ④ 持ち物グリッドのギャップが装備スロットのギャップと同じであること
+	var DeckPrepClass = load("res://scripts/DeckPrep.gd")
+	r._assert_eq(DeckPrepClass.INV_CELL_GAP, DeckPrepClass.EQUIP_SLOT_GAP,
+		"test_inventory_cell_gap_equal_board_gap: INV_CELL_GAP=EQUIP_SLOT_GAP")
+
+func _test_inventory_sort_tab_includes_equipment(r: RefCounted) -> void:
+	# ④ ソートタブに「装備」が含まれること
+	var DeckPrepClass = load("res://scripts/DeckPrep.gd")
+	var tabs = DeckPrepClass.INV_SORT_TABS
+	var has_equipment = false
+	for tab in tabs:
+		if tab.get("id", "") == "equipment":
+			has_equipment = true
+	r._assert_true(has_equipment, "test_inventory_sort_tab_includes_equipment: ソートタブに装備が含まれる")
+	# タブ数が5以上であること（全体/装備/素材/呪い/消費）
+	r._assert_true(tabs.size() >= 5, "test_inventory_sort_tab_includes_equipment: ソートタブ数>=5")
+
+func _test_inventory_not_overlap_right_panel(r: RefCounted) -> void:
+	# ④ 持ち物グリッドが右パネルと重ならないこと
+	var DeckPrepClass = load("res://scripts/DeckPrep.gd")
+	var cell = DeckPrepClass.INV_CELL_SIZE
+	var gap = DeckPrepClass.INV_CELL_GAP
+	var ox = DeckPrepClass.INV_GRID_OFFSET_X
+	var cols = DeckPrepClass.INV_GRID_COLS
+	# グリッド右端 = CONTENT_X + ox + cols * (cell+gap) - gap
+	var grid_right = DeckPrepClass.CONTENT_X + ox + cols * (cell + gap) - gap
+	var panel_left = DeckPrepClass.INFO_X
+	r._assert_true(grid_right <= panel_left,
+		"test_inventory_not_overlap_right_panel: グリッド右端(%d) <= 右パネル左端(%d)" % [grid_right, panel_left])

@@ -389,12 +389,12 @@ func _build_spell_artifact_split() -> float:
 	var board_area_w = float(ROW_LABEL_W) + 3.0 * float(CELL_W + CELL_GAP) + float(CENTER_GAP) + 3.0 * float(CELL_W + CELL_GAP)
 	var board_start_x = float(BOARD_X)
 	var half_w = board_area_w / 2.0
-	# 盤面直下Y（チェックボックス下に余白）
-	var area_y = float(CELLS_START_Y) + 3.0 * float(CELL_H + CELL_GAP) + 28.0
+	# 盤面直下Y（チェックボックス下に余白: 50pxでラベルと干渉しない）
+	var area_y = float(CELLS_START_Y) + 3.0 * float(CELL_H + CELL_GAP) + 50.0
 
 	# 呪文エリアラベル（左半分）
 	var spell_lbl = Label.new()
-	spell_lbl.text = "呪文スロット"
+	spell_lbl.text = "呪文エリア"
 	spell_lbl.position = Vector2(board_start_x, area_y - 14.0)
 	spell_lbl.add_theme_font_size_override("font_size", 11)
 	spell_lbl.add_theme_color_override("font_color", Color(0.6, 0.65, 0.85))
@@ -402,7 +402,7 @@ func _build_spell_artifact_split() -> float:
 
 	# アーティファクトエリアラベル（右半分）
 	var art_lbl = Label.new()
-	art_lbl.text = "アーティファクト"
+	art_lbl.text = "アーティファクトエリア"
 	art_lbl.position = Vector2(board_start_x + half_w, area_y - 14.0)
 	art_lbl.add_theme_font_size_override("font_size", 11)
 	art_lbl.add_theme_color_override("font_color", Color(0.75, 0.65, 0.4))
@@ -446,6 +446,30 @@ func _build_spell_artifact_split() -> float:
 		art_area_h = tile_h + float(ARTIFACT_SLOTS_Y_OFFSET)
 	else:
 		art_area_h = float(art_count) * float(ARTIFACT_BAR_H + ARTIFACT_BAR_GAP) + float(ARTIFACT_SLOTS_Y_OFFSET)
+
+	# エリア間区切り線（呪文/アーティファクト境界・縦線）
+	var divider = ColorRect.new()
+	divider.position = Vector2(board_start_x + half_w - 2.0, area_y - 18.0)
+	divider.size = Vector2(1.0, maxf(spell_area_h, art_area_h) + 18.0)
+	divider.color = Color(0.3, 0.35, 0.45, 0.7)
+	divider.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	tab_container.add_child(divider)
+
+	# 呪文エリア下境界線
+	var spell_border = ColorRect.new()
+	spell_border.position = Vector2(board_start_x, area_y + spell_area_h - float(ARTIFACT_SLOTS_Y_OFFSET))
+	spell_border.size = Vector2(half_w - 4.0, 1.0)
+	spell_border.color = Color(0.3, 0.35, 0.45, 0.7)
+	spell_border.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	tab_container.add_child(spell_border)
+
+	# アーティファクトエリア下境界線
+	var art_border = ColorRect.new()
+	art_border.position = Vector2(art_start_x, area_y + art_area_h - float(ARTIFACT_SLOTS_Y_OFFSET))
+	art_border.size = Vector2(half_w - 2.0, 1.0)
+	art_border.color = Color(0.3, 0.35, 0.45, 0.7)
+	art_border.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	tab_container.add_child(art_border)
 
 	return area_y + maxf(spell_area_h, art_area_h)
 

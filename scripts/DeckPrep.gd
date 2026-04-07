@@ -60,8 +60,31 @@ const EQUIP_SLOTS = [
 	{"id": "accessory2", "label": "アクセ2", "row": 1, "col": 1},
 	{"id": "accessory3", "label": "アクセ3", "row": 2, "col": 1},
 ]
-const EQUIP_SLOT_SIZE = 55   # スロットサイズ
-const EQUIP_SLOT_GAP = 8     # スロット間隔
+const EQUIP_SLOT_SIZE = 55   # スロットサイズ（持ち物グリッドのセルサイズと同一）
+const EQUIP_SLOT_GAP = 8     # スロット間隔（持ち物グリッドのギャップと同一）
+
+# 持ち物グリッド定数（装備スロットと同一サイズ・間隔を使用）
+# セルサイズ = EQUIP_SLOT_SIZE, セル間隔 = EQUIP_SLOT_GAP
+const INV_CELL_SIZE = EQUIP_SLOT_SIZE   # 正方形セルサイズ（装備スロットと統一）
+const INV_CELL_GAP  = EQUIP_SLOT_GAP   # セル間隔（装備スロットと統一）
+const INV_GRID_OFFSET_X = 8            # グリッド開始X（タブコンテナ内）
+const INV_GRID_OFFSET_Y = 40           # グリッド開始Y（フィルタタブ下）
+# 列数: コンテンツ幅(870) - 右パネル干渉なし - OFFSET_X - 余白 から計算
+# 870 - 8 - 8 = 854 / (55 + 8) = 13.5 → 13列
+# ただし右パネル（INFO_X=1080）まで中央エリア幅870内なので問題なし
+const INV_GRID_COLS = 12               # グリッド列数（870px内に収まる最大列数）
+# 行数: コンテンツ高さ(636) - OFFSET_Y - フィルタ(32) = 564 / (55+8) = 8.9 → 8行
+const INV_GRID_ROWS = 8                # グリッド行数
+const INV_TOTAL_SLOTS = INV_GRID_COLS * INV_GRID_ROWS  # 総スロット数
+
+# ソートタブ定義（持ち物タブ内サブタブ）
+const INV_SORT_TABS = [
+	{"id": "all",       "label": "全体"},
+	{"id": "equipment", "label": "装備"},
+	{"id": "normal",    "label": "素材"},
+	{"id": "cursed",    "label": "呪い"},
+	{"id": "consumable","label": "消費"},
+]
 
 func _ready() -> void:
 	_PL = load("res://scripts/PlacementLogic.gd")
@@ -342,53 +365,74 @@ func _update_board_detail() -> void:
 	# 右パネルで統一したので不使用（互換のため残す）
 	pass
 
-# ===== 持ち物タブ（カテゴリフィルタ + 素材グリッド） =====
-# 装備スロットは左サイドバーに常時表示。このタブにはカテゴリフィルタ + アイテム/素材グリッド
+# ===== 持ち物タブ（ソートタブ + 正方形グリッド） =====
+# 装備スロットは左サイドバーに常時表示。このタブには装備含むソートタブ + 正方形グリッド
+# セルサイズ・間隔は装備スロットと統一（EQUIP_SLOT_SIZE / EQUIP_SLOT_GAP）
 
-const INV_SLOT_W = 145    # スロット幅
-const INV_SLOT_H = 90     # スロット高さ
-const INV_SLOT_GAP = 10   # スロット間隔
-const INV_GRID_COLS = 5   # グリッド列数
-const INV_GRID_ROWS = 6   # グリッド行数
-const INV_TOTAL_SLOTS = 30  # 総スロット数 (INV_GRID_COLS × INV_GRID_ROWS)
-const INV_GRID_X = 8      # グリッド開始X
-const INV_GRID_Y = 40     # グリッド開始Y
-const INV_FILTER_H = 32   # フィルタタブ高さ
+const INV_FILTER_H = 32   # フィルタタブ高さ（後方互換維持）
+# 後方互換用エイリアス（テスト等が参照する可能性があるため残す）
+const INV_SLOT_W = INV_CELL_SIZE   # スロット幅（=EQUIP_SLOT_SIZE）
+const INV_SLOT_H = INV_CELL_SIZE   # スロット高さ（正方形・=EQUIP_SLOT_SIZE）
+const INV_SLOT_GAP = INV_CELL_GAP  # スロット間隔（=EQUIP_SLOT_GAP）
+const INV_GRID_X = INV_GRID_OFFSET_X
+const INV_GRID_Y = INV_GRID_OFFSET_Y
 
 func _build_inventory_tab() -> void:
-	# カテゴリフィルタタブ（上部）
-	_build_category_filter(_tab_container)
-	# 素材グリッド（下部）
-	_build_inventory_grid(_tab_container)
+	# ソートタブ（上部）
+	_build_inventory_sort_tabs(_tab_container)
+	# 正方形グリッド（下部）
+	_build_inventory_square_grid(_tab_container)
 
-func _build_category_filter(parent: Node) -> void:
-	var categories = [
-		{"id": "all",         "label": "全体"},
-		{"id": "normal",      "label": "素材"},
-		{"id": "cursed",      "label": "呪い"},
-		{"id": "consumable",  "label": "消費"},
-	]
+func _build_inventory_sort_tabs(parent: Node) -> void:
 	var x = 10
-	for cat in categories:
+	for tab in INV_SORT_TABS:
 		var btn = Button.new()
-		btn.text = cat["label"]
+		btn.text = tab["label"]
 		btn.position = Vector2(x, 3)
-		btn.size = Vector2(90, 26)
+		btn.size = Vector2(80, 26)
 		btn.add_theme_font_size_override("font_size", 12)
-		if cat["id"] == _inventory_filter:
+		if tab["id"] == _inventory_filter:
 			btn.modulate = Color(1.0, 1.0, 0.5)
-		var cat_id = cat["id"]
-		btn.pressed.connect(func(): _set_inventory_filter(cat_id))
+		var tab_id = tab["id"]
+		btn.pressed.connect(func(): _set_inventory_filter(tab_id))
 		parent.add_child(btn)
-		x += 100
+		x += 88
 
 func _set_inventory_filter(filter: String) -> void:
 	_inventory_filter = filter
-	# タブコンテンツを再描画
 	for child in _tab_container.get_children():
 		child.queue_free()
 	_build_inventory_tab()
 
+func _get_filtered_items() -> Array:
+	# 装備・素材・消費・呪いをフィルタして返す（装備タブ追加対応）
+	var result: Array = []
+	# 装備（GameSession.equipmentから取得予定。現在は空）
+	if _inventory_filter == "all" or _inventory_filter == "equipment":
+		pass  # 将来: GameSession.equipment から生成
+	# 素材（装備タブ専用の場合は素材を含めない）
+	if _inventory_filter != "equipment":
+		for mat in CardDB.MATERIALS:
+			var is_cursed = mat.get("is_cursed", false)
+			var is_consumable = mat.get("is_consumable", false)
+			var count = _count_owned(mat.get("id", ""))
+			if count <= 0:
+				continue
+			match _inventory_filter:
+				"all":
+					result.append({"type": "material", "data": mat, "count": count})
+				"normal":
+					if not is_cursed and not is_consumable:
+						result.append({"type": "material", "data": mat, "count": count})
+				"cursed":
+					if is_cursed:
+						result.append({"type": "material", "data": mat, "count": count})
+				"consumable":
+					if is_consumable:
+						result.append({"type": "material", "data": mat, "count": count})
+	return result
+
+# 後方互換: 旧_get_filtered_materialsと同等動作
 func _get_filtered_materials() -> Array:
 	var filtered: Array = []
 	for mat in CardDB.MATERIALS:
@@ -415,107 +459,67 @@ func _count_owned(mat_id: String) -> int:
 			count += 1
 	return count
 
-func _build_inventory_grid(parent: Node) -> void:
-	# 項目10: モンハン式 — 所持素材を左上から順に詰める（所持数>0のみ表示）
-	var materials = _get_filtered_materials()
-	var owned_mats: Array = []
-	for mat in materials:
-		var count = _count_owned(mat.get("id", ""))
-		if count > 0:
-			owned_mats.append({"mat": mat, "count": count})
+func _build_inventory_square_grid(parent: Node) -> void:
+	# 正方形グリッド: セルサイズ=EQUIP_SLOT_SIZE, 間隔=EQUIP_SLOT_GAP
+	var items = _get_filtered_items()
+	var cell = INV_CELL_SIZE
+	var gap = INV_CELL_GAP
+	var ox = INV_GRID_OFFSET_X
+	var oy = INV_GRID_OFFSET_Y
 
 	for i in range(INV_TOTAL_SLOTS):
-		var col = i % INV_GRID_COLS
-		var row = i / INV_GRID_COLS
-		var x = INV_GRID_X + col * (INV_SLOT_W + INV_SLOT_GAP)
-		var y = INV_GRID_Y + row * (INV_SLOT_H + INV_SLOT_GAP)
-
-		if i < owned_mats.size():
-			var entry = owned_mats[i]
-			_build_material_slot_mh(parent, entry["mat"], entry["count"], x, y)
+		var col_i = i % INV_GRID_COLS
+		var row_i = i / INV_GRID_COLS
+		var x = ox + col_i * (cell + gap)
+		var y = oy + row_i * (cell + gap)
+		if i < items.size():
+			var item = items[i]
+			_build_inv_square_cell(parent, item, x, y, cell)
 		else:
-			_build_empty_slot(parent, x, y)
+			_build_inv_empty_cell(parent, x, y, cell)
 
-# 項目10: モンハン式スロット（アイコン+スタック数のみ、名前非表示）
-func _build_material_slot_mh(parent: Node, mat: Dictionary, count: int, x: int, y: int) -> void:
-	var panel = PanelContainer.new()
+func _build_inv_square_cell(parent: Node, item: Dictionary, x: int, y: int, size: int) -> void:
+	var panel = Panel.new()
 	panel.position = Vector2(x, y)
-	panel.custom_minimum_size = Vector2(INV_SLOT_W, INV_SLOT_H)
+	panel.size = Vector2(size, size)
 	var style = StyleBoxFlat.new()
-	var is_cursed = mat.get("is_cursed", false)
+	var item_type = item.get("type", "material")
+	var is_cursed = item["data"].get("is_cursed", false) if item_type == "material" else false
 	style.bg_color = Color(0.12, 0.12, 0.18)
-	style.border_color = Color(0.8, 0.3, 0.5) if is_cursed else Color(0.3, 0.5, 0.7)
-	style.set_border_width_all(2)
+	if item_type == "equipment":
+		style.border_color = Color(0.6, 0.5, 0.2)  # 装備: 金色
+	elif is_cursed:
+		style.border_color = Color(0.8, 0.3, 0.5)  # 呪い: 紫
+	else:
+		style.border_color = Color(0.3, 0.5, 0.7)  # 通常: 青
+	style.set_border_width_all(1)
 	style.set_corner_radius_all(4)
 	panel.add_theme_stylebox_override("panel", style)
 	parent.add_child(panel)
 
-	# アイコン枠（仮: 色付き矩形）
+	# アイコン枠（仮: 色付き矩形、テクスチャ実装後は置き換え）
 	var icon_bg = ColorRect.new()
-	icon_bg.position = Vector2(6, 6)
-	icon_bg.size = Vector2(INV_SLOT_W - 12, INV_SLOT_H - 22)
-	icon_bg.color = Color(0.8, 0.3, 0.5, 0.3) if is_cursed else Color(0.3, 0.5, 0.7, 0.3)
+	icon_bg.position = Vector2(3, 3)
+	icon_bg.size = Vector2(size - 6, size - 18)
+	icon_bg.color = style.border_color * Color(1, 1, 1, 0.25)
 	icon_bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	panel.add_child(icon_bg)
 
 	# スタック数（右下）
-	var stack_lbl = Label.new()
-	stack_lbl.text = "×%d" % count
-	stack_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	stack_lbl.position = Vector2(4, INV_SLOT_H - 20)
-	stack_lbl.size = Vector2(INV_SLOT_W - 14, 16)
-	stack_lbl.add_theme_font_size_override("font_size", 12)
-	stack_lbl.add_theme_color_override("font_color", Color(0.9, 0.85, 0.5))
-	stack_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	panel.add_child(stack_lbl)
-
-	# クリックで解説レーン更新（素材名は解説レーンで表示）
-	var mat_ref = mat
-	panel.gui_input.connect(func(event: InputEvent):
-		if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
-			_selected_material = mat_ref
-			_selected_card_idx = -1
-			_update_info_lane()
-	)
-
-func _build_material_slot(parent: Node, mat: Dictionary, count: int, x: int, y: int) -> void:
-	var panel = PanelContainer.new()
-	panel.position = Vector2(x, y)
-	panel.custom_minimum_size = Vector2(INV_SLOT_W, INV_SLOT_H)
-
-	var style = StyleBoxFlat.new()
-	var is_cursed = mat.get("is_cursed", false)
-	style.bg_color = Color(0.12, 0.12, 0.18) if count > 0 else Color(0.08, 0.08, 0.12)
-	if count > 0:
-		style.border_color = Color(0.8, 0.3, 0.5) if is_cursed else Color(0.3, 0.5, 0.7)
-	else:
-		style.border_color = Color(0.15, 0.15, 0.2)
-	style.set_border_width_all(2)
-	style.set_corner_radius_all(4)
-	panel.add_theme_stylebox_override("panel", style)
-	parent.add_child(panel)
-
-	var vbox = VBoxContainer.new()
-	vbox.position = Vector2(4, 6)
-	vbox.size = Vector2(INV_SLOT_W - 8, INV_SLOT_H - 12)
-	panel.add_child(vbox)
-
-	var name_label = Label.new()
-	name_label.text = mat.get("display", "?")
-	name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	name_label.add_theme_font_size_override("font_size", 13)
-	name_label.add_theme_color_override("font_color", Color(0.9, 0.9, 0.9) if count > 0 else Color(0.4, 0.4, 0.5))
-	vbox.add_child(name_label)
-
-	var count_label = Label.new()
-	count_label.text = "×%d" % count
-	count_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	count_label.add_theme_font_size_override("font_size", 14)
-	count_label.add_theme_color_override("font_color", Color(0.9, 0.85, 0.5) if count > 0 else Color(0.3, 0.3, 0.4))
-	vbox.add_child(count_label)
+	var count = item.get("count", 1)
+	if count >= 2:
+		var stack_lbl = Label.new()
+		stack_lbl.text = "×%d" % count
+		stack_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+		stack_lbl.position = Vector2(2, size - 16)
+		stack_lbl.size = Vector2(size - 4, 14)
+		stack_lbl.add_theme_font_size_override("font_size", 9)
+		stack_lbl.add_theme_color_override("font_color", Color(0.9, 0.85, 0.5))
+		stack_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		panel.add_child(stack_lbl)
 
 	# クリックで解説レーン更新
-	var mat_ref = mat
+	var mat_ref = item["data"]
 	panel.gui_input.connect(func(event: InputEvent):
 		if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
 			_selected_material = mat_ref
@@ -523,11 +527,10 @@ func _build_material_slot(parent: Node, mat: Dictionary, count: int, x: int, y: 
 			_update_info_lane()
 	)
 
-func _build_empty_slot(parent: Node, x: int, y: int) -> void:
-	var panel = PanelContainer.new()
+func _build_inv_empty_cell(parent: Node, x: int, y: int, size: int) -> void:
+	var panel = Panel.new()
 	panel.position = Vector2(x, y)
-	panel.custom_minimum_size = Vector2(INV_SLOT_W, INV_SLOT_H)
-
+	panel.size = Vector2(size, size)
 	var style = StyleBoxFlat.new()
 	style.bg_color = Color(0.06, 0.06, 0.09)
 	style.border_color = Color(0.12, 0.12, 0.16)
@@ -535,6 +538,13 @@ func _build_empty_slot(parent: Node, x: int, y: int) -> void:
 	style.set_corner_radius_all(4)
 	panel.add_theme_stylebox_override("panel", style)
 	parent.add_child(panel)
+
+# 後方互換: _build_material_slot_mh（旧テスト・外部参照用）
+func _build_material_slot_mh(parent: Node, mat: Dictionary, count: int, x: int, y: int) -> void:
+	_build_inv_square_cell(parent, {"type": "material", "data": mat, "count": count}, x, y, INV_CELL_SIZE)
+
+func _build_empty_slot(parent: Node, x: int, y: int) -> void:
+	_build_inv_empty_cell(parent, x, y, INV_CELL_SIZE)
 
 func _build_placeholder_tab(tab_id: String) -> void:
 	var names = {"skill_tree": "スキル"}
