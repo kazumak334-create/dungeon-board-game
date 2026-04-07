@@ -15,6 +15,24 @@ const ROW_LABEL_W = 35
 const BOARD_H = BOARD_Y + 52 + 3 * (CELL_H + CELL_GAP) + 30
 const INFO_W = 280
 
+# 呪文スロット定数 (横5×縦2=10スロット)
+const SPELL_SLOT_W = 78
+const SPELL_SLOT_H = 38
+const SPELL_SLOT_GAP = 6
+const SPELL_SLOTS_COLS = 5
+const SPELL_SLOTS_ROWS = 2
+const SPELL_SLOTS_Y = BOARD_H + 4
+
+# アーティファクトスロット定数 (横6×縦1=6スロット)
+const ARTIFACT_SLOT_W = 78
+const ARTIFACT_SLOT_H = 38
+const ARTIFACT_SLOT_GAP = 6
+const ARTIFACT_SLOTS_COUNT = 6
+const ARTIFACT_SLOTS_Y = SPELL_SLOTS_Y + SPELL_SLOT_H * SPELL_SLOTS_ROWS + SPELL_SLOT_GAP * (SPELL_SLOTS_ROWS - 1) + 12
+
+# 合成リスト開始Y
+const SYNTHESIS_Y = ARTIFACT_SLOTS_Y + ARTIFACT_SLOT_H + 8
+
 const RACE_COLORS = {
 	"スライム": Color(0.3, 0.6, 0.3),
 	"獣": Color(0.6, 0.4, 0.2),
@@ -60,7 +78,9 @@ func build_placement_tab(_tab_container_arg: Control, PL) -> void:
 	_build_board_col_labels(enemy_x)
 	_build_board_cells(enemy_x)
 	populate_cards()
-	build_synthesis_list(BOARD_H, tab_container)
+	_build_spell_slots()
+	_build_artifact_slots()
+	build_synthesis_list(SYNTHESIS_Y, tab_container)
 
 # 項目2: 自陣・敵陣ラベル完全削除 → 列ラベルのみ残す
 func _build_board_col_labels(enemy_x: float) -> void:
@@ -148,6 +168,261 @@ func set_global_fallback(on: bool) -> void:
 	for cfg in GameSession.placement_config:
 		cfg["fallback_same_col"] = on
 
+# ---- ハイブリッドセル内コンテンツ生成 ----
+
+# タイル分割定義: 種類数→{cols, rows}
+const TILE_LAYOUTS = {
+	1: {"cols": 1, "rows": 1},
+	2: {"cols": 1, "rows": 2},
+	3: {"cols": 1, "rows": 3},
+	4: {"cols": 2, "rows": 2},
+}
+const BAR_H = 18  # バー形式の1バー高さ
+
+func _create_cell_content(cards: Array) -> Control:
+	if cards.size() == 0:
+		var empty = Control.new()
+		empty.custom_minimum_size = Vector2(CELL_W - 4, CELL_H - 4)
+		empty.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		return empty
+	elif cards.size() <= 4:
+		return _create_tile_layout(cards)
+	else:
+		return _create_bar_scroll_layout(cards)
+
+func _create_tile_layout(cards: Array) -> Control:
+	var kind = cards.size()
+	var layout = TILE_LAYOUTS.get(kind, {"cols": 2, "rows": 2})
+	var cols: int = layout["cols"]
+	var rows: int = layout["rows"]
+
+	var container = Control.new()
+	container.custom_minimum_size = Vector2(CELL_W - 4, CELL_H - 4)
+	container.mouse_filter = Control.MOUSE_FILTER_IGNORE
+
+	var available_w = float(CELL_W - 4)
+	var available_h = float(CELL_H - 4)
+	var tile_w = floorf((available_w - float(cols - 1)) / float(cols))
+	var tile_h = floorf((available_h - float(rows - 1)) / float(rows))
+
+	for i in range(cards.size()):
+		var card = cards[i]
+		var c_idx = i % cols
+		var r_idx = i / cols
+		var tx = float(c_idx) * (tile_w + 1.0)
+		var ty = float(r_idx) * (tile_h + 1.0)
+		var tile = _create_tile_chip(card["name"], card["count"], tile_w, tile_h,
+			card["idx_first"], card["indices"])
+		tile.position = Vector2(tx, ty)
+		container.add_child(tile)
+
+	return container
+
+func _create_tile_chip(card_name: String, count: int, w: float, h: float,
+		idx: int, all_indices: Array) -> Control:
+	var card_color = get_card_color(card_name)
+	var cost = get_card_cost(card_name)
+
+	var panel = Panel.new()
+	panel.custom_minimum_size = Vector2(w, h)
+	var style = StyleBoxFlat.new()
+	style.bg_color = card_color.darkened(0.4)
+	style.border_color = card_color
+	style.set_border_width_all(1)
+	style.set_corner_radius_all(2)
+	panel.add_theme_stylebox_override("panel", style)
+
+	# ヘッダー帯（高さ14px or h*0.4の小さい方）
+	var header_h = minf(14.0, h * 0.45)
+	var header = ColorRect.new()
+	header.position = Vector2(0, 0)
+	header.size = Vector2(w, header_h)
+	header.color = card_color
+	header.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	panel.add_child(header)
+
+	var font_size = 9 if h >= 47.0 else 8
+	var name_lbl = Label.new()
+	name_lbl.text = card_name
+	name_lbl.position = Vector2(2, 0)
+	name_lbl.size = Vector2(w - 16, header_h)
+	name_lbl.add_theme_font_size_override("font_size", font_size)
+	name_lbl.add_theme_color_override("font_color", Color(1, 1, 1))
+	name_lbl.clip_text = true
+	name_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	panel.add_child(name_lbl)
+
+	var cost_lbl = Label.new()
+	cost_lbl.text = str(cost)
+	cost_lbl.position = Vector2(w - 14, 0)
+	cost_lbl.size = Vector2(13, header_h)
+	cost_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	cost_lbl.add_theme_font_size_override("font_size", font_size)
+	cost_lbl.add_theme_color_override("font_color", Color(1, 1, 0.7))
+	cost_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	panel.add_child(cost_lbl)
+
+	# HP/ATK（47px以上かつユニットのみ）
+	if h >= 47.0 and CardDB.UNITS.has(card_name):
+		var d = CardDB.UNITS[card_name]
+		var stat_lbl = Label.new()
+		stat_lbl.text = "HP%d AT%d" % [d.get("hp", 0), d.get("atk", 0)]
+		stat_lbl.position = Vector2(2, header_h + 1)
+		stat_lbl.size = Vector2(w - 4, h - header_h - 1)
+		stat_lbl.add_theme_font_size_override("font_size", 8)
+		stat_lbl.add_theme_color_override("font_color", Color(0.8, 0.8, 0.8))
+		stat_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		panel.add_child(stat_lbl)
+
+	# スタック数（右下、count>=2のみ）
+	if count >= 2:
+		var stack_lbl = Label.new()
+		stack_lbl.text = "×%d" % count
+		stack_lbl.position = Vector2(0, h - 13)
+		stack_lbl.size = Vector2(w - 2, 13)
+		stack_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+		stack_lbl.add_theme_font_size_override("font_size", 9)
+		stack_lbl.add_theme_color_override("font_color", Color(1, 1, 0.5))
+		stack_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		panel.add_child(stack_lbl)
+
+	panel.gui_input.connect(func(event): _on_chip_input(event, idx, all_indices, panel))
+	return panel
+
+func _create_bar_scroll_layout(cards: Array) -> Control:
+	var scroll = ScrollContainer.new()
+	scroll.custom_minimum_size = Vector2(CELL_W - 4, CELL_H - 4)
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+
+	var vbox = VBoxContainer.new()
+	vbox.add_theme_constant_override("separation", 2)
+	vbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	scroll.add_child(vbox)
+
+	for card in cards:
+		var bar = _create_bar_chip(card["name"], card["count"], CELL_W - 4, BAR_H,
+			card["idx_first"], card["indices"])
+		vbox.add_child(bar)
+
+	return scroll
+
+func _create_bar_chip(card_name: String, count: int, w: float, h: float,
+		idx: int, all_indices: Array) -> Control:
+	var card_color = get_card_color(card_name)
+	var cost = get_card_cost(card_name)
+
+	var panel = Panel.new()
+	panel.custom_minimum_size = Vector2(w, h)
+	var style = StyleBoxFlat.new()
+	style.bg_color = card_color.darkened(0.35)
+	style.border_color = card_color
+	style.set_border_width_all(1)
+	style.set_corner_radius_all(2)
+	panel.add_theme_stylebox_override("panel", style)
+
+	var cost_lbl = Label.new()
+	cost_lbl.text = "[%d]" % cost
+	cost_lbl.position = Vector2(1, 0)
+	cost_lbl.size = Vector2(22, h)
+	cost_lbl.add_theme_font_size_override("font_size", 10)
+	cost_lbl.add_theme_color_override("font_color", Color(1, 1, 0.7))
+	cost_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	panel.add_child(cost_lbl)
+
+	var stack_w = 20.0 if count >= 2 else 0.0
+	var name_w = w - 22.0 - stack_w - 2.0
+	var name_lbl = Label.new()
+	name_lbl.text = card_name
+	name_lbl.position = Vector2(23, 0)
+	name_lbl.size = Vector2(name_w, h)
+	name_lbl.add_theme_font_size_override("font_size", 10)
+	name_lbl.add_theme_color_override("font_color", Color(1, 1, 1))
+	name_lbl.clip_text = true
+	name_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	panel.add_child(name_lbl)
+
+	if count >= 2:
+		var stack_lbl = Label.new()
+		stack_lbl.text = "×%d" % count
+		stack_lbl.position = Vector2(w - 22, 0)
+		stack_lbl.size = Vector2(21, h)
+		stack_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+		stack_lbl.add_theme_font_size_override("font_size", 10)
+		stack_lbl.add_theme_color_override("font_color", Color(1, 1, 0.5))
+		stack_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		panel.add_child(stack_lbl)
+
+	panel.gui_input.connect(func(event): _on_chip_input(event, idx, all_indices, panel))
+	return panel
+
+# ---- 呪文スロット描画 ----
+
+func _build_spell_slots() -> void:
+	# セクションラベル
+	var label = Label.new()
+	label.text = "呪文スロット"
+	label.position = Vector2(BOARD_X, SPELL_SLOTS_Y - 14)
+	label.add_theme_font_size_override("font_size", 11)
+	label.add_theme_color_override("font_color", Color(0.6, 0.65, 0.85))
+	tab_container.add_child(label)
+
+	# 呪文カード一覧を取得（集約済み）
+	var spell_cards = _build_spell_cards_list()
+
+	var slot_idx = 0
+	for sc in spell_cards:
+		if slot_idx >= SPELL_SLOTS_COLS * SPELL_SLOTS_ROWS:
+			break
+		var row = slot_idx / SPELL_SLOTS_COLS
+		var col = slot_idx % SPELL_SLOTS_COLS
+		var sx = float(BOARD_X) + float(col) * float(SPELL_SLOT_W + SPELL_SLOT_GAP)
+		var sy = float(SPELL_SLOTS_Y) + float(row) * float(SPELL_SLOT_H + SPELL_SLOT_GAP)
+		var bar = _create_bar_chip(sc[1], sc[2], float(SPELL_SLOT_W), float(SPELL_SLOT_H), sc[0], sc[3])
+		bar.position = Vector2(sx, sy)
+		tab_container.add_child(bar)
+		slot_idx += 1
+
+	# 残りの空スロット
+	for i in range(slot_idx, SPELL_SLOTS_COLS * SPELL_SLOTS_ROWS):
+		var row = i / SPELL_SLOTS_COLS
+		var col = i % SPELL_SLOTS_COLS
+		var sx = float(BOARD_X) + float(col) * float(SPELL_SLOT_W + SPELL_SLOT_GAP)
+		var sy = float(SPELL_SLOTS_Y) + float(row) * float(SPELL_SLOT_H + SPELL_SLOT_GAP)
+		var empty = _create_empty_slot_panel(float(SPELL_SLOT_W), float(SPELL_SLOT_H),
+			Color(0.2, 0.22, 0.35))
+		empty.position = Vector2(sx, sy)
+		tab_container.add_child(empty)
+
+# ---- アーティファクトスロット描画 ----
+
+func _build_artifact_slots() -> void:
+	# セクションラベル
+	var label = Label.new()
+	label.text = "アーティファクト"
+	label.position = Vector2(BOARD_X, ARTIFACT_SLOTS_Y - 14)
+	label.add_theme_font_size_override("font_size", 11)
+	label.add_theme_color_override("font_color", Color(0.75, 0.65, 0.4))
+	tab_container.add_child(label)
+
+	for i in range(ARTIFACT_SLOTS_COUNT):
+		var sx = float(BOARD_X) + float(i) * float(ARTIFACT_SLOT_W + ARTIFACT_SLOT_GAP)
+		var sy = float(ARTIFACT_SLOTS_Y)
+		var empty = _create_empty_slot_panel(float(ARTIFACT_SLOT_W), float(ARTIFACT_SLOT_H),
+			Color(0.4, 0.35, 0.18))
+		empty.position = Vector2(sx, sy)
+		tab_container.add_child(empty)
+
+func _create_empty_slot_panel(w: float, h: float, border_color: Color) -> Control:
+	var p = Panel.new()
+	p.custom_minimum_size = Vector2(w, h)
+	var style = StyleBoxFlat.new()
+	style.bg_color = Color(0.08, 0.08, 0.12)
+	style.border_color = border_color
+	style.set_border_width_all(1)
+	style.set_corner_radius_all(3)
+	p.add_theme_stylebox_override("panel", style)
+	return p
+
 func build_synthesis_list(y_start: float, _tc: Control) -> void:
 	var panel_w = 1280 - INFO_W - 30
 	var panel = UIF.create_panel(Vector2(BOARD_X, y_start), Vector2(panel_w, 160))
@@ -223,8 +498,14 @@ func populate_cards() -> void:
 		if vbox == null:
 			continue
 		vbox.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		for arr in _group_cards_by_name(cell_cards[key]):
-			vbox.add_child(create_card_chip(arr[0], arr[1], arr[2], arr[3]))
+		# ハイブリッド表示: セル内カードを集約してタイル/バー形式で描画
+		var grouped = _group_cards_by_name(cell_cards[key])
+		# {name, count, idx_first, indices} 形式に変換
+		var card_defs: Array = []
+		for arr in grouped:
+			card_defs.append({"name": arr[1], "count": arr[2], "idx_first": arr[0], "indices": arr[3]})
+		var content = _create_cell_content(card_defs)
+		vbox.add_child(content)
 
 		# セル操作（Panelのgui_input）
 		var cell_panel = _cell_rects[si][ri][ci]
@@ -251,15 +532,30 @@ func _build_cell_cards_map() -> Dictionary:
 	for i in range(GameSession.selected_deck.size()):
 		var entry = GameSession.selected_deck[i]
 		var config = GameSession.placement_config[i] if i < GameSession.placement_config.size() else {}
+		var col = config.get("col", -1)
+		# col=-1 は呪文スロット扱い → 盤面セルには含めない
+		if col < 0:
+			continue
 		var side = config.get("side", 0)
 		var row = max(0, config.get("row", 0))
-		var col = config.get("col", -1)
-		if col < 0: col = 2
 		var key = "%d_%d_%d" % [side, row, col]
 		if not result.has(key): result[key] = []
 		var card_name = entry.get("name", "???") if entry is Dictionary else str(entry)
 		result[key].append({"idx": i, "name": card_name})
 	return result
+
+# 呪文スロット用カードリスト（col=-1のカードを集約して返す）
+func _build_spell_cards_list() -> Array:
+	var raw: Array = []
+	for i in range(GameSession.selected_deck.size()):
+		var entry = GameSession.selected_deck[i]
+		var config = GameSession.placement_config[i] if i < GameSession.placement_config.size() else {}
+		var col = config.get("col", -1)
+		if col >= 0:
+			continue
+		var card_name = entry.get("name", "???") if entry is Dictionary else str(entry)
+		raw.append({"idx": i, "name": card_name})
+	return _group_cards_by_name(raw)
 
 func _group_cards_by_name(cards: Array) -> Array:
 	var groups: Dictionary = {}
@@ -276,74 +572,6 @@ func _group_cards_by_name(cards: Array) -> Array:
 		out.append([g["idx_first"], gname, g["count"], g["indices"]])
 	return out
 
-# 項目1: セル内アイコンをカード型（ヘッダー+イラスト枠+ステータス縦並び）に変更
-func create_card_chip(idx: int, card_name: String, count: int, all_indices: Array) -> Control:
-	var card_color = get_card_color(card_name)
-	var cost = get_card_cost(card_name)
-
-	var chip = Panel.new()
-	chip.custom_minimum_size = Vector2(CELL_W - 8, CELL_H - 8)
-	var chip_style = StyleBoxFlat.new()
-	chip_style.bg_color = card_color.darkened(0.35)
-	chip_style.border_color = card_color
-	chip_style.set_border_width_all(1)
-	chip_style.set_corner_radius_all(3)
-	chip.add_theme_stylebox_override("panel", chip_style)
-
-	# ヘッダー帯（カード名+コスト）
-	var header = ColorRect.new()
-	header.position = Vector2(0, 0)
-	header.size = Vector2(CELL_W - 8, 16)
-	header.color = card_color
-	chip.add_child(header)
-
-	var name_lbl = Label.new()
-	name_lbl.text = card_name if count == 1 else "%s ×%d" % [card_name, count]
-	name_lbl.position = Vector2(3, 0)
-	name_lbl.size = Vector2(CELL_W - 24, 15)
-	name_lbl.add_theme_font_size_override("font_size", 9)
-	name_lbl.add_theme_color_override("font_color", Color(1, 1, 1))
-	name_lbl.clip_text = true
-	name_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	chip.add_child(name_lbl)
-
-	var cost_lbl = Label.new()
-	cost_lbl.text = str(cost)
-	cost_lbl.position = Vector2(CELL_W - 22, 0)
-	cost_lbl.size = Vector2(14, 15)
-	cost_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	cost_lbl.add_theme_font_size_override("font_size", 9)
-	cost_lbl.add_theme_color_override("font_color", Color(1, 1, 0.7))
-	cost_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	chip.add_child(cost_lbl)
-
-	# イラスト枠（仮: 色帯）
-	var illust = ColorRect.new()
-	illust.position = Vector2(3, 18)
-	illust.size = Vector2(CELL_W - 14, 46)
-	illust.color = card_color.darkened(0.5)
-	illust.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	chip.add_child(illust)
-
-	# ステータス縦並び（ユニットのみ）
-	if CardDB.UNITS.has(card_name):
-		var d = CardDB.UNITS[card_name]
-		var stats_vbox = VBoxContainer.new()
-		stats_vbox.position = Vector2(3, 66)
-		stats_vbox.size = Vector2(CELL_W - 14, 28)
-		stats_vbox.add_theme_constant_override("separation", 0)
-		stats_vbox.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		chip.add_child(stats_vbox)
-		for stat in ["HP:%d ATK:%d" % [d.get("hp", 0), d.get("atk", 0)], "SPD:%.1fs" % d.get("interval", 0)]:
-			var sl = Label.new()
-			sl.text = stat
-			sl.add_theme_font_size_override("font_size", 8)
-			sl.add_theme_color_override("font_color", Color(0.85, 0.85, 0.85))
-			sl.mouse_filter = Control.MOUSE_FILTER_IGNORE
-			stats_vbox.add_child(sl)
-
-	chip.gui_input.connect(func(event): _on_chip_input(event, idx, all_indices, chip))
-	return chip
 
 func _on_chip_input(event: InputEvent, idx: int, all_indices: Array, chip: Control) -> void:
 	if not (event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed):
@@ -538,9 +766,11 @@ func update_highlight() -> void:
 	var config = GameSession.placement_config[_selected_card_idx] if _selected_card_idx < GameSession.placement_config.size() else {}
 	var p_side = config.get("side", 0)
 	var p_row = config.get("row", 0)
-	var p_col = config.get("col", 0)
+	var p_col = config.get("col", -1)
+	# 呪文スロットカード（col=-1）は盤面ハイライトを出さない
+	if p_col < 0:
+		return
 	if p_row < 0: p_row = 0
-	if p_col < 0: p_col = 2
 
 	# 配置マスをハイライト
 	var placed_color = Color(0.2, 0.22, 0.28) if p_side == 0 else Color(0.22, 0.18, 0.18)

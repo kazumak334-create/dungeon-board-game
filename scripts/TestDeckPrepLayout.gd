@@ -14,6 +14,10 @@ func run(runner: RefCounted) -> void:
 	_test_mh_inventory_owned_first(runner)
 	_test_deck_prep_info_setup(runner)
 	_test_board_no_ally_enemy_labels(runner)
+	_test_spell_slot_count(runner)
+	_test_artifact_slot_count(runner)
+	_test_cell_layout_tile_layouts(runner)
+	_test_stack_count_grouping(runner)
 
 func _test_equip_slot_count(r: RefCounted) -> void:
 	# 装備スロットが6個固定であること（絶対変更禁止）
@@ -130,3 +134,51 @@ func _test_board_no_ally_enemy_labels(r: RefCounted) -> void:
 	r._assert_true(board.has_method("_build_board_col_labels"), "列ラベル関数が存在する")
 	# CELLS_START_Y が BOARD_Y + 52 であること（12px以上のマージン保証）
 	r._assert_eq(BoardClass.CELLS_START_Y, BoardClass.BOARD_Y + 52, "CELLS_START_YはBOARD_Y+52（マージン確保）")
+
+func _test_spell_slot_count(r: RefCounted) -> void:
+	# 呪文スロットが10個（5列×2行）であること
+	var BoardClass = load("res://scripts/DeckPrepBoard.gd")
+	var total = BoardClass.SPELL_SLOTS_COLS * BoardClass.SPELL_SLOTS_ROWS
+	r._assert_eq(total, 10, "呪文スロット=10個（5×2）")
+	r._assert_eq(BoardClass.SPELL_SLOTS_COLS, 5, "呪文スロット列数=5")
+	r._assert_eq(BoardClass.SPELL_SLOTS_ROWS, 2, "呪文スロット行数=2")
+
+func _test_artifact_slot_count(r: RefCounted) -> void:
+	# アーティファクトスロットが6個固定であること
+	var BoardClass = load("res://scripts/DeckPrepBoard.gd")
+	r._assert_eq(BoardClass.ARTIFACT_SLOTS_COUNT, 6, "アーティファクトスロット=6個固定")
+
+func _test_cell_layout_tile_layouts(r: RefCounted) -> void:
+	# タイル分割定義: 1-4種類のレイアウトが定義されていること
+	var BoardClass = load("res://scripts/DeckPrepBoard.gd")
+	var board = BoardClass.new()
+	var layouts = BoardClass.TILE_LAYOUTS
+	r._assert_true(layouts.has(1), "TILE_LAYOUTS[1]が定義済み")
+	r._assert_true(layouts.has(2), "TILE_LAYOUTS[2]が定義済み")
+	r._assert_true(layouts.has(3), "TILE_LAYOUTS[3]が定義済み")
+	r._assert_true(layouts.has(4), "TILE_LAYOUTS[4]が定義済み")
+	r._assert_eq(layouts[1]["cols"], 1, "1種: 1列")
+	r._assert_eq(layouts[1]["rows"], 1, "1種: 1行")
+	r._assert_eq(layouts[4]["cols"], 2, "4種: 2列")
+	r._assert_eq(layouts[4]["rows"], 2, "4種: 2行")
+	# ハイブリッド描画関数が存在すること
+	r._assert_true(board.has_method("_create_cell_content"), "_create_cell_content()が存在する")
+	r._assert_true(board.has_method("_create_tile_layout"), "_create_tile_layout()が存在する")
+	r._assert_true(board.has_method("_create_bar_scroll_layout"), "_create_bar_scroll_layout()が存在する")
+
+func _test_stack_count_grouping(r: RefCounted) -> void:
+	# _group_cards_by_name: 同名カードが集約され count が正しいこと
+	var BoardClass = load("res://scripts/DeckPrepBoard.gd")
+	var board = BoardClass.new()
+	var raw = [
+		{"idx": 0, "name": "スライム"},
+		{"idx": 1, "name": "スライム"},
+		{"idx": 2, "name": "コブラ"},
+	]
+	var grouped = board._group_cards_by_name(raw)
+	# スライムが2枚スタック、コブラが1枚
+	r._assert_eq(grouped.size(), 2, "2種類に集約される")
+	r._assert_eq(grouped[0][1], "スライム", "1番目=スライム")
+	r._assert_eq(grouped[0][2], 2, "スライムcount=2")
+	r._assert_eq(grouped[1][1], "コブラ", "2番目=コブラ")
+	r._assert_eq(grouped[1][2], 1, "コブラcount=1")
