@@ -45,10 +45,10 @@ const VISIBILITY = {
 	},
 }
 
-var _parent: Control = null
+var _parent: Node = null
 var _scene_name: String = ""
 
-func attach(parent: Control, scene_name: String) -> void:
+func attach(parent: Node, scene_name: String) -> void:
 	_parent = parent
 	_scene_name = scene_name
 	_build_taskbar()
