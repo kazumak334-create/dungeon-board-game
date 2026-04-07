@@ -2,6 +2,44 @@
 
 ## [Unreleased]
 
+### CheckAgent：確認完了・修正なし — 2026-04-07 DeckPrep UI修正10項目検証
+
+#### 検証内容: DeckPrepInfo.gd新規分離 + DeckPrepBoard/DeckPrep修正 + テスト4追加
+
+**制約チェック（最優先）:**
+1. EQUIP_SLOTS 6個固定（head/body/feet/accessory1/2/3）— 変更なし — 正常
+2. SIDEBAR_W=200, INFO_W=275 — 変更なし — 正常
+
+**10項目実装確認:**
+1. (項目1) セル内カード型（ヘッダー+イラスト枠+ステータス縦並び） — create_card_chip()で実装済み — 正常
+2. (項目2) 自陣・敵陣ラベル完全削除 — _build_board_headersは存在せず、コメントにのみ「自陣行ラベル」記述 — 正常
+3. (項目3) チェックボックス12px以上マージン+上部中央 — CELLS_START_Y=BOARD_Y+52(20+12+16+4)で確保済み — 正常
+4. (項目4) 合成カード枠 — build_synthesis_section()でカード枠+ホバー対応 — 正常
+5. (項目5) カード詳細右上カード枠 — _build_card_frame_header()でmini_name(枠内小)とname_lbl(左側大)を別親に配置（重複なし）— 正常
+6. (項目6) 合成先ホバー表示 — _build_synthesis_row()でmouse_entered/exited接続 — 正常
+7. (項目7) 合成素材ホバー表示 — 同上（base_name/card2_nameをhover_targetに渡す）— 正常
+8. (項目8) ステータスパネル区切り線/余白 — グループ間sep ColorRect+12px余白実装済み — 正常
+9. (項目9) 敵陣行ラベル非表示 — ri×3ループ内で敵陣ラベルを追加しない（コメントのみ）— 正常
+10. (項目10) モンハン式持ち物 — _build_material_slot_mh()で所持>0のみ左上詰め、空スロットは_build_empty_slot() — 正常
+
+**分離整合性:**
+- _info.setup()が_build_info_lane()内で呼ばれている — 正常
+- _info==nullチェック — _update_info_lane()冒頭で実施 — 正常
+- DeckPrep.gdから_show_unit_info/_show_spell_info/_info_labelが削除済み — 正常
+
+**重点検証:**
+- CELLS_START_Y(95行)とtry_drop_at_mouse(459行)のby計算式が完全一致 — 正常
+- _build_card_frame_headerのname_lbl(434行)はmini_name(403行)と別親・別用途 — 重複バグなし
+
+**行数（R10）:**
+- DeckPrep.gd: 529行（500超→分離済み検討中）
+- DeckPrepBoard.gd: 562行（500超→分離検討要）
+- DeckPrepInfo.gd: 486行（正常範囲）
+
+**テスト:**
+- 1875 passed / 0 failed（+15件、4テスト追加確認）— 正常
+- 構文・インデント — ヘッドレス起動成功 — 正常
+
 ### CheckAgent：バトルループ通しテスト — 2026-04-07 静的検証+シナリオテスト追加
 
 #### 静的検証結果

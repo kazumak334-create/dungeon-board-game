@@ -8,6 +8,7 @@ extends Control
 const UIF = preload("res://scripts/UIFactory.gd")
 var _PL = null
 var _board = null  # DeckPrepBoard インスタンス
+var _info: Object = null  # DeckPrepInfo インスタンス
 
 var _tab_buttons: Array = []
 var _tab_container: Control = null
@@ -56,14 +57,6 @@ const EQUIP_SLOTS = [
 const EQUIP_SLOT_SIZE = 55   # スロットサイズ
 const EQUIP_SLOT_GAP = 8     # スロット間隔
 
-const RACE_COLORS = {
-	"スライム": Color(0.3, 0.6, 0.3),
-	"獣": Color(0.6, 0.4, 0.2),
-	"アンデッド": Color(0.5, 0.3, 0.6),
-}
-const SPELL_COLOR = Color(0.3, 0.4, 0.6)
-const DEFAULT_COLOR = Color(0.3, 0.3, 0.4)
-
 func _ready() -> void:
 	_PL = load("res://scripts/PlacementLogic.gd")
 	if GameSession.placement_config.size() == 0 and GameSession.selected_deck.size() > 0:
@@ -76,6 +69,8 @@ func _ready() -> void:
 		_selected_card_idx = idx
 		_update_info_lane()
 		_board.update_highlight()
+	var InfoClass = load("res://scripts/DeckPrepInfo.gd")
+	_info = InfoClass.new()
 	_build_ui()
 
 func _build_ui() -> void:
@@ -159,31 +154,48 @@ func _build_status_area() -> void:
 	add_child(header)
 	cy += 24
 
-	var items = [
+	# 項目8: グループ間を区切り線+12px余白で分割
+	# グループ1: クラス基本情報
+	var group1 = [
 		["%s" % cls.get("display", "---"), UIF.TITLE_COLOR],
 		["HP: 30", UIF.TEXT_COLOR],
 		["マナ: %.0f / %d" % [cls.get("initial_mana", 3), int(cls.get("mana_max", 10))], Color(0.5, 0.7, 0.9)],
 		["リジェネ: %.1f/s" % mana_regen, Color(0.5, 0.7, 0.9)],
-		["─────────────", Color(0.3, 0.3, 0.4)],
+	]
+	# グループ2: デッキ情報
+	var group2 = [
 		["デッキ: %d枚" % deck_size, UIF.TEXT_COLOR],
 		["  ユニット: %d枚" % unit_count, Color(0.6, 0.7, 0.6)],
 		["  呪文: %d枚" % spell_count, Color(0.6, 0.6, 0.8)],
 		["平均コスト: %.1f" % avg_cost, UIF.TITLE_COLOR],
 		["循環: 約%.0f秒/周" % cycle_time, UIF.TITLE_COLOR],
-		["─────────────", Color(0.3, 0.3, 0.4)],
+	]
+	# グループ3: 所持情報
+	var group3 = [
 		["所持金: %dG" % GameSession.gold, UIF.GOLD_COLOR],
 		["スキルPt: %d" % GameSession.skill_points, Color(0.5, 0.8, 0.9)],
 		["素材: %d個" % GameSession.materials.size(), UIF.BENEFIT_COLOR],
 	]
-	for item in items:
-		var lbl = Label.new()
-		lbl.text = item[0]
-		lbl.position = Vector2(base_x, cy)
-		lbl.size = Vector2(lbl_w, 20)
-		lbl.add_theme_font_size_override("font_size", 12)
-		lbl.add_theme_color_override("font_color", item[1])
-		add_child(lbl)
-		cy += 20
+
+	for group in [group1, group2, group3]:
+		for item in group:
+			var lbl = Label.new()
+			lbl.text = item[0]
+			lbl.position = Vector2(base_x, cy)
+			lbl.size = Vector2(lbl_w, 18)
+			lbl.add_theme_font_size_override("font_size", 11)
+			lbl.add_theme_color_override("font_color", item[1])
+			add_child(lbl)
+			cy += 18
+		# グループ間: 区切り線 + 12px余白
+		if group != group3:
+			cy += 4
+			var sep = ColorRect.new()
+			sep.position = Vector2(base_x - 5, cy)
+			sep.size = Vector2(lbl_w + 10, 1)
+			sep.color = Color(0.25, 0.28, 0.35, 0.8)
+			add_child(sep)
+			cy += 12
 
 func _build_equipment_area() -> void:
 	var base_x = SIDEBAR_X + 15
@@ -296,214 +308,20 @@ func _build_info_lane() -> void:
 	border.color = Color(0.2, 0.2, 0.3)
 	_info_container.add_child(border)
 
-func _update_info_lane() -> void:
-	# 背景と枠線（先頭2個）以外を削除
-	var children = _info_container.get_children()
-	for i in range(children.size() - 1, 1, -1):
-		children[i].queue_free()
+	# DeckPrepInfoにinfo_containerを渡してセットアップ
+	_info.setup(self, _info_container, INFO_W, _PL)
 
+func _update_info_lane() -> void:
+	if _info == null:
+		return
 	# 素材が選択されている場合は素材情報を優先表示
 	if _selected_material.size() > 0:
-		_show_material_info(_selected_material)
+		_info.show_material_info(_selected_material)
 		return
-
 	if _selected_card_idx < 0 or _selected_card_idx >= GameSession.selected_deck.size():
-		_show_info_empty()
+		_info.show_empty()
 		return
-
-	var entry = GameSession.selected_deck[_selected_card_idx]
-	var card_name = entry.get("name", "???") if entry is Dictionary else str(entry)
-
-	if CardDB.UNITS.has(card_name):
-		_show_unit_info(card_name)
-	elif CardDB.SPELLS.has(card_name):
-		_show_spell_info(card_name)
-	elif CardDB.STATUS_SPELLS.has(card_name):
-		_show_spell_info_status(card_name)
-	else:
-		_show_info_empty()
-
-func _show_info_empty() -> void:
-	var hint = Label.new()
-	hint.text = "カードを選択すると\n詳細が表示されます"
-	hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	hint.position = Vector2(10, 250)
-	hint.size = Vector2(INFO_W - 20, 60)
-	hint.add_theme_font_size_override("font_size", 13)
-	hint.add_theme_color_override("font_color", UIF.DIM_COLOR)
-	_info_container.add_child(hint)
-
-func _show_unit_info(card_name: String) -> void:
-	var d = CardDB.UNITS[card_name]
-	var y = 15
-
-	# カード名
-	y = _info_label(card_name, y, 18, UIF.TITLE_COLOR)
-	y += 5
-
-	# 基本ステータス
-	y = _info_label("コスト: %d" % d.get("cost", 0), y, 13, Color(0.5, 0.7, 0.9))
-	y = _info_label("HP: %d  ATK: %d  SPD: %.1fs" % [d.get("hp", 0), d.get("atk", 0), d.get("interval", 0)], y, 13, UIF.TEXT_COLOR)
-	var race = d.get("race", "")
-	var race_color = RACE_COLORS.get(race, DEFAULT_COLOR)
-	y = _info_label("種族: %s" % race, y, 13, race_color)
-	y += 10
-
-	# 効果セクション（3分類）
-	var skills = d.get("skills", [])
-	var _edb = load("res://scripts/EffectDB.gd")
-
-	# 攻撃時効果（前列で発動）
-	var attack_skills: Array = []
-	var support_skills: Array = []
-	var passive_skills: Array = []
-	for skill in skills:
-		var trigger = skill.get("trigger", "")
-		var target = skill.get("target", "self")
-		match trigger:
-			"on_hit", "on_kill":
-				attack_skills.append(skill)
-			"always":
-				support_skills.append(skill)
-			"timer":
-				if target == "self":
-					passive_skills.append(skill)
-				else:
-					support_skills.append(skill)
-			_:
-				passive_skills.append(skill)
-
-	y = _info_section("── 攻撃時効果（前列で発動）──", y)
-	if attack_skills.size() == 0:
-		y = _info_label("なし", y, 11, UIF.DIM_COLOR)
-	else:
-		for skill in attack_skills:
-			var edef = _edb.EFFECTS.get(skill.get("effect_id", ""), {})
-			y = _info_label("[%s] %s" % [skill.get("trigger", ""), edef.get("display", skill.get("effect_id", ""))], y, 11, Color(0.9, 0.6, 0.5))
-
-	y = _info_section("── サポート効果（中後列で発動）──", y)
-	if support_skills.size() == 0:
-		y = _info_label("なし", y, 11, UIF.DIM_COLOR)
-	else:
-		for skill in support_skills:
-			var edef = _edb.EFFECTS.get(skill.get("effect_id", ""), {})
-			y = _info_label("[%s] %s" % [skill.get("trigger", ""), edef.get("display", skill.get("effect_id", ""))], y, 11, Color(0.5, 0.8, 0.6))
-
-	y = _info_section("── パッシブ効果（位置無関係）──", y)
-	if passive_skills.size() == 0:
-		y = _info_label("なし", y, 11, UIF.DIM_COLOR)
-	else:
-		for skill in passive_skills:
-			var edef = _edb.EFFECTS.get(skill.get("effect_id", ""), {})
-			y = _info_label("[%s] %s" % [skill.get("trigger", ""), edef.get("display", skill.get("effect_id", ""))], y, 11, Color(0.5, 0.6, 0.9))
-	y += 8
-
-	# 合成セクション
-	y = _info_section("── 合成 ──", y)
-	var has_synthesis = false
-	for recipe in CardDB.SYNTHESIS:
-		if recipe.get("base", "") == card_name or recipe.get("card", "") == card_name:
-			y = _info_label("%s + %s → %s" % [recipe["base"], recipe["card"], recipe["result"]], y, 11, UIF.BENEFIT_COLOR)
-			has_synthesis = true
-	# 合成先（このカードが結果になるレシピ）
-	for recipe in CardDB.SYNTHESIS:
-		if recipe.get("result", "") == card_name:
-			y = _info_label("← %s + %s" % [recipe["base"], recipe["card"]], y, 11, Color(0.7, 0.7, 0.5))
-			has_synthesis = true
-	if not has_synthesis:
-		y = _info_label("なし", y, 12, UIF.DIM_COLOR)
-	y += 10
-
-	# フレーバーテキスト
-	y = _info_section("── フレーバー ──", y)
-	var flavor = _get_flavor_text(card_name)
-	y = _info_label_wrap(flavor, y, 11, Color(0.6, 0.6, 0.5))
-
-func _show_spell_info(card_name: String) -> void:
-	var d = CardDB.SPELLS[card_name]
-	var y = 15
-
-	y = _info_label(card_name, y, 18, UIF.TITLE_COLOR)
-	y = _info_label("[呪文]", y, 12, SPELL_COLOR)
-	y += 5
-	y = _info_label("コスト: %d" % d.get("cost", 0), y, 13, Color(0.5, 0.7, 0.9))
-	y += 5
-
-	y = _info_section("── 効果 ──", y)
-	var effect_text = d.get("effect", "")
-	if effect_text != "":
-		y = _info_label_wrap(effect_text, y, 12, UIF.TEXT_COLOR)
-	y += 5
-
-	var skills = d.get("skills", [])
-	var _edb = load("res://scripts/EffectDB.gd")
-	for skill in skills:
-		var eid = skill.get("effect_id", "")
-		var edef = _edb.EFFECTS.get(eid, {})
-		var target = skill.get("target", "")
-		y = _info_label("%s → %s" % [edef.get("display", eid), target], y, 11, Color(0.6, 0.8, 0.7))
-
-	# 効果範囲
-	var entry = {"name": card_name}
-	var scope = _PL.get_effect_scope(entry)
-	var scope_names = {"cell": "単体", "row": "行全体", "col": "列全体", "all": "全体"}
-	y += 5
-	y = _info_label("効果範囲: %s" % scope_names.get(scope, "単体"), y, 12, Color(0.7, 0.6, 0.8))
-
-func _show_spell_info_status(card_name: String) -> void:
-	var d = CardDB.STATUS_SPELLS[card_name]
-	var y = 15
-	y = _info_label(card_name, y, 18, UIF.TITLE_COLOR)
-	y = _info_label("[異常状態カード]", y, 12, UIF.DEMERIT_COLOR)
-	y += 5
-	y = _info_label("コスト: %d" % d.get("cost", 0), y, 13, Color(0.5, 0.7, 0.9))
-	if d.get("is_consumable", false):
-		y = _info_label("消費型（使用後デッキから消滅）", y, 11, UIF.DEMERIT_COLOR)
-
-func _get_flavor_text(card_name: String) -> String:
-	# 仮のフレーバーテキスト（将来CardDBに追加）
-	var flavors = {
-		"スライム": "最も弱く、最も可能性に満ちた存在",
-		"ゴブリン": "素早さだけが取り柄の小さな戦士",
-		"スケルトン": "死してなお戦場に立つ不屈の骨",
-		"マッドスライム": "泥に混じった怒りが形になった",
-		"ウルフ": "群れの先頭を走る誇り高き獣",
-		"グール": "腐敗の中に宿る異常な生命力",
-	}
-	return flavors.get(card_name, "...")
-
-# 解説レーンのヘルパー関数
-func _info_label(text: String, y: float, size: int, color: Color) -> float:
-	var lbl = Label.new()
-	lbl.text = text
-	lbl.position = Vector2(15, y)
-	lbl.size = Vector2(INFO_W - 30, 20)
-	lbl.add_theme_font_size_override("font_size", size)
-	lbl.add_theme_color_override("font_color", color)
-	_info_container.add_child(lbl)
-	return y + size + 6
-
-func _info_label_wrap(text: String, y: float, size: int, color: Color) -> float:
-	var lbl = Label.new()
-	lbl.text = text
-	lbl.position = Vector2(15, y)
-	lbl.size = Vector2(INFO_W - 30, 80)
-	lbl.autowrap_mode = TextServer.AUTOWRAP_WORD
-	lbl.add_theme_font_size_override("font_size", size)
-	lbl.add_theme_color_override("font_color", color)
-	_info_container.add_child(lbl)
-	return y + 50
-
-func _info_section(text: String, y: float) -> float:
-	var lbl = Label.new()
-	lbl.text = text
-	lbl.position = Vector2(15, y)
-	lbl.size = Vector2(INFO_W - 30, 18)
-	lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	lbl.add_theme_font_size_override("font_size", 11)
-	lbl.add_theme_color_override("font_color", Color(0.45, 0.45, 0.55))
-	_info_container.add_child(lbl)
-	return y + 20
+	_info.show_card_info(_selected_card_idx)
 
 # ===== 持ち物タブ（カテゴリフィルタ + 素材グリッド） =====
 # 装備スロットは左サイドバーに常時表示。このタブにはカテゴリフィルタ + アイテム/素材グリッド
@@ -579,7 +397,13 @@ func _count_owned(mat_id: String) -> int:
 	return count
 
 func _build_inventory_grid(parent: Node) -> void:
+	# 項目10: モンハン式 — 所持素材を左上から順に詰める（所持数>0のみ表示）
 	var materials = _get_filtered_materials()
+	var owned_mats: Array = []
+	for mat in materials:
+		var count = _count_owned(mat.get("id", ""))
+		if count > 0:
+			owned_mats.append({"mat": mat, "count": count})
 
 	for i in range(INV_TOTAL_SLOTS):
 		var col = i % INV_GRID_COLS
@@ -587,12 +411,53 @@ func _build_inventory_grid(parent: Node) -> void:
 		var x = INV_GRID_X + col * (INV_SLOT_W + INV_SLOT_GAP)
 		var y = INV_GRID_Y + row * (INV_SLOT_H + INV_SLOT_GAP)
 
-		if i < materials.size():
-			var mat = materials[i]
-			var count = _count_owned(mat.get("id", ""))
-			_build_material_slot(parent, mat, count, x, y)
+		if i < owned_mats.size():
+			var entry = owned_mats[i]
+			_build_material_slot_mh(parent, entry["mat"], entry["count"], x, y)
 		else:
 			_build_empty_slot(parent, x, y)
+
+# 項目10: モンハン式スロット（アイコン+スタック数のみ、名前非表示）
+func _build_material_slot_mh(parent: Node, mat: Dictionary, count: int, x: int, y: int) -> void:
+	var panel = PanelContainer.new()
+	panel.position = Vector2(x, y)
+	panel.custom_minimum_size = Vector2(INV_SLOT_W, INV_SLOT_H)
+	var style = StyleBoxFlat.new()
+	var is_cursed = mat.get("is_cursed", false)
+	style.bg_color = Color(0.12, 0.12, 0.18)
+	style.border_color = Color(0.8, 0.3, 0.5) if is_cursed else Color(0.3, 0.5, 0.7)
+	style.set_border_width_all(2)
+	style.set_corner_radius_all(4)
+	panel.add_theme_stylebox_override("panel", style)
+	parent.add_child(panel)
+
+	# アイコン枠（仮: 色付き矩形）
+	var icon_bg = ColorRect.new()
+	icon_bg.position = Vector2(6, 6)
+	icon_bg.size = Vector2(INV_SLOT_W - 12, INV_SLOT_H - 22)
+	icon_bg.color = Color(0.8, 0.3, 0.5, 0.3) if is_cursed else Color(0.3, 0.5, 0.7, 0.3)
+	icon_bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	panel.add_child(icon_bg)
+
+	# スタック数（右下）
+	var stack_lbl = Label.new()
+	stack_lbl.text = "×%d" % count
+	stack_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	stack_lbl.position = Vector2(4, INV_SLOT_H - 20)
+	stack_lbl.size = Vector2(INV_SLOT_W - 14, 16)
+	stack_lbl.add_theme_font_size_override("font_size", 12)
+	stack_lbl.add_theme_color_override("font_color", Color(0.9, 0.85, 0.5))
+	stack_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	panel.add_child(stack_lbl)
+
+	# クリックで解説レーン更新（素材名は解説レーンで表示）
+	var mat_ref = mat
+	panel.gui_input.connect(func(event: InputEvent):
+		if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
+			_selected_material = mat_ref
+			_selected_card_idx = -1
+			_update_info_lane()
+	)
 
 func _build_material_slot(parent: Node, mat: Dictionary, count: int, x: int, y: int) -> void:
 	var panel = PanelContainer.new()
@@ -651,69 +516,6 @@ func _build_empty_slot(parent: Node, x: int, y: int) -> void:
 	style.set_corner_radius_all(4)
 	panel.add_theme_stylebox_override("panel", style)
 	parent.add_child(panel)
-
-func _show_material_info(mat: Dictionary) -> void:
-	var y: float = 20
-
-	var name_lbl = Label.new()
-	name_lbl.text = mat.get("display", "?")
-	name_lbl.position = Vector2(10, y)
-	name_lbl.size = Vector2(INFO_W - 20, 28)
-	name_lbl.add_theme_font_size_override("font_size", 18)
-	name_lbl.add_theme_color_override("font_color", UIF.TITLE_COLOR)
-	_info_container.add_child(name_lbl)
-	y += 35
-
-	if mat.get("is_cursed", false):
-		var cursed_lbl = Label.new()
-		cursed_lbl.text = "【呪われた素材】"
-		cursed_lbl.position = Vector2(10, y)
-		cursed_lbl.size = Vector2(INFO_W - 20, 20)
-		cursed_lbl.add_theme_font_size_override("font_size", 12)
-		cursed_lbl.add_theme_color_override("font_color", Color(0.9, 0.3, 0.4))
-		_info_container.add_child(cursed_lbl)
-		y += 22
-
-	var count = _count_owned(mat.get("id", ""))
-	var count_lbl = Label.new()
-	count_lbl.text = "所持数: ×%d" % count
-	count_lbl.position = Vector2(10, y)
-	count_lbl.size = Vector2(INFO_W - 20, 20)
-	count_lbl.add_theme_font_size_override("font_size", 13)
-	count_lbl.add_theme_color_override("font_color", Color(0.6, 0.7, 0.5))
-	_info_container.add_child(count_lbl)
-	y += 26
-
-	var desc = mat.get("description", "")
-	if desc != "":
-		var desc_lbl = Label.new()
-		desc_lbl.text = desc
-		desc_lbl.position = Vector2(10, y)
-		desc_lbl.size = Vector2(INFO_W - 20, 100)
-		desc_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD
-		desc_lbl.add_theme_font_size_override("font_size", 13)
-		desc_lbl.add_theme_color_override("font_color", UIF.TEXT_COLOR)
-		_info_container.add_child(desc_lbl)
-		y += 55
-
-	y += 10
-	var sep_lbl = Label.new()
-	sep_lbl.text = "── 合成先 ──"
-	sep_lbl.position = Vector2(15, y)
-	sep_lbl.size = Vector2(INFO_W - 30, 18)
-	sep_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	sep_lbl.add_theme_font_size_override("font_size", 11)
-	sep_lbl.add_theme_color_override("font_color", Color(0.45, 0.45, 0.55))
-	_info_container.add_child(sep_lbl)
-	y += 22
-
-	var hint_lbl = Label.new()
-	hint_lbl.text = "（工房ノードで合成可能）"
-	hint_lbl.position = Vector2(10, y)
-	hint_lbl.size = Vector2(INFO_W - 20, 20)
-	hint_lbl.add_theme_font_size_override("font_size", 11)
-	hint_lbl.add_theme_color_override("font_color", UIF.DIM_COLOR)
-	_info_container.add_child(hint_lbl)
 
 func _build_placeholder_tab(tab_id: String) -> void:
 	var names = {"skill_tree": "スキル"}

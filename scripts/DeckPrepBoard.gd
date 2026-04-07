@@ -12,7 +12,7 @@ const CELL_H = 105
 const CELL_GAP = 3
 const CENTER_GAP = 24
 const ROW_LABEL_W = 35
-const BOARD_H = BOARD_Y + 40 + 3 * (CELL_H + CELL_GAP) + 30
+const BOARD_H = BOARD_Y + 52 + 3 * (CELL_H + CELL_GAP) + 30
 const INFO_W = 280
 
 const RACE_COLORS = {
@@ -44,46 +44,35 @@ func build_placement_tab(_tab_container_arg: Control, PL) -> void:
 	tab_container = _tab_container_arg
 	_PL = PL
 
+	# 項目3: チェックボックスを盤面上部中央、盤面との間に12px以上マージン
+	var board_total_w = ROW_LABEL_W + 3 * (CELL_W + CELL_GAP) + CENTER_GAP + 3 * (CELL_W + CELL_GAP)
 	var toggle = CheckBox.new()
 	toggle.text = "指定セルが埋まっている場合、同じ列の他の空セルに召喚する"
 	toggle.button_pressed = true
-	toggle.position = Vector2(BOARD_X, BOARD_Y - 3)
+	toggle.position = Vector2(BOARD_X + board_total_w / 2 - 200, BOARD_Y)
+	toggle.size = Vector2(400, 20)
 	toggle.add_theme_font_size_override("font_size", 11)
 	toggle.toggled.connect(func(on: bool): set_global_fallback(on))
 	tab_container.add_child(toggle)
 
 	var enemy_x = BOARD_X + ROW_LABEL_W + 3 * (CELL_W + CELL_GAP) + CENTER_GAP
-	_build_board_headers(enemy_x)
+	# 項目2: 自陣・敵陣ラベル完全削除 → _build_board_headers のみ列ラベルを建てる
+	_build_board_col_labels(enemy_x)
 	_build_board_cells(enemy_x)
 	populate_cards()
 	build_synthesis_list(BOARD_H, tab_container)
 
-func _build_board_headers(enemy_x: float) -> void:
-	var ally_lbl = Label.new()
-	ally_lbl.text = "── 自陣 ──"
-	ally_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	ally_lbl.position = Vector2(BOARD_X + ROW_LABEL_W, BOARD_Y + 8)
-	ally_lbl.size = Vector2(3 * (CELL_W + CELL_GAP), 18)
-	ally_lbl.add_theme_font_size_override("font_size", 11)
-	ally_lbl.add_theme_color_override("font_color", Color(0.4, 0.7, 0.5))
-	tab_container.add_child(ally_lbl)
-
-	var enemy_lbl = Label.new()
-	enemy_lbl.text = "── 敵陣 ──"
-	enemy_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	enemy_lbl.position = Vector2(enemy_x, BOARD_Y + 8)
-	enemy_lbl.size = Vector2(3 * (CELL_W + CELL_GAP), 18)
-	enemy_lbl.add_theme_font_size_override("font_size", 11)
-	enemy_lbl.add_theme_color_override("font_color", Color(0.7, 0.4, 0.4))
-	tab_container.add_child(enemy_lbl)
-
+# 項目2: 自陣・敵陣ラベル完全削除 → 列ラベルのみ残す
+func _build_board_col_labels(enemy_x: float) -> void:
 	var ally_cols = ["後列", "中列", "前列"]
 	var enemy_cols = ["前列", "中列", "後列"]
+	# 項目3: チェックボックス下に12px余白 → BOARD_Y + 20 + 12 = BOARD_Y + 32 からラベル開始
+	var col_label_y = BOARD_Y + 32
 	for ci in range(3):
 		var al = Button.new()
 		al.text = ally_cols[ci]
 		al.flat = true
-		al.position = Vector2(BOARD_X + ROW_LABEL_W + ci * (CELL_W + CELL_GAP), BOARD_Y + 22)
+		al.position = Vector2(BOARD_X + ROW_LABEL_W + ci * (CELL_W + CELL_GAP), col_label_y)
 		al.size = Vector2(CELL_W, 16)
 		al.add_theme_font_size_override("font_size", 10)
 		al.add_theme_color_override("font_color", Color(0.5, 0.65, 0.55))
@@ -94,13 +83,16 @@ func _build_board_headers(enemy_x: float) -> void:
 		var el = Button.new()
 		el.text = enemy_cols[ci]
 		el.flat = true
-		el.position = Vector2(enemy_x + ci * (CELL_W + CELL_GAP), BOARD_Y + 22)
+		el.position = Vector2(enemy_x + ci * (CELL_W + CELL_GAP), col_label_y)
 		el.size = Vector2(CELL_W, 16)
 		el.add_theme_font_size_override("font_size", 10)
 		el.add_theme_color_override("font_color", Color(0.65, 0.5, 0.5))
 		var enemy_ci = ci
 		el.pressed.connect(func(): select_col(1, enemy_ci))
 		tab_container.add_child(el)
+
+# セル行の開始Y（チェックボックス20px + 12px余白 + 列ラベル16px + 4px余白 = 52px）
+const CELLS_START_Y = BOARD_Y + 52
 
 func _build_board_cells(enemy_x: float) -> void:
 	var row_names = ["上段", "中段", "下段"]
@@ -114,10 +106,11 @@ func _build_board_cells(enemy_x: float) -> void:
 	]
 
 	for ri in range(3):
+		# 自陣行ラベル
 		var rl_ally = Button.new()
 		rl_ally.text = row_names[ri]
 		rl_ally.flat = true
-		rl_ally.position = Vector2(BOARD_X, BOARD_Y + 40 + ri * (CELL_H + CELL_GAP) + 40)
+		rl_ally.position = Vector2(BOARD_X, CELLS_START_Y + ri * (CELL_H + CELL_GAP) + (CELL_H / 2) - 10)
 		rl_ally.size = Vector2(ROW_LABEL_W, 20)
 		rl_ally.add_theme_font_size_override("font_size", 10)
 		rl_ally.add_theme_color_override("font_color", Color(0.5, 0.65, 0.55))
@@ -125,21 +118,12 @@ func _build_board_cells(enemy_x: float) -> void:
 		rl_ally.pressed.connect(func(): select_row(0, ally_ri))
 		tab_container.add_child(rl_ally)
 
-		var rl_enemy = Button.new()
-		rl_enemy.text = row_names[ri]
-		rl_enemy.flat = true
-		rl_enemy.position = Vector2(enemy_x + 3 * (CELL_W + CELL_GAP) + 4, BOARD_Y + 40 + ri * (CELL_H + CELL_GAP) + 40)
-		rl_enemy.size = Vector2(ROW_LABEL_W, 20)
-		rl_enemy.add_theme_font_size_override("font_size", 10)
-		rl_enemy.add_theme_color_override("font_color", Color(0.65, 0.5, 0.5))
-		var enemy_ri = ri
-		rl_enemy.pressed.connect(func(): select_row(1, enemy_ri))
-		tab_container.add_child(rl_enemy)
+		# 項目9: 敵陣の行ラベル非表示（代わりに何も追加しない）
 
 		for si in range(2):
 			for ci in range(3):
 				var bx: float = (BOARD_X + ROW_LABEL_W + ci * (CELL_W + CELL_GAP)) if si == 0 else (enemy_x + ci * (CELL_W + CELL_GAP))
-				var by = BOARD_Y + 40 + ri * (CELL_H + CELL_GAP)
+				var by = CELLS_START_Y + ri * (CELL_H + CELL_GAP)
 				var cell = Panel.new()
 				cell.position = Vector2(bx, by)
 				cell.size = Vector2(CELL_W, CELL_H)
@@ -149,10 +133,12 @@ func _build_board_cells(enemy_x: float) -> void:
 				cell_style.set_border_width_all(1)
 				cell.add_theme_stylebox_override("panel", cell_style)
 				tab_container.add_child(cell)
+				# 項目1: セル内をカード型（ヘッダー+イラスト枠+ステータス縦並び）に変更
+				# vbox は populate_cards でカード型チップを入れる際に使用
 				var vbox = VBoxContainer.new()
-				vbox.position = Vector2(3, 3)
-				vbox.size = Vector2(CELL_W - 6, CELL_H - 6)
-				vbox.add_theme_constant_override("separation", 1)
+				vbox.position = Vector2(2, 2)
+				vbox.size = Vector2(CELL_W - 4, CELL_H - 4)
+				vbox.add_theme_constant_override("separation", 2)
 				vbox.mouse_filter = Control.MOUSE_FILTER_IGNORE
 				cell.add_child(vbox)
 				_cell_rects[si][ri][ci] = cell
@@ -290,19 +276,72 @@ func _group_cards_by_name(cards: Array) -> Array:
 		out.append([g["idx_first"], gname, g["count"], g["indices"]])
 	return out
 
+# 項目1: セル内アイコンをカード型（ヘッダー+イラスト枠+ステータス縦並び）に変更
 func create_card_chip(idx: int, card_name: String, count: int, all_indices: Array) -> Control:
-	var chip = PanelContainer.new()
-	chip.custom_minimum_size = Vector2(CELL_W - 10, 15)
-	var style = StyleBoxFlat.new()
-	style.bg_color = get_card_color(card_name)
-	style.set_corner_radius_all(3)
-	chip.add_theme_stylebox_override("panel", style)
-	var lbl = Label.new()
+	var card_color = get_card_color(card_name)
 	var cost = get_card_cost(card_name)
-	lbl.text = "%s x%d [%d]" % [card_name, count, cost] if count > 1 else "%s [%d]" % [card_name, cost]
-	lbl.add_theme_font_size_override("font_size", 9)
-	lbl.add_theme_color_override("font_color", Color(0.95, 0.95, 0.95))
-	chip.add_child(lbl)
+
+	var chip = Panel.new()
+	chip.custom_minimum_size = Vector2(CELL_W - 8, CELL_H - 8)
+	var chip_style = StyleBoxFlat.new()
+	chip_style.bg_color = card_color.darkened(0.35)
+	chip_style.border_color = card_color
+	chip_style.set_border_width_all(1)
+	chip_style.set_corner_radius_all(3)
+	chip.add_theme_stylebox_override("panel", chip_style)
+
+	# ヘッダー帯（カード名+コスト）
+	var header = ColorRect.new()
+	header.position = Vector2(0, 0)
+	header.size = Vector2(CELL_W - 8, 16)
+	header.color = card_color
+	chip.add_child(header)
+
+	var name_lbl = Label.new()
+	name_lbl.text = card_name if count == 1 else "%s ×%d" % [card_name, count]
+	name_lbl.position = Vector2(3, 0)
+	name_lbl.size = Vector2(CELL_W - 24, 15)
+	name_lbl.add_theme_font_size_override("font_size", 9)
+	name_lbl.add_theme_color_override("font_color", Color(1, 1, 1))
+	name_lbl.clip_text = true
+	name_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	chip.add_child(name_lbl)
+
+	var cost_lbl = Label.new()
+	cost_lbl.text = str(cost)
+	cost_lbl.position = Vector2(CELL_W - 22, 0)
+	cost_lbl.size = Vector2(14, 15)
+	cost_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	cost_lbl.add_theme_font_size_override("font_size", 9)
+	cost_lbl.add_theme_color_override("font_color", Color(1, 1, 0.7))
+	cost_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	chip.add_child(cost_lbl)
+
+	# イラスト枠（仮: 色帯）
+	var illust = ColorRect.new()
+	illust.position = Vector2(3, 18)
+	illust.size = Vector2(CELL_W - 14, 46)
+	illust.color = card_color.darkened(0.5)
+	illust.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	chip.add_child(illust)
+
+	# ステータス縦並び（ユニットのみ）
+	if CardDB.UNITS.has(card_name):
+		var d = CardDB.UNITS[card_name]
+		var stats_vbox = VBoxContainer.new()
+		stats_vbox.position = Vector2(3, 66)
+		stats_vbox.size = Vector2(CELL_W - 14, 28)
+		stats_vbox.add_theme_constant_override("separation", 0)
+		stats_vbox.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		chip.add_child(stats_vbox)
+		for stat in ["HP:%d ATK:%d" % [d.get("hp", 0), d.get("atk", 0)], "SPD:%.1fs" % d.get("interval", 0)]:
+			var sl = Label.new()
+			sl.text = stat
+			sl.add_theme_font_size_override("font_size", 8)
+			sl.add_theme_color_override("font_color", Color(0.85, 0.85, 0.85))
+			sl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			stats_vbox.add_child(sl)
+
 	chip.gui_input.connect(func(event): _on_chip_input(event, idx, all_indices, chip))
 	return chip
 
@@ -417,7 +456,7 @@ func try_drop_at_mouse(_tc: Control) -> void:
 		for ri in range(3):
 			for ci in range(3):
 				var bx: float = (BOARD_X + ROW_LABEL_W + ci * (CELL_W + CELL_GAP)) if si == 0 else (enemy_x + ci * (CELL_W + CELL_GAP))
-				var by = BOARD_Y + 40 + ri * (CELL_H + CELL_GAP)
+				var by = CELLS_START_Y + ri * (CELL_H + CELL_GAP)
 				if local.x >= bx and local.x < bx + CELL_W and local.y >= by and local.y < by + CELL_H:
 					try_drop_card(_drag_source_idx, si, ri, ci)
 					return

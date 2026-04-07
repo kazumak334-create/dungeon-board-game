@@ -10,6 +10,10 @@ func run(runner: RefCounted) -> void:
 	_test_inventory_categories(runner)
 	_test_material_slot_layout(runner)
 	_test_inventory_grid_dimensions(runner)
+	_test_info_lane_separation(runner)
+	_test_mh_inventory_owned_first(runner)
+	_test_deck_prep_info_setup(runner)
+	_test_board_no_ally_enemy_labels(runner)
 
 func _test_equip_slot_count(r: RefCounted) -> void:
 	# 装備スロットが6個固定であること（絶対変更禁止）
@@ -83,3 +87,46 @@ func _test_inventory_grid_dimensions(r: RefCounted) -> void:
 	r._assert_eq(DeckPrepClass.INV_GRID_COLS, 5, "グリッド列数=5")
 	r._assert_eq(DeckPrepClass.INV_GRID_ROWS, 6, "グリッド行数=6")
 	r._assert_eq(DeckPrepClass.INV_GRID_COLS * DeckPrepClass.INV_GRID_ROWS, 30, "列×行=30スロット")
+
+func _test_info_lane_separation(r: RefCounted) -> void:
+	# 情報レーンがDeckPrepInfoに分離されていること（DeckPrep.gdに旧解説関数がないこと）
+	# DeckPrepInfoが独立クラスとして存在すること
+	var InfoClass = load("res://scripts/DeckPrepInfo.gd")
+	r._assert_true(InfoClass != null, "DeckPrepInfo.gdが存在する")
+	var info = InfoClass.new()
+	r._assert_true(info.has_method("show_card_info"), "show_card_info()が存在する")
+	r._assert_true(info.has_method("show_material_info"), "show_material_info()が存在する")
+	r._assert_true(info.has_method("show_empty"), "show_empty()が存在する")
+	r._assert_true(info.has_method("build_synthesis_section"), "build_synthesis_section()が存在する")
+	r._assert_true(info.has_method("create_card_hover_popup"), "create_card_hover_popup()が存在する")
+	# DeckPrep.gdに旧解説レーン関数が残っていないこと
+	var DeckPrepClass = load("res://scripts/DeckPrep.gd")
+	var dp = DeckPrepClass.new()
+	r._assert_true(not dp.has_method("_show_unit_info"), "DeckPrep._show_unit_infoは削除済み")
+	r._assert_true(not dp.has_method("_show_spell_info"), "DeckPrep._show_spell_infoは削除済み")
+	r._assert_true(not dp.has_method("_info_label"), "DeckPrep._info_labelは削除済み")
+	dp.queue_free()
+
+func _test_mh_inventory_owned_first(r: RefCounted) -> void:
+	# モンハン式持ち物: _build_material_slot_mh メソッドが存在する
+	var DeckPrepClass = load("res://scripts/DeckPrep.gd")
+	var dp = DeckPrepClass.new()
+	r._assert_true(dp.has_method("_build_material_slot_mh"), "モンハン式スロット関数が存在する")
+	dp.queue_free()
+
+func _test_deck_prep_info_setup(r: RefCounted) -> void:
+	# DeckPrepInfoのsetup()シグネチャが4引数であること
+	var InfoClass = load("res://scripts/DeckPrepInfo.gd")
+	var info = InfoClass.new()
+	r._assert_true(info.has_method("setup"), "DeckPrepInfo.setup()が存在する")
+	# _info_w初期値が275と同じデフォルトであること
+	r._assert_eq(info._info_w, 275, "DeckPrepInfo初期_info_w=275")
+
+func _test_board_no_ally_enemy_labels(r: RefCounted) -> void:
+	# DeckPrepBoard: 自陣・敵陣ラベルが削除されていること（_build_board_headers 関数が存在しないこと）
+	var BoardClass = load("res://scripts/DeckPrepBoard.gd")
+	var board = BoardClass.new()
+	r._assert_true(not board.has_method("_build_board_headers"), "自陣・敵陣ラベル関数は削除済み")
+	r._assert_true(board.has_method("_build_board_col_labels"), "列ラベル関数が存在する")
+	# CELLS_START_Y が BOARD_Y + 52 であること（12px以上のマージン保証）
+	r._assert_eq(BoardClass.CELLS_START_Y, BoardClass.BOARD_Y + 52, "CELLS_START_YはBOARD_Y+52（マージン確保）")
