@@ -13,21 +13,31 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 | architect | ゲーム基盤設計・実装 | 効果システム、イベントキュー、データ構造、BoardManager核 |
 | implementer | カード・呪文の個別実装 | カードデータ追加、スキルロジック、SpellExecutor |
 | data-sync | 仕様⇔コード同期 | card_database.md更新、DevUI/DeckManager/EnemyAIデータ一致保証 |
-| ui | UI/UX実装 | 画面レイアウト、表示系 |
+| ui | UI/UX設計・実装 | 画面レイアウト、視線誘導、情報密度、タブ/パネル設計、実装 |
 | checker | コード検証・修正 | バグ検出、品質保証 |
 | pmo | 進捗管理・ロードマップ維持 | roadmap.md更新、朝報告作成、ブロッカー検出、CHANGELOG |
 | pr | X・note投稿生成 | 発信コンテンツ作成 |
 
 全Agent：Sonnet統一
 
+### CEO の最重要責務: 論点・仮説・制約の整理
+
+全ての連携パターンの起点で、CEOは必ず以下を整理する。これがないとAgentは方向性を失い、確定仕様を勝手に変更したり的外れな提案をする。
+
+- **論点**: 意思決定における重要な検討事項（何を決める必要があるか）
+- **仮説**: その論点に対する現時点でのアイデア・解決方法
+- **制約**: 変えてはいけないもの（既存確定仕様・ユーザー決定済み事項）
+
+Agentへのプロンプトには必ず「論点」「仮説」「制約」の3点を明記する。特に制約は既存仕様を列挙する形で明確化（例: 「装備スロット=頭/胴/足/アクセ×3、変更不可」）。
+
 ### 連携パターン
-- A（仕様決定）：CEO → planning ←→ marketing → data-sync（仕様書更新）
-- B（基盤変更）：CEO → architect → checker
-- C（カード追加）：CEO → implementer → data-sync → checker
+- A（仕様決定）：CEO(論点/仮説/制約整理) → planning ←→ marketing → data-sync
+- B（基盤変更）：CEO(論点/仮説/制約整理) → architect → checker
+- C（カード追加）：CEO(論点/仮説/制約整理) → implementer → data-sync → checker
 - D（仕様変更後の同期）：CEO → data-sync（card_database.md/CLAUDE.md/DevUI/DeckManager/EnemyAI全同期）
 - E（発信）：pmo → pr → ユーザー確認 → 投稿
-- F（戦略）：marketing → planning → CEO → ユーザー報告
-- G（企画会議）：planning + marketing 並列起動 → CEO統合・判断 → ユーザー最終確認
+- F（戦略）：CEO(論点/仮説/制約整理) → marketing + planning並列 → CEO統合 → ユーザー報告
+- G（企画会議）：CEO(論点/仮説/制約整理) → planning + marketing + 関連Agent並列 → CEO差し戻しゲート → CEO指摘分析 → CEO統合 → ユーザー最終確認
 
 ### 企画会議プロセス（パターンG）
 
@@ -37,14 +47,26 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - ペルソナレビューで条件付き合格以下だった案の改善時
 
 **フロー:**
-1. **CEO**: 議題・コンテキスト・制約条件を整理
+0. **CEO: 論点・仮説・制約の整理（必須・省略不可）**
+   - **論点**: 何を決めるための会議か（1-3個の問いに落とす）
+   - **仮説**: 現時点での初期アイデア（変更可）
+   - **制約**: 変えてはいけないもの（既存確定仕様を列挙）
+   - この3点を次Stepの全Agentプロンプトに明記する
+1. **CEO**: 議題・参加Agent選定
 2. **議題に応じたAgent を並列起動**。CEOが参加Agentを選定する
    - planning: 体験設計・ナラティブ・ゲームメカニクスとの整合性・弱点の自己指摘
-   - marketing: 市場性・競合差別化・配信映え・ペルソナインタビュー
+   - marketing: 市場性・競合差別化・配信映え・**ペルソナインタビュー（必須）**
    - architect: 実装に関わる設計判断（データ構造・ファイル構成・拡張性）
-   - implementer/ui: 実装可否・工数感・既存コードとの整合性
-   - **選定基準**: 企画のみ→planning+marketing。設計含む→+architect。UI関連→+ui。コード変更→+implementer
+   - ui: UI/UXレイアウト設計・視線誘導・情報密度
+   - implementer: 実装可否・工数感・既存コードとの整合性
+   - **選定基準**:
+     - 企画のみ→planning+marketing
+     - 設計含む→+architect
+     - **UI/画面レイアウト→+ui（必須）**
+     - コード変更→+implementer
+   - **marketingは必ずペルソナインタビューを含める**。市場調査だけで済ませない
 3. **CEO差し戻しゲート**: Agent出力を以下でチェック。不合格は差し戻し再生成
+   - **制約違反チェック（最優先）**: Step 0で明示した制約をAgentが勝手に変更していないか。違反は即差し戻し、または変更理由を確認しユーザーに提案
    - 「だから何？」テスト: CEOが読んで意味不明・テクノバブルなら即却下
    - ペルソナ理解度: 加藤純一が30秒で理解できるか？しんじさんが「面白い」と思うか？
    - 因果の順番: シンプルな因果関係→SF/専門的肉付け の順になっているか？

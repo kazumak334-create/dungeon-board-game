@@ -40,7 +40,9 @@
       "Bash(ls:*)",
       "Bash(\"/c/Users/kazum/OneDrive/デスクトップ/プライベート/ゲーム開発/Godot_v4.6.2-stable_win64_console.exe\" --path \"C:/Users/kazum/dungeon-board-game\" --headless)",
       "Bash(\"/c/Users/kazum/OneDrive/デスクトップ/プライベート/ゲーム開発/Godot_v4.6.2-stable_win64_console.exe\" --path \"C:/Users/kazum/dungeon-board-game\" --headless --quit)",
-      "Bash(\"/c/Users/kazum/OneDrive/デスクトップ/プライベート/ゲーム開発/Godot_v4.6.2-stable_win64_console.exe\" --path \"C:/Users/kazum/dungeon-board-game\" --headless --script res://scripts/RunTests.gd)"
+      "Bash(\"/c/Users/kazum/OneDrive/デスクトップ/プライベート/ゲーム開発/Godot_v4.6.2-stable_win64_console.exe\" --path \"C:/Users/kazum/dungeon-board-game\" --headless --script res://scripts/RunTests.gd)",
+      "WebFetch(domain:core-keeper.fandom.com)",
+      "WebFetch(domain:corekeeper.atma.gg)"
     ]
   }
 }
