@@ -18,6 +18,16 @@ var _info_container: Control = null
 var _info_w: int = 275
 var _PL = null
 var _hover_popup: Control = null
+var _skip_synth_confirm: bool = false  # 合成確認ダイアログのスキップ状態
+
+# 黄金比定数
+const GOLDEN_RATIO: float = 1.618
+# 詳細カード枠サイズ（縦長黄金比）
+const CARD_FRAME_W: int = 260
+const CARD_FRAME_H: int = 420  # 260 × 1.615 ≒ 420
+# ミニカードアイコンサイズ（黄金比）
+const MINI_CARD_W: int = 60
+const MINI_CARD_H: int = 97  # 60 × 1.618 ≒ 97
 
 func setup(main_node: Control, info_container: Control, info_w: int, pl) -> void:
 	_main_node = main_node
@@ -141,35 +151,271 @@ func build_synthesis_info(card_name: String) -> void:
 
 func build_synthesis_section(y_start: float, card_name: String) -> float:
 	var y: float = y_start
-	y = _info_section("── 合成 ──", y)
 
-	var has_synthesis = false
+	# 確認省略トグル
+	y = _build_synth_confirm_toggle(y)
 
-	# 合成素材として使われるレシピ: [base] + [card] → [result]
-	for recipe in CardDB.SYNTHESIS:
-		if recipe.get("base", "") == card_name or recipe.get("card", "") == card_name:
-			y = _build_synthesis_card_row(
-				recipe.get("base", ""),
-				recipe.get("card", ""),
-				recipe.get("result", ""),
-				y
-			)
-			has_synthesis = true
+	# 上位合成セクション（カード+素材→上位カード、material_id を持つレシピ）
+	y = _build_upper_synthesis_section(y, card_name)
 
-	# 合成先（このカードが結果になるレシピ）
-	for recipe in CardDB.SYNTHESIS:
-		if recipe.get("result", "") == card_name:
-			y = _build_synthesis_card_row(
-				recipe.get("base", ""),
-				recipe.get("card", ""),
-				recipe.get("result", ""),
-				y
-			)
-			has_synthesis = true
+	# 盤面合成セクション（カード+カード→結果）
+	y = _build_board_synthesis_section(y, card_name)
 
-	if not has_synthesis:
-		y = _info_label("なし", y, 12, UIF.DIM_COLOR)
 	return y
+
+# 合成確認省略トグルスイッチ
+func _build_synth_confirm_toggle(y: float) -> float:
+	var cb = CheckBox.new()
+	cb.text = "Yes/No確認を省略"
+	cb.button_pressed = _skip_synth_confirm
+	cb.position = Vector2(10, y)
+	cb.size = Vector2(_info_w - 20, 22)
+	cb.add_theme_font_size_override("font_size", 11)
+	cb.toggled.connect(func(pressed: bool): _skip_synth_confirm = pressed)
+	_info_container.add_child(cb)
+	return y + 26
+
+# 上位合成: material_id フィールドを持つレシピ（素材消費型）
+func _build_upper_synthesis_section(y_start: float, card_name: String) -> float:
+	var y: float = y_start
+	y = _info_section("上位合成", y)
+
+	var recipes: Array = []
+	for recipe in CardDB.SYNTHESIS:
+		if not recipe.has("material_id"):
+			continue
+		if recipe.get("base", "") == card_name or recipe.get("card", "") == card_name or recipe.get("result", "") == card_name:
+			recipes.append(recipe)
+
+	if recipes.size() == 0:
+		y = _info_label("（上位合成は素材入手後に解放）", y, 11, UIF.DIM_COLOR)
+		return y
+
+	# 結果カードのみをグリッド表示（最大4件/行）
+	y = _build_synthesis_result_grid(recipes, y)
+	return y
+
+# 盤面合成セクション（旧: 追加召喚）カード+カード→結果
+func _build_board_synthesis_section(y_start: float, card_name: String) -> float:
+	var y: float = y_start
+	y = _info_section("盤面合成", y)
+
+	var recipes: Array = []
+	for recipe in CardDB.SYNTHESIS:
+		if recipe.has("material_id"):
+			continue  # 上位合成のみのレシピは除外
+		if recipe.get("base", "") == card_name or recipe.get("card", "") == card_name or recipe.get("result", "") == card_name:
+			recipes.append(recipe)
+
+	if recipes.size() == 0:
+		y = _info_label("なし", y, 12, UIF.DIM_COLOR)
+		return y
+
+	# 結果カードのみをグリッド表示
+	y = _build_synthesis_result_grid(recipes, y)
+	return y
+
+# 結果カードのみをグリッド表示する（ホバーで素材情報、クリックで合成確認）
+func _build_synthesis_result_grid(recipes: Array, y: float) -> float:
+	const ICON_W: int = MINI_CARD_W
+	const ICON_H: int = MINI_CARD_H
+	const GAP: int = 6
+	const COLS: int = 4  # 1行あたりの最大アイコン数
+	var row_x: float = 8
+	var row_y: float = y
+	var col_idx: int = 0
+
+	for recipe in recipes:
+		var result_name: String = recipe.get("result", "")
+		var base_name: String = recipe.get("base", "")
+		var mat_name: String = recipe.get("card", recipe.get("material_id", ""))
+
+		var icon = create_mini_card_icon(result_name, Vector2(ICON_W, ICON_H))
+		icon.position = Vector2(row_x + col_idx * (ICON_W + GAP), row_y)
+
+		# ホバー: 素材ポップアップ
+		icon.mouse_entered.connect(func():
+			var global_pos = _info_container.global_position + Vector2(
+				row_x + col_idx * (ICON_W + GAP) - 10,
+				row_y - ICON_H - 10
+			)
+			_show_synthesis_hover_popup(base_name, mat_name, result_name, global_pos)
+		)
+		icon.mouse_exited.connect(func(): _hide_hover_popup())
+
+		# クリック: 合成確認ダイアログ or 即合成
+		icon.gui_input.connect(func(event: InputEvent):
+			if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
+				if _skip_synth_confirm:
+					_execute_synthesis(base_name, mat_name, result_name)
+				else:
+					_show_synth_confirm_dialog(base_name, mat_name, result_name)
+		)
+
+		_info_container.add_child(icon)
+		col_idx += 1
+		if col_idx >= COLS:
+			col_idx = 0
+			row_y += ICON_H + GAP
+
+	if col_idx > 0:
+		row_y += ICON_H + GAP
+
+	return row_y
+
+# 合成時のホバーポップアップ（素材情報表示）
+func _show_synthesis_hover_popup(base_name: String, mat_name: String, result_name: String, pos: Vector2) -> void:
+	_hide_hover_popup()
+	if _main_node == null:
+		return
+
+	var popup = PanelContainer.new()
+	popup.z_index = 200
+	var style = StyleBoxFlat.new()
+	style.bg_color = Color(0.08, 0.08, 0.14, 0.97)
+	style.border_color = Color(0.4, 0.4, 0.6)
+	style.set_border_width_all(1)
+	style.set_corner_radius_all(4)
+	popup.add_theme_stylebox_override("panel", style)
+	popup.custom_minimum_size = Vector2(180, 80)
+
+	var vbox = VBoxContainer.new()
+	vbox.add_theme_constant_override("separation", 4)
+	popup.add_child(vbox)
+
+	# 結果カード名
+	var res_lbl = Label.new()
+	res_lbl.text = "▶ %s" % result_name
+	res_lbl.add_theme_font_size_override("font_size", 12)
+	res_lbl.add_theme_color_override("font_color", UIF.TITLE_COLOR)
+	vbox.add_child(res_lbl)
+
+	# 必要素材
+	var mat_hbox = HBoxContainer.new()
+	mat_hbox.add_theme_constant_override("separation", 4)
+	vbox.add_child(mat_hbox)
+
+	var mini_base = create_mini_card_icon(base_name, Vector2(40, 65))
+	mat_hbox.add_child(mini_base)
+
+	var plus_lbl = Label.new()
+	plus_lbl.text = "+"
+	plus_lbl.add_theme_font_size_override("font_size", 14)
+	plus_lbl.add_theme_color_override("font_color", Color(0.7, 0.7, 0.7))
+	mat_hbox.add_child(plus_lbl)
+
+	var mini_mat = create_mini_card_icon(mat_name, Vector2(40, 65))
+	mat_hbox.add_child(mini_mat)
+
+	popup.position = pos
+	_main_node.add_child(popup)
+	_hover_popup = popup
+
+# 合成確認ダイアログ（Yes/No）
+func _show_synth_confirm_dialog(base_name: String, mat_name: String, result_name: String) -> void:
+	if _main_node == null:
+		return
+	# 既存ダイアログがあれば削除
+	var existing = _main_node.find_child("SynthConfirmDialog", false, false)
+	if existing:
+		existing.queue_free()
+
+	var dialog = Panel.new()
+	dialog.name = "SynthConfirmDialog"
+	dialog.z_index = 300
+	dialog.size = Vector2(240, 120)
+	dialog.position = Vector2(
+		(_main_node.size.x - 240) / 2.0,
+		(_main_node.size.y - 120) / 2.0
+	)
+	var dstyle = StyleBoxFlat.new()
+	dstyle.bg_color = Color(0.1, 0.1, 0.18, 0.97)
+	dstyle.border_color = Color(0.5, 0.5, 0.7)
+	dstyle.set_border_width_all(2)
+	dstyle.set_corner_radius_all(6)
+	dialog.add_theme_stylebox_override("panel", dstyle)
+	_main_node.add_child(dialog)
+
+	var vbox = VBoxContainer.new()
+	vbox.add_theme_constant_override("separation", 8)
+	vbox.position = Vector2(10, 10)
+	vbox.size = Vector2(220, 100)
+	dialog.add_child(vbox)
+
+	var msg = Label.new()
+	msg.text = "%s を合成しますか？" % result_name
+	msg.autowrap_mode = TextServer.AUTOWRAP_WORD
+	msg.add_theme_font_size_override("font_size", 13)
+	msg.add_theme_color_override("font_color", UIF.TITLE_COLOR)
+	vbox.add_child(msg)
+
+	var sub = Label.new()
+	sub.text = "[%s] + [%s]" % [base_name, mat_name]
+	sub.add_theme_font_size_override("font_size", 10)
+	sub.add_theme_color_override("font_color", UIF.DIM_COLOR)
+	sub.clip_text = true
+	vbox.add_child(sub)
+
+	var btn_hbox = HBoxContainer.new()
+	btn_hbox.add_theme_constant_override("separation", 12)
+	vbox.add_child(btn_hbox)
+
+	var yes_btn = Button.new()
+	yes_btn.text = "合成する"
+	yes_btn.add_theme_font_size_override("font_size", 12)
+	yes_btn.pressed.connect(func():
+		_execute_synthesis(base_name, mat_name, result_name)
+		dialog.queue_free()
+	)
+	btn_hbox.add_child(yes_btn)
+
+	var no_btn = Button.new()
+	no_btn.text = "キャンセル"
+	no_btn.add_theme_font_size_override("font_size", 12)
+	no_btn.pressed.connect(func(): dialog.queue_free())
+	btn_hbox.add_child(no_btn)
+
+# 合成実行（現時点はログのみ、Phase 3で実装）
+func _execute_synthesis(base_name: String, mat_name: String, result_name: String) -> void:
+	print("[DeckPrepInfo] 合成試行: [%s] + [%s] → [%s]" % [base_name, mat_name, result_name])
+
+# VBoxContainer内配置用の合成行生成（ScrollContainer内で使用・後方互換のために残す）
+func _create_synthesis_row_for_vbox(base_name: String, mat_name: String, result_name: String) -> Control:
+	const ICON_W = 60
+	const ICON_H = 78
+	const OP_W = 14
+	var total_w = ICON_W * 3 + OP_W * 2 + 4
+	var start_x = (_info_w - total_w) / 2.0
+
+	var row_ctrl = Control.new()
+	row_ctrl.custom_minimum_size = Vector2(_info_w, ICON_H + 10)
+	row_ctrl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+
+	var operators = [
+		{"text": "+", "x": start_x + ICON_W},
+		{"text": "→", "x": start_x + ICON_W * 2 + OP_W},
+	]
+	for op in operators:
+		var op_lbl = Label.new()
+		op_lbl.text = op["text"]
+		op_lbl.position = Vector2(op["x"], ICON_H / 2.0 - 10)
+		op_lbl.size = Vector2(OP_W, 20)
+		op_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		op_lbl.add_theme_font_size_override("font_size", 12)
+		op_lbl.add_theme_color_override("font_color", Color(0.6, 0.6, 0.7))
+		op_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		row_ctrl.add_child(op_lbl)
+
+	for icon_data in [
+		{"name": base_name,   "x": start_x},
+		{"name": mat_name,    "x": start_x + ICON_W + OP_W},
+		{"name": result_name, "x": start_x + (ICON_W + OP_W) * 2},
+	]:
+		var icon = create_mini_card_icon(icon_data["name"], Vector2(ICON_W, ICON_H))
+		icon.position = Vector2(icon_data["x"], 0)
+		row_ctrl.add_child(icon)
+
+	return row_ctrl
 
 # 項目4: 合成行を「[対象] + [素材] → [結果]」のカードアイコン形式で表示
 func _build_synthesis_card_row(base_name: String, mat_name: String, result_name: String, y: float) -> float:
@@ -221,8 +467,8 @@ func _build_synthesis_card_row(base_name: String, mat_name: String, result_name:
 
 	return y + ICON_H + 8
 
-# 項目2: ミニカードアイコン生成（グラフィック領域+名前+枠色でレア表現）
-func create_mini_card_icon(card_name: String, size: Vector2 = Vector2(60, 78)) -> Control:
+# ミニカードアイコン生成（黄金比 60×97、グラフィック領域+名前+枠色でレア表現）
+func create_mini_card_icon(card_name: String, size: Vector2 = Vector2(MINI_CARD_W, MINI_CARD_H)) -> Control:
 	var frame = Panel.new()
 	frame.custom_minimum_size = size
 	frame.size = size
@@ -369,70 +615,12 @@ func _show_unit_info(card_name: String) -> void:
 	var d = CardDB.UNITS[card_name]
 	var y: float = 8
 
-	# 項目3: 大型カード枠ヘッダー（コスト/HP/ATK/SPD含む）
+	# 大型カード枠（黄金比縦長・効果表/フレーバー内包）
 	y = _build_card_frame_header(card_name, d, y)
-
-	# 種族（枠外に表示）
-	var race = d.get("race", "")
-	var race_color = RACE_COLORS.get(race, DEFAULT_COLOR)
-	y = _info_label("種族: %s" % race, y, 12, race_color)
 	y += 6
 
-	# 効果セクション（3分類）
-	var skills = d.get("skills", [])
-	var _edb = load("res://scripts/EffectDB.gd")
-	var attack_skills: Array = []
-	var support_skills: Array = []
-	var passive_skills: Array = []
-	for skill in skills:
-		var trigger = skill.get("trigger", "")
-		var target = skill.get("target", "self")
-		match trigger:
-			"on_hit", "on_kill":
-				attack_skills.append(skill)
-			"always":
-				support_skills.append(skill)
-			"timer":
-				if target == "self":
-					passive_skills.append(skill)
-				else:
-					support_skills.append(skill)
-			_:
-				passive_skills.append(skill)
-
-	y = _info_section("攻撃時効果（前列）", y)
-	if attack_skills.size() == 0:
-		y = _info_label("なし", y, 11, UIF.DIM_COLOR)
-	else:
-		for skill in attack_skills:
-			var edef = _edb.EFFECTS.get(skill.get("effect_id", ""), {})
-			y = _info_label("  %s" % edef.get("display", skill.get("effect_id", "")), y, 11, Color(0.9, 0.6, 0.5))
-
-	y = _info_section("サポート効果（中後列）", y)
-	if support_skills.size() == 0:
-		y = _info_label("なし", y, 11, UIF.DIM_COLOR)
-	else:
-		for skill in support_skills:
-			var edef = _edb.EFFECTS.get(skill.get("effect_id", ""), {})
-			y = _info_label("  %s" % edef.get("display", skill.get("effect_id", "")), y, 11, Color(0.5, 0.8, 0.6))
-
-	y = _info_section("パッシブ効果（位置無関係）", y)
-	if passive_skills.size() == 0:
-		y = _info_label("なし", y, 11, UIF.DIM_COLOR)
-	else:
-		for skill in passive_skills:
-			var edef = _edb.EFFECTS.get(skill.get("effect_id", ""), {})
-			y = _info_label("  %s" % edef.get("display", skill.get("effect_id", "")), y, 11, Color(0.5, 0.6, 0.9))
-	y += 6
-
-	# 合成セクション（項目4,6,7: カード枠+ホバー対応）
+	# 合成セクション（結果カードのみ表示+ホバー詳細+クリック確認）
 	y = build_synthesis_section(y, card_name)
-	y += 8
-
-	# フレーバーテキスト
-	y = _info_section("フレーバー", y)
-	var flavor = _get_flavor_text(card_name)
-	_info_label_wrap(flavor, y, 11, Color(0.6, 0.6, 0.5))
 
 func _show_spell_info(card_name: String) -> void:
 	var d = CardDB.SPELLS[card_name]
@@ -473,15 +661,23 @@ func _show_spell_info_status(card_name: String) -> void:
 	if d.get("is_consumable", false):
 		_info_label("消費型（使用後デッキから消滅）", y, 11, UIF.DEMERIT_COLOR)
 
-# 項目3: 解説レーン幅に合わせた大型カード枠ヘッダー
+# 大型カード枠ヘッダー（黄金比縦長・フレーバー/効果表内包）
+# カード内部構造:
+#   ヘッダー帯（コスト+名前）  height 30
+#   イラスト枠               height 100
+#   ステータス行              height 25
+#   種族行                   height 20
+#   効果表（2列3行）          height 63 (3行×21)
+#   フレーバー               height 80 (autowrap)
+#   合計: 318px (+ padding = 約330px、カード枠高さ420px内)
 func _build_card_frame_header(card_name: String, d: Dictionary, y: float) -> float:
-	var frame_w = _info_w - 16  # 解説レーン幅に揃える（約240px）
-	var frame_h = 175
+	var frame_w = CARD_FRAME_W
+	var frame_h = CARD_FRAME_H
 	var race = d.get("race", "")
 	var accent_color = RACE_COLORS.get(race, SPELL_COLOR)
 
 	var card_frame = Panel.new()
-	card_frame.position = Vector2(8, y)
+	card_frame.position = Vector2((_info_w - frame_w) / 2.0, y)
 	card_frame.size = Vector2(frame_w, frame_h)
 	var frame_style = StyleBoxFlat.new()
 	frame_style.bg_color = accent_color.darkened(0.55)
@@ -491,49 +687,49 @@ func _build_card_frame_header(card_name: String, d: Dictionary, y: float) -> flo
 	card_frame.add_theme_stylebox_override("panel", frame_style)
 	_info_container.add_child(card_frame)
 
-	# ヘッダー色帯（上部）
+	var cy: float = 0  # カード内部Y座標
+
+	# ---- ヘッダー帯（コスト+名前） height 30 ----
 	var header_bar = ColorRect.new()
-	header_bar.position = Vector2(0, 0)
-	header_bar.size = Vector2(frame_w, 26)
+	header_bar.position = Vector2(0, cy)
+	header_bar.size = Vector2(frame_w, 30)
 	header_bar.color = accent_color
 	card_frame.add_child(header_bar)
 
-	# カード名（ヘッダー帯内）
+	var cost_lbl = Label.new()
+	cost_lbl.text = "%d💎" % d.get("cost", 0)
+	cost_lbl.position = Vector2(6, cy + 6)
+	cost_lbl.size = Vector2(30, 18)
+	cost_lbl.add_theme_font_size_override("font_size", 10)
+	cost_lbl.add_theme_color_override("font_color", Color(0.4, 0.9, 1.0))
+	card_frame.add_child(cost_lbl)
+
 	var name_lbl = Label.new()
 	name_lbl.text = card_name
-	name_lbl.position = Vector2(8, 4)
-	name_lbl.size = Vector2(frame_w - 16, 20)
+	name_lbl.position = Vector2(36, cy + 5)
+	name_lbl.size = Vector2(frame_w - 42, 20)
 	name_lbl.add_theme_font_size_override("font_size", 14)
 	name_lbl.add_theme_color_override("font_color", Color(1, 1, 1))
 	name_lbl.clip_text = true
 	card_frame.add_child(name_lbl)
+	cy += 32
 
-	# イラスト枠（中段）
+	# ---- イラスト枠 height 100 ----
 	var illust = ColorRect.new()
-	illust.position = Vector2(6, 30)
-	illust.size = Vector2(frame_w - 12, 90)
+	illust.position = Vector2(6, cy)
+	illust.size = Vector2(frame_w - 12, 100)
 	illust.color = accent_color.darkened(0.65)
 	card_frame.add_child(illust)
+	cy += 104
 
-	# 種族ラベル（イラスト右下）
-	if race != "":
-		var race_lbl = Label.new()
-		race_lbl.text = race
-		race_lbl.position = Vector2(frame_w - 50, 108)
-		race_lbl.size = Vector2(42, 14)
-		race_lbl.add_theme_font_size_override("font_size", 9)
-		race_lbl.add_theme_color_override("font_color", accent_color.lightened(0.3))
-		card_frame.add_child(race_lbl)
-
-	# ステータス行（下段）
+	# ---- ステータス行 height 25 ----
 	if CardDB.UNITS.has(card_name):
 		var stats_hbox = HBoxContainer.new()
-		stats_hbox.position = Vector2(8, 126)
-		stats_hbox.size = Vector2(frame_w - 16, 18)
-		stats_hbox.add_theme_constant_override("separation", 10)
+		stats_hbox.position = Vector2(8, cy)
+		stats_hbox.size = Vector2(frame_w - 16, 20)
+		stats_hbox.add_theme_constant_override("separation", 6)
 		card_frame.add_child(stats_hbox)
 		for stat_text in [
-			"コスト:%d" % d.get("cost", 0),
 			"HP:%d" % d.get("hp", 0),
 			"ATK:%d" % d.get("atk", 0),
 			"SPD:%.1fs" % d.get("interval", 0)
@@ -543,27 +739,143 @@ func _build_card_frame_header(card_name: String, d: Dictionary, y: float) -> flo
 			sl.add_theme_font_size_override("font_size", 10)
 			sl.add_theme_color_override("font_color", Color(0.9, 0.9, 0.9))
 			stats_hbox.add_child(sl)
+		cy += 25
 	elif CardDB.SPELLS.has(card_name) or CardDB.STATUS_SPELLS.has(card_name):
-		var cost_lbl = Label.new()
-		cost_lbl.text = "コスト: %d" % d.get("cost", 0)
-		cost_lbl.position = Vector2(8, 130)
-		cost_lbl.add_theme_font_size_override("font_size", 11)
-		cost_lbl.add_theme_color_override("font_color", Color(0.6, 0.8, 1.0))
-		card_frame.add_child(cost_lbl)
+		var type_lbl = Label.new()
+		type_lbl.text = "[呪文] コスト: %d" % d.get("cost", 0) if CardDB.SPELLS.has(card_name) else "[異常状態]"
+		type_lbl.position = Vector2(8, cy)
+		type_lbl.add_theme_font_size_override("font_size", 11)
+		type_lbl.add_theme_color_override("font_color", Color(0.6, 0.8, 1.0))
+		card_frame.add_child(type_lbl)
+		cy += 25
 
-	# 効果サマリ（最下段）
-	var effect_summary = _get_effect_summary(card_name, d)
-	if effect_summary != "":
-		var eff_lbl = Label.new()
-		eff_lbl.text = effect_summary
-		eff_lbl.position = Vector2(8, 148)
-		eff_lbl.size = Vector2(frame_w - 16, 22)
-		eff_lbl.add_theme_font_size_override("font_size", 9)
-		eff_lbl.add_theme_color_override("font_color", Color(0.75, 0.8, 0.75))
-		eff_lbl.clip_text = true
-		card_frame.add_child(eff_lbl)
+	# ---- 種族行 height 20 ----
+	if race != "":
+		var race_lbl = Label.new()
+		race_lbl.text = "◆ %s" % race
+		race_lbl.position = Vector2(8, cy)
+		race_lbl.size = Vector2(frame_w - 16, 18)
+		race_lbl.add_theme_font_size_override("font_size", 11)
+		race_lbl.add_theme_color_override("font_color", accent_color.lightened(0.3))
+		card_frame.add_child(race_lbl)
+		cy += 22
+
+	# ---- 効果表（2列3行、列名なし）height 63 ----
+	cy = _build_effect_table_in_card(card_frame, d, cy, frame_w)
+
+	# ---- 区切り線 ----
+	var sep = ColorRect.new()
+	sep.position = Vector2(10, cy)
+	sep.size = Vector2(frame_w - 20, 1)
+	sep.color = accent_color.darkened(0.2)
+	card_frame.add_child(sep)
+	cy += 5
+
+	# ---- フレーバーテキスト height 80 ----
+	var flavor = _get_flavor_text(card_name)
+	var flavor_lbl = Label.new()
+	flavor_lbl.text = flavor
+	flavor_lbl.position = Vector2(8, cy)
+	flavor_lbl.size = Vector2(frame_w - 16, 80)
+	flavor_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD
+	flavor_lbl.add_theme_font_size_override("font_size", 10)
+	flavor_lbl.add_theme_color_override("font_color", Color(0.6, 0.6, 0.5))
+	card_frame.add_child(flavor_lbl)
 
 	return y + frame_h + 8
+
+# 効果表をカード内部に描画する（2列3行、列名なし）
+# 左列: trigger表示名（最大9文字）、右列: effect_id display
+# 最大3行。超過は「...」で省略
+func _build_effect_table_in_card(card_frame: Control, d: Dictionary, cy: float, frame_w: int) -> float:
+	const ROW_H: int = 21
+	const MAX_ROWS: int = 3
+	const LEFT_W: int = 85
+	const RIGHT_W: int = 160
+	const TRIGGER_LABELS: Dictionary = {
+		"always": "サポート",
+		"on_hit": "命中時",
+		"on_kill": "撃破時",
+		"on_death": "死亡時",
+		"on_summon": "召喚時",
+		"on_hp_threshold": "HP閾値",
+		"timer": "定期",
+		"on_play": "使用時",
+	}
+	const TRIGGER_COLORS: Dictionary = {
+		"on_hit": Color(0.9, 0.6, 0.5),
+		"on_kill": Color(0.9, 0.5, 0.4),
+		"always": Color(0.5, 0.8, 0.6),
+		"timer": Color(0.5, 0.8, 0.6),
+		"on_summon": Color(0.5, 0.6, 0.9),
+		"on_death": Color(0.7, 0.5, 0.8),
+		"on_hp_threshold": Color(0.8, 0.7, 0.4),
+		"on_play": Color(0.6, 0.8, 1.0),
+	}
+
+	var skills = d.get("skills", [])
+	if skills.size() == 0:
+		return cy
+
+	var _edb = load("res://scripts/EffectDB.gd")
+	var display_rows: Array = []
+	for skill in skills:
+		var trigger = skill.get("trigger", "")
+		var eid = skill.get("effect_id", "")
+		var edef = _edb.EFFECTS.get(eid, {})
+		var disp = edef.get("display", eid)
+		if disp == "":
+			continue
+		display_rows.append({
+			"trigger": trigger,
+			"display": disp,
+		})
+
+	var row_count = mini(display_rows.size(), MAX_ROWS)
+	var has_overflow = display_rows.size() > MAX_ROWS
+
+	for i in range(row_count):
+		var row = display_rows[i]
+		var trigger = row["trigger"]
+		var row_y = cy + i * ROW_H
+
+		# 左列: trigger表示名
+		var left_lbl = Label.new()
+		left_lbl.text = "[%s]" % TRIGGER_LABELS.get(trigger, trigger)
+		left_lbl.position = Vector2(8, row_y)
+		left_lbl.size = Vector2(LEFT_W, ROW_H - 2)
+		left_lbl.add_theme_font_size_override("font_size", 9)
+		left_lbl.add_theme_color_override("font_color", TRIGGER_COLORS.get(trigger, Color(0.7, 0.7, 0.7)))
+		left_lbl.clip_text = true
+		card_frame.add_child(left_lbl)
+
+		# 縦区切り
+		var div = ColorRect.new()
+		div.position = Vector2(8 + LEFT_W, row_y + 2)
+		div.size = Vector2(1, ROW_H - 4)
+		div.color = Color(0.4, 0.4, 0.5, 0.6)
+		card_frame.add_child(div)
+
+		# 右列: 効果display
+		var right_lbl = Label.new()
+		right_lbl.text = row["display"]
+		right_lbl.position = Vector2(8 + LEFT_W + 4, row_y)
+		right_lbl.size = Vector2(RIGHT_W, ROW_H - 2)
+		right_lbl.add_theme_font_size_override("font_size", 9)
+		right_lbl.add_theme_color_override("font_color", Color(0.85, 0.85, 0.85))
+		right_lbl.clip_text = true
+		card_frame.add_child(right_lbl)
+
+	if has_overflow:
+		var more_lbl = Label.new()
+		more_lbl.text = "..."
+		more_lbl.position = Vector2(8, cy + row_count * ROW_H)
+		more_lbl.add_theme_font_size_override("font_size", 9)
+		more_lbl.add_theme_color_override("font_color", Color(0.5, 0.5, 0.5))
+		card_frame.add_child(more_lbl)
+
+	cy += (row_count + (1 if has_overflow else 0)) * ROW_H + 6
+	return cy
 
 func _get_effect_summary(card_name: String, d: Dictionary) -> String:
 	var skills = d.get("skills", [])

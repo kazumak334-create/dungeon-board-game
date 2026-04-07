@@ -3,6 +3,33 @@
 # 3×3盤面ベース（side 0=自陣, side 1=敵陣）
 extends RefCounted
 
+# ---- 配置先分類 ----
+
+# 行列指定必要なtarget（盤面のみ配置可）
+const POSITIONAL_TARGETS: Array = [
+	"front_one", "adjacent", "same_row", "same_col",
+	"same_row_beast", "same_col_ally", "single_ally",
+	"hit_target",
+]
+
+# カードが盤面配置必須か（true=盤面, false=呪文スロット）
+static func requires_board_placement(card_entry: Dictionary) -> bool:
+	var card_name: String = card_entry.get("name", "")
+	# ユニットは常に盤面
+	if CardDB.UNITS.has(card_name):
+		return true
+	# 呪文のskillsからtargetを判定
+	var skills: Array = []
+	if CardDB.SPELLS.has(card_name):
+		skills = CardDB.SPELLS[card_name].get("skills", [])
+	elif CardDB.STATUS_SPELLS.has(card_name):
+		skills = CardDB.STATUS_SPELLS[card_name].get("skills", [])
+	for skill in skills:
+		var target = skill.get("target", "")
+		if target in POSITIONAL_TARGETS:
+			return true
+	return false
+
 # ---- 制約導出 ----
 
 # このカードは自陣に配置できるか？
@@ -81,6 +108,10 @@ static func get_highlight_cells(card_entry: Dictionary, placed_side: int, placed
 		# スキルなし→ハイライトなし
 		return result
 
+	# 前列判定: プレイヤー側(side=0)はcol=2、敵側(side=1)はcol=0が前列
+	var front_col: int = 2 if placed_side == 0 else 0
+	var is_front_row: bool = (placed_col == front_col)
+
 	for skill in skills:
 		var target = skill.get("target", "")
 		var trigger = skill.get("trigger", "")
@@ -93,6 +124,10 @@ static func get_highlight_cells(card_entry: Dictionary, placed_side: int, placed
 		if trigger == "timer" and target == "self":
 			continue
 		if trigger != "always" and trigger != "timer":
+			continue
+
+		# 前列にいる場合はサポート効果は自動停止→ハイライトしない
+		if is_front_row:
 			continue
 
 		# サポート効果のみ到達：デフォルト緑、敵対象は赤
@@ -147,10 +182,16 @@ static func get_highlight_cells(card_entry: Dictionary, placed_side: int, placed
 				var fc = 2 if placed_side == 0 else 0
 				for r in range(3):
 					result.append({"side": placed_side, "row": r, "col": fc, "color": color})
-			"enemy_front_one", "random_front_enemy":
+			"enemy_front_one":
 				var enemy = 1 - placed_side
 				var efc = 0 if placed_side == 0 else 2
 				result.append({"side": enemy, "row": placed_row, "col": efc, "color": "red"})
+			"random_front_enemy":
+				# 敵前列全体をランダム対象（どの行にいるかわからないため前列全段を赤ハイライト）
+				var enemy = 1 - placed_side
+				var efc = 0 if placed_side == 0 else 2
+				for r in range(3):
+					result.append({"side": enemy, "row": r, "col": efc, "color": "red"})
 
 	return result
 
@@ -175,18 +216,33 @@ static func generate_default_config(deck: Array) -> Array:
 				"col": col,
 				"fallback_same_col": true,
 			})
-		elif CardDB.SPELLS.has(card_name):
-			var d = CardDB.SPELLS[card_name]
-			var target = d.get("target", "")
-			var side = 1 if target in ["enemy", "all_enemies", "enemy_random_col", "enemy_front_one"] else 0
-			config.append({
-				"side": side,
-				"row": -1,
-				"col": -1,   # -1 = 列おまかせ
-				"fallback_same_col": true,
-			})
+		elif CardDB.SPELLS.has(card_name) or CardDB.STATUS_SPELLS.has(card_name):
+			var d: Dictionary
+			if CardDB.SPELLS.has(card_name):
+				d = CardDB.SPELLS[card_name]
+			else:
+				d = CardDB.STATUS_SPELLS[card_name]
+			var skills: Array = d.get("skills", [])
+			var first_target: String = skills[0].get("target", "") if skills.size() > 0 else ""
+			var side = 1 if first_target in ["enemy", "all_enemies", "enemy_random_col", "enemy_front_one"] else 0
+			if requires_board_placement(entry):
+				# 行列指定必要→盤面（rowはバトル時に解決、col=1デフォルト）
+				config.append({
+					"side": side,
+					"row": -1,
+					"col": 1,
+					"fallback_same_col": true,
+				})
+			else:
+				# AoE/プレイヤー影響→呪文スロット（col=-1）
+				config.append({
+					"side": side,
+					"row": -1,
+					"col": -1,
+					"fallback_same_col": true,
+				})
 		else:
-			# STATUS_SPELLS, SYSTEM_SPELLS等
+			# SYSTEM_SPELLS等
 			config.append({
 				"side": 0,
 				"row": -1,

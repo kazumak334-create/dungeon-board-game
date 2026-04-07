@@ -1,6 +1,6 @@
 # DeckPrep.gd
 # デッキ準備画面: パターンB（左サイドバー型）
-# 左サイドバー(w=200): ステータス上部 + 装備スロット下部
+# 左サイドバー(w=200): ステータス（装備は持ち物タブに統合済み）
 # 中央エリア(w=790): タブバー + タブコンテンツ + 冒険ボタン行
 # 右解説レーン(w=275): カード/アイテム詳細
 extends Control
@@ -18,9 +18,15 @@ var _current_tab: String = "placement"
 # 選択状態（_boardと同期）
 var _selected_card_idx: int = -1
 
+# ピン留め状態（クリックで固定、再クリックで解除、別カードクリックで切り替え）
+var _pinned_card_idx: int = -1
+
 # 持ち物タブ選択状態
 var _selected_material: Dictionary = {}
 var _inventory_filter: String = "all"  # "all" / "normal" / "cursed" / "consumable"
+
+# 装備スロット管理（持ち物タブ統合後）
+var _equipped: Dictionary = {}  # slot_id -> item dict（空={}）
 
 # レイアウト定数（パターンB）
 const SIDEBAR_X = 5         # 左サイドバー開始X
@@ -28,9 +34,7 @@ const SIDEBAR_Y = 5         # 左サイドバー開始Y
 const SIDEBAR_W = 200       # 左サイドバー幅
 const SIDEBAR_H = 710       # 左サイドバー高さ
 const STATUS_AREA_Y = 15    # ステータス領域Y（サイドバー内）
-const STATUS_AREA_H = 460   # ステータス領域高さ
-const EQUIP_AREA_Y = 480    # 装備スロット領域Y（サイドバー内）
-const EQUIP_AREA_H = 220    # 装備スロット領域高さ
+const STATUS_AREA_H = 680   # ステータス領域高さ（装備移動分拡大）
 const TAB_BAR_X = 210       # タブバー開始X
 const TAB_BAR_Y = 5         # タブバー開始Y
 const TAB_BAR_W = 790       # タブバー幅
@@ -68,8 +72,19 @@ func _ready() -> void:
 	_board._PL = _PL
 	_board.on_card_selected = func(idx: int):
 		_selected_card_idx = idx
-		_update_info_lane()
+		# ピン留め中は他カードのホバーで上書きしない（on_card_selectedはホバー由来の場合も呼ばれるが
+		# 現状はクリック由来のみ。on_card_pinnedと分けて管理）
+		if _pinned_card_idx < 0:
+			_update_info_lane()
 		_board.update_highlight()
+	_board.on_card_pinned = func(idx: int):
+		# ピン留めトグル: 同じカードなら解除、別カードなら切り替え
+		if _pinned_card_idx == idx:
+			_pinned_card_idx = -1
+		else:
+			_pinned_card_idx = idx
+		_selected_card_idx = _pinned_card_idx if _pinned_card_idx >= 0 else idx
+		_update_info_lane()
 	var InfoClass = load("res://scripts/DeckPrepInfo.gd")
 	_info = InfoClass.new()
 	_build_ui()
@@ -107,18 +122,8 @@ func _build_sidebar() -> void:
 	)
 	add_child(sidebar_panel)
 
-	# ステータス領域（上部）
+	# ステータス領域（装備は持ち物タブに統合済み）
 	_build_status_area()
-
-	# 区切りライン
-	var sep = ColorRect.new()
-	sep.position = Vector2(SIDEBAR_X + 10, SIDEBAR_Y + EQUIP_AREA_Y - 10)
-	sep.size = Vector2(SIDEBAR_W - 20, 1)
-	sep.color = Color(0.3, 0.3, 0.4, 0.6)
-	add_child(sep)
-
-	# 装備スロット領域（下部）
-	_build_equipment_area()
 
 func _build_status_area() -> void:
 	var cls = CardDB.CLASSES.get(GameSession.class_id, {})
@@ -198,47 +203,6 @@ func _build_status_area() -> void:
 			add_child(sep)
 			cy += 12
 
-func _build_equipment_area() -> void:
-	var base_x = SIDEBAR_X + 15
-	var base_y = SIDEBAR_Y + EQUIP_AREA_Y
-
-	var header = Label.new()
-	header.text = "装備"
-	header.position = Vector2(base_x, base_y)
-	header.add_theme_font_size_override("font_size", 13)
-	header.add_theme_color_override("font_color", UIF.TITLE_COLOR)
-	add_child(header)
-
-	# 装備スロット3×2配置（左列=頭/胴/足, 右列=アクセ1/2/3）
-	for slot in EQUIP_SLOTS:
-		var sx = base_x + 3 + slot["col"] * (EQUIP_SLOT_SIZE + EQUIP_SLOT_GAP + 10)
-		var sy = base_y + 20 + slot["row"] * (EQUIP_SLOT_SIZE + EQUIP_SLOT_GAP + 14)
-		_build_equipment_slot(slot["id"], slot["label"], sx, sy)
-
-func _build_equipment_slot(slot_id: String, label: String, x: float, y: float) -> void:
-	# スロット枠
-	var cell = Panel.new()
-	cell.position = Vector2(x, y)
-	cell.size = Vector2(EQUIP_SLOT_SIZE, EQUIP_SLOT_SIZE)
-	cell.name = "equip_slot_" + slot_id
-	var style = StyleBoxFlat.new()
-	style.bg_color = Color(0.12, 0.10, 0.18)
-	style.border_color = Color(0.35, 0.28, 0.45)
-	style.set_border_width_all(1)
-	style.set_corner_radius_all(4)
-	cell.add_theme_stylebox_override("panel", style)
-	add_child(cell)
-
-	# スロットラベル（スロット内中央）
-	var slot_lbl = Label.new()
-	slot_lbl.text = label
-	slot_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	slot_lbl.position = Vector2(x, y + EQUIP_SLOT_SIZE + 2)
-	slot_lbl.size = Vector2(EQUIP_SLOT_SIZE, 12)
-	slot_lbl.add_theme_font_size_override("font_size", 9)
-	slot_lbl.add_theme_color_override("font_color", Color(0.5, 0.45, 0.6))
-	add_child(slot_lbl)
-
 func _build_tab_bar() -> void:
 	var tabs = [
 		{"id": "placement", "label": "配置"},
@@ -273,9 +237,10 @@ func _show_tab(tab_id: String) -> void:
 		(tb["button"] as Button).modulate = Color(1, 1, 0.6) if tb["id"] == tab_id else Color(1, 1, 1)
 	for child in _tab_container.get_children():
 		child.queue_free()
-	# タブ切替時に素材選択をリセット（持ち物タブ以外ではカード選択を保持）
+	# タブ切替時に素材選択・ピン留めをリセット（持ち物タブ以外ではカード選択を保持）
 	if tab_id != "inventory":
 		_selected_material = {}
+	_pinned_card_idx = -1
 
 	match tab_id:
 		"placement":
@@ -324,23 +289,29 @@ func _update_info_lane() -> void:
 		return
 	_info.show_card_info(_selected_card_idx)
 
-# ===== 持ち物タブ（カテゴリフィルタ + 素材グリッド） =====
-# 装備スロットは左サイドバーに常時表示。このタブにはカテゴリフィルタ + アイテム/素材グリッド
+# ===== 持ち物タブ（装備統合 + カテゴリフィルタ + 素材グリッド + 検索） =====
+# 装備6スロットを持ち物タブ最上部に統合。左サイドバーの装備セクションは削除済み
+# レイアウト: フィルタバー(32) + 装備エリア(80) + 素材グリッド(残り)
 
-const INV_SLOT_W = 145    # スロット幅
-const INV_SLOT_H = 90     # スロット高さ
-const INV_SLOT_GAP = 10   # スロット間隔
-const INV_GRID_COLS = 5   # グリッド列数
-const INV_GRID_ROWS = 6   # グリッド行数
-const INV_TOTAL_SLOTS = 30  # 総スロット数 (INV_GRID_COLS × INV_GRID_ROWS)
+const INV_SLOT_W = 120    # 素材スロット幅（旧145→縮小）
+const INV_SLOT_H = 72     # 素材スロット高さ（旧90→縮小）
+const INV_SLOT_GAP = 8    # スロット間隔（旧10→縮小）
+const INV_GRID_COLS = 6   # グリッド列数（旧5→6）
+const INV_GRID_ROWS = 8   # グリッド行数（旧6→8: 装備2行+素材6行）
+const INV_EQUIP_ROWS = 2  # 装備行数（上位2行=装備エリア）
+const INV_MAT_ROWS = 6    # 素材行数（残り6行=素材エリア）
+const INV_TOTAL_SLOTS = 48  # 総スロット数 (INV_GRID_COLS × INV_GRID_ROWS)
+const INV_EQUIP_SLOTS_COUNT = 6  # 装備スロット数（6個固定・変更禁止）
+const INV_LOCKED_ROWS_START = 2  # ロック開始行（0-indexed、装備2行+素材2行=4行目以降をロック）
 const INV_GRID_X = 8      # グリッド開始X
-const INV_GRID_Y = 40     # グリッド開始Y
+const INV_GRID_Y = 40     # グリッド開始Y（フィルタバー下）
 const INV_FILTER_H = 32   # フィルタタブ高さ
+const INV_SEARCH_W = 200  # 検索ボックス幅（フィルタバー右端）
 
 func _build_inventory_tab() -> void:
-	# カテゴリフィルタタブ（上部）
+	# カテゴリフィルタタブ + 検索ボックス（上部）
 	_build_category_filter(_tab_container)
-	# 素材グリッド（下部）
+	# 統合グリッド（装備エリア + 素材エリア）
 	_build_inventory_grid(_tab_container)
 
 func _build_category_filter(parent: Node) -> void:
@@ -364,12 +335,36 @@ func _build_category_filter(parent: Node) -> void:
 		parent.add_child(btn)
 		x += 100
 
+	# 検索ボックス（右端・将来実装のダミー）
+	_build_search_box(parent)
+
 func _set_inventory_filter(filter: String) -> void:
 	_inventory_filter = filter
 	# タブコンテンツを再描画
 	for child in _tab_container.get_children():
 		child.queue_free()
 	_build_inventory_tab()
+
+func _build_search_box(parent: Node) -> void:
+	# フィルタバー右端に検索ボックスを配置（将来実装のスペース確保）
+	var search_x = CONTENT_W - INV_SEARCH_W - 8
+	# 虫眼鏡ラベル
+	var icon_lbl = Label.new()
+	icon_lbl.text = "[検索]"
+	icon_lbl.position = Vector2(search_x, 3)
+	icon_lbl.size = Vector2(48, 26)
+	icon_lbl.add_theme_font_size_override("font_size", 11)
+	icon_lbl.add_theme_color_override("font_color", Color(0.5, 0.5, 0.6))
+	parent.add_child(icon_lbl)
+	# LineEdit（将来実装・現状は入力不可）
+	var search_edit = LineEdit.new()
+	search_edit.name = "search_box"
+	search_edit.placeholder_text = "検索（将来実装）"
+	search_edit.position = Vector2(search_x + 50, 3)
+	search_edit.size = Vector2(INV_SEARCH_W - 50, 26)
+	search_edit.editable = false
+	search_edit.add_theme_font_size_override("font_size", 11)
+	parent.add_child(search_edit)
 
 func _get_filtered_materials() -> Array:
 	var filtered: Array = []

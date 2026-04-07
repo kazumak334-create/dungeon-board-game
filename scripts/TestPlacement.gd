@@ -6,6 +6,8 @@ func run(runner: RefCounted) -> void:
 	_test_placement_logic(runner)
 	_test_placement_operations(runner)
 	_test_persistence(runner)
+	_test_spell_card_constraints(runner)
+	_test_highlight_cells(runner)
 
 func _test_placement_logic(r: RefCounted) -> void:
 	var PL = load("res://scripts/PlacementLogic.gd")
@@ -202,3 +204,63 @@ func _test_persistence(r: RefCounted) -> void:
 	r._assert_eq(after.size(), 2, "クリーンアップ後: battle除去→2枚残る")
 	r._assert_eq(after[0]["name"], "スライム", "クリーンアップ後: スライム残る")
 	r._assert_eq(after[1]["name"], "ゴブリン", "クリーンアップ後: ゴブリン残る")
+
+# ---- 呪文カード配置制約テスト ----
+func _test_spell_card_constraints(r: RefCounted) -> void:
+	var PL = load("res://scripts/PlacementLogic.gd")
+
+	# ユニットは常に盤面配置必須
+	r._assert_eq(PL.requires_board_placement({"name": "スライム"}), true,
+		"test_unit_card_no_slot_drop: ユニットは盤面配置必須")
+
+	# AoE呪文（target: self）→呪文スロットのみ（盤面NG）
+	r._assert_eq(PL.requires_board_placement({"name": "召喚加速"}), false,
+		"test_spell_card_no_board_drop: 召喚加速(self)は盤面配置不要")
+
+	# 単体狙い呪文（target: single_ally）→盤面配置必須
+	r._assert_eq(PL.requires_board_placement({"name": "生命の雫"}), true,
+		"test_unit_card_no_slot_drop: 生命の雫(single_ally)は盤面配置必須")
+
+	# デフォルトconfig生成でAoE呪文→col=-1（呪文スロット）
+	var deck_aoe = [{"name": "召喚加速"}]
+	var config_aoe = PL.generate_default_config(deck_aoe)
+	r._assert_eq(config_aoe[0]["col"], -1,
+		"test_default_config_spell_assignment: AoE呪文→col=-1(呪文スロット)")
+
+	# デフォルトconfig生成でユニット→col>=0（盤面）
+	var deck_unit = [{"name": "スライム", "col": 1}]
+	var config_unit = PL.generate_default_config(deck_unit)
+	r._assert_true(config_unit[0]["col"] >= 0,
+		"test_default_config_unit_assignment: ユニット→col>=0(盤面)")
+
+	# デフォルトconfig生成で単体狙い呪文→col>=0（盤面）
+	var deck_single = [{"name": "生命の雫"}]
+	var config_single = PL.generate_default_config(deck_single)
+	r._assert_true(config_single[0]["col"] >= 0,
+		"test_default_config_spell_assignment: 単体狙い呪文→col>=0(盤面)")
+
+# ---- ハイライトセルテスト ----
+func _test_highlight_cells(r: RefCounted) -> void:
+	var PL = load("res://scripts/PlacementLogic.gd")
+	var heat_entry = {"name": "ヒートスライム"}
+
+	# ヒートスライムを後列(side=0, col=0)に置いた時→敵前列全体(3マス)が赤ハイライト
+	var highlights_back = PL.get_highlight_cells(heat_entry, 0, 1, 0)
+	var red_cells = []
+	for h in highlights_back:
+		if h.get("color", "") == "red":
+			red_cells.append(h)
+	r._assert_true(red_cells.size() >= 3,
+		"test_heatslime_support_range: 後列配置→敵前列3マス赤ハイライト")
+	# 赤ハイライトが敵陣(side=1)前列(col=0)を指しているか確認
+	var all_enemy_front = true
+	for h in red_cells:
+		if h.get("side", -1) != 1 or h.get("col", -1) != 0:
+			all_enemy_front = false
+	r._assert_true(all_enemy_front,
+		"test_heatslime_support_range: 赤ハイライトがside=1,col=0(敵前列)のみ")
+
+	# ヒートスライムを前列(side=0, col=2)に置いた時→ハイライトなし（サポート効果停止）
+	var highlights_front = PL.get_highlight_cells(heat_entry, 0, 1, 2)
+	r._assert_eq(highlights_front.size(), 0,
+		"test_heatslime_no_range_in_front: 前列配置→ハイライトなし")

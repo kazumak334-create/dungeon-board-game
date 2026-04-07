@@ -14,6 +14,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - 現Phaseで不要な将来計画は docs/future/ に移動する
 - MEMORY_SHARED.md は10項目・2,000トークン以内に維持する
 
+## ⚠️ Git運用ルール（必須）
+- **mainブランチには直接コミット禁止**
+- 作業開始時: `git checkout -b feature/[作業内容]` でブランチを切る
+- 作業前にWIPコミット: `git commit -m "WIP: 作業開始前の保存"`
+- ブランチ命名: feature/ (新機能) / fix/ (修正) / refactor/ (リファクタ) / experiment/ (実験)
+- 詳細: `docs/meta/git_workflow_rules.md`（プロジェクト外メタディレクトリ）
+
 ## ⚠️ Agent追加時のルール
 - 新Agent追加時は必ずMEMORY_SHARED.mdのみをデフォルトロードに設定する
 - 役割別メモリは「そのAgentが必要な時だけ読む」をプロンプトに明記する

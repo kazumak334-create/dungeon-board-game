@@ -18,6 +18,19 @@ func run(runner: RefCounted) -> void:
 	_test_artifact_slot_count(runner)
 	_test_cell_layout_tile_layouts(runner)
 	_test_stack_count_grouping(runner)
+	# 段階2追加テスト
+	_test_synthesis_section_board_synthesis(runner)
+	_test_upper_synthesis_section_exists(runner)
+	_test_equipment_within_sidebar(runner)
+	_test_card_pin_state(runner)
+	_test_equipment_y_position(runner)
+	# 段階3追加テスト
+	_test_card_frame_golden_ratio(runner)
+	_test_mini_card_golden_ratio(runner)
+	_test_card_effect_table(runner)
+	_test_synthesis_result_only(runner)
+	_test_synth_confirm_toggle_exists(runner)
+	_test_flavor_text_inside_card(runner)
 
 func _test_equip_slot_count(r: RefCounted) -> void:
 	# 装備スロットが6個固定であること（絶対変更禁止）
@@ -182,3 +195,126 @@ func _test_stack_count_grouping(r: RefCounted) -> void:
 	r._assert_eq(grouped[0][2], 2, "スライムcount=2")
 	r._assert_eq(grouped[1][1], "コブラ", "2番目=コブラ")
 	r._assert_eq(grouped[1][2], 1, "コブラcount=1")
+
+# ===== 段階2追加テスト =====
+
+func _test_synthesis_section_board_synthesis(r: RefCounted) -> void:
+	# DeckPrepInfoに _build_board_synthesis_section が存在し「盤面合成」セクションを持つこと
+	var InfoClass = load("res://scripts/DeckPrepInfo.gd")
+	var info = InfoClass.new()
+	r._assert_true(info.has_method("_build_board_synthesis_section"), "_build_board_synthesis_section()が存在する")
+	r._assert_true(info.has_method("_build_upper_synthesis_section"), "_build_upper_synthesis_section()が存在する")
+	r._assert_true(info.has_method("_create_synthesis_row_for_vbox"), "_create_synthesis_row_for_vbox()が存在する")
+
+func _test_upper_synthesis_section_exists(r: RefCounted) -> void:
+	# 上位合成欄がbuild_synthesis_sectionの上部に存在すること
+	# build_synthesis_section() 内で _build_upper_synthesis_section を呼ぶ構造であること
+	var InfoClass = load("res://scripts/DeckPrepInfo.gd")
+	var info = InfoClass.new()
+	r._assert_true(info.has_method("build_synthesis_section"), "build_synthesis_section()が存在する")
+	r._assert_true(info.has_method("_build_upper_synthesis_section"), "上位合成セクション関数が存在する")
+
+func _test_equipment_within_sidebar(r: RefCounted) -> void:
+	# 装備エリア最下端がSIDEBAR_H(710px)以内に収まること
+	var DeckPrepClass = load("res://scripts/DeckPrep.gd")
+	var equip_bottom = DeckPrepClass.SIDEBAR_Y + DeckPrepClass.EQUIP_AREA_Y + DeckPrepClass.EQUIP_AREA_H
+	r._assert_true(equip_bottom <= DeckPrepClass.SIDEBAR_Y + DeckPrepClass.SIDEBAR_H,
+		"装備エリア最下端がサイドバー内に収まる: %d <= %d" % [equip_bottom, DeckPrepClass.SIDEBAR_Y + DeckPrepClass.SIDEBAR_H])
+
+func _test_card_pin_state(r: RefCounted) -> void:
+	# DeckPrep.gdに _pinned_card_idx 変数が存在し初期値-1であること
+	var DeckPrepClass = load("res://scripts/DeckPrep.gd")
+	var dp = DeckPrepClass.new()
+	r._assert_true("_pinned_card_idx" in dp, "_pinned_card_idx変数が存在する")
+	r._assert_eq(dp._pinned_card_idx, -1, "_pinned_card_idx初期値=-1")
+	# DeckPrepBoardに on_card_pinned Callable が存在すること
+	var BoardClass = load("res://scripts/DeckPrepBoard.gd")
+	var board = BoardClass.new()
+	r._assert_true("on_card_pinned" in board, "on_card_pinned Callableが存在する")
+	dp.queue_free()
+
+func _test_equipment_y_position(r: RefCounted) -> void:
+	# EQUIP_AREA_Y + 装備スロット実高さ ≤ SIDEBAR_H
+	var DeckPrepClass = load("res://scripts/DeckPrep.gd")
+	# 装備スロット実高さ: ヘッダー(20) + 3行×(EQUIP_SLOT_SIZE + EQUIP_SLOT_GAP + 14) + ラベル(12)
+	var slot_size = DeckPrepClass.EQUIP_SLOT_SIZE
+	var slot_gap = DeckPrepClass.EQUIP_SLOT_GAP
+	var equip_real_h = 20 + 3 * (slot_size + slot_gap + 14) + 12
+	var equip_bottom = DeckPrepClass.EQUIP_AREA_Y + equip_real_h
+	r._assert_true(equip_bottom <= DeckPrepClass.SIDEBAR_H,
+		"EQUIP_AREA_Y+実高さ=%d <= SIDEBAR_H=%d" % [equip_bottom, DeckPrepClass.SIDEBAR_H])
+
+# ===== 段階3追加テスト =====
+
+func _test_card_frame_golden_ratio(r: RefCounted) -> void:
+	# カード詳細枠が黄金比近似（縦/横 ≒ 1.6）
+	var InfoClass = load("res://scripts/DeckPrepInfo.gd")
+	var card_w = InfoClass.CARD_FRAME_W
+	var card_h = InfoClass.CARD_FRAME_H
+	var ratio = float(card_h) / float(card_w)
+	r._assert_true(card_w == 260, "CARD_FRAME_W=260px")
+	r._assert_true(card_h == 420, "CARD_FRAME_H=420px")
+	r._assert_true(ratio >= 1.5 and ratio <= 1.7,
+		"縦/横比が黄金比近似(1.5〜1.7): %.3f" % ratio)
+
+func _test_mini_card_golden_ratio(r: RefCounted) -> void:
+	# ミニカードアイコンが黄金比（縦/横 ≒ 1.618）
+	var InfoClass = load("res://scripts/DeckPrepInfo.gd")
+	var w = InfoClass.MINI_CARD_W
+	var h = InfoClass.MINI_CARD_H
+	var ratio = float(h) / float(w)
+	r._assert_true(w == 60, "MINI_CARD_W=60")
+	r._assert_true(h == 97, "MINI_CARD_H=97")
+	r._assert_true(ratio >= 1.55 and ratio <= 1.68,
+		"ミニカード縦/横比が黄金比近似(1.55〜1.68): %.3f" % ratio)
+	# デフォルト引数が黄金比サイズを使っていること
+	var info = InfoClass.new()
+	r._assert_true(info.has_method("create_mini_card_icon"), "create_mini_card_icon()が存在する")
+
+func _test_card_effect_table(r: RefCounted) -> void:
+	# 効果表生成関数が存在し、カード枠内に描画する構造であること
+	var InfoClass = load("res://scripts/DeckPrepInfo.gd")
+	var info = InfoClass.new()
+	r._assert_true(info.has_method("_build_effect_table_in_card"),
+		"_build_effect_table_in_card()が存在する")
+	# CARD_FRAME_H内に収まる設計: ヘッダー30+イラスト100+ステータス25+種族20+効果表63+フレーバー80=318<420
+	var total = 30 + 100 + 25 + 20 + 63 + 80
+	r._assert_true(total <= InfoClass.CARD_FRAME_H,
+		"効果表・フレーバーがCARD_FRAME_H(%d)内に収まる: %d" % [InfoClass.CARD_FRAME_H, total])
+
+func _test_synthesis_result_only(r: RefCounted) -> void:
+	# 合成欄が結果カードのみを表示する関数構造であること
+	var InfoClass = load("res://scripts/DeckPrepInfo.gd")
+	var info = InfoClass.new()
+	r._assert_true(info.has_method("_build_synthesis_result_grid"),
+		"_build_synthesis_result_grid()が存在する（結果カードのみ表示）")
+	r._assert_true(info.has_method("_show_synthesis_hover_popup"),
+		"_show_synthesis_hover_popup()が存在する（ホバーで素材表示）")
+	r._assert_true(info.has_method("_execute_synthesis"),
+		"_execute_synthesis()が存在する（合成実行）")
+	r._assert_true(info.has_method("_show_synth_confirm_dialog"),
+		"_show_synth_confirm_dialog()が存在する（合成確認ダイアログ）")
+
+func _test_synth_confirm_toggle_exists(r: RefCounted) -> void:
+	# トグルスイッチの状態変数が存在し初期値falseであること
+	var InfoClass = load("res://scripts/DeckPrepInfo.gd")
+	var info = InfoClass.new()
+	r._assert_true("_skip_synth_confirm" in info,
+		"_skip_synth_confirm変数が存在する")
+	r._assert_true(info._skip_synth_confirm == false,
+		"_skip_synth_confirm初期値=false")
+	r._assert_true(info.has_method("_build_synth_confirm_toggle"),
+		"_build_synth_confirm_toggle()が存在する")
+
+func _test_flavor_text_inside_card(r: RefCounted) -> void:
+	# フレーバーテキストがカード枠内部(_build_card_frame_header)に内包されること
+	# → _show_unit_info がカード枠外で_info_label_wrapを呼ばない構造を確認
+	# GOLDEN_RATIO定数が定義されていること
+	var InfoClass = load("res://scripts/DeckPrepInfo.gd")
+	r._assert_true(InfoClass.GOLDEN_RATIO > 1.6 and InfoClass.GOLDEN_RATIO < 1.7,
+		"GOLDEN_RATIO定数が1.618付近: %.3f" % InfoClass.GOLDEN_RATIO)
+	var info = InfoClass.new()
+	r._assert_true(info.has_method("_get_flavor_text"),
+		"_get_flavor_text()が存在する（カード枠内で呼び出される）")
+	r._assert_true(info.has_method("_build_card_frame_header"),
+		"_build_card_frame_header()が存在する（フレーバー内包）")

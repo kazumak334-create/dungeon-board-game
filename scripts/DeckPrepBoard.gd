@@ -46,6 +46,7 @@ var main_node: Control = null
 var tab_container: Control = null
 var _PL = null
 var on_card_selected: Callable = Callable()
+var on_card_pinned: Callable = Callable()  # クリックピン留め通知（DeckPrep.gdが設定）
 
 # 配置タブ状態
 var _cell_rects: Array = []
@@ -588,6 +589,8 @@ func _on_chip_input(event: InputEvent, idx: int, all_indices: Array, chip: Contr
 		_selected_card_idx = idx
 		_drag_group_indices = all_indices.duplicate()
 		if on_card_selected.is_valid(): on_card_selected.call(idx)
+		# ピン留め通知（ドラッグ開始前に通知してDeckPrep.gdがピン留め状態を管理）
+		if on_card_pinned.is_valid(): on_card_pinned.call(idx)
 		start_drag_group(idx, all_indices.duplicate(), chip, event.global_position)
 
 func get_card_color(card_name: String) -> Color:
@@ -692,6 +695,20 @@ func try_drop_at_mouse(_tc: Control) -> void:
 
 func try_drop_card(idx: int, new_side: int, new_row: int, new_col: int) -> void:
 	var indices_to_move = _drag_group_indices if _drag_group_indices.size() > 0 else [idx]
+
+	# ドロップ先整合性チェック: 盤面セル（col>=0）へのドロップ制約
+	# AoE/プレイヤー影響カードは盤面ドロップ不可（呪文スロットのみ）
+	if new_col >= 0:
+		for move_idx in indices_to_move:
+			if move_idx < 0 or move_idx >= GameSession.selected_deck.size():
+				continue
+			var entry = GameSession.selected_deck[move_idx]
+			if not _PL.requires_board_placement(entry):
+				# AoE呪文→盤面ドロップ拒否
+				push_warning("[DeckPrepBoard] AoE呪文は盤面に配置できません: %s" % entry.get("name", "?"))
+				end_drag()
+				return
+
 	var success = _PL.move_group(indices_to_move, new_side, new_row, new_col,
 		GameSession.selected_deck, GameSession.placement_config)
 
