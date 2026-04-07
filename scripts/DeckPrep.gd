@@ -1,5 +1,8 @@
 # DeckPrep.gd
-# デッキ準備画面: タブ構成（配置/アイテム/スキル）+ 上部ステータスバー + 右側解説レーン
+# デッキ準備画面: パターンB（左サイドバー型）
+# 左サイドバー(w=200): ステータス上部 + 装備スロット下部
+# 中央エリア(w=790): タブバー + タブコンテンツ + 冒険ボタン行
+# 右解説レーン(w=275): カード/アイテム詳細
 extends Control
 
 const UIF = preload("res://scripts/UIFactory.gd")
@@ -14,12 +17,40 @@ var _current_tab: String = "placement"
 # 選択状態（_boardと同期）
 var _selected_card_idx: int = -1
 
-# レイアウト定数（全座標はここから自動計算）
-const TAB_BAR_H = 30       # タブバー高さ
-const TAB_BAR_Y = 4        # タブバーY位置
-const CONTENT_Y = TAB_BAR_Y + TAB_BAR_H + 4  # タブコンテンツ開始Y
-const INFO_W = 280          # 解説レーン幅
-const STATUS_H = 180        # ステータスパネル高さ
+# レイアウト定数（パターンB）
+const SIDEBAR_X = 5         # 左サイドバー開始X
+const SIDEBAR_Y = 5         # 左サイドバー開始Y
+const SIDEBAR_W = 200       # 左サイドバー幅
+const SIDEBAR_H = 710       # 左サイドバー高さ
+const STATUS_AREA_Y = 15    # ステータス領域Y（サイドバー内）
+const STATUS_AREA_H = 460   # ステータス領域高さ
+const EQUIP_AREA_Y = 480    # 装備スロット領域Y（サイドバー内）
+const EQUIP_AREA_H = 220    # 装備スロット領域高さ
+const TAB_BAR_X = 210       # タブバー開始X
+const TAB_BAR_Y = 5         # タブバー開始Y
+const TAB_BAR_W = 790       # タブバー幅
+const TAB_BAR_H = 30        # タブバー高さ
+const CONTENT_X = 210       # タブコンテンツ開始X
+const CONTENT_Y = 40        # タブコンテンツ開始Y
+const CONTENT_W = 790       # タブコンテンツ幅
+const CONTENT_H = 636       # タブコンテンツ高さ
+const ADVENTURE_Y = 680     # 冒険ボタン行Y
+const INFO_X = 1005         # 解説レーン開始X
+const INFO_Y = 5            # 解説レーン開始Y
+const INFO_W = 275          # 解説レーン幅
+const INFO_H = 710          # 解説レーン高さ
+
+# 装備スロット定義（絶対変更禁止: 頭/胴/足/アクセ×3の6個固定）
+const EQUIP_SLOTS = [
+	{"id": "head",       "label": "頭",    "row": 0, "col": 0},
+	{"id": "body",       "label": "胴",    "row": 0, "col": 1},
+	{"id": "feet",       "label": "足",    "row": 0, "col": 2},
+	{"id": "accessory1", "label": "アクセ1", "row": 1, "col": 0},
+	{"id": "accessory2", "label": "アクセ2", "row": 1, "col": 1},
+	{"id": "accessory3", "label": "アクセ3", "row": 1, "col": 2},
+]
+const EQUIP_SLOT_SIZE = 55   # スロットサイズ
+const EQUIP_SLOT_GAP = 8     # スロット間隔
 
 const RACE_COLORS = {
 	"スライム": Color(0.3, 0.6, 0.3),
@@ -46,36 +77,50 @@ func _ready() -> void:
 func _build_ui() -> void:
 	UIF.add_bg(self)
 
-	# ステータスパネル（左上・常時表示）
-	_build_status_panel()
+	# 左サイドバー（ステータス上部 + 装備スロット下部）
+	_build_sidebar()
 
-	# タブバー（ステータスの右に配置）
+	# タブバー（中央上部）
 	_build_tab_bar()
 
-	# タブコンテナ（ステータス下+タブバー下）
-	var content_top = STATUS_H + TAB_BAR_H + 12
-	var content_h = 720 - content_top - 8
+	# タブコンテナ（中央メイン）
 	_tab_container = Control.new()
-	_tab_container.position = Vector2(0, content_top)
-	_tab_container.size = Vector2(1280 - INFO_W - 10, content_h)
+	_tab_container.position = Vector2(CONTENT_X, CONTENT_Y)
+	_tab_container.size = Vector2(CONTENT_W, CONTENT_H)
 	add_child(_tab_container)
 
 	# 右側解説レーン
 	_build_info_lane()
 
+	# 冒険ボタン行（下部）
+	_build_adventure_buttons()
+
 	_show_tab("placement")
 
-	UIF.add_button(self, "マップへ", Vector2(700, 5), Vector2(120, 28), 13,
-		func(): SceneManager.go_to(SceneManager.MAP_SELECT))
-	UIF.add_back_button(self, "← タイトルへ", func():
-		GameSession.reset()
-		SceneManager.go_to(SceneManager.TITLE)
-	, 692)
+# ===== 左サイドバー =====
 
-# ===== ステータスパネル（左上・常時表示） =====
+func _build_sidebar() -> void:
+	# サイドバー背景
+	var sidebar_panel = UIF.create_panel(
+		Vector2(SIDEBAR_X, SIDEBAR_Y),
+		Vector2(SIDEBAR_W, SIDEBAR_H)
+	)
+	add_child(sidebar_panel)
 
-func _build_status_panel() -> void:
-	var y_offset: float = 0.0
+	# ステータス領域（上部）
+	_build_status_area()
+
+	# 区切りライン
+	var sep = ColorRect.new()
+	sep.position = Vector2(SIDEBAR_X + 10, SIDEBAR_Y + EQUIP_AREA_Y - 10)
+	sep.size = Vector2(SIDEBAR_W - 20, 1)
+	sep.color = Color(0.3, 0.3, 0.4, 0.6)
+	add_child(sep)
+
+	# 装備スロット領域（下部）
+	_build_equipment_area()
+
+func _build_status_area() -> void:
 	var cls = CardDB.CLASSES.get(GameSession.class_id, {})
 
 	var total_cost: float = 0.0
@@ -97,51 +142,85 @@ func _build_status_panel() -> void:
 	var mana_regen = cls.get("mana_regen", 1.0)
 	var cycle_time = total_cost / max(0.1, mana_regen)
 
-	# パネル背景
-	var panel_w = 1280 - INFO_W - 30
-	var panel = UIF.create_panel(Vector2(10, 5), Vector2(panel_w, STATUS_H))
-	add_child(panel)
+	var base_x = SIDEBAR_X + 15
+	var base_y = SIDEBAR_Y + STATUS_AREA_Y
+	var cy: float = base_y
+	var lbl_w = SIDEBAR_W - 30
 
 	var header = Label.new()
 	header.text = "ステータス"
-	header.position = Vector2(25, 12)
-	header.add_theme_font_size_override("font_size", 14)
+	header.position = Vector2(base_x, cy)
+	header.add_theme_font_size_override("font_size", 13)
 	header.add_theme_color_override("font_color", UIF.TITLE_COLOR)
 	add_child(header)
+	cy += 24
 
-	# 3列レイアウト
-	var col_w = (panel_w - 40) / 3
-	var items_col1 = [
-		["%s" % cls.get("display", ""), UIF.TITLE_COLOR],
+	var items = [
+		["%s" % cls.get("display", "---"), UIF.TITLE_COLOR],
 		["HP: 30", UIF.TEXT_COLOR],
 		["マナ: %.0f / %d" % [cls.get("initial_mana", 3), int(cls.get("mana_max", 10))], Color(0.5, 0.7, 0.9)],
 		["リジェネ: %.1f/s" % mana_regen, Color(0.5, 0.7, 0.9)],
-	]
-	var items_col2 = [
+		["─────────────", Color(0.3, 0.3, 0.4)],
 		["デッキ: %d枚" % deck_size, UIF.TEXT_COLOR],
 		["  ユニット: %d枚" % unit_count, Color(0.6, 0.7, 0.6)],
 		["  呪文: %d枚" % spell_count, Color(0.6, 0.6, 0.8)],
 		["平均コスト: %.1f" % avg_cost, UIF.TITLE_COLOR],
-		["循環速度: 約%.0f秒/周" % cycle_time, UIF.TITLE_COLOR],
-	]
-	var items_col3 = [
+		["循環: 約%.0f秒/周" % cycle_time, UIF.TITLE_COLOR],
+		["─────────────", Color(0.3, 0.3, 0.4)],
 		["所持金: %dG" % GameSession.gold, UIF.GOLD_COLOR],
-		["スキルポイント: %d" % GameSession.skill_points, Color(0.5, 0.8, 0.9)],
+		["スキルPt: %d" % GameSession.skill_points, Color(0.5, 0.8, 0.9)],
 		["素材: %d個" % GameSession.materials.size(), UIF.BENEFIT_COLOR],
 	]
+	for item in items:
+		var lbl = Label.new()
+		lbl.text = item[0]
+		lbl.position = Vector2(base_x, cy)
+		lbl.size = Vector2(lbl_w, 20)
+		lbl.add_theme_font_size_override("font_size", 12)
+		lbl.add_theme_color_override("font_color", item[1])
+		add_child(lbl)
+		cy += 20
 
-	var cols = [items_col1, items_col2, items_col3]
-	for ci in range(3):
-		var cx = 25 + ci * col_w
-		var cy: float = 35
-		for item in cols[ci]:
-			var lbl = Label.new()
-			lbl.text = item[0]
-			lbl.position = Vector2(cx, cy)
-			lbl.add_theme_font_size_override("font_size", 13)
-			lbl.add_theme_color_override("font_color", item[1])
-			add_child(lbl)
-			cy += 22
+func _build_equipment_area() -> void:
+	var base_x = SIDEBAR_X + 15
+	var base_y = SIDEBAR_Y + EQUIP_AREA_Y
+
+	var header = Label.new()
+	header.text = "装備"
+	header.position = Vector2(base_x, base_y)
+	header.add_theme_font_size_override("font_size", 13)
+	header.add_theme_color_override("font_color", UIF.TITLE_COLOR)
+	add_child(header)
+
+	# 装備スロット2×3配置
+	for slot in EQUIP_SLOTS:
+		var sx = base_x + 3 + slot["col"] * (EQUIP_SLOT_SIZE + EQUIP_SLOT_GAP)
+		var sy = base_y + 20 + slot["row"] * (EQUIP_SLOT_SIZE + EQUIP_SLOT_GAP + 14)
+		_build_equipment_slot(slot["id"], slot["label"], sx, sy)
+
+func _build_equipment_slot(slot_id: String, label: String, x: float, y: float) -> void:
+	# スロット枠
+	var cell = Panel.new()
+	cell.position = Vector2(x, y)
+	cell.size = Vector2(EQUIP_SLOT_SIZE, EQUIP_SLOT_SIZE)
+	cell.name = "equip_slot_" + slot_id
+	var style = StyleBoxFlat.new()
+	style.bg_color = Color(0.12, 0.10, 0.18)
+	style.border_color = Color(0.35, 0.28, 0.45)
+	style.set_border_width_all(1)
+	style.set_corner_radius_all(4)
+	cell.add_theme_stylebox_override("panel", style)
+	add_child(cell)
+
+	# スロットラベル（スロット内中央）
+	var slot_lbl = Label.new()
+	slot_lbl.text = label
+	slot_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	slot_lbl.position = Vector2(x, y + EQUIP_SLOT_SIZE + 2)
+	slot_lbl.size = Vector2(EQUIP_SLOT_SIZE, 12)
+	slot_lbl.add_theme_font_size_override("font_size", 9)
+	slot_lbl.add_theme_color_override("font_color", Color(0.5, 0.45, 0.6))
+	add_child(slot_lbl)
 
 func _build_tab_bar() -> void:
 	var tabs = [
@@ -149,18 +228,27 @@ func _build_tab_bar() -> void:
 		{"id": "inventory", "label": "持ち物"},
 		{"id": "skill_tree", "label": "スキル"},
 	]
-	var x = 15
+	var tab_w = int(TAB_BAR_W / tabs.size()) - 4
+	var x = TAB_BAR_X + 2
 	for tab in tabs:
 		var btn = Button.new()
 		btn.text = tab["label"]
-		btn.position = Vector2(x, STATUS_H + 8)
-		btn.size = Vector2(100, TAB_BAR_H)
+		btn.position = Vector2(x, TAB_BAR_Y)
+		btn.size = Vector2(tab_w, TAB_BAR_H)
 		btn.add_theme_font_size_override("font_size", 13)
 		var tab_id = tab["id"]
 		btn.pressed.connect(func(): _show_tab(tab_id))
 		add_child(btn)
 		_tab_buttons.append({"id": tab_id, "button": btn})
-		x += 110
+		x += tab_w + 4
+
+func _build_adventure_buttons() -> void:
+	UIF.add_button(self, "← タイトルへ", Vector2(220, ADVENTURE_Y), Vector2(180, 32), 14,
+		func():
+			GameSession.reset()
+			SceneManager.go_to(SceneManager.TITLE))
+	UIF.add_button(self, "マップへ →", Vector2(820, ADVENTURE_Y), Vector2(180, 32), 14,
+		func(): SceneManager.go_to(SceneManager.MAP_SELECT))
 
 func _show_tab(tab_id: String) -> void:
 	_current_tab = tab_id
@@ -187,21 +275,18 @@ func _process(delta: float) -> void:
 
 func _build_info_lane() -> void:
 	_info_container = Control.new()
-	var info_y = STATUS_H + TAB_BAR_H + 12
-	var info_h = 720 - info_y - 8
-	_info_container.position = Vector2(1280 - INFO_W, info_y)
-	_info_container.size = Vector2(INFO_W, info_h)
+	_info_container.position = Vector2(INFO_X, INFO_Y)
+	_info_container.size = Vector2(INFO_W, INFO_H)
 	add_child(_info_container)
 
-	var info_h2 = 720 - (STATUS_H + TAB_BAR_H + 12) - 8
 	var bg = ColorRect.new()
-	bg.size = Vector2(INFO_W, info_h2)
+	bg.size = Vector2(INFO_W, INFO_H)
 	bg.color = Color(0.07, 0.07, 0.11)
 	_info_container.add_child(bg)
 
 	var border = ColorRect.new()
 	border.position = Vector2(0, 0)
-	border.size = Vector2(1, info_h2)
+	border.size = Vector2(1, INFO_H)
 	border.color = Color(0.2, 0.2, 0.3)
 	_info_container.add_child(border)
 
@@ -410,67 +495,34 @@ func _info_section(text: String, y: float) -> float:
 	return y + 20
 
 # ===== 持ち物タブ（マス目インベントリ） =====
+# 装備スロットは左サイドバーに常時表示。このタブにはアイテム/素材グリッドのみ
 
-const INV_COLS = 6       # グリッド列数
+const INV_COLS = 8       # グリッド列数（タブコンテンツ幅790に合わせ拡張）
 const INV_CELL = 80      # セルサイズ
 const INV_GAP = 4        # セル間隔
 const INV_X = 20         # 開始X
 const INV_Y = 10         # 開始Y
-const EQUIP_ROWS = 2     # 装備スロット行数
-const INV_ROWS = 6       # 全行数（装備2+アイテム4）
+const INV_ROWS = 7       # 全行数（アイテム専用）
 
 func _build_inventory_tab() -> void:
-	# 装備スロットラベル
-	var equip_names = [
-		["頭", "胴", "足", "飾1", "飾2", "飾3"],
-		["", "", "", "", "", ""],  # 2行目は値表示用
-	]
-
-	# グリッド描画
+	# グリッド描画（アイテム専用: 装備行なし）
 	for r in range(INV_ROWS):
 		for c in range(INV_COLS):
 			var cx = INV_X + c * (INV_CELL + INV_GAP)
 			var cy = INV_Y + r * (INV_CELL + INV_GAP)
 
-			var is_equip = r < EQUIP_ROWS
 			var cell = Panel.new()
 			cell.position = Vector2(cx, cy)
 			cell.size = Vector2(INV_CELL, INV_CELL)
 			var style = StyleBoxFlat.new()
-			if is_equip:
-				style.bg_color = Color(0.15, 0.13, 0.2)
-				style.border_color = Color(0.4, 0.3, 0.5)
-			else:
-				style.bg_color = Color(0.1, 0.12, 0.16)
-				style.border_color = Color(0.25, 0.25, 0.35)
+			style.bg_color = Color(0.1, 0.12, 0.16)
+			style.border_color = Color(0.25, 0.25, 0.35)
 			style.set_border_width_all(1)
 			style.set_corner_radius_all(4)
 			cell.add_theme_stylebox_override("panel", style)
 			_tab_container.add_child(cell)
 
-			# 装備スロットラベル（1行目のみ）
-			if r == 0 and c < equip_names[0].size():
-				var sl = Label.new()
-				sl.text = equip_names[0][c]
-				sl.position = Vector2(cx + 4, cy + 2)
-				sl.add_theme_font_size_override("font_size", 9)
-				sl.add_theme_color_override("font_color", Color(0.5, 0.4, 0.6))
-				_tab_container.add_child(sl)
-
-	# 装備スロット区切りライン
-	var sep_y = INV_Y + EQUIP_ROWS * (INV_CELL + INV_GAP) - 2
-	var sep = ColorRect.new()
-	sep.position = Vector2(INV_X, sep_y)
-	sep.size = Vector2(INV_COLS * (INV_CELL + INV_GAP) - INV_GAP, 1)
-	sep.color = Color(0.4, 0.3, 0.5, 0.5)
-	_tab_container.add_child(sep)
-
-	# アイテム配置（装備行の下）
-	var item_cells: Array = []  # [{row, col, type, data}]
-
-	# 消費アイテム（左上優先）
-	# 仮: GameSessionに消費アイテムリストがないので、materialsから消費可能なものを抽出
-	var consumables: Array = []
+	# アイテム配置
 	var materials_grouped: Dictionary = {}  # id -> {data, count}
 
 	for mat in GameSession.materials:
@@ -480,8 +532,8 @@ func _build_inventory_tab() -> void:
 			materials_grouped[mid] = {"data": mat, "count": 0}
 		materials_grouped[mid]["count"] += 1
 
-	# マス目にアイテムを配置
-	var item_row = EQUIP_ROWS
+	# マス目にアイテムを配置（装備スロットは左サイドバーに移動済み）
+	var item_row = 0
 	var item_col = 0
 
 	# 消費アイテムを先に配置（将来: GameSession.consumablesから）
@@ -539,7 +591,7 @@ func _build_inventory_tab() -> void:
 	if materials_grouped.size() == 0:
 		var empty = Label.new()
 		empty.text = "アイテムなし"
-		empty.position = Vector2(INV_X + 10, INV_Y + EQUIP_ROWS * (INV_CELL + INV_GAP) + 30)
+		empty.position = Vector2(INV_X + 10, INV_Y + 30)
 		empty.add_theme_font_size_override("font_size", 14)
 		empty.add_theme_color_override("font_color", UIF.DIM_COLOR)
 		_tab_container.add_child(empty)

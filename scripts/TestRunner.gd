@@ -36,6 +36,10 @@ func run_all() -> String:
 	var config_tests = load("res://scripts/TestBattleConfig.gd").new()
 	config_tests.run(self)
 
+	# DeckPrepレイアウト（パターンB）
+	var layout_tests = load("res://scripts/TestDeckPrepLayout.gd").new()
+	layout_tests.run(self)
+
 	var summary: String = "テスト結果: %d passed / %d failed" % [_pass_count, _fail_count]
 	_results.insert(0, summary)
 	return "\n".join(_results)

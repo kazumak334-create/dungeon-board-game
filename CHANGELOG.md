@@ -2,6 +2,18 @@
 
 ## [Unreleased]
 
+### CheckAgent：確認完了・修正なし — 2026-04-07 DeckPrepレイアウト（パターンB）検証
+
+#### 検証内容: DeckPrep.gd パターンB（左サイドバー型）レイアウト
+
+1. 制約違反チェック — EQUIP_SLOTS 6個固定・ID ["head","body","feet","accessory1","accessory2","accessory3"] — 正常
+2. レイアウト座標（全定数） — 仕様通り — 正常
+3. 装備スロット2×3配置（55×55px/ギャップ8px/行1=頭胴足/行2=アクセ1-3） — 正常
+4. 旧定数参照（STATUS_H/EQUIP_ROWS等） — 残存なし — 正常
+5. R1適合（_build_equipment_slot内ハードコードなし） — 正常
+6. テスト全パス — 1827件 / 0 failed（TestDeckPrepLayout含む） — 正常
+7. 構文・インデント — ヘッドレス起動成功 — 正常
+
 ### CheckAgent：確認完了（要手動確認あり）— 2026-04-07 TestRunner分離検証
 
 #### 検証内容: TestRunner.gd R10分離（835行→62行）
