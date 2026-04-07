@@ -17,6 +17,10 @@ var _current_tab: String = "placement"
 # 選択状態（_boardと同期）
 var _selected_card_idx: int = -1
 
+# 持ち物タブ選択状態
+var _selected_material: Dictionary = {}
+var _inventory_filter: String = "all"  # "all" / "normal" / "cursed" / "consumable"
+
 # レイアウト定数（パターンB）
 const SIDEBAR_X = 5         # 左サイドバー開始X
 const SIDEBAR_Y = 5         # 左サイドバー開始Y
@@ -256,7 +260,9 @@ func _show_tab(tab_id: String) -> void:
 		(tb["button"] as Button).modulate = Color(1, 1, 0.6) if tb["id"] == tab_id else Color(1, 1, 1)
 	for child in _tab_container.get_children():
 		child.queue_free()
-	# _selected_card_idx は保持（タブ切替で解説レーンを消さない）
+	# タブ切替時に素材選択をリセット（持ち物タブ以外ではカード選択を保持）
+	if tab_id != "inventory":
+		_selected_material = {}
 
 	match tab_id:
 		"placement":
@@ -295,6 +301,11 @@ func _update_info_lane() -> void:
 	var children = _info_container.get_children()
 	for i in range(children.size() - 1, 1, -1):
 		children[i].queue_free()
+
+	# 素材が選択されている場合は素材情報を優先表示
+	if _selected_material.size() > 0:
+		_show_material_info(_selected_material)
+		return
 
 	if _selected_card_idx < 0 or _selected_card_idx >= GameSession.selected_deck.size():
 		_show_info_empty()
@@ -494,132 +505,215 @@ func _info_section(text: String, y: float) -> float:
 	_info_container.add_child(lbl)
 	return y + 20
 
-# ===== 持ち物タブ（マス目インベントリ） =====
-# 装備スロットは左サイドバーに常時表示。このタブにはアイテム/素材グリッドのみ
+# ===== 持ち物タブ（カテゴリフィルタ + 素材グリッド） =====
+# 装備スロットは左サイドバーに常時表示。このタブにはカテゴリフィルタ + アイテム/素材グリッド
 
-const INV_COLS = 8       # グリッド列数（タブコンテンツ幅790に合わせ拡張）
-const INV_CELL = 80      # セルサイズ
-const INV_GAP = 4        # セル間隔
-const INV_X = 20         # 開始X
-const INV_Y = 10         # 開始Y
-const INV_ROWS = 7       # 全行数（アイテム専用）
+const INV_SLOT_W = 145    # スロット幅
+const INV_SLOT_H = 90     # スロット高さ
+const INV_SLOT_GAP = 10   # スロット間隔
+const INV_GRID_COLS = 5   # グリッド列数
+const INV_GRID_ROWS = 6   # グリッド行数
+const INV_TOTAL_SLOTS = 30  # 総スロット数 (INV_GRID_COLS × INV_GRID_ROWS)
+const INV_GRID_X = 8      # グリッド開始X
+const INV_GRID_Y = 40     # グリッド開始Y
+const INV_FILTER_H = 32   # フィルタタブ高さ
 
 func _build_inventory_tab() -> void:
-	# グリッド描画（アイテム専用: 装備行なし）
-	for r in range(INV_ROWS):
-		for c in range(INV_COLS):
-			var cx = INV_X + c * (INV_CELL + INV_GAP)
-			var cy = INV_Y + r * (INV_CELL + INV_GAP)
+	# カテゴリフィルタタブ（上部）
+	_build_category_filter(_tab_container)
+	# 素材グリッド（下部）
+	_build_inventory_grid(_tab_container)
 
-			var cell = Panel.new()
-			cell.position = Vector2(cx, cy)
-			cell.size = Vector2(INV_CELL, INV_CELL)
-			var style = StyleBoxFlat.new()
-			style.bg_color = Color(0.1, 0.12, 0.16)
-			style.border_color = Color(0.25, 0.25, 0.35)
-			style.set_border_width_all(1)
-			style.set_corner_radius_all(4)
-			cell.add_theme_stylebox_override("panel", style)
-			_tab_container.add_child(cell)
+func _build_category_filter(parent: Node) -> void:
+	var categories = [
+		{"id": "all",         "label": "全体"},
+		{"id": "normal",      "label": "素材"},
+		{"id": "cursed",      "label": "呪い"},
+		{"id": "consumable",  "label": "消費"},
+	]
+	var x = 10
+	for cat in categories:
+		var btn = Button.new()
+		btn.text = cat["label"]
+		btn.position = Vector2(x, 3)
+		btn.size = Vector2(90, 26)
+		btn.add_theme_font_size_override("font_size", 12)
+		if cat["id"] == _inventory_filter:
+			btn.modulate = Color(1.0, 1.0, 0.5)
+		var cat_id = cat["id"]
+		btn.pressed.connect(func(): _set_inventory_filter(cat_id))
+		parent.add_child(btn)
+		x += 100
 
-	# アイテム配置
-	var materials_grouped: Dictionary = {}  # id -> {data, count}
+func _set_inventory_filter(filter: String) -> void:
+	_inventory_filter = filter
+	# タブコンテンツを再描画
+	for child in _tab_container.get_children():
+		child.queue_free()
+	_build_inventory_tab()
 
-	for mat in GameSession.materials:
-		var mid = mat.get("id", "")
-		# is_cursed等で消費可能か判定（仮: 全素材を素材扱い）
-		if not materials_grouped.has(mid):
-			materials_grouped[mid] = {"data": mat, "count": 0}
-		materials_grouped[mid]["count"] += 1
+func _get_filtered_materials() -> Array:
+	var filtered: Array = []
+	for mat in CardDB.MATERIALS:
+		var is_cursed = mat.get("is_cursed", false)
+		var is_consumable = mat.get("is_consumable", false)
+		match _inventory_filter:
+			"all":
+				filtered.append(mat)
+			"normal":
+				if not is_cursed and not is_consumable:
+					filtered.append(mat)
+			"cursed":
+				if is_cursed:
+					filtered.append(mat)
+			"consumable":
+				if is_consumable:
+					filtered.append(mat)
+	return filtered
 
-	# マス目にアイテムを配置（装備スロットは左サイドバーに移動済み）
-	var item_row = 0
-	var item_col = 0
+func _count_owned(mat_id: String) -> int:
+	var count = 0
+	for m in GameSession.materials:
+		if m is Dictionary and m.get("id", "") == mat_id:
+			count += 1
+	return count
 
-	# 消費アイテムを先に配置（将来: GameSession.consumablesから）
-	# 現状は消費アイテムなし
+func _build_inventory_grid(parent: Node) -> void:
+	var materials = _get_filtered_materials()
 
-	# 素材をスタック表示で配置
-	for mid in materials_grouped:
-		var g = materials_grouped[mid]
-		var mat = g["data"]
-		var count = g["count"]
+	for i in range(INV_TOTAL_SLOTS):
+		var col = i % INV_GRID_COLS
+		var row = i / INV_GRID_COLS
+		var x = INV_GRID_X + col * (INV_SLOT_W + INV_SLOT_GAP)
+		var y = INV_GRID_Y + row * (INV_SLOT_H + INV_SLOT_GAP)
 
-		if item_row >= INV_ROWS:
-			break
+		if i < materials.size():
+			var mat = materials[i]
+			var count = _count_owned(mat.get("id", ""))
+			_build_material_slot(parent, mat, count, x, y)
+		else:
+			_build_empty_slot(parent, x, y)
 
-		var cx = INV_X + item_col * (INV_CELL + INV_GAP)
-		var cy = INV_Y + item_row * (INV_CELL + INV_GAP)
+func _build_material_slot(parent: Node, mat: Dictionary, count: int, x: int, y: int) -> void:
+	var panel = PanelContainer.new()
+	panel.position = Vector2(x, y)
+	panel.custom_minimum_size = Vector2(INV_SLOT_W, INV_SLOT_H)
 
-		# アイテム名
-		var name_lbl = Label.new()
-		name_lbl.text = mat.get("display", "???")
-		name_lbl.position = Vector2(cx + 4, cy + 15)
-		name_lbl.size = Vector2(INV_CELL - 8, 20)
-		name_lbl.add_theme_font_size_override("font_size", 10)
-		name_lbl.add_theme_color_override("font_color", UIF.TEXT_COLOR)
-		_tab_container.add_child(name_lbl)
+	var style = StyleBoxFlat.new()
+	var is_cursed = mat.get("is_cursed", false)
+	style.bg_color = Color(0.12, 0.12, 0.18) if count > 0 else Color(0.08, 0.08, 0.12)
+	if count > 0:
+		style.border_color = Color(0.8, 0.3, 0.5) if is_cursed else Color(0.3, 0.5, 0.7)
+	else:
+		style.border_color = Color(0.15, 0.15, 0.2)
+	style.set_border_width_all(2)
+	style.set_corner_radius_all(4)
+	panel.add_theme_stylebox_override("panel", style)
+	parent.add_child(panel)
 
-		# スタック数
-		if count > 1:
-			var count_lbl = Label.new()
-			count_lbl.text = "×%d" % count
-			count_lbl.position = Vector2(cx + INV_CELL - 28, cy + INV_CELL - 18)
-			count_lbl.add_theme_font_size_override("font_size", 11)
-			count_lbl.add_theme_color_override("font_color", Color(0.9, 0.85, 0.5))
-			_tab_container.add_child(count_lbl)
+	var vbox = VBoxContainer.new()
+	vbox.position = Vector2(4, 6)
+	vbox.size = Vector2(INV_SLOT_W - 8, INV_SLOT_H - 12)
+	panel.add_child(vbox)
 
-		# クリックで解説レーン更新
-		var click_area = Button.new()
-		click_area.position = Vector2(cx, cy)
-		click_area.size = Vector2(INV_CELL, INV_CELL)
-		click_area.flat = true
-		click_area.modulate = Color(1, 1, 1, 0)  # 透明
-		var mat_data = mat
-		click_area.pressed.connect(func():
+	var name_label = Label.new()
+	name_label.text = mat.get("display", "?")
+	name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	name_label.add_theme_font_size_override("font_size", 13)
+	name_label.add_theme_color_override("font_color", Color(0.9, 0.9, 0.9) if count > 0 else Color(0.4, 0.4, 0.5))
+	vbox.add_child(name_label)
+
+	var count_label = Label.new()
+	count_label.text = "×%d" % count
+	count_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	count_label.add_theme_font_size_override("font_size", 14)
+	count_label.add_theme_color_override("font_color", Color(0.9, 0.85, 0.5) if count > 0 else Color(0.3, 0.3, 0.4))
+	vbox.add_child(count_label)
+
+	# クリックで解説レーン更新
+	var mat_ref = mat
+	panel.gui_input.connect(func(event: InputEvent):
+		if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
+			_selected_material = mat_ref
 			_selected_card_idx = -1
-			_show_material_info(mat_data, materials_grouped.get(mat_data.get("id", ""), {}).get("count", 0))
-		)
-		_tab_container.add_child(click_area)
+			_update_info_lane()
+	)
 
-		item_col += 1
-		if item_col >= INV_COLS:
-			item_col = 0
-			item_row += 1
+func _build_empty_slot(parent: Node, x: int, y: int) -> void:
+	var panel = PanelContainer.new()
+	panel.position = Vector2(x, y)
+	panel.custom_minimum_size = Vector2(INV_SLOT_W, INV_SLOT_H)
 
-	# 空グリッドの場合のエンプティステート
-	if materials_grouped.size() == 0:
-		var empty = Label.new()
-		empty.text = "アイテムなし"
-		empty.position = Vector2(INV_X + 10, INV_Y + 30)
-		empty.add_theme_font_size_override("font_size", 14)
-		empty.add_theme_color_override("font_color", UIF.DIM_COLOR)
-		_tab_container.add_child(empty)
+	var style = StyleBoxFlat.new()
+	style.bg_color = Color(0.06, 0.06, 0.09)
+	style.border_color = Color(0.12, 0.12, 0.16)
+	style.set_border_width_all(1)
+	style.set_corner_radius_all(4)
+	panel.add_theme_stylebox_override("panel", style)
+	parent.add_child(panel)
 
-func _show_material_info(mat: Dictionary, count: int) -> void:
-	# 解説レーンを素材情報で更新
-	var children = _info_container.get_children()
-	for i in range(children.size() - 1, 1, -1):
-		children[i].queue_free()
+func _show_material_info(mat: Dictionary) -> void:
+	var y: float = 20
 
-	var y: float = 15
-	y = _info_label(mat.get("display", "???"), y, 18, UIF.TITLE_COLOR)
-	y = _info_label("素材  ×%d" % count, y, 13, Color(0.6, 0.7, 0.5))
-	y += 5
+	var name_lbl = Label.new()
+	name_lbl.text = mat.get("display", "?")
+	name_lbl.position = Vector2(10, y)
+	name_lbl.size = Vector2(INFO_W - 20, 28)
+	name_lbl.add_theme_font_size_override("font_size", 18)
+	name_lbl.add_theme_color_override("font_color", UIF.TITLE_COLOR)
+	_info_container.add_child(name_lbl)
+	y += 35
+
+	if mat.get("is_cursed", false):
+		var cursed_lbl = Label.new()
+		cursed_lbl.text = "【呪われた素材】"
+		cursed_lbl.position = Vector2(10, y)
+		cursed_lbl.size = Vector2(INFO_W - 20, 20)
+		cursed_lbl.add_theme_font_size_override("font_size", 12)
+		cursed_lbl.add_theme_color_override("font_color", Color(0.9, 0.3, 0.4))
+		_info_container.add_child(cursed_lbl)
+		y += 22
+
+	var count = _count_owned(mat.get("id", ""))
+	var count_lbl = Label.new()
+	count_lbl.text = "所持数: ×%d" % count
+	count_lbl.position = Vector2(10, y)
+	count_lbl.size = Vector2(INFO_W - 20, 20)
+	count_lbl.add_theme_font_size_override("font_size", 13)
+	count_lbl.add_theme_color_override("font_color", Color(0.6, 0.7, 0.5))
+	_info_container.add_child(count_lbl)
+	y += 26
 
 	var desc = mat.get("description", "")
 	if desc != "":
-		y = _info_label_wrap(desc, y, 12, UIF.TEXT_COLOR)
+		var desc_lbl = Label.new()
+		desc_lbl.text = desc
+		desc_lbl.position = Vector2(10, y)
+		desc_lbl.size = Vector2(INFO_W - 20, 100)
+		desc_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD
+		desc_lbl.add_theme_font_size_override("font_size", 13)
+		desc_lbl.add_theme_color_override("font_color", UIF.TEXT_COLOR)
+		_info_container.add_child(desc_lbl)
+		y += 55
+
 	y += 10
+	var sep_lbl = Label.new()
+	sep_lbl.text = "── 合成先 ──"
+	sep_lbl.position = Vector2(15, y)
+	sep_lbl.size = Vector2(INFO_W - 30, 18)
+	sep_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	sep_lbl.add_theme_font_size_override("font_size", 11)
+	sep_lbl.add_theme_color_override("font_color", Color(0.45, 0.45, 0.55))
+	_info_container.add_child(sep_lbl)
+	y += 22
 
-	# 合成先一覧（将来: craftingテーブルから逆引き）
-	y = _info_section("── 合成先 ──", y)
-	y = _info_label("（工房ノードで合成可能）", y, 11, UIF.DIM_COLOR)
-
-	# 呪い表示
-	if mat.get("is_cursed", false):
-		y += 10
-		y = _info_label("呪いの素材", y, 12, UIF.DEMERIT_COLOR)
+	var hint_lbl = Label.new()
+	hint_lbl.text = "（工房ノードで合成可能）"
+	hint_lbl.position = Vector2(10, y)
+	hint_lbl.size = Vector2(INFO_W - 20, 20)
+	hint_lbl.add_theme_font_size_override("font_size", 11)
+	hint_lbl.add_theme_color_override("font_color", UIF.DIM_COLOR)
+	_info_container.add_child(hint_lbl)
 
 func _build_placeholder_tab(tab_id: String) -> void:
 	var names = {"skill_tree": "スキル"}
