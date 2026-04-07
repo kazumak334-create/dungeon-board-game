@@ -297,10 +297,10 @@ const INV_SLOT_W = 120    # 素材スロット幅（旧145→縮小）
 const INV_SLOT_H = 72     # 素材スロット高さ（旧90→縮小）
 const INV_SLOT_GAP = 8    # スロット間隔（旧10→縮小）
 const INV_GRID_COLS = 6   # グリッド列数（旧5→6）
-const INV_GRID_ROWS = 8   # グリッド行数（旧6→8: 装備2行+素材6行）
+const INV_GRID_ROWS = 7   # グリッド行数（装備2行+素材5行、CONTENT_H=636内に収まる）
 const INV_EQUIP_ROWS = 2  # 装備行数（上位2行=装備エリア）
-const INV_MAT_ROWS = 6    # 素材行数（残り6行=素材エリア）
-const INV_TOTAL_SLOTS = 48  # 総スロット数 (INV_GRID_COLS × INV_GRID_ROWS)
+const INV_MAT_ROWS = 5    # 素材行数（残り5行=素材エリア）
+const INV_TOTAL_SLOTS = 42  # 総スロット数 (INV_GRID_COLS × INV_GRID_ROWS)
 const INV_EQUIP_SLOTS_COUNT = 6  # 装備スロット数（6個固定・変更禁止）
 const INV_LOCKED_ROWS_START = 2  # ロック開始行（0-indexed、装備2行+素材2行=4行目以降をロック）
 const INV_GRID_X = 8      # グリッド開始X
@@ -393,7 +393,43 @@ func _count_owned(mat_id: String) -> int:
 	return count
 
 func _build_inventory_grid(parent: Node) -> void:
-	# 項目10: モンハン式 — 所持素材を左上から順に詰める（所持数>0のみ表示）
+	# グリッド全体: 6列×8行=48スロット
+	# 行0-1（12スロット）: 装備エリア（EQUIP_SLOTS 6個 + 空スロット6個）
+	# 行2-3（12スロット）: 素材エリア（所持素材を左上から詰める）
+	# 行4-7（24スロット）: ロックエリア（錠前表示・クリック不可）
+
+	# ── 装備エリアセクションヘッダー ──
+	var equip_header = Label.new()
+	equip_header.text = "装備"
+	equip_header.position = Vector2(INV_GRID_X, INV_GRID_Y - 2)
+	equip_header.size = Vector2(100, 18)
+	equip_header.add_theme_font_size_override("font_size", 11)
+	equip_header.add_theme_color_override("font_color", UIF.TITLE_COLOR)
+	parent.add_child(equip_header)
+
+	# 装備スロット（行0-1、スロット0-11のうち0-5に EQUIP_SLOTS を配置）
+	for i in range(INV_GRID_COLS * INV_EQUIP_ROWS):
+		var col = i % INV_GRID_COLS
+		var row = i / INV_GRID_COLS
+		var x = INV_GRID_X + col * (INV_SLOT_W + INV_SLOT_GAP)
+		var y = INV_GRID_Y + row * (INV_SLOT_H + INV_SLOT_GAP)
+		if i < EQUIP_SLOTS.size():
+			var slot = EQUIP_SLOTS[i]
+			_build_inventory_equipment_slot(parent, slot["id"], slot["label"], x, y)
+		else:
+			_build_empty_slot(parent, x, y)
+
+	# ── 素材エリアセクションヘッダー ──
+	var mat_section_y = INV_GRID_Y + INV_EQUIP_ROWS * (INV_SLOT_H + INV_SLOT_GAP)
+	var mat_header = Label.new()
+	mat_header.text = "素材"
+	mat_header.position = Vector2(INV_GRID_X, mat_section_y - 2)
+	mat_header.size = Vector2(100, 18)
+	mat_header.add_theme_font_size_override("font_size", 11)
+	mat_header.add_theme_color_override("font_color", Color(0.6, 0.75, 0.6))
+	parent.add_child(mat_header)
+
+	# 所持素材を左上から詰める（モンハン式）
 	var materials = _get_filtered_materials()
 	var owned_mats: Array = []
 	for mat in materials:
@@ -401,17 +437,85 @@ func _build_inventory_grid(parent: Node) -> void:
 		if count > 0:
 			owned_mats.append({"mat": mat, "count": count})
 
-	for i in range(INV_TOTAL_SLOTS):
+	var mat_slot_total = INV_GRID_COLS * INV_MAT_ROWS  # 6×6=36スロット
+	for i in range(mat_slot_total):
 		var col = i % INV_GRID_COLS
-		var row = i / INV_GRID_COLS
+		var row = INV_EQUIP_ROWS + (i / INV_GRID_COLS)
 		var x = INV_GRID_X + col * (INV_SLOT_W + INV_SLOT_GAP)
 		var y = INV_GRID_Y + row * (INV_SLOT_H + INV_SLOT_GAP)
-
-		if i < owned_mats.size():
+		# 下半分（行4-7相当のうち、素材エリア内では行2-5=3行目以降）はロック
+		var local_row = i / INV_GRID_COLS  # 素材エリア内の行（0-5）
+		var is_locked = local_row >= (INV_MAT_ROWS / 2)  # 3行目以降（行3-5）をロック
+		if is_locked:
+			_build_locked_slot(parent, x, y)
+		elif i < owned_mats.size():
 			var entry = owned_mats[i]
 			_build_material_slot_mh(parent, entry["mat"], entry["count"], x, y)
 		else:
 			_build_empty_slot(parent, x, y)
+
+func _build_inventory_equipment_slot(parent: Node, slot_id: String, label: String, x: float, y: float) -> void:
+	# 持ち物タブ内の装備スロット（アイコン将来差し込み対応）
+	var cell = Panel.new()
+	cell.position = Vector2(x, y)
+	cell.size = Vector2(INV_SLOT_W, INV_SLOT_H)
+	cell.name = "inv_equip_slot_" + slot_id
+	var style = StyleBoxFlat.new()
+	var item = _equipped.get(slot_id, {})
+	var is_equipped = item.size() > 0
+	style.bg_color = Color(0.15, 0.12, 0.22) if is_equipped else Color(0.10, 0.08, 0.16)
+	style.border_color = Color(0.6, 0.45, 0.8) if is_equipped else Color(0.35, 0.28, 0.45)
+	style.set_border_width_all(2)
+	style.set_corner_radius_all(4)
+	cell.add_theme_stylebox_override("panel", style)
+	parent.add_child(cell)
+
+	# スロット種別ラベル（左上）
+	var kind_lbl = Label.new()
+	kind_lbl.text = label
+	kind_lbl.position = Vector2(4, 3)
+	kind_lbl.size = Vector2(INV_SLOT_W - 8, 16)
+	kind_lbl.add_theme_font_size_override("font_size", 10)
+	kind_lbl.add_theme_color_override("font_color", Color(0.55, 0.48, 0.65))
+	kind_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	cell.add_child(kind_lbl)
+
+	# 装備名（中央）
+	var name_lbl = Label.new()
+	name_lbl.text = item.get("display", "---") if is_equipped else "（空）"
+	name_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	name_lbl.position = Vector2(0, INV_SLOT_H / 2 - 10)
+	name_lbl.size = Vector2(INV_SLOT_W, 20)
+	name_lbl.add_theme_font_size_override("font_size", 11)
+	name_lbl.add_theme_color_override("font_color", Color(0.9, 0.85, 0.5) if is_equipped else Color(0.35, 0.35, 0.45))
+	name_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	cell.add_child(name_lbl)
+
+func _build_locked_slot(parent: Node, x: float, y: float) -> void:
+	# ロックスロット（錠前表示・クリック不可）
+	var panel = PanelContainer.new()
+	panel.position = Vector2(x, y)
+	panel.custom_minimum_size = Vector2(INV_SLOT_W, INV_SLOT_H)
+	panel.name = "locked_slot"
+	var style = StyleBoxFlat.new()
+	style.bg_color = Color(0.05, 0.05, 0.08)
+	style.border_color = Color(0.15, 0.15, 0.20)
+	style.set_border_width_all(1)
+	style.set_corner_radius_all(4)
+	panel.add_theme_stylebox_override("panel", style)
+	panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	parent.add_child(panel)
+
+	# 錠前マーク
+	var lock_lbl = Label.new()
+	lock_lbl.text = "LOCK"
+	lock_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	lock_lbl.position = Vector2(0, INV_SLOT_H / 2 - 10)
+	lock_lbl.size = Vector2(INV_SLOT_W, 20)
+	lock_lbl.add_theme_font_size_override("font_size", 11)
+	lock_lbl.add_theme_color_override("font_color", Color(0.25, 0.25, 0.30))
+	lock_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	panel.add_child(lock_lbl)
 
 # 項目10: モンハン式スロット（アイコン+スタック数のみ、名前非表示）
 func _build_material_slot_mh(parent: Node, mat: Dictionary, count: int, x: int, y: int) -> void:

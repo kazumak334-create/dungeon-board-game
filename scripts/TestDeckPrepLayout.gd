@@ -31,6 +31,13 @@ func run(runner: RefCounted) -> void:
 	_test_synthesis_result_only(runner)
 	_test_synth_confirm_toggle_exists(runner)
 	_test_flavor_text_inside_card(runner)
+	# 段階4追加テスト
+	_test_inventory_equipment_integration(runner)
+	_test_inventory_locked_section(runner)
+	_test_inventory_search_box_exists(runner)
+	_test_inventory_total_slots_increased(runner)
+	_test_sidebar_equipment_removed(runner)
+	_test_status_area_expanded(runner)
 
 func _test_equip_slot_count(r: RefCounted) -> void:
 	# 装備スロットが6個固定であること（絶対変更禁止）
@@ -61,9 +68,9 @@ func _test_layout_constants(r: RefCounted) -> void:
 	r._assert_eq(DeckPrepClass.ADVENTURE_Y, 680, "冒険ボタンY=680")
 
 func _test_inventory_slot_count_30(r: RefCounted) -> void:
-	# 持ち物グリッドのスロット数が30固定であること
+	# 段階4: 持ち物グリッドのスロット数が48（旧30から増加）
 	var DeckPrepClass = load("res://scripts/DeckPrep.gd")
-	r._assert_eq(DeckPrepClass.INV_TOTAL_SLOTS, 30, "持ち物スロット数=30固定")
+	r._assert_eq(DeckPrepClass.INV_TOTAL_SLOTS, 42, "持ち物スロット数=42（6列×7行）")
 
 func _test_inventory_categories(r: RefCounted) -> void:
 	# カテゴリフィルタのIDが仕様通りであること
@@ -76,7 +83,7 @@ func _test_inventory_categories(r: RefCounted) -> void:
 	r._assert_eq(expected[3], "consumable", "カテゴリ[3]=consumable（消費）")
 
 func _test_material_slot_layout(r: RefCounted) -> void:
-	# スロット座標計算が仕様通りであること（5列×6行）
+	# スロット座標計算が仕様通りであること（6列×8行）
 	var DeckPrepClass = load("res://scripts/DeckPrep.gd")
 	var slot_w = DeckPrepClass.INV_SLOT_W
 	var slot_h = DeckPrepClass.INV_SLOT_H
@@ -84,7 +91,7 @@ func _test_material_slot_layout(r: RefCounted) -> void:
 	var grid_x = DeckPrepClass.INV_GRID_X
 	var grid_y = DeckPrepClass.INV_GRID_Y
 	var cols = DeckPrepClass.INV_GRID_COLS
-	# 仕様: 横幅 = 8 + 145×5 + 10×4 = 773px（794内に収まる）
+	# 仕様: 横幅 = 8 + 120×6 + 8×5 = 768px（790以内に収まる）
 	var total_w = grid_x + cols * slot_w + (cols - 1) * gap
 	r._assert_true(total_w <= 790, "グリッド横幅が790px以内: %d" % total_w)
 	# スロット0の座標
@@ -92,18 +99,18 @@ func _test_material_slot_layout(r: RefCounted) -> void:
 	var y0 = grid_y + 0 * (slot_h + gap)
 	r._assert_eq(x0, 8, "スロット[0]のX=8")
 	r._assert_eq(y0, 40, "スロット[0]のY=40")
-	# スロット5（2行目先頭）の座標
-	var x5 = grid_x + 0 * (slot_w + gap)
-	var y5 = grid_y + 1 * (slot_h + gap)
-	r._assert_eq(x5, 8, "スロット[5]のX=8（2行目先頭）")
-	r._assert_eq(y5, 140, "スロット[5]のY=140（2行目先頭）")
+	# スロット6（2行目先頭）の座標（6列なので6番目が2行目先頭）
+	var x6 = grid_x + 0 * (slot_w + gap)
+	var y6 = grid_y + 1 * (slot_h + gap)
+	r._assert_eq(x6, 8, "スロット[6]のX=8（2行目先頭）")
+	r._assert_eq(y6, 120, "スロット[6]のY=120（2行目先頭、slot_h=72+gap=8=80）")
 
 func _test_inventory_grid_dimensions(r: RefCounted) -> void:
-	# グリッドが5列×6行であること
+	# グリッドが6列×7行であること（段階4改修後）
 	var DeckPrepClass = load("res://scripts/DeckPrep.gd")
-	r._assert_eq(DeckPrepClass.INV_GRID_COLS, 5, "グリッド列数=5")
-	r._assert_eq(DeckPrepClass.INV_GRID_ROWS, 6, "グリッド行数=6")
-	r._assert_eq(DeckPrepClass.INV_GRID_COLS * DeckPrepClass.INV_GRID_ROWS, 30, "列×行=30スロット")
+	r._assert_eq(DeckPrepClass.INV_GRID_COLS, 6, "グリッド列数=6")
+	r._assert_eq(DeckPrepClass.INV_GRID_ROWS, 7, "グリッド行数=7")
+	r._assert_eq(DeckPrepClass.INV_GRID_COLS * DeckPrepClass.INV_GRID_ROWS, 42, "列×行=42スロット")
 
 func _test_info_lane_separation(r: RefCounted) -> void:
 	# 情報レーンがDeckPrepInfoに分離されていること（DeckPrep.gdに旧解説関数がないこと）
@@ -215,11 +222,11 @@ func _test_upper_synthesis_section_exists(r: RefCounted) -> void:
 	r._assert_true(info.has_method("_build_upper_synthesis_section"), "上位合成セクション関数が存在する")
 
 func _test_equipment_within_sidebar(r: RefCounted) -> void:
-	# 装備エリア最下端がSIDEBAR_H(710px)以内に収まること
+	# 段階4: 装備は持ち物タブに移動済み。持ち物タブグリッドが CONTENT_H 内に収まること
 	var DeckPrepClass = load("res://scripts/DeckPrep.gd")
-	var equip_bottom = DeckPrepClass.SIDEBAR_Y + DeckPrepClass.EQUIP_AREA_Y + DeckPrepClass.EQUIP_AREA_H
-	r._assert_true(equip_bottom <= DeckPrepClass.SIDEBAR_Y + DeckPrepClass.SIDEBAR_H,
-		"装備エリア最下端がサイドバー内に収まる: %d <= %d" % [equip_bottom, DeckPrepClass.SIDEBAR_Y + DeckPrepClass.SIDEBAR_H])
+	var grid_h = DeckPrepClass.INV_GRID_Y + DeckPrepClass.INV_GRID_ROWS * (DeckPrepClass.INV_SLOT_H + DeckPrepClass.INV_SLOT_GAP)
+	r._assert_true(grid_h <= DeckPrepClass.CONTENT_H,
+		"持ち物タブグリッド高さがCONTENT_H内に収まる: %d <= %d" % [grid_h, DeckPrepClass.CONTENT_H])
 
 func _test_card_pin_state(r: RefCounted) -> void:
 	# DeckPrep.gdに _pinned_card_idx 変数が存在し初期値-1であること
@@ -234,15 +241,13 @@ func _test_card_pin_state(r: RefCounted) -> void:
 	dp.queue_free()
 
 func _test_equipment_y_position(r: RefCounted) -> void:
-	# EQUIP_AREA_Y + 装備スロット実高さ ≤ SIDEBAR_H
+	# 段階4: 装備は持ち物タブに移動済み。装備エリア（行0-1）の高さ計算
 	var DeckPrepClass = load("res://scripts/DeckPrep.gd")
-	# 装備スロット実高さ: ヘッダー(20) + 3行×(EQUIP_SLOT_SIZE + EQUIP_SLOT_GAP + 14) + ラベル(12)
-	var slot_size = DeckPrepClass.EQUIP_SLOT_SIZE
-	var slot_gap = DeckPrepClass.EQUIP_SLOT_GAP
-	var equip_real_h = 20 + 3 * (slot_size + slot_gap + 14) + 12
-	var equip_bottom = DeckPrepClass.EQUIP_AREA_Y + equip_real_h
-	r._assert_true(equip_bottom <= DeckPrepClass.SIDEBAR_H,
-		"EQUIP_AREA_Y+実高さ=%d <= SIDEBAR_H=%d" % [equip_bottom, DeckPrepClass.SIDEBAR_H])
+	# 装備エリア高さ: INV_EQUIP_ROWS × (INV_SLOT_H + INV_SLOT_GAP)
+	var equip_area_h = DeckPrepClass.INV_EQUIP_ROWS * (DeckPrepClass.INV_SLOT_H + DeckPrepClass.INV_SLOT_GAP)
+	var equip_bottom = DeckPrepClass.INV_GRID_Y + equip_area_h
+	r._assert_true(equip_bottom <= DeckPrepClass.CONTENT_H,
+		"持ち物タブ装備エリア最下端=%d <= CONTENT_H=%d" % [equip_bottom, DeckPrepClass.CONTENT_H])
 
 # ===== 段階3追加テスト =====
 
@@ -318,3 +323,71 @@ func _test_flavor_text_inside_card(r: RefCounted) -> void:
 		"_get_flavor_text()が存在する（カード枠内で呼び出される）")
 	r._assert_true(info.has_method("_build_card_frame_header"),
 		"_build_card_frame_header()が存在する（フレーバー内包）")
+
+# ===== 段階4追加テスト =====
+
+func _test_inventory_equipment_integration(r: RefCounted) -> void:
+	# 装備6スロットが持ち物タブ内に統合されていること（定数で検証）
+	var DeckPrepClass = load("res://scripts/DeckPrep.gd")
+	r._assert_eq(DeckPrepClass.INV_EQUIP_SLOTS_COUNT, 6, "持ち物タブ内装備スロット=6個固定")
+	r._assert_eq(DeckPrepClass.INV_EQUIP_ROWS, 2, "装備エリア=2行")
+	r._assert_eq(DeckPrepClass.EQUIP_SLOTS.size(), 6, "EQUIP_SLOTS定義=6個（変更禁止）")
+	# _build_inventory_equipment_slot 関数が存在すること
+	var dp = DeckPrepClass.new()
+	r._assert_true(dp.has_method("_build_inventory_equipment_slot"),
+		"_build_inventory_equipment_slot()が存在する")
+	dp.queue_free()
+
+func _test_inventory_locked_section(r: RefCounted) -> void:
+	# 下半分（素材エリア3行目以降）がロック状態であること
+	var DeckPrepClass = load("res://scripts/DeckPrep.gd")
+	# ロック開始行の定義が存在すること
+	r._assert_true(DeckPrepClass.INV_LOCKED_ROWS_START > 0,
+		"INV_LOCKED_ROWS_START > 0（ロック開始行が設定済み）")
+	r._assert_eq(DeckPrepClass.INV_MAT_ROWS, 5, "素材エリア=5行")
+	# ロック行数 = 素材行数 - 解放行数 = 5 - 2 = 3行（切り捨て）
+	var locked_mat_rows = DeckPrepClass.INV_MAT_ROWS - (DeckPrepClass.INV_MAT_ROWS / 2)
+	r._assert_eq(locked_mat_rows, 3, "素材エリア内ロック行=3行（下半分）")
+	# _build_locked_slot 関数が存在すること
+	var dp = DeckPrepClass.new()
+	r._assert_true(dp.has_method("_build_locked_slot"),
+		"_build_locked_slot()が存在する")
+	dp.queue_free()
+
+func _test_inventory_search_box_exists(r: RefCounted) -> void:
+	# 検索ボックス定数と生成関数が存在すること
+	var DeckPrepClass = load("res://scripts/DeckPrep.gd")
+	r._assert_eq(DeckPrepClass.INV_SEARCH_W, 200, "INV_SEARCH_W=200px")
+	var dp = DeckPrepClass.new()
+	r._assert_true(dp.has_method("_build_search_box"),
+		"_build_search_box()が存在する")
+	dp.queue_free()
+
+func _test_inventory_total_slots_increased(r: RefCounted) -> void:
+	# スロット総数が42（旧30から増加・CONTENT_H内に収まる設計）
+	var DeckPrepClass = load("res://scripts/DeckPrep.gd")
+	r._assert_true(DeckPrepClass.INV_TOTAL_SLOTS >= 40,
+		"INV_TOTAL_SLOTS >= 40（旧30から増加）: %d" % DeckPrepClass.INV_TOTAL_SLOTS)
+	r._assert_eq(DeckPrepClass.INV_GRID_COLS, 6, "グリッド列数=6（旧5→6）")
+	r._assert_eq(DeckPrepClass.INV_GRID_ROWS, 7, "グリッド行数=7（装備2行+素材5行）")
+
+func _test_sidebar_equipment_removed(r: RefCounted) -> void:
+	# 左サイドバーから装備セクションが削除されていること
+	var DeckPrepClass = load("res://scripts/DeckPrep.gd")
+	var dp = DeckPrepClass.new()
+	# _build_equipment_area 関数が存在しないこと（サイドバー装備削除）
+	r._assert_true(not dp.has_method("_build_equipment_area"),
+		"_build_equipment_area()は削除済み（サイドバーから除去）")
+	# _build_equipment_slot 関数が存在しないこと（サイドバー装備削除）
+	r._assert_true(not dp.has_method("_build_equipment_slot"),
+		"_build_equipment_slot()は削除済み（サイドバーから除去）")
+	# _build_inventory_equipment_slot が存在する（持ち物タブ統合版）
+	r._assert_true(dp.has_method("_build_inventory_equipment_slot"),
+		"_build_inventory_equipment_slot()が存在する（持ち物タブ統合版）")
+	dp.queue_free()
+
+func _test_status_area_expanded(r: RefCounted) -> void:
+	# ステータス領域が装備削除分拡大されていること（旧420→680以上）
+	var DeckPrepClass = load("res://scripts/DeckPrep.gd")
+	r._assert_true(DeckPrepClass.STATUS_AREA_H >= 680,
+		"STATUS_AREA_H >= 680（装備移動分拡大）: %d" % DeckPrepClass.STATUS_AREA_H)
