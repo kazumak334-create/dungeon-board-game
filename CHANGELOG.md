@@ -2,6 +2,27 @@
 
 ## [Unreleased]
 
+### CheckAgent：確認完了・修正なし — 2026-04-07
+
+#### 検証内容: battle_config辞書の実装
+- `GameSession.gd`: DEFAULT_BATTLE_CONFIG 17キー全定義・型・デフォルト値正常
+- `GameSession.gd`: reset()でduplicate(true)による深いコピー正常
+- `Main.gd`: _apply_battle_config()がbase_hp/MANA_REGEN/check_interval/_battle_timer/_battle_timer_activeに正しく流し込み済み
+- `Main.gd`: const BATTLE_TIME_LIMIT参照なし（全ファイルで削除済み確認）
+- `Main.gd`: _on_battle_timeout()の"win"/"draw"/"lose"3パターン分岐正常
+- `TestRunner.gd`: 新規4件（battle_config_default/reset/time_limit/custom_hp）正しく実装済み
+- 二重管理なし: battle_configから各マネージャへの一方向流し込み設計が正しく維持
+- 構文・インデント整合性: 全変更ファイル正常
+- R10警告: TestRunner.gdが835行（分離必須閾値800行超）。次機能追加前に分離必要。分離候補: TestBattleConfig.gd / TestDBIntegrity.gd
+
+#### 検証内容: バトル画面の不要ボタン削除 + Result画面整備
+- `Main.gd`: restart_button参照なし（変数宣言・メソッド・参照すべて削除済み）確認
+- `GameUI.gd`: restart_button生成ブロックなし、game_over_labelのsize/center alignment設定済み確認
+- `Result.gd`: 敗北時「もう一度挑戦」のSceneManager.BATTLE定数使用・定数定義済み確認
+- 構文・インデント整合性: 全変更ファイル正常
+- R8（ハードコード禁止）: 盤面効果可視化はEffectDBから取得済み、match文直書きなし
+- テスト: _test_battle_timer()追加済み（3件、TestRunner.gd 760-776行）確認
+
 ### refactor: バトル画面UI全面リデザイン — 2026-04-06
 
 #### 変更ファイル
