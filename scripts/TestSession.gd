@@ -197,10 +197,10 @@ func _test_battle_gold_to_result(r: RefCounted) -> void:
 func _test_result_reward_panel_fields(r: RefCounted) -> void:
 	GameSession.reset()
 	# 報酬計算に必要なフィールドが全て存在するか確認
-	r._assert_true(GameSession.has("current_battle_gold"), "reward_panel: current_battle_goldフィールド存在")
-	r._assert_true(GameSession.has("gold"), "reward_panel: goldフィールド存在")
-	r._assert_true(GameSession.has("skill_points"), "reward_panel: skill_pointsフィールド存在")
-	r._assert_true(GameSession.has("materials"), "reward_panel: materialsフィールド存在")
+	r._assert_true("current_battle_gold" in GameSession, "reward_panel: current_battle_goldフィールド存在")
+	r._assert_true("gold" in GameSession, "reward_panel: goldフィールド存在")
+	r._assert_true("skill_points" in GameSession, "reward_panel: skill_pointsフィールド存在")
+	r._assert_true("materials" in GameSession, "reward_panel: materialsフィールド存在")
 	r._assert_true(GameSession.last_result.has("win"), "reward_panel: last_result.win存在")
 
 # テスト: カード3択生成（重みテーブルと重複なし）
