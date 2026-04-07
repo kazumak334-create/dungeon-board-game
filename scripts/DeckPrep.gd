@@ -32,7 +32,7 @@ const SIDEBAR_W = 200       # 左パネル幅
 const SIDEBAR_H = 710       # 左パネル高さ
 const STATUS_AREA_Y = 15    # ステータス領域Y（サイドバー内）
 const STATUS_AREA_H = 460   # ステータス領域高さ
-const EQUIP_AREA_Y = 480    # 装備スロット領域Y（サイドバー内）
+const EQUIP_AREA_Y = 460    # 装備スロット領域Y（サイドバー内）
 const EQUIP_AREA_H = 220    # 装備スロット領域高さ
 const TAB_BAR_X = 210       # タブバー開始X
 const TAB_BAR_Y = 5         # タブバー開始Y
@@ -234,15 +234,15 @@ func _build_equipment_slot(slot_id: String, label: String, x: float, y: float) -
 	cell.add_theme_stylebox_override("panel", style)
 	add_child(cell)
 
-	# スロットラベル（スロット内中央）
+	# スロットラベル（スロット内下部に収める・パネル外に飛び出さない）
 	var slot_lbl = Label.new()
 	slot_lbl.text = label
 	slot_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	slot_lbl.position = Vector2(x, y + EQUIP_SLOT_SIZE + 2)
+	slot_lbl.position = Vector2(0, EQUIP_SLOT_SIZE - 14)
 	slot_lbl.size = Vector2(EQUIP_SLOT_SIZE, 12)
 	slot_lbl.add_theme_font_size_override("font_size", 9)
 	slot_lbl.add_theme_color_override("font_color", Color(0.5, 0.45, 0.6))
-	add_child(slot_lbl)
+	cell.add_child(slot_lbl)
 
 func _build_tab_bar() -> void:
 	var tabs = [

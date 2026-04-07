@@ -8,6 +8,7 @@ func run(runner: RefCounted) -> void:
 	_test_persistence(runner)
 	_test_spell_card_constraints(runner)
 	_test_highlight_cells(runner)
+	_test_spell_placement_enemy_side(runner)
 
 func _test_placement_logic(r: RefCounted) -> void:
 	var PL = load("res://scripts/PlacementLogic.gd")
@@ -264,3 +265,24 @@ func _test_highlight_cells(r: RefCounted) -> void:
 	var highlights_front = PL.get_highlight_cells(heat_entry, 0, 1, 2)
 	r._assert_eq(highlights_front.size(), 0,
 		"test_heatslime_no_range_in_front: 前列配置→ハイライトなし")
+
+# ---- 呪文/アーティファクトの全エリア配置テスト ----
+func _test_spell_placement_enemy_side(r: RefCounted) -> void:
+	var PL = load("res://scripts/PlacementLogic.gd")
+
+	# 単体狙い呪文（盤面配置必須）は敵陣にも配置可能
+	var spell_single = {"name": "生命の雫"}
+	r._assert_eq(PL.can_place_ally(spell_single), true,
+		"test_spell_placement_enemy_side: 生命の雫は自陣OK")
+	r._assert_eq(PL.can_place_enemy(spell_single), true,
+		"test_spell_placement_enemy_side: 生命の雫は敵陣もOK（全エリア配置可）")
+
+	# AoE呪文（盤面配置不要）は敵陣NG（呪文スロットのみ）
+	var spell_aoe = {"name": "召喚加速"}
+	r._assert_eq(PL.can_place_enemy(spell_aoe), false,
+		"test_spell_placement_enemy_side: 召喚加速(AoE)は敵陣NG（スロットのみ）")
+
+	# ユニットは敵陣NG
+	var unit_entry = {"name": "スライム", "col": 1}
+	r._assert_eq(PL.can_place_enemy(unit_entry), false,
+		"test_spell_placement_enemy_side: ユニットは敵陣NG")

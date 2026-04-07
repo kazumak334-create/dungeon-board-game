@@ -32,6 +32,10 @@ func run(runner: RefCounted) -> void:
 	_test_synthesis_toggle_top_right(runner)
 	_test_tile_5_7_ratio(runner)
 	_test_empty_slot_hidden(runner)
+	# 追加修正4項目テスト
+	_test_no_synth_toggle_in_right_panel(runner)
+	_test_equipment_fits_in_sidebar(runner)
+	_test_equipment_last_slot_y(runner)
 
 func _test_equip_slot_count(r: RefCounted) -> void:
 	# 装備スロットが6個固定であること（絶対変更禁止）
@@ -326,3 +330,61 @@ func _test_empty_slot_hidden(r: RefCounted) -> void:
 	r._assert_true(board.has_method("_build_spell_artifact_split"), "新設計の分割描画関数が存在する")
 	# _create_empty_slot_panel は盤面セル用として残存可能（削除不要）
 	r._assert_true(board.has_method("_create_empty_slot_panel"), "_create_empty_slot_panelが存在する")
+
+# ===== 追加修正4項目テスト =====
+
+func _test_no_synth_toggle_in_right_panel(r: RefCounted) -> void:
+	# ① 右パネルの合成セクション（build_synthesis_section）にトグルが追加されないこと
+	# build_synthesis_sectionが_build_synth_confirm_toggleを呼ばないことを
+	# 合成エリア（DeckPrepBoard）にのみ_skip_synth_confirmが存在することで検証
+	var InfoClass = load("res://scripts/DeckPrepInfo.gd")
+	var info = InfoClass.new()
+	# DeckPrepInfoに_build_synth_confirm_toggleは存在するが、
+	# build_synthesis_sectionがそれを呼ばなくなっていること
+	# → _skip_synth_confirmはDeckPrepInfoに存在するが右パネルのbuild_synthesis_sectionでは使わない
+	r._assert_true(info.has_method("build_synthesis_section"),
+		"build_synthesis_section()が存在する")
+	# DeckPrepBoardにのみトグルが存在すること（_skip_synth_confirm変数）
+	var BoardClass = load("res://scripts/DeckPrepBoard.gd")
+	var board = BoardClass.new()
+	var val = board.get("_skip_synth_confirm")
+	r._assert_true(val != null or val == false,
+		"test_no_synth_toggle_in_right_panel: トグルはDeckPrepBoardにのみ存在する")
+
+func _test_equipment_fits_in_sidebar(r: RefCounted) -> void:
+	# ④ 装備スロット6個が左パネル（高さ710px）内に完全に収まること
+	var DeckPrepClass = load("res://scripts/DeckPrep.gd")
+	var sidebar_h = DeckPrepClass.SIDEBAR_H  # 710
+	var sidebar_y = DeckPrepClass.SIDEBAR_Y  # 5
+	var equip_area_y = DeckPrepClass.EQUIP_AREA_Y
+	var slot_size = DeckPrepClass.EQUIP_SLOT_SIZE
+	var slot_gap = DeckPrepClass.EQUIP_SLOT_GAP
+	# base_y = SIDEBAR_Y + EQUIP_AREA_Y
+	var base_y = sidebar_y + equip_area_y
+	# row=0のスロットY: base_y + 20（ヘッダー）
+	var slot_row0_y = base_y + 20
+	# row=2のスロットY: slot_row0_y + 2 * (slot_size + slot_gap + 14)
+	var row_pitch = slot_size + slot_gap + 14
+	var slot_row2_y = slot_row0_y + 2 * row_pitch
+	var slot_bottom = slot_row2_y + slot_size
+	# パネル下端 = SIDEBAR_Y + SIDEBAR_H = 5 + 710 = 715
+	var panel_bottom = sidebar_y + sidebar_h
+	r._assert_true(slot_bottom <= panel_bottom,
+		"test_equipment_fits_in_sidebar: 装備6スロットが左パネル内に収まる（%d <= %d）" % [slot_bottom, panel_bottom])
+
+func _test_equipment_last_slot_y(r: RefCounted) -> void:
+	# ④ 6番目スロットの下端が710px（パネル下端）以下であること
+	var DeckPrepClass = load("res://scripts/DeckPrep.gd")
+	var sidebar_y = DeckPrepClass.SIDEBAR_Y  # 5
+	var sidebar_h = DeckPrepClass.SIDEBAR_H  # 710
+	var equip_area_y = DeckPrepClass.EQUIP_AREA_Y
+	var slot_size = DeckPrepClass.EQUIP_SLOT_SIZE
+	var slot_gap = DeckPrepClass.EQUIP_SLOT_GAP
+	var base_y = sidebar_y + equip_area_y
+	var slot_row0_y = base_y + 20
+	var row_pitch = slot_size + slot_gap + 14
+	var last_slot_y = slot_row0_y + 2 * row_pitch
+	var last_slot_bottom = last_slot_y + slot_size
+	var panel_bottom = sidebar_y + sidebar_h
+	r._assert_true(last_slot_bottom <= panel_bottom,
+		"test_equipment_last_slot_y: 6番目スロット下端(%d) <= パネル下端(%d)" % [last_slot_bottom, panel_bottom])

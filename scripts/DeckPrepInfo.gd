@@ -394,9 +394,6 @@ func build_synthesis_info(card_name: String) -> void:
 func build_synthesis_section(y_start: float, card_name: String) -> float:
 	var y: float = y_start
 
-	# 確認省略トグル
-	y = _build_synth_confirm_toggle(y)
-
 	# 上位合成セクション（カード+素材→上位カード、material_id を持つレシピ）
 	y = _build_upper_synthesis_section(y, card_name)
 

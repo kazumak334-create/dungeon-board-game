@@ -363,15 +363,20 @@ func _create_bar_chip(card_name: String, count: int, w: float, h: float,
 	panel.gui_input.connect(func(event): _on_chip_input(event, idx, all_indices, panel))
 	return panel
 
-# ---- ③ チェックボックス盤面左下配置 ----
+# ---- ⑤ チェックボックスを敵盤面の右下に配置 ----
 
 func _build_fallback_toggle_bottom_left() -> void:
 	var board_bottom = float(CELLS_START_Y) + 3.0 * float(CELL_H + CELL_GAP) + 4.0
+	# 敵盤面の右端X座標を計算
+	# 構造: BOARD_X → ROW_LABEL_W → 自陣3列 → CENTER_GAP → 敵陣3列
+	var enemy_right_x = float(BOARD_X) + float(ROW_LABEL_W) + 3.0 * float(CELL_W + CELL_GAP) + float(CENTER_GAP) + 3.0 * float(CELL_W + CELL_GAP)
+	var toggle_w = 380.0
 	var toggle = CheckBox.new()
 	toggle.text = "指定セルが埋まっている場合、同列の他空セルに召喚"
 	toggle.button_pressed = true
-	toggle.position = Vector2(float(BOARD_X), board_bottom)
-	toggle.size = Vector2(380.0, 20.0)
+	# 右端揃え: 敵盤面右端 - チェックボックス幅
+	toggle.position = Vector2(enemy_right_x - toggle_w, board_bottom)
+	toggle.size = Vector2(toggle_w, 20.0)
 	toggle.add_theme_font_size_override("font_size", 10)
 	toggle.toggled.connect(func(on: bool): set_global_fallback(on))
 	tab_container.add_child(toggle)

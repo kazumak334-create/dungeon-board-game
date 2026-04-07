@@ -48,20 +48,16 @@ static func can_place_ally(card_entry: Dictionary) -> bool:
 	return true
 
 # このカードは敵陣に配置できるか？
+# 呪文/status_spellは盤面配置必須かつrequires_board_placement=trueの場合、全エリア配置可能
 static func can_place_enemy(card_entry: Dictionary) -> bool:
 	var card_name: String = card_entry.get("name", "")
 	# ユニットは将来の敵陣配置スキル以外は不可
 	if CardDB.UNITS.has(card_name):
 		# 将来: 敵陣配置スキル持ちユニットはtrueを返す
 		return false
-	# 敵対象呪文
-	if CardDB.SPELLS.has(card_name):
-		var d = CardDB.SPELLS[card_name]
-		var target = d.get("target", "")
-		if target in ["enemy", "all_enemies", "enemy_random_col", "enemy_front_one"]:
-			return true
-		# 全体効果はどちらにも置ける
-		if target in ["all_front", ""]:
+	# 盤面配置必須な呪文（positional target持ち）は敵陣にも配置可能
+	if CardDB.SPELLS.has(card_name) or CardDB.STATUS_SPELLS.has(card_name):
+		if requires_board_placement(card_entry):
 			return true
 	return false
 
