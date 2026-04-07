@@ -69,8 +69,7 @@ var _cell_dirty:        Array = []  # [side][row][col] -> bool（UI更新フラ�
 var _support_log_timer: float = 5.0
 
 # ---- バトルタイマー ----
-const BATTLE_TIME_LIMIT: float = 60.0
-var _battle_timer: float = BATTLE_TIME_LIMIT
+var _battle_timer: float = 60.0  # _apply_battle_configで上書き
 var _battle_timer_active: bool = false  # 通常モードのみtrue（dev_modeはfalse）
 
 # ---- 初期化 ----
@@ -201,11 +200,27 @@ func _build_mode_select() -> void:
 		GameSession.battle_log.clear()
 		seed(GameSession.battle_seed)
 		game_started = true
-		_battle_timer_active = true
+		_apply_battle_config()
 		deck_manager.ensure_shuffle_card()
 		enemy_ai.ensure_shuffle_card()
 		_apply_environment()
 		_add_log("=== バトル開始 (seed: %d) ===" % GameSession.battle_seed)
+
+func _apply_battle_config() -> void:
+	var cfg: Dictionary = GameSession.battle_config
+	base_hp[0] = cfg.get("player_base_hp", 30)
+	base_hp[1] = cfg.get("enemy_base_hp", 30)
+	deck_manager.MANA_REGEN   = cfg.get("mana_regen_rate", 1.0)
+	deck_manager.check_interval = cfg.get("card_play_interval", 1.0)
+	enemy_ai.MANA_REGEN       = cfg.get("mana_regen_rate", 1.0)
+	enemy_ai.check_interval   = cfg.get("enemy_check_interval", 1.0)
+	var tl: float = cfg.get("time_limit", 60.0)
+	_battle_timer = tl
+	_battle_timer_active = (tl > 0.0) and not dev_mode
+	# enemy_atk_scale, enemy_hp_scale: place_unit時にBoardManagerで適用（将来）
+	# mana_max_override: 将来実装
+	# initial_units, summon_race_filter, placement_restriction: 将来実装
+	print("[Main] battle_config適用: hp=[%d,%d] timer=%.1f active=%s" % [base_hp[0], base_hp[1], tl, str(_battle_timer_active)])
 
 func _apply_environment() -> void:
 	var env_id = GameSession.base_environment
@@ -367,12 +382,22 @@ func _check_game_over() -> void:
 		_transition_to_result_timer()
 
 func _on_battle_timeout() -> void:
+	var result: String = GameSession.battle_config.get("time_up_result", "lose")
 	game_over = true
-	game_over_label.text     = "TIME UP - DEFEAT"
-	game_over_label.modulate = Color(1.0, 0.5, 0.1)
-	game_over_label.visible  = true
-	GameSession.last_result = {"win": false, "player_hp_remaining": base_hp[0], "turns": 0}
-	_add_log("=== 時間切れ：敗北 ===")
+	if result == "win":
+		game_over_label.text     = "TIME UP - VICTORY"
+		game_over_label.modulate = Color(0.3, 1.0, 0.5)
+		GameSession.last_result = {"win": true, "player_hp_remaining": base_hp[0], "turns": 0}
+	elif result == "draw":
+		game_over_label.text     = "TIME UP - DRAW"
+		game_over_label.modulate = Color(0.7, 0.7, 0.3)
+		GameSession.last_result = {"win": false, "player_hp_remaining": base_hp[0], "turns": 0}
+	else:  # "lose"（デフォルト）
+		game_over_label.text     = "TIME UP - DEFEAT"
+		game_over_label.modulate = Color(1.0, 0.5, 0.1)
+		GameSession.last_result = {"win": false, "player_hp_remaining": base_hp[0], "turns": 0}
+	game_over_label.visible = true
+	_add_log("=== 時間切れ：%s ===" % result)
 	_transition_to_result_timer()
 
 func _transition_to_result_timer() -> void:

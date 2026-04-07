@@ -2,6 +2,28 @@
 # Autoload: ランデータの一時保管（画面遷移間のデータ引き継ぎ）
 extends Node
 
+const DEFAULT_BATTLE_CONFIG: Dictionary = {
+	"time_limit":            60.0,   # 0.0=制限なし
+	"time_up_result":        "lose", # "lose"/"draw"/"win"
+	"win_condition":         "enemy_hp_zero",
+	"lose_condition":        "player_hp_zero",
+	"player_base_hp":        30,
+	"enemy_base_hp":         30,
+	"enemy_check_interval":  1.0,
+	"mana_regen_rate":       1.0,
+	"card_play_interval":    1.0,
+	"enemy_atk_scale":       1.0,
+	"enemy_hp_scale":        1.0,
+	"reward_multiplier":     1.0,
+	"skill_points_reward":   1,
+	"initial_units":         [],    # 開始時配置済みユニット（入れ物のみ）
+	"summon_race_filter":    "",    # 空=制限なし（入れ物のみ）
+	"placement_restriction": "",    # 空=制限なし（入れ物のみ）
+	"mana_max_override":     0.0,  # 0.0=通常（クラス依存）（入れ物のみ）
+}
+
+var battle_config: Dictionary = {}
+
 var class_id: String = ""
 var dev_mode: bool = false
 var battle_type: String = "normal"  # "normal" / "elite" / "boss"
@@ -20,6 +42,7 @@ var battle_seed: int = 0       # リプレイ用ランダムシード
 var battle_log: Array = []     # リプレイ用イベントログ
 
 func reset() -> void:
+	battle_config = DEFAULT_BATTLE_CONFIG.duplicate(true)
 	class_id = ""
 	dev_mode = false
 	battle_type = "normal"

@@ -17,6 +17,8 @@ var _bubble_timer: float = 0.0             # フキダシ残り表示時間
 var _deck_count_labels: Array = [null, null]    # [side] -> Label（山札枚数）
 var _discard_count_labels: Array = [null, null] # [side] -> Label（捨て札枚数）
 var _exile_count_labels: Array = [null, null]   # [side] -> Label（除外枚数）
+var _battle_timer_label: Label = null            # バトル残り時間ラベル
+var _timer_blink_acc: float = 0.0               # 点滅用アキュムレータ
 
 func _cell_x(side: int, col: int) -> int:
 	if side == 0:
@@ -28,6 +30,17 @@ func build() -> void:
 	_build_character_panel(0)
 	_build_character_panel(1)
 	# _build_equipment_ui()  # 将来実装（現在は非表示）
+	# バトルタイマーラベル（画面上部中央）
+	_battle_timer_label = Label.new()
+	_battle_timer_label.position = Vector2(540, 4)
+	_battle_timer_label.size = Vector2(200, 28)
+	_battle_timer_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_battle_timer_label.add_theme_font_size_override("font_size", 20)
+	_battle_timer_label.add_theme_color_override("font_color", Color(0.9, 0.9, 0.9))
+	_battle_timer_label.text = "60"
+	_battle_timer_label.z_index = 10
+	main.add_child(_battle_timer_label)
+
 	# 重要イベントフキダシ（画面下部・3秒で消える）
 	_event_bubble = Label.new()
 	_event_bubble.position = Vector2(200, 680)
@@ -498,3 +511,19 @@ func update_bubble(delta: float) -> void:
 			_event_bubble.modulate.a = min(1.0, _bubble_timer)
 		if _bubble_timer <= 0 and _event_bubble != null:
 			_event_bubble.visible = false
+
+func update_battle_timer(remaining: float, delta: float = 0.016) -> void:
+	if _battle_timer_label == null:
+		return
+	var secs: int = ceili(remaining)
+	_battle_timer_label.text = "%d" % max(0, secs)
+	if remaining <= 10.0:
+		# 10秒以下: 赤色 + 点滅（1Hz）
+		_battle_timer_label.add_theme_color_override("font_color", Color(1.0, 0.2, 0.2))
+		_timer_blink_acc += delta
+		var blink_on: bool = fmod(_timer_blink_acc, 1.0) < 0.5
+		_battle_timer_label.modulate.a = 1.0 if blink_on else 0.3
+	else:
+		_battle_timer_label.add_theme_color_override("font_color", Color(0.9, 0.9, 0.9))
+		_battle_timer_label.modulate.a = 1.0
+		_timer_blink_acc = 0.0
