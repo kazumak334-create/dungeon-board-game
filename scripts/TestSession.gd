@@ -258,7 +258,7 @@ func _test_game_session_map_reset(r: RefCounted) -> void:
 
 # Phase 3テスト: 同じseedで同じマップが生成される
 func _test_map_generator_seed_reproducibility(r: RefCounted) -> void:
-	var gen = MapGenerator.new()
+	var gen = load("res://scripts/MapGenerator.gd").new()
 	var seed_val: int = 999
 	var map1 = gen.generate(seed_val, "slime")
 	var map2 = gen.generate(seed_val, "slime")
@@ -273,7 +273,7 @@ func _test_map_generator_seed_reproducibility(r: RefCounted) -> void:
 
 # Phase 3テスト: 3Act生成される
 func _test_map_generator_acts_count(r: RefCounted) -> void:
-	var gen = MapGenerator.new()
+	var gen = load("res://scripts/MapGenerator.gd").new()
 	var map_data = gen.generate(42, "undead")
 	r._assert_eq(map_data.get("acts", []).size(), 3, "map_acts: 3Act生成")
 	var acts = map_data.get("acts", [])

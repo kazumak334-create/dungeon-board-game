@@ -43,4 +43,7 @@ func _build_ui() -> void:
 	add_child(back_btn)
 
 func _on_back() -> void:
-	SceneManager.go_to(SceneManager.MAP_SELECT)
+	var prev = GameSession.last_scene
+	if prev == "":
+		prev = SceneManager.MAP_SELECT
+	SceneManager.go_to(prev)

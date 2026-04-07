@@ -2,6 +2,9 @@
 # TOP画面: クラス選択 + 出発
 extends Control
 
+const TaskbarClass = preload("res://scripts/CommonTaskbar.gd")
+
+var _taskbar: RefCounted = null
 var _selected_class_id: String = ""
 var _class_buttons: Dictionary = {}
 var _description_label: Label
@@ -21,6 +24,10 @@ func _build_ui() -> void:
 	bg.color = Color(0.08, 0.08, 0.12)
 	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
 	add_child(bg)
+
+	# 共通タスクバー（最上部36px）
+	_taskbar = TaskbarClass.new()
+	_taskbar.attach(self, SceneManager.TITLE)
 
 	# タイトル
 	var title = Label.new()

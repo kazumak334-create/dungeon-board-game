@@ -2,6 +2,9 @@
 # 素材選択画面: 15素材プールから3つランダム提示 + 運命に委ねる
 extends Control
 
+const TaskbarClass = preload("res://scripts/CommonTaskbar.gd")
+
+var _taskbar: RefCounted = null
 var _materials: Array = []       # 提示中の3素材
 var _all_materials: Array = []   # 全素材プール
 var _selected_index: int = -1    # 0-2: 素材選択, 3: 運命に委ねる
@@ -39,6 +42,10 @@ func _build_ui() -> void:
 	bg.color = COLOR_BG
 	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
 	add_child(bg)
+
+	# 共通タスクバー（最上部36px）
+	_taskbar = TaskbarClass.new()
+	_taskbar.attach(self, SceneManager.MATERIAL_SELECT)
 
 	# タイトル
 	var title = Label.new()

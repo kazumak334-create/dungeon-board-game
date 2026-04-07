@@ -1,11 +1,14 @@
 # DeckPrep.gd
 # デッキ準備画面: 完全統合版レイアウト
 # 左パネル(w=200): ステータス上部 + 装備スロット下部
-# 中央エリア(w=880): タブバー + タブコンテンツ（盤面+呪文/アーティファクト+合成エリア）+ 冒険ボタン行
+# 中央エリア(w=880): タブコンテンツ（配置のみ）+ 冒険ボタン行
 # 右パネル(w=200): カード詳細専用（5:7比率TCGカード）
 extends Control
 
 const UIF = preload("res://scripts/UIFactory.gd")
+const TaskbarClass = preload("res://scripts/CommonTaskbar.gd")
+
+var _taskbar: RefCounted = null
 var _PL = null
 var _board = null  # DeckPrepBoard インスタンス
 var _info: Object = null  # DeckPrepInfo インスタンス
@@ -105,13 +108,14 @@ func _ready() -> void:
 func _build_ui() -> void:
 	UIF.add_bg(self)
 
+	# 共通タスクバー（最上部36px）
+	_taskbar = TaskbarClass.new()
+	_taskbar.attach(self, SceneManager.DECK_PREP)
+
 	# 左パネル（ステータス上部 + 装備スロット下部）
 	_build_sidebar()
 
-	# タブバー（中央上部）
-	_build_tab_bar()
-
-	# タブコンテナ（中央メイン）
+	# タブコンテナ（中央メイン: タブバーなし・配置のみ）
 	_tab_container = Control.new()
 	_tab_container.position = Vector2(CONTENT_X, CONTENT_Y)
 	_tab_container.size = Vector2(CONTENT_W, CONTENT_H)
@@ -123,7 +127,10 @@ func _build_ui() -> void:
 	# 冒険ボタン行（下部）
 	_build_adventure_buttons()
 
-	_show_tab("placement")
+	# 配置タブを直接表示（タブバー廃止）
+	_board.tab_container = _tab_container
+	_board.build_placement_tab(_tab_container, _PL)
+	_update_info_lane()
 
 # ===== 左サイドバー =====
 
@@ -296,24 +303,14 @@ func _build_adventure_buttons() -> void:
 		func(): SceneManager.go_to(SceneManager.MAP_SELECT))
 
 func _show_tab(tab_id: String) -> void:
-	_current_tab = tab_id
+	# タブバー廃止: 配置のみ。互換維持のため関数は残す
+	_current_tab = "placement"
 	_board_detail_container = null
-	for tb in _tab_buttons:
-		(tb["button"] as Button).modulate = Color(1, 1, 0.6) if tb["id"] == tab_id else Color(1, 1, 1)
+	_selected_material = {}
 	for child in _tab_container.get_children():
 		child.queue_free()
-	# タブ切替時に素材選択をリセット（持ち物タブ以外ではカード選択を保持）
-	if tab_id != "inventory":
-		_selected_material = {}
-
-	match tab_id:
-		"placement":
-			_board.tab_container = _tab_container
-			_board.build_placement_tab(_tab_container, _PL)
-			# 盤面左下のカード詳細コンテナは廃止: 右パネルで表示
-		"inventory": _build_inventory_tab()
-		_: _build_placeholder_tab(tab_id)
-
+	_board.tab_container = _tab_container
+	_board.build_placement_tab(_tab_container, _PL)
 	_update_info_lane()
 
 func _process(delta: float) -> void:

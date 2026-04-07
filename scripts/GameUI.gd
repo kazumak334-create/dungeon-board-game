@@ -2,10 +2,13 @@
 # UI描画・更新処理（Main.gdから分離）
 extends RefCounted
 
+const TaskbarClass = preload("res://scripts/CommonTaskbar.gd")
+
 var main: Node = null
 var _EDB = null  # EffectDBキャッシュ
 var _queue: RefCounted = null   # GameUIQueue
 var _overlay: RefCounted = null  # GameUIOverlay
+var _taskbar: RefCounted = null
 
 var _log_bg: ColorRect = null              # ログ背景
 var _log_title: Label = null               # ログタイトル
@@ -36,6 +39,10 @@ func build_ui() -> void:
 	bg.color = Color(0.07, 0.07, 0.11)
 	bg.size  = Vector2(1280, 720)
 	main.add_child(bg)
+
+	# 共通タスクバー（最上部36px）
+	_taskbar = TaskbarClass.new()
+	_taskbar.attach(main, SceneManager.BATTLE)
 
 	# タイトル（非表示）
 	# var title := Label.new()  # ② タイトル削除

@@ -147,5 +147,7 @@ func _build_button_section(vis: Dictionary) -> void:
 		btn.add_theme_font_size_override("font_size", 10)
 		btn.z_index = 102
 		var scene_id = btn_data["scene"]
-		btn.pressed.connect(func(): SceneManager.go_to(scene_id))
+		btn.pressed.connect(func():
+			GameSession.last_scene = _scene_name
+			SceneManager.go_to(scene_id))
 		_parent.add_child(btn)

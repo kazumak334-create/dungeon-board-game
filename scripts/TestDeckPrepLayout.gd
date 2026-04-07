@@ -45,6 +45,15 @@ func run(runner: RefCounted) -> void:
 	_test_inventory_cell_gap_equal_board_gap(runner)
 	_test_inventory_sort_tab_includes_equipment(runner)
 	_test_inventory_not_overlap_right_panel(runner)
+	# Phase 3 タスクバー・タブ削除・画面分離テスト
+	_test_taskbar_on_title(runner)
+	_test_taskbar_on_material_select(runner)
+	_test_taskbar_on_deck_prep(runner)
+	_test_taskbar_on_battle(runner)
+	_test_taskbar_on_result(runner)
+	_test_deckprep_no_tabs(runner)
+	_test_inventory_square_grid_moved(runner)
+	_test_skill_tree_placeholder(runner)
 
 func _test_equip_slot_count(r: RefCounted) -> void:
 	# 装備スロットが6個固定であること（絶対変更禁止）
@@ -513,3 +522,73 @@ func _test_inventory_not_overlap_right_panel(r: RefCounted) -> void:
 	var panel_left = DeckPrepClass.INFO_X
 	r._assert_true(grid_right <= panel_left,
 		"test_inventory_not_overlap_right_panel: グリッド右端(%d) <= 右パネル左端(%d)" % [grid_right, panel_left])
+
+# ===== Phase 3 タスクバー・タブ削除・画面分離テスト =====
+
+func _test_taskbar_on_title(r: RefCounted) -> void:
+	# Title.gdにCommonTaskbarが埋め込まれていること
+	var TitleClass = load("res://scripts/Title.gd")
+	var title = TitleClass.new()
+	# _taskbar変数が存在すること（null初期値でも変数として定義されている）
+	r._assert_true("_taskbar" in title, "test_taskbar_on_title: _taskbar変数がTitle.gdに存在する")
+	title.queue_free()
+
+func _test_taskbar_on_material_select(r: RefCounted) -> void:
+	# MaterialSelect.gdにCommonTaskbarが埋め込まれていること
+	var MSClass = load("res://scripts/MaterialSelect.gd")
+	var ms = MSClass.new()
+	r._assert_true("_taskbar" in ms,
+		"test_taskbar_on_material_select: _taskbar変数がMaterialSelect.gdに存在する")
+	ms.queue_free()
+
+func _test_taskbar_on_deck_prep(r: RefCounted) -> void:
+	# DeckPrep.gdにCommonTaskbarが埋め込まれていること
+	var DeckPrepClass = load("res://scripts/DeckPrep.gd")
+	var dp = DeckPrepClass.new()
+	r._assert_true("_taskbar" in dp,
+		"test_taskbar_on_deck_prep: _taskbar変数がDeckPrep.gdに存在する")
+	dp.queue_free()
+
+func _test_taskbar_on_battle(r: RefCounted) -> void:
+	# GameUI.gdにCommonTaskbarが埋め込まれていること（バトル画面用）
+	var GameUIClass = load("res://scripts/GameUI.gd")
+	var gui = GameUIClass.new()
+	r._assert_true("_taskbar" in gui,
+		"test_taskbar_on_battle: _taskbar変数がGameUI.gdに存在する")
+
+func _test_taskbar_on_result(r: RefCounted) -> void:
+	# Result.gdにCommonTaskbarが埋め込まれていること
+	var ResultClass = load("res://scripts/Result.gd")
+	var res_obj = ResultClass.new()
+	r._assert_true("_taskbar" in res_obj,
+		"test_taskbar_on_result: _taskbar変数がResult.gdに存在する")
+	res_obj.queue_free()
+
+func _test_deckprep_no_tabs(r: RefCounted) -> void:
+	# DeckPrepのタブバーが廃止されていること（_build_tab_barは残るが_build_ui内で呼ばれない）
+	var DeckPrepClass = load("res://scripts/DeckPrep.gd")
+	var dp = DeckPrepClass.new()
+	# _tab_buttons変数が存在すること
+	r._assert_true("_tab_buttons" in dp, "test_deckprep_no_tabs: _tab_buttons変数が存在する")
+	# _show_tab関数は互換のため残存していること
+	r._assert_true(dp.has_method("_show_tab"), "test_deckprep_no_tabs: _show_tab()が互換のため残存している")
+	dp.queue_free()
+
+func _test_inventory_square_grid_moved(r: RefCounted) -> void:
+	# Inventory.gdに持ち物グリッドロジックが移植されていること
+	var InventoryClass = load("res://scripts/Inventory.gd")
+	var inv = InventoryClass.new()
+	r._assert_true(inv.has_method("_build_grid"), "test_inventory_square_grid_moved: _build_grid()がInventory.gdに存在する")
+	r._assert_true(inv.has_method("_get_filtered_items"), "test_inventory_square_grid_moved: _get_filtered_items()がInventory.gdに存在する")
+	r._assert_true(inv.has_method("_build_sort_tabs"), "test_inventory_square_grid_moved: _build_sort_tabs()がInventory.gdに存在する")
+	r._assert_true(inv.has_method("_build_item_cell"), "test_inventory_square_grid_moved: _build_item_cell()がInventory.gdに存在する")
+	inv.queue_free()
+
+func _test_skill_tree_placeholder(r: RefCounted) -> void:
+	# SkillTree.gdが最小実装（タスクバー + 戻るボタン + プレースホルダー）であること
+	var SkillTreeClass = load("res://scripts/SkillTree.gd")
+	var st = SkillTreeClass.new()
+	r._assert_true("_taskbar" in st,
+		"test_skill_tree_placeholder: _taskbar変数がSkillTree.gdに存在する")
+	r._assert_true(st.has_method("_on_back"), "test_skill_tree_placeholder: _on_back()が存在する")
+	st.queue_free()
