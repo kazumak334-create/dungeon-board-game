@@ -447,4 +447,4 @@ func _on_decide_pressed() -> void:
 	GameSession.selected_deck = deck
 	var PlacementLogicScript = load("res://scripts/PlacementLogic.gd")
 	GameSession.placement_config = PlacementLogicScript.generate_default_config(deck)
-	SceneManager.go_to(SceneManager.DECK_PREP)
+	SceneManager.go_to(SceneManager.MAP_SELECT)

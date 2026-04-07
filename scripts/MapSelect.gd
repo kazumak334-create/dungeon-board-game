@@ -106,12 +106,12 @@ func _go_to_node(scene_id: String) -> void:
 	match scene_id:
 		"battle":
 			GameSession.battle_type = "normal"
-			SceneManager.go_to(SceneManager.BATTLE)
+			SceneManager.go_to(SceneManager.DECK_PREP)
 		"battle_elite":
 			GameSession.battle_type = "elite"
-			SceneManager.go_to(SceneManager.BATTLE)
+			SceneManager.go_to(SceneManager.DECK_PREP)
 		"battle_boss":
 			GameSession.battle_type = "boss"
-			SceneManager.go_to(SceneManager.BATTLE)
+			SceneManager.go_to(SceneManager.DECK_PREP)
 		_:
 			SceneManager.go_to(scene_id)

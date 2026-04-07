@@ -30,9 +30,9 @@ var _board_detail_container: Control = null
 
 # レイアウト定数（完全統合版）
 const SIDEBAR_X = 5         # 左パネル開始X
-const SIDEBAR_Y = 5         # 左パネル開始Y
+const SIDEBAR_Y = 40        # 左パネル開始Y（タスクバー36px分オフセット）
 const SIDEBAR_W = 200       # 左パネル幅
-const SIDEBAR_H = 710       # 左パネル高さ
+const SIDEBAR_H = 675       # 左パネル高さ
 const STATUS_AREA_Y = 15    # ステータス領域Y（サイドバー内）
 const STATUS_AREA_H = 460   # ステータス領域高さ
 const EQUIP_AREA_Y = 460    # 装備スロット領域Y（サイドバー内）
@@ -43,15 +43,15 @@ const TAB_BAR_W = 870       # タブバー幅（中央エリア）
 const TAB_BAR_H = 30        # タブバー高さ
 const CONTENT_X = 210       # タブコンテンツ開始X
 const CONTENT_Y = 40        # タブコンテンツ開始Y
-const CONTENT_W = 870       # タブコンテンツ幅
+const CONTENT_W = 860       # タブコンテンツ幅（210+860+5=1075=INFO_X）
 const CONTENT_H = 636       # タブコンテンツ高さ
 const ADVENTURE_Y = 680     # 冒険ボタン行Y
 # 右パネル（カード詳細専用）: 左パネルと同じ幅
 const SIDE_PANEL_W = SIDEBAR_W  # 共通定数: 左右パネル幅
-const INFO_X = 1080         # 右パネル開始X（5 + 200 + 870 + 5）
-const INFO_Y = 5            # 右パネル開始Y
+const INFO_X = 1075         # 右パネル開始X（左右余白5pxで線対称）
+const INFO_Y = 40           # 右パネル開始Y（タスクバー36px分オフセット）
 const INFO_W = SIDE_PANEL_W # 右パネル幅（=左パネル幅 200px）
-const INFO_H = 710          # 右パネル高さ
+const INFO_H = 675          # 右パネル高さ
 
 # 装備スロット定義（絶対変更禁止: 頭/胴/足/アクセ×3の6個固定）
 # 配置: 3行×2列（左列=頭/胴/足, 右列=アクセ1/2/3）
@@ -295,12 +295,10 @@ func _build_tab_bar() -> void:
 		x += tab_w + 4
 
 func _build_adventure_buttons() -> void:
-	UIF.add_button(self, "← タイトルへ", Vector2(220, ADVENTURE_Y), Vector2(180, 32), 14,
-		func():
-			GameSession.reset()
-			SceneManager.go_to(SceneManager.TITLE))
-	UIF.add_button(self, "マップへ →", Vector2(820, ADVENTURE_Y), Vector2(180, 32), 14,
+	UIF.add_button(self, "← マップへ", Vector2(220, ADVENTURE_Y), Vector2(180, 32), 14,
 		func(): SceneManager.go_to(SceneManager.MAP_SELECT))
+	UIF.add_button(self, "出撃 →", Vector2(820, ADVENTURE_Y), Vector2(180, 32), 14,
+		func(): SceneManager.go_to(SceneManager.BATTLE))
 
 func _show_tab(tab_id: String) -> void:
 	# タブバー廃止: 配置のみ。互換維持のため関数は残す

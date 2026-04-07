@@ -55,9 +55,9 @@ func build_ui() -> void:
 		var env_def: Dictionary = CardDB.ENVIRONMENTS.get(env_id, {})
 		env_display = env_def.get("display", env_id)
 	_env_label.text = env_display if env_display != "" else ""
-	_env_label.position = Vector2(0, 8)
-	_env_label.size = Vector2(1280, 20)
-	_env_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_env_label.position = Vector2(20, 46)
+	_env_label.size = Vector2(220, 24)
+	_env_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
 	_env_label.add_theme_font_size_override("font_size", 13)
 	_env_label.modulate = Color(0.7, 0.9, 0.7)
 	main.add_child(_env_label)
@@ -239,8 +239,10 @@ func build_ui() -> void:
 func _build_speed_buttons() -> void:
 	var speeds = [1.0, 2.0, 4.0]
 	var labels = ["x1", "x2", "x4"]
-	var base_x = 1020
-	var base_y = 5  # ⑤ 速度ボタンを最上部に
+	# 右端から20px余白で配置（env_label左端20pxと線対称）
+	# 速度btn群: base_x..base_x+258、ラベル"速度:"はbase_x-40
+	var base_x = 1002  # 右端1260, 右余白20px
+	var base_y = 42
 
 	var speed_title = Label.new()
 	speed_title.text = "速度:"

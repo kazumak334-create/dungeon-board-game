@@ -14,7 +14,7 @@ const CARD_H = 80
 const CARD_GAP_X = 10
 const CARD_GAP_Y = 8
 const GRID_COLS = 8
-const GRID_START_X = 40
+const GRID_START_X = 45  # (1280 - (8*140+7*10)) / 2 = 45 で線対称
 const GRID_START_Y = 110
 
 func _ready() -> void:

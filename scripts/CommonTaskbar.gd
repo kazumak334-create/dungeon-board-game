@@ -43,6 +43,22 @@ const VISIBILITY = {
 		"deck": true, "inventory": true, "skill": true, "settings": true,
 		"gold": true, "sp": true, "act": true, "race": false
 	},
+	"inventory": {
+		"deck": true, "inventory": false, "skill": true, "settings": true,
+		"gold": true, "sp": true, "act": true, "race": true
+	},
+	"skill_tree": {
+		"deck": true, "inventory": true, "skill": false, "settings": true,
+		"gold": true, "sp": true, "act": true, "race": true
+	},
+	"deck_view": {
+		"deck": false, "inventory": true, "skill": true, "settings": true,
+		"gold": true, "sp": true, "act": true, "race": true
+	},
+	"settings": {
+		"deck": true, "inventory": true, "skill": true, "settings": false,
+		"gold": false, "sp": false, "act": false, "race": false
+	},
 }
 
 var _parent: Node = null

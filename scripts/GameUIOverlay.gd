@@ -33,7 +33,7 @@ func build() -> void:
 	# _build_equipment_ui()  # 将来実装（現在は非表示）
 	# バトルタイマーラベル（画面上部中央）
 	_battle_timer_label = Label.new()
-	_battle_timer_label.position = Vector2(540, 4)
+	_battle_timer_label.position = Vector2(540, 42)
 	_battle_timer_label.size = Vector2(200, 28)
 	_battle_timer_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_battle_timer_label.add_theme_font_size_override("font_size", 20)

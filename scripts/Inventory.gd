@@ -17,7 +17,7 @@ const CELL_GAP  = 8
 const GRID_COLS = 16   # 1280px幅: (1280 - 40) / (55+8) ≈ 19.7 → 余白考慮で16列
 const GRID_ROWS = 8
 const TOTAL_SLOTS = GRID_COLS * GRID_ROWS
-const GRID_OFFSET_X = 20
+const GRID_OFFSET_X = 140  # (1280 - (16*55+15*8)) / 2 = 140 で線対称
 const GRID_OFFSET_Y = 44   # ソートタブ(32px) + 余白(12px)
 
 # ソートタブ定義
@@ -57,7 +57,8 @@ func _build_ui() -> void:
 	add_child(back_btn)
 
 func _build_sort_tabs() -> void:
-	var x = 20
+	# 5タブ × 80幅 + 4ギャップ × 8 = 432。中央揃え: (1280-432)/2=424
+	var x = 424
 	for tab in SORT_TABS:
 		var btn = Button.new()
 		btn.text = tab["label"]
