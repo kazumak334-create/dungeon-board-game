@@ -1,8 +1,8 @@
 # DeckPrep.gd
-# デッキ準備画面: パターンB（左サイドバー型）
-# 左サイドバー(w=200): ステータス上部 + 装備スロット下部
-# 中央エリア(w=790): タブバー + タブコンテンツ + 冒険ボタン行
-# 右解説レーン(w=275): 合成可能エリア（上半分） ← カード詳細は配置タブ盤面左下に移動
+# デッキ準備画面: 完全統合版レイアウト
+# 左パネル(w=200): ステータス上部 + 装備スロット下部
+# 中央エリア(w=880): タブバー + タブコンテンツ（盤面+呪文/アーティファクト+合成エリア）+ 冒険ボタン行
+# 右パネル(w=200): カード詳細専用（5:7比率TCGカード）
 extends Control
 
 const UIF = preload("res://scripts/UIFactory.gd")
@@ -12,7 +12,7 @@ var _info: Object = null  # DeckPrepInfo インスタンス
 
 var _tab_buttons: Array = []
 var _tab_container: Control = null
-var _info_container: Control = null  # 右側合成レーン
+var _info_container: Control = null  # 右パネル（カード詳細専用）
 var _current_tab: String = "placement"
 
 # 選択状態（_boardと同期）
@@ -22,31 +22,33 @@ var _selected_card_idx: int = -1
 var _selected_material: Dictionary = {}
 var _inventory_filter: String = "all"  # "all" / "normal" / "cursed" / "consumable"
 
-# 配置タブ内のカード詳細コンテナ（盤面左下）
+# 配置タブ内のカード詳細コンテナ（盤面左下・廃止→右パネルへ移管）
 var _board_detail_container: Control = null
 
-# レイアウト定数（パターンB）
-const SIDEBAR_X = 5         # 左サイドバー開始X
-const SIDEBAR_Y = 5         # 左サイドバー開始Y
-const SIDEBAR_W = 200       # 左サイドバー幅
-const SIDEBAR_H = 710       # 左サイドバー高さ
+# レイアウト定数（完全統合版）
+const SIDEBAR_X = 5         # 左パネル開始X
+const SIDEBAR_Y = 5         # 左パネル開始Y
+const SIDEBAR_W = 200       # 左パネル幅
+const SIDEBAR_H = 710       # 左パネル高さ
 const STATUS_AREA_Y = 15    # ステータス領域Y（サイドバー内）
 const STATUS_AREA_H = 460   # ステータス領域高さ
 const EQUIP_AREA_Y = 480    # 装備スロット領域Y（サイドバー内）
 const EQUIP_AREA_H = 220    # 装備スロット領域高さ
 const TAB_BAR_X = 210       # タブバー開始X
 const TAB_BAR_Y = 5         # タブバー開始Y
-const TAB_BAR_W = 790       # タブバー幅
+const TAB_BAR_W = 870       # タブバー幅（中央エリア）
 const TAB_BAR_H = 30        # タブバー高さ
 const CONTENT_X = 210       # タブコンテンツ開始X
 const CONTENT_Y = 40        # タブコンテンツ開始Y
-const CONTENT_W = 790       # タブコンテンツ幅
+const CONTENT_W = 870       # タブコンテンツ幅
 const CONTENT_H = 636       # タブコンテンツ高さ
 const ADVENTURE_Y = 680     # 冒険ボタン行Y
-const INFO_X = 1005         # 解説レーン開始X
-const INFO_Y = 5            # 解説レーン開始Y
-const INFO_W = 275          # 解説レーン幅
-const INFO_H = 710          # 解説レーン高さ
+# 右パネル（カード詳細専用）: 左パネルと同じ幅
+const SIDE_PANEL_W = SIDEBAR_W  # 共通定数: 左右パネル幅
+const INFO_X = 1080         # 右パネル開始X（5 + 200 + 870 + 5）
+const INFO_Y = 5            # 右パネル開始Y
+const INFO_W = SIDE_PANEL_W # 右パネル幅（=左パネル幅 200px）
+const INFO_H = 710          # 右パネル高さ
 
 # 装備スロット定義（絶対変更禁止: 頭/胴/足/アクセ×3の6個固定）
 # 配置: 3行×2列（左列=頭/胴/足, 右列=アクセ1/2/3）
@@ -80,7 +82,7 @@ func _ready() -> void:
 func _build_ui() -> void:
 	UIF.add_bg(self)
 
-	# 左サイドバー（ステータス上部 + 装備スロット下部）
+	# 左パネル（ステータス上部 + 装備スロット下部）
 	_build_sidebar()
 
 	# タブバー（中央上部）
@@ -92,7 +94,7 @@ func _build_ui() -> void:
 	_tab_container.size = Vector2(CONTENT_W, CONTENT_H)
 	add_child(_tab_container)
 
-	# 右側合成レーン（合成可能エリア専用）
+	# 右パネル（カード詳細専用）
 	_build_info_lane()
 
 	# 冒険ボタン行（下部）
@@ -285,8 +287,7 @@ func _show_tab(tab_id: String) -> void:
 		"placement":
 			_board.tab_container = _tab_container
 			_board.build_placement_tab(_tab_container, _PL)
-			# 盤面左下にカード詳細コンテナを作成
-			_board_detail_container = _board.build_card_detail_container(_tab_container)
+			# 盤面左下のカード詳細コンテナは廃止: 右パネルで表示
 		"inventory": _build_inventory_tab()
 		_: _build_placeholder_tab(tab_id)
 
@@ -296,7 +297,7 @@ func _process(delta: float) -> void:
 	if _board != null:
 		_board.process_drag(delta)
 
-# ===== 右側合成レーン（合成専用） =====
+# ===== 右パネル（カード詳細専用） =====
 
 func _build_info_lane() -> void:
 	_info_container = Control.new()
@@ -315,33 +316,31 @@ func _build_info_lane() -> void:
 	border.color = Color(0.2, 0.2, 0.3)
 	_info_container.add_child(border)
 
-	# DeckPrepInfoにinfo_containerを渡してセットアップ（合成専用モード）
+	# DeckPrepInfoにinfo_containerを渡してセットアップ（カード詳細専用モード）
 	_info.setup(self, _info_container, INFO_W, _PL)
-	_info.build_synthesis_right_panel()
+	_info.show_empty()
 
 func _update_info_lane() -> void:
 	if _info == null:
 		return
-	# 右側レーンは合成専用: 常に合成パネルを表示
-	# 素材選択・カード選択は盤面左下のカード詳細に表示
-	_update_board_detail()
-
-# ===== 配置タブ内カード詳細（盤面左下）の更新 =====
-
-func _update_board_detail() -> void:
-	if _info == null or _board_detail_container == null:
-		return
+	# 右パネルはカード詳細専用
 	# 持ち物タブ以外では素材選択リセット
 	if _current_tab != "inventory":
 		_selected_material = {}
 	# 素材選択優先（持ち物タブ）
 	if _selected_material.size() > 0:
-		_info.show_material_in_container(_board_detail_container, _selected_material)
+		_info.show_material_info(_selected_material)
 		return
 	if _selected_card_idx < 0 or _selected_card_idx >= GameSession.selected_deck.size():
-		_info.show_empty_in_container(_board_detail_container)
+		_info.show_empty()
 		return
-	_info.show_card_info_in_container(_board_detail_container, _selected_card_idx)
+	_info.show_card_info(_selected_card_idx)
+
+# ===== 配置タブ内カード詳細（廃止: 右パネルへ移管） =====
+
+func _update_board_detail() -> void:
+	# 右パネルで統一したので不使用（互換のため残す）
+	pass
 
 # ===== 持ち物タブ（カテゴリフィルタ + 素材グリッド） =====
 # 装備スロットは左サイドバーに常時表示。このタブにはカテゴリフィルタ + アイテム/素材グリッド

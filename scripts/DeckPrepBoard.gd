@@ -78,33 +78,24 @@ func build_placement_tab(_tab_container_arg: Control, PL) -> void:
 	tab_container = _tab_container_arg
 	_PL = PL
 
-	# 項目3: チェックボックスを盤面上部中央、盤面との間に12px以上マージン
-	var board_total_w = ROW_LABEL_W + 3 * (CELL_W + CELL_GAP) + CENTER_GAP + 3 * (CELL_W + CELL_GAP)
-	var toggle = CheckBox.new()
-	toggle.text = "指定セルが埋まっている場合、同じ列の他の空セルに召喚する"
-	toggle.button_pressed = true
-	toggle.position = Vector2(BOARD_X + board_total_w / 2 - 200, BOARD_Y)
-	toggle.size = Vector2(400, 20)
-	toggle.add_theme_font_size_override("font_size", 11)
-	toggle.toggled.connect(func(on: bool): set_global_fallback(on))
-	tab_container.add_child(toggle)
-
 	var enemy_x = BOARD_X + ROW_LABEL_W + 3 * (CELL_W + CELL_GAP) + CENTER_GAP
-	# 項目2: 自陣・敵陣ラベル完全削除 → _build_board_headers のみ列ラベルを建てる
+	# 自陣・敵陣ラベル完全削除 → 列ラベルのみ
 	_build_board_col_labels(enemy_x)
 	_build_board_cells(enemy_x)
 	populate_cards()
-	# 呪文・アーティファクトをタイル/バー切替式で描画
-	var artifact_y = _build_spell_slots_hybrid()
-	_build_artifact_slots_hybrid(artifact_y)
-	# 合成リストは右側レーンへ移管（ここでは描画しない）
+	# ③ チェックボックスを盤面左下に配置
+	_build_fallback_toggle_bottom_left()
+	# ⑧⑨ 呪文エリア（左半分）+ アーティファクトエリア（右半分）: 盤面直下
+	var sub_area_y = _build_spell_artifact_split()
+	# ⑥ 合成可能エリア（中央下部）
+	_build_synthesis_area(sub_area_y)
 
-# 項目2: 自陣・敵陣ラベル完全削除 → 列ラベルのみ残す
+# 自陣・敵陣ラベル完全削除 → 列ラベルのみ残す
 func _build_board_col_labels(enemy_x: float) -> void:
 	var ally_cols = ["後列", "中列", "前列"]
 	var enemy_cols = ["前列", "中列", "後列"]
-	# 項目3: チェックボックス下に12px余白 → BOARD_Y + 20 + 12 = BOARD_Y + 32 からラベル開始
-	var col_label_y = BOARD_Y + 32
+	# チェックボックスは左下に移動したため、列ラベルは盤面上部に直接配置
+	var col_label_y = BOARD_Y + 5
 	for ci in range(3):
 		var al = Button.new()
 		al.text = ally_cols[ci]
@@ -128,8 +119,8 @@ func _build_board_col_labels(enemy_x: float) -> void:
 		el.pressed.connect(func(): select_col(1, enemy_ci))
 		tab_container.add_child(el)
 
-# セル行の開始Y（チェックボックス20px + 12px余白 + 列ラベル16px + 4px余白 = 52px）
-const CELLS_START_Y = BOARD_Y + 52
+# セル行の開始Y（列ラベル5px + 16px + 4px余白 = 25px）
+const CELLS_START_Y = BOARD_Y + 25
 
 func _build_board_cells(enemy_x: float) -> void:
 	var row_names = ["上段", "中段", "下段"]
@@ -372,73 +363,298 @@ func _create_bar_chip(card_name: String, count: int, w: float, h: float,
 	panel.gui_input.connect(func(event): _on_chip_input(event, idx, all_indices, panel))
 	return panel
 
-# ---- 呪文スロット描画（タイル/バー切替式）----
-# 戻り値: アーティファクトスロット開始Y（動的計算）
+# ---- ③ チェックボックス盤面左下配置 ----
 
-func _build_spell_slots_hybrid() -> float:
-	var label = Label.new()
-	label.text = "呪文スロット"
-	label.position = Vector2(BOARD_X, SPELL_SLOTS_Y - 14)
-	label.add_theme_font_size_override("font_size", 11)
-	label.add_theme_color_override("font_color", Color(0.6, 0.65, 0.85))
-	tab_container.add_child(label)
+func _build_fallback_toggle_bottom_left() -> void:
+	var board_bottom = float(CELLS_START_Y) + 3.0 * float(CELL_H + CELL_GAP) + 4.0
+	var toggle = CheckBox.new()
+	toggle.text = "指定セルが埋まっている場合、同列の他空セルに召喚"
+	toggle.button_pressed = true
+	toggle.position = Vector2(float(BOARD_X), board_bottom)
+	toggle.size = Vector2(380.0, 20.0)
+	toggle.add_theme_font_size_override("font_size", 10)
+	toggle.toggled.connect(func(on: bool): set_global_fallback(on))
+	tab_container.add_child(toggle)
 
+# ---- ⑧⑨ 呪文エリア（左半分）+ アーティファクトエリア（右半分）----
+# 盤面直下に左右分割で配置。戻り値: 合成エリア開始Y
+
+func _build_spell_artifact_split() -> float:
+	# 盤面エリアの幅・開始Xを計算（タブコンテナ内）
+	var board_area_w = float(ROW_LABEL_W) + 3.0 * float(CELL_W + CELL_GAP) + float(CENTER_GAP) + 3.0 * float(CELL_W + CELL_GAP)
+	var board_start_x = float(BOARD_X)
+	var half_w = board_area_w / 2.0
+	# 盤面直下Y（チェックボックス下に余白）
+	var area_y = float(CELLS_START_Y) + 3.0 * float(CELL_H + CELL_GAP) + 28.0
+
+	# 呪文エリアラベル（左半分）
+	var spell_lbl = Label.new()
+	spell_lbl.text = "呪文スロット"
+	spell_lbl.position = Vector2(board_start_x, area_y - 14.0)
+	spell_lbl.add_theme_font_size_override("font_size", 11)
+	spell_lbl.add_theme_color_override("font_color", Color(0.6, 0.65, 0.85))
+	tab_container.add_child(spell_lbl)
+
+	# アーティファクトエリアラベル（右半分）
+	var art_lbl = Label.new()
+	art_lbl.text = "アーティファクト"
+	art_lbl.position = Vector2(board_start_x + half_w, area_y - 14.0)
+	art_lbl.add_theme_font_size_override("font_size", 11)
+	art_lbl.add_theme_color_override("font_color", Color(0.75, 0.65, 0.4))
+	tab_container.add_child(art_lbl)
+
+	# 呪文カード描画（左半分・タイル/バー切替）
 	var spell_cards = _build_spell_cards_list()
-	var count = spell_cards.size()
+	var spell_count = spell_cards.size()
+	var spell_area_h: float = 0.0
 
-	if count <= SPELL_TILE_SWITCH:
-		# タイル形式（4枚以下: 80×100px）
-		for i in range(count):
+	if spell_count <= SPELL_TILE_SWITCH:
+		# タイル形式: 縦横比5:7を維持。幅を half_w / SPELL_TILE_SWITCH 以下で計算
+		var tile_w = minf(float(SPELL_TILE_W), (half_w - float(BOARD_X) - float(SPELL_TILE_GAP) * (SPELL_TILE_SWITCH - 1)) / float(SPELL_TILE_SWITCH))
+		var tile_h = tile_w * 7.0 / 5.0
+		for i in range(spell_count):
 			var sc = spell_cards[i]
-			var sx = float(BOARD_X) + float(i) * float(SPELL_TILE_W + SPELL_TILE_GAP)
-			var sy = float(SPELL_SLOTS_Y)
-			var tile = _create_tile_chip(sc[1], sc[2], float(SPELL_TILE_W), float(SPELL_TILE_H), sc[0], sc[3])
-			tile.position = Vector2(sx, sy)
+			var sx = board_start_x + float(i) * (tile_w + float(SPELL_TILE_GAP))
+			var tile = _create_tile_chip(sc[1], sc[2], tile_w, tile_h, sc[0], sc[3])
+			tile.position = Vector2(sx, area_y)
 			tab_container.add_child(tile)
-		# 残り空スロット（4個まで）
-		for i in range(count, SPELL_TILE_SWITCH):
-			var sx = float(BOARD_X) + float(i) * float(SPELL_TILE_W + SPELL_TILE_GAP)
-			var empty = _create_empty_slot_panel(float(SPELL_TILE_W), float(SPELL_TILE_H), Color(0.2, 0.22, 0.35))
-			empty.position = Vector2(sx, float(SPELL_SLOTS_Y))
-			tab_container.add_child(empty)
-		return float(SPELL_SLOTS_Y) + float(SPELL_TILE_H) + float(ARTIFACT_SLOTS_Y_OFFSET)
+		# 空スロットは表示しない（仕様④）
+		spell_area_h = tile_h + float(ARTIFACT_SLOTS_Y_OFFSET)
 	else:
-		# バー形式（5枚以上: full幅×28px）
-		var bar_area_w = float(BOARD_X) + 5.0 * float(SPELL_TILE_W + SPELL_TILE_GAP)
-		for i in range(count):
-			var sy = float(SPELL_SLOTS_Y) + float(i) * float(SPELL_BAR_H + SPELL_BAR_GAP)
-			var bar = _create_bar_chip(spell_cards[i][1], spell_cards[i][2], bar_area_w - float(BOARD_X), float(SPELL_BAR_H), spell_cards[i][0], spell_cards[i][3])
-			bar.position = Vector2(float(BOARD_X), sy)
+		# バー形式（5枚以上: 幅 half_w - BOARD_X × 28px）
+		var bar_w = half_w - float(BOARD_X)
+		for i in range(spell_count):
+			var sy = area_y + float(i) * float(SPELL_BAR_H + SPELL_BAR_GAP)
+			var bar = _create_bar_chip(spell_cards[i][1], spell_cards[i][2], bar_w, float(SPELL_BAR_H), spell_cards[i][0], spell_cards[i][3])
+			bar.position = Vector2(board_start_x, sy)
 			tab_container.add_child(bar)
-		return float(SPELL_SLOTS_Y) + float(count) * float(SPELL_BAR_H + SPELL_BAR_GAP) + float(ARTIFACT_SLOTS_Y_OFFSET)
+		spell_area_h = float(spell_count) * float(SPELL_BAR_H + SPELL_BAR_GAP) + float(ARTIFACT_SLOTS_Y_OFFSET)
 
-# ---- アーティファクトスロット描画（タイル/バー切替式）----
-
-func _build_artifact_slots_hybrid(art_y: float) -> void:
-	var label = Label.new()
-	label.text = "アーティファクト"
-	label.position = Vector2(BOARD_X, art_y - 14)
-	label.add_theme_font_size_override("font_size", 11)
-	label.add_theme_color_override("font_color", Color(0.75, 0.65, 0.4))
-	tab_container.add_child(label)
-
-	# アーティファクトスロットは常に空スロット6個（現状ゲームデータなし）
-	var count = 0  # 将来: アーティファクトカード数
-	if count <= ARTIFACT_TILE_SWITCH:
-		# タイル形式（4枚以下）
-		for i in range(ARTIFACT_SLOTS_COUNT):
-			var sx = float(BOARD_X) + float(i) * float(ARTIFACT_TILE_W + ARTIFACT_TILE_GAP)
-			var empty = _create_empty_slot_panel(float(ARTIFACT_TILE_W), float(ARTIFACT_TILE_H), Color(0.4, 0.35, 0.18))
-			empty.position = Vector2(sx, art_y)
-			tab_container.add_child(empty)
+	# アーティファクトカード描画（右半分・常に空スロット表示なし）
+	var art_count = 0  # 将来: アーティファクトカード数
+	var art_area_h: float = 0.0
+	var art_start_x = board_start_x + half_w
+	if art_count <= ARTIFACT_TILE_SWITCH:
+		var tile_w = minf(float(ARTIFACT_TILE_W), (half_w - float(ARTIFACT_TILE_GAP) * (ARTIFACT_TILE_SWITCH - 1)) / float(ARTIFACT_TILE_SWITCH))
+		var tile_h = tile_w * 7.0 / 5.0
+		# 空スロットは表示しない（仕様④）: art_count == 0 なのでループなし
+		art_area_h = tile_h + float(ARTIFACT_SLOTS_Y_OFFSET)
 	else:
-		# バー形式（5枚以上）
-		var bar_area_w = float(BOARD_X) + 5.0 * float(ARTIFACT_TILE_W + ARTIFACT_TILE_GAP)
-		for i in range(ARTIFACT_SLOTS_COUNT):
-			var sy = art_y + float(i) * float(ARTIFACT_BAR_H + ARTIFACT_BAR_GAP)
-			var empty = _create_empty_slot_panel(bar_area_w - float(BOARD_X), float(ARTIFACT_BAR_H), Color(0.4, 0.35, 0.18))
-			empty.position = Vector2(float(BOARD_X), sy)
-			tab_container.add_child(empty)
+		art_area_h = float(art_count) * float(ARTIFACT_BAR_H + ARTIFACT_BAR_GAP) + float(ARTIFACT_SLOTS_Y_OFFSET)
+
+	return area_y + maxf(spell_area_h, art_area_h)
+
+# ---- ⑥ 合成可能エリア（盤面直下・中央）+ ⑦ Yes/No確認省略トグル ----
+
+func _build_synthesis_area(start_y: float) -> void:
+	var board_area_w = float(ROW_LABEL_W) + 3.0 * float(CELL_W + CELL_GAP) + float(CENTER_GAP) + 3.0 * float(CELL_W + CELL_GAP)
+	var board_start_x = float(BOARD_X)
+
+	# ⑦ Yes/No省略トグル（合成エリア右上角）
+	var toggle = CheckBox.new()
+	toggle.text = "確認省略"
+	toggle.button_pressed = false
+	toggle.position = Vector2(board_start_x + board_area_w - 90.0, start_y)
+	toggle.size = Vector2(90.0, 20.0)
+	toggle.add_theme_font_size_override("font_size", 10)
+	toggle.toggled.connect(func(on: bool): _skip_synth_confirm = on)
+	tab_container.add_child(toggle)
+
+	# 合成ヘッダーラベル
+	var header = Label.new()
+	header.text = "合成可能"
+	header.position = Vector2(board_start_x, start_y)
+	header.add_theme_font_size_override("font_size", 11)
+	header.add_theme_color_override("font_color", Color(0.7, 0.75, 0.5))
+	tab_container.add_child(header)
+
+	# 合成可能なカードのみタイル形式で横並び（素材不足は非表示）
+	var card_counts: Dictionary = {}
+	for entry in GameSession.selected_deck:
+		var n = entry.get("name", "") if entry is Dictionary else str(entry)
+		card_counts[n] = card_counts.get(n, 0) + 1
+
+	var craftable: Array = []
+	for recipe in CardDB.SYNTHESIS:
+		var base = recipe.get("base", "")
+		var card = recipe.get("card", "")
+		var result_name = recipe.get("result", "")
+		var needed: Dictionary = {}
+		needed[base] = needed.get(base, 0) + 1
+		needed[card] = needed.get(card, 0) + 1
+		var can_craft = true
+		for n in needed:
+			if card_counts.get(n, 0) < needed[n]:
+				can_craft = false
+				break
+		if can_craft:
+			craftable.append({"base": base, "card": card, "result": result_name})
+
+	var tile_area_y = start_y + 20.0
+	var tile_w = 56.0  # 縦横比5:7維持
+	var tile_h = tile_w * 7.0 / 5.0
+	var tile_gap = 6.0
+	var x_cur = board_start_x
+
+	for craft in craftable:
+		if x_cur + tile_w > board_start_x + board_area_w:
+			break
+		var tile = _create_synthesis_tile(craft["result"], craft["base"], craft["card"], tile_w, tile_h)
+		tile.position = Vector2(x_cur, tile_area_y)
+		tab_container.add_child(tile)
+		x_cur += tile_w + tile_gap
+
+# 合成タイル生成（⑥用）
+var _skip_synth_confirm: bool = false
+
+func _create_synthesis_tile(result_name: String, base_name: String, mat_name: String, w: float, h: float) -> Control:
+	var card_color = get_card_color(result_name)
+	var panel = Panel.new()
+	panel.custom_minimum_size = Vector2(w, h)
+	var style = StyleBoxFlat.new()
+	style.bg_color = card_color.darkened(0.4)
+	style.border_color = card_color
+	style.set_border_width_all(1)
+	style.set_corner_radius_all(3)
+	panel.add_theme_stylebox_override("panel", style)
+
+	var header_h = minf(14.0, h * 0.35)
+	var header = ColorRect.new()
+	header.position = Vector2(0, 0)
+	header.size = Vector2(w, header_h)
+	header.color = card_color
+	header.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	panel.add_child(header)
+
+	var cost_lbl = Label.new()
+	cost_lbl.text = str(get_card_cost(result_name))
+	cost_lbl.position = Vector2(2, 0)
+	cost_lbl.size = Vector2(w - 4, header_h)
+	cost_lbl.add_theme_font_size_override("font_size", 8)
+	cost_lbl.add_theme_color_override("font_color", Color(1, 1, 0.7))
+	cost_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	panel.add_child(cost_lbl)
+
+	var name_lbl = Label.new()
+	name_lbl.text = result_name
+	name_lbl.position = Vector2(2, header_h + 1)
+	name_lbl.size = Vector2(w - 4, h - header_h - 1)
+	name_lbl.add_theme_font_size_override("font_size", 8)
+	name_lbl.add_theme_color_override("font_color", Color(1, 1, 1))
+	name_lbl.clip_text = true
+	name_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	panel.add_child(name_lbl)
+
+	# ホバー: 素材情報ポップアップ
+	panel.mouse_entered.connect(func():
+		if main_node != null:
+			_show_synth_hover_popup(result_name, base_name, mat_name, panel.global_position + Vector2(w / 2.0, -90.0))
+	)
+	panel.mouse_exited.connect(func(): _hide_synth_hover_popup())
+
+	# クリック: 合成確認 or 即合成
+	panel.gui_input.connect(func(event: InputEvent):
+		if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
+			if _skip_synth_confirm:
+				print("[DeckPrepBoard] 合成: [%s] + [%s] → [%s]" % [base_name, mat_name, result_name])
+			else:
+				_show_synth_confirm(result_name, base_name, mat_name)
+	)
+	return panel
+
+var _synth_hover_popup: Control = null
+
+func _show_synth_hover_popup(result_name: String, base_name: String, mat_name: String, pos: Vector2) -> void:
+	_hide_synth_hover_popup()
+	if main_node == null:
+		return
+	var popup = PanelContainer.new()
+	popup.z_index = 200
+	var style = StyleBoxFlat.new()
+	style.bg_color = Color(0.08, 0.08, 0.14, 0.97)
+	style.border_color = Color(0.4, 0.4, 0.6)
+	style.set_border_width_all(1)
+	style.set_corner_radius_all(4)
+	popup.add_theme_stylebox_override("panel", style)
+	popup.custom_minimum_size = Vector2(160, 60)
+	var vbox = VBoxContainer.new()
+	vbox.add_theme_constant_override("separation", 3)
+	popup.add_child(vbox)
+	var res_lbl = Label.new()
+	res_lbl.text = "▶ %s" % result_name
+	res_lbl.add_theme_font_size_override("font_size", 11)
+	res_lbl.add_theme_color_override("font_color", Color(0.9, 0.9, 0.5))
+	vbox.add_child(res_lbl)
+	var mat_lbl = Label.new()
+	mat_lbl.text = "[%s] + [%s]" % [base_name, mat_name]
+	mat_lbl.add_theme_font_size_override("font_size", 9)
+	mat_lbl.add_theme_color_override("font_color", Color(0.6, 0.6, 0.6))
+	vbox.add_child(mat_lbl)
+	var synth_hint = Label.new()
+	synth_hint.text = "クリックで合成"
+	synth_hint.add_theme_font_size_override("font_size", 9)
+	synth_hint.add_theme_color_override("font_color", Color(0.5, 0.8, 0.6))
+	vbox.add_child(synth_hint)
+	popup.position = pos
+	main_node.add_child(popup)
+	_synth_hover_popup = popup
+
+func _hide_synth_hover_popup() -> void:
+	if _synth_hover_popup != null:
+		_synth_hover_popup.queue_free()
+		_synth_hover_popup = null
+
+func _show_synth_confirm(result_name: String, base_name: String, mat_name: String) -> void:
+	if main_node == null:
+		return
+	var existing = main_node.find_child("SynthConfirmBoardDialog", false, false)
+	if existing:
+		existing.queue_free()
+	var dialog = Panel.new()
+	dialog.name = "SynthConfirmBoardDialog"
+	dialog.z_index = 300
+	dialog.size = Vector2(240, 110)
+	dialog.position = Vector2((main_node.size.x - 240) / 2.0, (main_node.size.y - 110) / 2.0)
+	var dstyle = StyleBoxFlat.new()
+	dstyle.bg_color = Color(0.1, 0.1, 0.18, 0.97)
+	dstyle.border_color = Color(0.5, 0.5, 0.7)
+	dstyle.set_border_width_all(2)
+	dstyle.set_corner_radius_all(6)
+	dialog.add_theme_stylebox_override("panel", dstyle)
+	main_node.add_child(dialog)
+	var vbox = VBoxContainer.new()
+	vbox.add_theme_constant_override("separation", 8)
+	vbox.position = Vector2(10, 10)
+	vbox.size = Vector2(220, 90)
+	dialog.add_child(vbox)
+	var msg = Label.new()
+	msg.text = "%s を合成しますか？" % result_name
+	msg.autowrap_mode = TextServer.AUTOWRAP_WORD
+	msg.add_theme_font_size_override("font_size", 13)
+	msg.add_theme_color_override("font_color", Color(0.9, 0.9, 0.6))
+	vbox.add_child(msg)
+	var sub = Label.new()
+	sub.text = "[%s] + [%s]" % [base_name, mat_name]
+	sub.add_theme_font_size_override("font_size", 10)
+	sub.add_theme_color_override("font_color", Color(0.5, 0.5, 0.5))
+	sub.clip_text = true
+	vbox.add_child(sub)
+	var btn_hbox = HBoxContainer.new()
+	btn_hbox.add_theme_constant_override("separation", 12)
+	vbox.add_child(btn_hbox)
+	var yes_btn = Button.new()
+	yes_btn.text = "合成する"
+	yes_btn.add_theme_font_size_override("font_size", 12)
+	yes_btn.pressed.connect(func():
+		print("[DeckPrepBoard] 合成実行: [%s] + [%s] → [%s]" % [base_name, mat_name, result_name])
+		dialog.queue_free()
+	)
+	btn_hbox.add_child(yes_btn)
+	var no_btn = Button.new()
+	no_btn.text = "キャンセル"
+	no_btn.add_theme_font_size_override("font_size", 12)
+	no_btn.pressed.connect(func(): dialog.queue_free())
+	btn_hbox.add_child(no_btn)
 
 func _create_empty_slot_panel(w: float, h: float, border_color: Color) -> Control:
 	var p = Panel.new()

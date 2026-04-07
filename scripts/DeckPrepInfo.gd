@@ -903,18 +903,18 @@ func _show_spell_info_status(card_name: String) -> void:
 	if d.get("is_consumable", false):
 		_info_label("消費型（使用後デッキから消滅）", y, 11, UIF.DEMERIT_COLOR)
 
-# 大型カード枠ヘッダー（黄金比縦長・フレーバー/効果表内包）
-# カード内部構造:
-#   ヘッダー帯（コスト+名前）  height 30
-#   イラスト枠               height 100
-#   ステータス行              height 25
-#   種族行                   height 20
-#   効果表（2列3行）          height 63 (3行×21)
-#   フレーバー               height 80 (autowrap)
-#   合計: 318px (+ padding = 約330px、カード枠高さ420px内)
+# 大型カード枠ヘッダー（5:7比率縦長・仕様カード内レイアウト準拠）
+# カード内レイアウト（上から・高さ比率）:
+#   ヘッダー行（種族+マナ+カード名+コスト）  10%
+#   イラスト枠                             35%
+#   Skillsラベル                            5%
+#   スキル3列グリッド（攻撃時/サポート/パッシブ） 25%
+#   HP/ATK/SPD行                           10%
+#   フレーバーテキスト                      15%
 func _build_card_frame_header(card_name: String, d: Dictionary, y: float) -> float:
-	var frame_w = CARD_FRAME_W
-	var frame_h = CARD_FRAME_H
+	# 右パネル幅いっぱい（パディング8px分引く）。_info_w=200の場合は192px幅
+	var frame_w: int = _info_w - 8
+	var frame_h: int = int(float(frame_w) * 7.0 / 5.0)  # 5:7比率（192×7/5=268px）
 	var race = d.get("race", "")
 	var accent_color = RACE_COLORS.get(race, SPELL_COLOR)
 
@@ -931,100 +931,131 @@ func _build_card_frame_header(card_name: String, d: Dictionary, y: float) -> flo
 
 	var cy: float = 0  # カード内部Y座標
 
-	# ---- ヘッダー帯（コスト+名前） height 30 ----
+	# ---- ヘッダー行（10%）: 種族(左) + マナ(右隣) + カード名(中央) + コスト(右) ----
+	var header_h: float = float(frame_h) * 0.10
 	var header_bar = ColorRect.new()
 	header_bar.position = Vector2(0, cy)
-	header_bar.size = Vector2(frame_w, 30)
+	header_bar.size = Vector2(frame_w, header_h)
 	header_bar.color = accent_color
 	card_frame.add_child(header_bar)
 
-	var cost_lbl = Label.new()
-	cost_lbl.text = "%d💎" % d.get("cost", 0)
-	cost_lbl.position = Vector2(6, cy + 6)
-	cost_lbl.size = Vector2(30, 18)
-	cost_lbl.add_theme_font_size_override("font_size", 10)
-	cost_lbl.add_theme_color_override("font_color", Color(0.4, 0.9, 1.0))
-	card_frame.add_child(cost_lbl)
+	# 種族（左寄り・小）
+	var race_lbl = Label.new()
+	race_lbl.text = race if race != "" else "呪文"
+	race_lbl.position = Vector2(4, cy + 2)
+	race_lbl.size = Vector2(40, header_h - 4)
+	race_lbl.add_theme_font_size_override("font_size", 9)
+	race_lbl.add_theme_color_override("font_color", Color(1, 1, 1))
+	race_lbl.clip_text = true
+	race_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	card_frame.add_child(race_lbl)
 
+	# マナ（種族右隣・小）
+	var mana_val = d.get("cost", 0)
+	var mana_lbl = Label.new()
+	mana_lbl.text = "M%d" % mana_val
+	mana_lbl.position = Vector2(44, cy + 2)
+	mana_lbl.size = Vector2(24, header_h - 4)
+	mana_lbl.add_theme_font_size_override("font_size", 9)
+	mana_lbl.add_theme_color_override("font_color", Color(0.4, 0.9, 1.0))
+	mana_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	card_frame.add_child(mana_lbl)
+
+	# カード名（中央・大）
 	var name_lbl = Label.new()
 	name_lbl.text = card_name
-	name_lbl.position = Vector2(36, cy + 5)
-	name_lbl.size = Vector2(frame_w - 42, 20)
-	name_lbl.add_theme_font_size_override("font_size", 14)
+	name_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	name_lbl.position = Vector2(68, cy + 2)
+	name_lbl.size = Vector2(frame_w - 96, header_h - 4)
+	name_lbl.add_theme_font_size_override("font_size", 11)
 	name_lbl.add_theme_color_override("font_color", Color(1, 1, 1))
 	name_lbl.clip_text = true
+	name_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	card_frame.add_child(name_lbl)
-	cy += 32
 
-	# ---- イラスト枠 height 100 ----
+	# コスト（右寄り・小）
+	var cost_lbl = Label.new()
+	cost_lbl.text = "%d" % mana_val
+	cost_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	cost_lbl.position = Vector2(frame_w - 24, cy + 2)
+	cost_lbl.size = Vector2(20, header_h - 4)
+	cost_lbl.add_theme_font_size_override("font_size", 9)
+	cost_lbl.add_theme_color_override("font_color", Color(1, 1, 0.5))
+	cost_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	card_frame.add_child(cost_lbl)
+	cy += header_h + 1
+
+	# ---- イラスト枠（35%）----
+	var illust_h: float = float(frame_h) * 0.35
 	var illust = ColorRect.new()
-	illust.position = Vector2(6, cy)
-	illust.size = Vector2(frame_w - 12, 100)
+	illust.position = Vector2(4, cy)
+	illust.size = Vector2(frame_w - 8, illust_h)
 	illust.color = accent_color.darkened(0.65)
 	card_frame.add_child(illust)
-	cy += 104
+	cy += illust_h + 2
 
-	# ---- ステータス行 height 25 ----
+	# ---- Skillsラベル（5%）----
+	var skills_label_h: float = float(frame_h) * 0.05
+	var skills_center_lbl = Label.new()
+	skills_center_lbl.text = "Skills"
+	skills_center_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	skills_center_lbl.position = Vector2(4, cy)
+	skills_center_lbl.size = Vector2(frame_w - 8, skills_label_h)
+	skills_center_lbl.add_theme_font_size_override("font_size", 9)
+	skills_center_lbl.add_theme_color_override("font_color", Color(0.5, 0.5, 0.5))
+	skills_center_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	card_frame.add_child(skills_center_lbl)
+	cy += skills_label_h
+
+	# ---- スキル3列グリッド（25%）: 攻撃時 / サポート / パッシブ ----
+	var skills_grid_h: float = float(frame_h) * 0.25
+	cy = _build_skills_3col_in_card(card_frame, d, cy, frame_w, skills_grid_h)
+
+	# ---- HP/ATK/SPD行（10%）----
+	var stat_h: float = float(frame_h) * 0.10
 	if CardDB.UNITS.has(card_name):
 		var stats_hbox = HBoxContainer.new()
-		stats_hbox.position = Vector2(8, cy)
-		stats_hbox.size = Vector2(frame_w - 16, 20)
-		stats_hbox.add_theme_constant_override("separation", 6)
+		stats_hbox.position = Vector2(4, cy)
+		stats_hbox.size = Vector2(frame_w - 8, stat_h)
+		stats_hbox.add_theme_constant_override("separation", 4)
 		card_frame.add_child(stats_hbox)
-		for stat_text in [
-			"HP:%d" % d.get("hp", 0),
-			"ATK:%d" % d.get("atk", 0),
-			"SPD:%.1fs" % d.get("interval", 0)
+		for stat_data in [
+			["HP", str(d.get("hp", 0))],
+			["ATK", str(d.get("atk", 0))],
+			["SPD", "%.1fs" % d.get("interval", 0)],
 		]:
 			var sl = Label.new()
-			sl.text = stat_text
-			sl.add_theme_font_size_override("font_size", 10)
+			sl.text = "%s%s" % [stat_data[0], stat_data[1]]
+			sl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			sl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+			sl.add_theme_font_size_override("font_size", 9)
 			sl.add_theme_color_override("font_color", Color(0.9, 0.9, 0.9))
 			stats_hbox.add_child(sl)
-		cy += 25
-	elif CardDB.SPELLS.has(card_name) or CardDB.STATUS_SPELLS.has(card_name):
+	else:
 		var type_lbl = Label.new()
-		type_lbl.text = "[呪文] コスト: %d" % d.get("cost", 0) if CardDB.SPELLS.has(card_name) else "[異常状態]"
-		type_lbl.position = Vector2(8, cy)
-		type_lbl.add_theme_font_size_override("font_size", 11)
+		type_lbl.text = "[呪文]" if CardDB.SPELLS.has(card_name) else "[異常状態]"
+		type_lbl.position = Vector2(4, cy)
+		type_lbl.size = Vector2(frame_w - 8, stat_h)
+		type_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		type_lbl.add_theme_font_size_override("font_size", 10)
 		type_lbl.add_theme_color_override("font_color", Color(0.6, 0.8, 1.0))
 		card_frame.add_child(type_lbl)
-		cy += 25
+	cy += stat_h
 
-	# ---- 種族行 height 20 ----
-	if race != "":
-		var race_lbl = Label.new()
-		race_lbl.text = "◆ %s" % race
-		race_lbl.position = Vector2(8, cy)
-		race_lbl.size = Vector2(frame_w - 16, 18)
-		race_lbl.add_theme_font_size_override("font_size", 11)
-		race_lbl.add_theme_color_override("font_color", accent_color.lightened(0.3))
-		card_frame.add_child(race_lbl)
-		cy += 22
-
-	# ---- 効果表（2列3行、列名なし）height 63 ----
-	cy = _build_effect_table_in_card(card_frame, d, cy, frame_w)
-
-	# ---- 区切り線 ----
-	var sep = ColorRect.new()
-	sep.position = Vector2(10, cy)
-	sep.size = Vector2(frame_w - 20, 1)
-	sep.color = accent_color.darkened(0.2)
-	card_frame.add_child(sep)
-	cy += 5
-
-	# ---- フレーバーテキスト height 80 ----
+	# ---- フレーバーテキスト（15%・斜体・小・中央）----
+	var flavor_h: float = float(frame_h) * 0.15
 	var flavor = _get_flavor_text(card_name)
 	var flavor_lbl = Label.new()
 	flavor_lbl.text = flavor
-	flavor_lbl.position = Vector2(8, cy)
-	flavor_lbl.size = Vector2(frame_w - 16, 80)
+	flavor_lbl.position = Vector2(6, cy)
+	flavor_lbl.size = Vector2(frame_w - 12, flavor_h)
 	flavor_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD
-	flavor_lbl.add_theme_font_size_override("font_size", 10)
-	flavor_lbl.add_theme_color_override("font_color", Color(0.6, 0.6, 0.5))
+	flavor_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	flavor_lbl.add_theme_font_size_override("font_size", 9)
+	flavor_lbl.add_theme_color_override("font_color", Color(0.55, 0.55, 0.45))
 	card_frame.add_child(flavor_lbl)
 
-	return y + frame_h + 8
+	return y + float(frame_h) + 8.0
 
 # 効果表をカード内部に描画する（2列3行、列名なし）
 # 左列: trigger表示名（最大9文字）、右列: effect_id display
@@ -1117,6 +1148,90 @@ func _build_effect_table_in_card(card_frame: Control, d: Dictionary, cy: float, 
 		card_frame.add_child(more_lbl)
 
 	cy += (row_count + (1 if has_overflow else 0)) * ROW_H + 6
+	return cy
+
+# スキル3列グリッド（攻撃時/サポート/パッシブ）描画（右パネル用カード詳細 ⑤仕様準拠）
+# スキル分類:
+#   攻撃時   = trigger が "on_hit" or "on_kill"（命中/撃破時）
+#   サポート = trigger が "always" or "timer"（常時/定期）
+#   パッシブ = その他（on_summon / on_death / on_hp_threshold / on_play 等）
+func _build_skills_3col_in_card(card_frame: Control, d: Dictionary, cy: float, frame_w: int, grid_h: float) -> float:
+	var col_w: float = float(frame_w) / 3.0
+	var col_labels = ["攻撃時", "サポート", "パッシブ"]
+	var col_colors = [Color(0.9, 0.5, 0.4), Color(0.5, 0.8, 0.6), Color(0.6, 0.6, 0.9)]
+	const LABEL_H: float = 14.0
+	const EFFECT_H: float = 14.0
+
+	# 列ラベル行
+	for ci_col in range(3):
+		var col_lbl = Label.new()
+		col_lbl.text = col_labels[ci_col]
+		col_lbl.position = Vector2(float(ci_col) * col_w + 2.0, cy)
+		col_lbl.size = Vector2(col_w - 4.0, LABEL_H)
+		col_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		col_lbl.add_theme_font_size_override("font_size", 8)
+		col_lbl.add_theme_color_override("font_color", col_colors[ci_col])
+		col_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		card_frame.add_child(col_lbl)
+	cy += LABEL_H + 1
+
+	# 縦区切り線
+	for ci_div in range(1, 3):
+		var div = ColorRect.new()
+		div.position = Vector2(float(ci_div) * col_w, cy - LABEL_H - 1)
+		div.size = Vector2(1.0, grid_h)
+		div.color = Color(0.35, 0.35, 0.45, 0.5)
+		card_frame.add_child(div)
+
+	# スキルを3列に分類
+	var skills = d.get("skills", [])
+	var _edb = load("res://scripts/EffectDB.gd")
+	var col_effects: Array = [[], [], []]  # [攻撃時, サポート, パッシブ]
+	for skill in skills:
+		var trigger = skill.get("trigger", "")
+		var eid = skill.get("effect_id", "")
+		var edef = _edb.EFFECTS.get(eid, {})
+		var disp = edef.get("display", eid)
+		if disp == "":
+			continue
+		var col_idx: int
+		if trigger in ["on_hit", "on_kill"]:
+			col_idx = 0  # 攻撃時
+		elif trigger in ["always", "timer"]:
+			col_idx = 1  # サポート
+		else:
+			col_idx = 2  # パッシブ
+		col_effects[col_idx].append(disp)
+
+	# 各列の効果名を描画（最大2行）
+	for ci_col in range(3):
+		var effects = col_effects[ci_col]
+		if effects.size() == 0:
+			# スキルなし → グレーアウト
+			var none_lbl = Label.new()
+			none_lbl.text = "—"
+			none_lbl.position = Vector2(float(ci_col) * col_w + 2.0, cy)
+			none_lbl.size = Vector2(col_w - 4.0, EFFECT_H)
+			none_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+			none_lbl.add_theme_font_size_override("font_size", 8)
+			none_lbl.add_theme_color_override("font_color", Color(0.35, 0.35, 0.4))
+			none_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			card_frame.add_child(none_lbl)
+		else:
+			for ei in range(mini(effects.size(), 2)):
+				var eff_lbl = Label.new()
+				eff_lbl.text = effects[ei]
+				eff_lbl.position = Vector2(float(ci_col) * col_w + 2.0, cy + float(ei) * EFFECT_H)
+				eff_lbl.size = Vector2(col_w - 4.0, EFFECT_H)
+				eff_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+				eff_lbl.add_theme_font_size_override("font_size", 8)
+				eff_lbl.add_theme_color_override("font_color", Color(0.85, 0.85, 0.85))
+				eff_lbl.clip_text = true
+				eff_lbl.mouse_filter = Control.MOUSE_FILTER_STOP  # ホバー検知
+				# ホバーで効果詳細ポップアップ（将来実装プレースホルダー）
+				card_frame.add_child(eff_lbl)
+
+	cy += maxf(EFFECT_H * 2.0, grid_h - LABEL_H - 1.0)
 	return cy
 
 func _get_effect_summary(card_name: String, d: Dictionary) -> String:
