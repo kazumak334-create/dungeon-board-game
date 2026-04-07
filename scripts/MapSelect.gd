@@ -1,15 +1,24 @@
 # MapSelect.gd
-# マップ選択画面（スタブ）: 各ノード種別への遷移
+# マップ選択画面（Phase 3 MVP版）: 各ノード種別への遷移
+# TODO Phase 3本実装: MapGenerator.gd と連携した横StS風分岐ツリー
 extends Control
 
 const UIF = preload("res://scripts/UIFactory.gd")
+const TaskbarClass = preload("res://scripts/CommonTaskbar.gd")
+
+var _taskbar: RefCounted = null
 
 func _ready() -> void:
 	_build_ui()
 
 func _build_ui() -> void:
 	UIF.add_bg(self)
-	UIF.add_title(self, "マップ", 30)
+
+	# 共通タスクバー（最上部36px）
+	_taskbar = TaskbarClass.new()
+	_taskbar.attach(self, SceneManager.MAP_SELECT)
+
+	UIF.add_title(self, "マップ", 50)
 
 	# 環境が未設定ならランダム選択（ボス区間開始時）
 	if GameSession.base_environment == "" or GameSession.base_environment == "env_none":

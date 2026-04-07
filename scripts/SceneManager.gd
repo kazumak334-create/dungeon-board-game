@@ -14,6 +14,10 @@ const EVENT          = "event"
 const GATHER         = "gather"
 const BOSS_REWARD    = "boss_reward"
 const WORKSHOP       = "workshop"
+const DECK_VIEW      = "deck_view"
+const INVENTORY      = "inventory"
+const SKILL_TREE     = "skill_tree"
+const SETTINGS       = "settings"
 
 # シーン登録
 var _scenes: Dictionary = {
@@ -28,6 +32,10 @@ var _scenes: Dictionary = {
 	"gather": "res://scenes/Gather.tscn",
 	"boss_reward": "res://scenes/BossReward.tscn",
 	"workshop": "res://scenes/Workshop.tscn",
+	"deck_view": "res://scenes/DeckView.tscn",
+	"inventory": "res://scenes/Inventory.tscn",
+	"skill_tree": "res://scenes/SkillTree.tscn",
+	"settings": "res://scenes/Settings.tscn",
 }
 
 func go_to(scene_name: String) -> void:
