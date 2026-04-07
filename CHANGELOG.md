@@ -2,6 +2,21 @@
 
 ## [Unreleased]
 
+### CheckAgent：確認完了（要手動確認あり）— 2026-04-07 TestRunner分離検証
+
+#### 検証内容: TestRunner.gd R10分離（835行→62行）
+
+静的検証（全項目OK）:
+1. `run(runner: RefCounted)`シグネチャ — 全6ファイル統一済み
+2. `self._assert_true`誤用なし — 全て引数`r`経由で正しく呼び出し
+3. TestRunner.gd run_all()が全6ファイルをload().new().run(self)で呼ぶ構造 — OK
+4. 構文・インデント — タブインデント統一、スペースインデント0件 — OK
+5. テスト関数35個が6ファイルに責務分離済み — 漏れなし
+6. static 209件のアサーション定義 + DBエントリ数依存のループアサーションで1813件相当と推定
+
+要手動確認（Bash実行権限なし）:
+- ヘッドレス実行 `godot4 --path . --headless --script scripts/RunTests.gd` でテスト件数1813件・全パスを確認する
+
 ### CheckAgent：確認完了・修正なし — 2026-04-07
 
 #### 検証内容: battle_config辞書の実装
