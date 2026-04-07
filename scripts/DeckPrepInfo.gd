@@ -14,7 +14,7 @@ const SPELL_COLOR = Color(0.3, 0.4, 0.6)
 const DEFAULT_COLOR = Color(0.3, 0.3, 0.4)
 
 var _main_node: Control = null  # DeckPrepインスタンス参照
-var _info_container: Control = null
+var _info_container: Control = null  # 右側合成レーン
 var _info_w: int = 275
 var _PL = null
 var _hover_popup: Control = null
@@ -28,6 +28,10 @@ const CARD_FRAME_H: int = 420  # 260 × 1.615 ≒ 420
 # ミニカードアイコンサイズ（黄金比）
 const MINI_CARD_W: int = 60
 const MINI_CARD_H: int = 97  # 60 × 1.618 ≒ 97
+
+# カード詳細用コンテナ（盤面左下）
+var _detail_container: Control = null
+var _detail_w: int = 130
 
 func setup(main_node: Control, info_container: Control, info_w: int, pl) -> void:
 	_main_node = main_node
@@ -54,6 +58,244 @@ func show_empty() -> void:
 	hint.add_theme_font_size_override("font_size", 13)
 	hint.add_theme_color_override("font_color", UIF.DIM_COLOR)
 	_info_container.add_child(hint)
+
+# ===== 右側合成レーン専用パネル構築 =====
+
+func build_synthesis_right_panel() -> void:
+	# 右側レーンに合成可能エリアを描画
+	var children = _info_container.get_children()
+	# 背景・枠線(index 0,1)は残す
+	for i in range(children.size() - 1, 1, -1):
+		children[i].queue_free()
+
+	var header = Label.new()
+	header.text = "合成可能"
+	header.position = Vector2(10, 10)
+	header.size = Vector2(_info_w - 20, 22)
+	header.add_theme_font_size_override("font_size", 14)
+	header.add_theme_color_override("font_color", UIF.TITLE_COLOR)
+	_info_container.add_child(header)
+
+	var sep = ColorRect.new()
+	sep.position = Vector2(10, 34)
+	sep.size = Vector2(_info_w - 20, 1)
+	sep.color = Color(0.25, 0.28, 0.35, 0.8)
+	_info_container.add_child(sep)
+
+	# カード数カウント
+	var card_counts: Dictionary = {}
+	for entry in GameSession.selected_deck:
+		var name = entry.get("name", "") if entry is Dictionary else str(entry)
+		card_counts[name] = card_counts.get(name, 0) + 1
+
+	var y: float = 42.0
+	var found = false
+
+	for recipe in CardDB.SYNTHESIS:
+		var base = recipe.get("base", "")
+		var card = recipe.get("card", "")
+		var result_name = recipe.get("result", "")
+
+		var needed: Dictionary = {}
+		needed[base] = needed.get(base, 0) + 1
+		needed[card] = needed.get(card, 0) + 1
+		var can_craft = true
+		for n in needed:
+			if card_counts.get(n, 0) < needed[n]:
+				can_craft = false
+				break
+
+		# 結果カードをミニタイルで表示
+		var tile_w = _info_w - 20
+		var tile_h = 60
+		var tile = Panel.new()
+		tile.position = Vector2(10, y)
+		tile.size = Vector2(tile_w, tile_h)
+		var result_color = _get_card_accent_color(result_name)
+		var tile_style = StyleBoxFlat.new()
+		tile_style.bg_color = result_color.darkened(0.55)
+		tile_style.border_color = result_color if can_craft else Color(0.3, 0.3, 0.3)
+		tile_style.set_border_width_all(2 if can_craft else 1)
+		tile_style.set_corner_radius_all(4)
+		tile.add_theme_stylebox_override("panel", tile_style)
+		tile.modulate = Color(1.0, 1.0, 1.0) if can_craft else Color(0.5, 0.5, 0.5)
+		_info_container.add_child(tile)
+
+		# 結果カード名
+		var name_lbl = Label.new()
+		name_lbl.text = result_name
+		name_lbl.position = Vector2(6, 4)
+		name_lbl.size = Vector2(tile_w - 12, 18)
+		name_lbl.add_theme_font_size_override("font_size", 11)
+		name_lbl.add_theme_color_override("font_color", Color(1, 1, 1))
+		name_lbl.clip_text = true
+		name_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		tile.add_child(name_lbl)
+
+		# 素材テキスト
+		var mat_lbl = Label.new()
+		mat_lbl.text = "%s + %s" % [base, card]
+		mat_lbl.position = Vector2(6, 22)
+		mat_lbl.size = Vector2(tile_w - 12, 14)
+		mat_lbl.add_theme_font_size_override("font_size", 9)
+		mat_lbl.add_theme_color_override("font_color", UIF.DIM_COLOR)
+		mat_lbl.clip_text = true
+		mat_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		tile.add_child(mat_lbl)
+
+		# 合成ボタン or 素材不足
+		var btn_lbl = Label.new()
+		btn_lbl.text = "[合成]" if can_craft else "[素材不足]"
+		btn_lbl.position = Vector2(6, 38)
+		btn_lbl.size = Vector2(tile_w - 12, 16)
+		btn_lbl.add_theme_font_size_override("font_size", 10)
+		btn_lbl.add_theme_color_override("font_color", UIF.BENEFIT_COLOR if can_craft else UIF.DIM_COLOR)
+		btn_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		tile.add_child(btn_lbl)
+
+		if can_craft:
+			var result_ref = result_name
+			tile.gui_input.connect(func(event: InputEvent):
+				if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
+					# TODO: 合成実行ロジック（Phase 2対象）
+					pass
+			)
+
+		y += float(tile_h) + 6.0
+		found = true
+
+		if y > 680.0:
+			break
+
+	if not found:
+		var empty = Label.new()
+		empty.text = "合成レシピなし"
+		empty.position = Vector2(10, y)
+		empty.size = Vector2(_info_w - 20, 20)
+		empty.add_theme_font_size_override("font_size", 11)
+		empty.add_theme_color_override("font_color", UIF.DIM_COLOR)
+		_info_container.add_child(empty)
+
+func _get_card_accent_color(card_name: String) -> Color:
+	if CardDB.UNITS.has(card_name):
+		var race = CardDB.UNITS[card_name].get("race", "")
+		return RACE_COLORS.get(race, DEFAULT_COLOR)
+	if CardDB.SPELLS.has(card_name):
+		return SPELL_COLOR
+	return DEFAULT_COLOR
+
+# ===== カード詳細を指定コンテナに描画（盤面左下用）=====
+
+func _clear_detail() -> void:
+	if _detail_container == null:
+		return
+	for child in _detail_container.get_children():
+		child.queue_free()
+
+func show_empty_in_container(container: Control) -> void:
+	_detail_container = container
+	_detail_w = int(container.size.x) if container.size.x > 0 else 130
+	_clear_detail()
+	var hint = Label.new()
+	hint.text = "カードを\n選択"
+	hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	hint.position = Vector2(4, 40)
+	hint.size = Vector2(_detail_w - 8, 50)
+	hint.add_theme_font_size_override("font_size", 10)
+	hint.add_theme_color_override("font_color", UIF.DIM_COLOR)
+	_detail_container.add_child(hint)
+
+func show_card_info_in_container(container: Control, card_idx: int) -> void:
+	_detail_container = container
+	_detail_w = int(container.size.x) if container.size.x > 0 else 130
+	_clear_detail()
+	if card_idx < 0 or card_idx >= GameSession.selected_deck.size():
+		show_empty_in_container(container)
+		return
+	var entry = GameSession.selected_deck[card_idx]
+	var card_name = entry.get("name", "???") if entry is Dictionary else str(entry)
+
+	# コンパクト版カード情報（盤面左下 130px幅）
+	var accent = _get_card_accent_color(card_name)
+	# ヘッダー帯
+	var header = ColorRect.new()
+	header.position = Vector2(0, 0)
+	header.size = Vector2(_detail_w, 22)
+	header.color = accent
+	header.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_detail_container.add_child(header)
+	var name_lbl = Label.new()
+	name_lbl.text = card_name
+	name_lbl.position = Vector2(4, 3)
+	name_lbl.size = Vector2(_detail_w - 8, 16)
+	name_lbl.add_theme_font_size_override("font_size", 9)
+	name_lbl.add_theme_color_override("font_color", Color(1, 1, 1))
+	name_lbl.clip_text = true
+	name_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_detail_container.add_child(name_lbl)
+
+	var y: float = 26.0
+	# ステータス
+	if CardDB.UNITS.has(card_name):
+		var d = CardDB.UNITS[card_name]
+		for stat_pair in [
+			["コスト", str(d.get("cost", 0))],
+			["HP", str(d.get("hp", 0))],
+			["ATK", str(d.get("atk", 0))],
+			["SPD", "%.1fs" % d.get("interval", 0)],
+			["種族", d.get("race", "")],
+		]:
+			var row = Label.new()
+			row.text = "%s:%s" % [stat_pair[0], stat_pair[1]]
+			row.position = Vector2(4, y)
+			row.size = Vector2(_detail_w - 8, 14)
+			row.add_theme_font_size_override("font_size", 9)
+			row.add_theme_color_override("font_color", UIF.TEXT_COLOR)
+			row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			_detail_container.add_child(row)
+			y += 15.0
+	elif CardDB.SPELLS.has(card_name):
+		var d = CardDB.SPELLS[card_name]
+		var row = Label.new()
+		row.text = "[呪文] C:%d" % d.get("cost", 0)
+		row.position = Vector2(4, y)
+		row.size = Vector2(_detail_w - 8, 14)
+		row.add_theme_font_size_override("font_size", 9)
+		row.add_theme_color_override("font_color", SPELL_COLOR)
+		row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_detail_container.add_child(row)
+		y += 15.0
+	elif CardDB.STATUS_SPELLS.has(card_name):
+		var d = CardDB.STATUS_SPELLS[card_name]
+		var row = Label.new()
+		row.text = "[異常] C:%d" % d.get("cost", 0)
+		row.position = Vector2(4, y)
+		row.size = Vector2(_detail_w - 8, 14)
+		row.add_theme_font_size_override("font_size", 9)
+		row.add_theme_color_override("font_color", UIF.DEMERIT_COLOR)
+		row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_detail_container.add_child(row)
+		y += 15.0
+
+func show_material_in_container(container: Control, mat: Dictionary) -> void:
+	_detail_container = container
+	_detail_w = int(container.size.x) if container.size.x > 0 else 130
+	_clear_detail()
+	var name_lbl = Label.new()
+	name_lbl.text = mat.get("display", "?")
+	name_lbl.position = Vector2(4, 4)
+	name_lbl.size = Vector2(_detail_w - 8, 20)
+	name_lbl.add_theme_font_size_override("font_size", 11)
+	name_lbl.add_theme_color_override("font_color", UIF.TITLE_COLOR)
+	_detail_container.add_child(name_lbl)
+	var count = _count_owned(mat.get("id", ""))
+	var count_lbl = Label.new()
+	count_lbl.text = "所持: ×%d" % count
+	count_lbl.position = Vector2(4, 26)
+	count_lbl.size = Vector2(_detail_w - 8, 16)
+	count_lbl.add_theme_font_size_override("font_size", 10)
+	count_lbl.add_theme_color_override("font_color", Color(0.6, 0.7, 0.5))
+	_detail_container.add_child(count_lbl)
 
 # ===== カード詳細表示（DeckPrep.gdから移植） =====
 

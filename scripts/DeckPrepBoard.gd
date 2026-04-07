@@ -15,23 +15,38 @@ const ROW_LABEL_W = 35
 const BOARD_H = BOARD_Y + 52 + 3 * (CELL_H + CELL_GAP) + 30
 const INFO_W = 280
 
-# 呪文スロット定数 (横5×縦2=10スロット)
-const SPELL_SLOT_W = 78
-const SPELL_SLOT_H = 38
-const SPELL_SLOT_GAP = 6
-const SPELL_SLOTS_COLS = 5
-const SPELL_SLOTS_ROWS = 2
+# 呪文スロット定数 (タイル最大4枚→80×100px, 5枚以上→バー形式)
+const SPELL_TILE_W = 80
+const SPELL_TILE_H = 100
+const SPELL_TILE_GAP = 6
+const SPELL_BAR_H = 28
+const SPELL_BAR_GAP = 4
+const SPELL_SLOTS_COLS = 5   # バー時の列数（後方互換）
+const SPELL_SLOTS_ROWS = 2   # バー時の行数（後方互換）
+const SPELL_SLOT_W = 78      # バー時の幅（後方互換）
+const SPELL_SLOT_H = 38      # バー時の高さ（後方互換）
+const SPELL_SLOT_GAP = 6     # バー時のギャップ（後方互換）
+const SPELL_TILE_SWITCH = 4  # タイル→バー切り替え枚数（4以下タイル, 5以上バー）
 const SPELL_SLOTS_Y = BOARD_H + 4
 
-# アーティファクトスロット定数 (横6×縦1=6スロット)
+# アーティファクトスロット定数 (タイル最大4枚→80×100px, 5枚以上→バー形式)
+const ARTIFACT_TILE_W = 80
+const ARTIFACT_TILE_H = 100
+const ARTIFACT_TILE_GAP = 6
+const ARTIFACT_BAR_H = 28
+const ARTIFACT_BAR_GAP = 4
 const ARTIFACT_SLOT_W = 78
 const ARTIFACT_SLOT_H = 38
 const ARTIFACT_SLOT_GAP = 6
 const ARTIFACT_SLOTS_COUNT = 6
-const ARTIFACT_SLOTS_Y = SPELL_SLOTS_Y + SPELL_SLOT_H * SPELL_SLOTS_ROWS + SPELL_SLOT_GAP * (SPELL_SLOTS_ROWS - 1) + 12
+const ARTIFACT_TILE_SWITCH = 4  # タイル→バー切り替え枚数
 
-# 合成リスト開始Y
-const SYNTHESIS_Y = ARTIFACT_SLOTS_Y + ARTIFACT_SLOT_H + 8
+# アーティファクトY（呪文エリア高さは動的なのでbuild時に計算）
+const ARTIFACT_SLOTS_Y_OFFSET = 12  # 呪文エリア下のオフセット
+
+# カード詳細エリア定数（盤面左下）
+const CARD_DETAIL_W = 130   # 盤面1列分幅（约130px）
+const CARD_DETAIL_H = 200   # カード詳細高さ
 
 const RACE_COLORS = {
 	"スライム": Color(0.3, 0.6, 0.3),
@@ -79,9 +94,10 @@ func build_placement_tab(_tab_container_arg: Control, PL) -> void:
 	_build_board_col_labels(enemy_x)
 	_build_board_cells(enemy_x)
 	populate_cards()
-	_build_spell_slots()
-	_build_artifact_slots()
-	build_synthesis_list(SYNTHESIS_Y, tab_container)
+	# 呪文・アーティファクトをタイル/バー切替式で描画
+	var artifact_y = _build_spell_slots_hybrid()
+	_build_artifact_slots_hybrid(artifact_y)
+	# 合成リストは右側レーンへ移管（ここでは描画しない）
 
 # 項目2: 自陣・敵陣ラベル完全削除 → 列ラベルのみ残す
 func _build_board_col_labels(enemy_x: float) -> void:
@@ -356,10 +372,10 @@ func _create_bar_chip(card_name: String, count: int, w: float, h: float,
 	panel.gui_input.connect(func(event): _on_chip_input(event, idx, all_indices, panel))
 	return panel
 
-# ---- 呪文スロット描画 ----
+# ---- 呪文スロット描画（タイル/バー切替式）----
+# 戻り値: アーティファクトスロット開始Y（動的計算）
 
-func _build_spell_slots() -> void:
-	# セクションラベル
+func _build_spell_slots_hybrid() -> float:
 	var label = Label.new()
 	label.text = "呪文スロット"
 	label.position = Vector2(BOARD_X, SPELL_SLOTS_Y - 14)
@@ -367,51 +383,62 @@ func _build_spell_slots() -> void:
 	label.add_theme_color_override("font_color", Color(0.6, 0.65, 0.85))
 	tab_container.add_child(label)
 
-	# 呪文カード一覧を取得（集約済み）
 	var spell_cards = _build_spell_cards_list()
+	var count = spell_cards.size()
 
-	var slot_idx = 0
-	for sc in spell_cards:
-		if slot_idx >= SPELL_SLOTS_COLS * SPELL_SLOTS_ROWS:
-			break
-		var row = slot_idx / SPELL_SLOTS_COLS
-		var col = slot_idx % SPELL_SLOTS_COLS
-		var sx = float(BOARD_X) + float(col) * float(SPELL_SLOT_W + SPELL_SLOT_GAP)
-		var sy = float(SPELL_SLOTS_Y) + float(row) * float(SPELL_SLOT_H + SPELL_SLOT_GAP)
-		var bar = _create_bar_chip(sc[1], sc[2], float(SPELL_SLOT_W), float(SPELL_SLOT_H), sc[0], sc[3])
-		bar.position = Vector2(sx, sy)
-		tab_container.add_child(bar)
-		slot_idx += 1
+	if count <= SPELL_TILE_SWITCH:
+		# タイル形式（4枚以下: 80×100px）
+		for i in range(count):
+			var sc = spell_cards[i]
+			var sx = float(BOARD_X) + float(i) * float(SPELL_TILE_W + SPELL_TILE_GAP)
+			var sy = float(SPELL_SLOTS_Y)
+			var tile = _create_tile_chip(sc[1], sc[2], float(SPELL_TILE_W), float(SPELL_TILE_H), sc[0], sc[3])
+			tile.position = Vector2(sx, sy)
+			tab_container.add_child(tile)
+		# 残り空スロット（4個まで）
+		for i in range(count, SPELL_TILE_SWITCH):
+			var sx = float(BOARD_X) + float(i) * float(SPELL_TILE_W + SPELL_TILE_GAP)
+			var empty = _create_empty_slot_panel(float(SPELL_TILE_W), float(SPELL_TILE_H), Color(0.2, 0.22, 0.35))
+			empty.position = Vector2(sx, float(SPELL_SLOTS_Y))
+			tab_container.add_child(empty)
+		return float(SPELL_SLOTS_Y) + float(SPELL_TILE_H) + float(ARTIFACT_SLOTS_Y_OFFSET)
+	else:
+		# バー形式（5枚以上: full幅×28px）
+		var bar_area_w = float(BOARD_X) + 5.0 * float(SPELL_TILE_W + SPELL_TILE_GAP)
+		for i in range(count):
+			var sy = float(SPELL_SLOTS_Y) + float(i) * float(SPELL_BAR_H + SPELL_BAR_GAP)
+			var bar = _create_bar_chip(spell_cards[i][1], spell_cards[i][2], bar_area_w - float(BOARD_X), float(SPELL_BAR_H), spell_cards[i][0], spell_cards[i][3])
+			bar.position = Vector2(float(BOARD_X), sy)
+			tab_container.add_child(bar)
+		return float(SPELL_SLOTS_Y) + float(count) * float(SPELL_BAR_H + SPELL_BAR_GAP) + float(ARTIFACT_SLOTS_Y_OFFSET)
 
-	# 残りの空スロット
-	for i in range(slot_idx, SPELL_SLOTS_COLS * SPELL_SLOTS_ROWS):
-		var row = i / SPELL_SLOTS_COLS
-		var col = i % SPELL_SLOTS_COLS
-		var sx = float(BOARD_X) + float(col) * float(SPELL_SLOT_W + SPELL_SLOT_GAP)
-		var sy = float(SPELL_SLOTS_Y) + float(row) * float(SPELL_SLOT_H + SPELL_SLOT_GAP)
-		var empty = _create_empty_slot_panel(float(SPELL_SLOT_W), float(SPELL_SLOT_H),
-			Color(0.2, 0.22, 0.35))
-		empty.position = Vector2(sx, sy)
-		tab_container.add_child(empty)
+# ---- アーティファクトスロット描画（タイル/バー切替式）----
 
-# ---- アーティファクトスロット描画 ----
-
-func _build_artifact_slots() -> void:
-	# セクションラベル
+func _build_artifact_slots_hybrid(art_y: float) -> void:
 	var label = Label.new()
 	label.text = "アーティファクト"
-	label.position = Vector2(BOARD_X, ARTIFACT_SLOTS_Y - 14)
+	label.position = Vector2(BOARD_X, art_y - 14)
 	label.add_theme_font_size_override("font_size", 11)
 	label.add_theme_color_override("font_color", Color(0.75, 0.65, 0.4))
 	tab_container.add_child(label)
 
-	for i in range(ARTIFACT_SLOTS_COUNT):
-		var sx = float(BOARD_X) + float(i) * float(ARTIFACT_SLOT_W + ARTIFACT_SLOT_GAP)
-		var sy = float(ARTIFACT_SLOTS_Y)
-		var empty = _create_empty_slot_panel(float(ARTIFACT_SLOT_W), float(ARTIFACT_SLOT_H),
-			Color(0.4, 0.35, 0.18))
-		empty.position = Vector2(sx, sy)
-		tab_container.add_child(empty)
+	# アーティファクトスロットは常に空スロット6個（現状ゲームデータなし）
+	var count = 0  # 将来: アーティファクトカード数
+	if count <= ARTIFACT_TILE_SWITCH:
+		# タイル形式（4枚以下）
+		for i in range(ARTIFACT_SLOTS_COUNT):
+			var sx = float(BOARD_X) + float(i) * float(ARTIFACT_TILE_W + ARTIFACT_TILE_GAP)
+			var empty = _create_empty_slot_panel(float(ARTIFACT_TILE_W), float(ARTIFACT_TILE_H), Color(0.4, 0.35, 0.18))
+			empty.position = Vector2(sx, art_y)
+			tab_container.add_child(empty)
+	else:
+		# バー形式（5枚以上）
+		var bar_area_w = float(BOARD_X) + 5.0 * float(ARTIFACT_TILE_W + ARTIFACT_TILE_GAP)
+		for i in range(ARTIFACT_SLOTS_COUNT):
+			var sy = art_y + float(i) * float(ARTIFACT_BAR_H + ARTIFACT_BAR_GAP)
+			var empty = _create_empty_slot_panel(bar_area_w - float(BOARD_X), float(ARTIFACT_BAR_H), Color(0.4, 0.35, 0.18))
+			empty.position = Vector2(float(BOARD_X), sy)
+			tab_container.add_child(empty)
 
 func _create_empty_slot_panel(w: float, h: float, border_color: Color) -> Control:
 	var p = Panel.new()
@@ -424,62 +451,23 @@ func _create_empty_slot_panel(w: float, h: float, border_color: Color) -> Contro
 	p.add_theme_stylebox_override("panel", style)
 	return p
 
-func build_synthesis_list(y_start: float, _tc: Control) -> void:
-	var panel_w = 1280 - INFO_W - 30
-	var panel = UIF.create_panel(Vector2(BOARD_X, y_start), Vector2(panel_w, 160))
-	_tc.add_child(panel)
+# ---- カード詳細コンテナ（盤面左下）----
 
-	var header = Label.new()
-	header.text = "合成可能"
-	header.position = Vector2(BOARD_X + 10, y_start + 5)
-	header.add_theme_font_size_override("font_size", 13)
-	header.add_theme_color_override("font_color", UIF.TITLE_COLOR)
-	_tc.add_child(header)
-
-	var card_counts: Dictionary = {}
-	for entry in GameSession.selected_deck:
-		var name = entry.get("name", "") if entry is Dictionary else str(entry)
-		card_counts[name] = card_counts.get(name, 0) + 1
-
-	var x = BOARD_X + 10
-	var y = y_start + 25
-	var found = false
-	for recipe in CardDB.SYNTHESIS:
-		var base = recipe.get("base", "")
-		var card = recipe.get("card", "")
-		var result_name = recipe.get("result", "")
-
-		var needed: Dictionary = {}
-		needed[base] = needed.get(base, 0) + 1
-		needed[card] = needed.get(card, 0) + 1
-		var can_craft = true
-		for n in needed:
-			if card_counts.get(n, 0) < needed[n]:
-				can_craft = false
-				break
-
-		var lbl = Label.new()
-		lbl.text = "%s + %s → %s" % [base, card, result_name]
-		lbl.position = Vector2(x, y)
-		lbl.add_theme_font_size_override("font_size", 11)
-		if can_craft:
-			lbl.add_theme_color_override("font_color", UIF.BENEFIT_COLOR)
-		else:
-			lbl.add_theme_color_override("font_color", UIF.DIM_COLOR)
-		_tc.add_child(lbl)
-		y += 18
-		found = true
-
-		if y > y_start + 150:
-			break
-
-	if not found:
-		var empty = Label.new()
-		empty.text = "合成レシピなし"
-		empty.position = Vector2(x, y)
-		empty.add_theme_font_size_override("font_size", 11)
-		empty.add_theme_color_override("font_color", UIF.DIM_COLOR)
-		_tc.add_child(empty)
+func build_card_detail_container(_tc: Control) -> Control:
+	# 盤面グリッドの左端・下端座標を計算
+	var detail_x = float(BOARD_X)
+	var board_bottom = float(CELLS_START_Y) + 3.0 * float(CELL_H + CELL_GAP) + 4.0
+	var detail = Panel.new()
+	detail.position = Vector2(detail_x, board_bottom)
+	detail.size = Vector2(float(CARD_DETAIL_W), float(CARD_DETAIL_H))
+	var style = StyleBoxFlat.new()
+	style.bg_color = Color(0.07, 0.07, 0.11)
+	style.border_color = Color(0.2, 0.2, 0.3)
+	style.set_border_width_all(1)
+	style.set_corner_radius_all(4)
+	detail.add_theme_stylebox_override("panel", style)
+	_tc.add_child(detail)
+	return detail
 
 func populate_cards() -> void:
 	for si in range(2):
