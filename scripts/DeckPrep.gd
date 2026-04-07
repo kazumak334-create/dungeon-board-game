@@ -46,13 +46,14 @@ const INFO_W = 275          # 解説レーン幅
 const INFO_H = 710          # 解説レーン高さ
 
 # 装備スロット定義（絶対変更禁止: 頭/胴/足/アクセ×3の6個固定）
+# 配置: 3行×2列（左列=頭/胴/足, 右列=アクセ1/2/3）
 const EQUIP_SLOTS = [
 	{"id": "head",       "label": "頭",    "row": 0, "col": 0},
-	{"id": "body",       "label": "胴",    "row": 0, "col": 1},
-	{"id": "feet",       "label": "足",    "row": 0, "col": 2},
-	{"id": "accessory1", "label": "アクセ1", "row": 1, "col": 0},
+	{"id": "body",       "label": "胴",    "row": 1, "col": 0},
+	{"id": "feet",       "label": "足",    "row": 2, "col": 0},
+	{"id": "accessory1", "label": "アクセ1", "row": 0, "col": 1},
 	{"id": "accessory2", "label": "アクセ2", "row": 1, "col": 1},
-	{"id": "accessory3", "label": "アクセ3", "row": 1, "col": 2},
+	{"id": "accessory3", "label": "アクセ3", "row": 2, "col": 1},
 ]
 const EQUIP_SLOT_SIZE = 55   # スロットサイズ
 const EQUIP_SLOT_GAP = 8     # スロット間隔
@@ -208,9 +209,9 @@ func _build_equipment_area() -> void:
 	header.add_theme_color_override("font_color", UIF.TITLE_COLOR)
 	add_child(header)
 
-	# 装備スロット2×3配置
+	# 装備スロット3×2配置（左列=頭/胴/足, 右列=アクセ1/2/3）
 	for slot in EQUIP_SLOTS:
-		var sx = base_x + 3 + slot["col"] * (EQUIP_SLOT_SIZE + EQUIP_SLOT_GAP)
+		var sx = base_x + 3 + slot["col"] * (EQUIP_SLOT_SIZE + EQUIP_SLOT_GAP + 10)
 		var sy = base_y + 20 + slot["row"] * (EQUIP_SLOT_SIZE + EQUIP_SLOT_GAP + 14)
 		_build_equipment_slot(slot["id"], slot["label"], sx, sy)
 

@@ -145,24 +145,25 @@ func build_synthesis_section(y_start: float, card_name: String) -> float:
 
 	var has_synthesis = false
 
-	# 合成素材として使われるレシピ（項目6: 合成先箇条書き+ホバー）
+	# 合成素材として使われるレシピ: [base] + [card] → [result]
 	for recipe in CardDB.SYNTHESIS:
 		if recipe.get("base", "") == card_name or recipe.get("card", "") == card_name:
-			var result_name = recipe.get("result", "")
-			y = _build_synthesis_row(
-				"%s + %s → %s" % [recipe["base"], recipe["card"], result_name],
-				result_name, y, UIF.BENEFIT_COLOR
+			y = _build_synthesis_card_row(
+				recipe.get("base", ""),
+				recipe.get("card", ""),
+				recipe.get("result", ""),
+				y
 			)
 			has_synthesis = true
 
-	# 合成先（このカードが結果になるレシピ）（項目7: 合成素材ホバー）
+	# 合成先（このカードが結果になるレシピ）
 	for recipe in CardDB.SYNTHESIS:
 		if recipe.get("result", "") == card_name:
-			var base_name = recipe.get("base", "")
-			var card2_name = recipe.get("card", "")
-			y = _build_synthesis_row(
-				"← %s + %s" % [base_name, card2_name],
-				base_name, y, Color(0.7, 0.7, 0.5)
+			y = _build_synthesis_card_row(
+				recipe.get("base", ""),
+				recipe.get("card", ""),
+				recipe.get("result", ""),
+				y
 			)
 			has_synthesis = true
 
@@ -170,28 +171,124 @@ func build_synthesis_section(y_start: float, card_name: String) -> float:
 		y = _info_label("なし", y, 12, UIF.DIM_COLOR)
 	return y
 
-# 合成行1件（テキスト + ホバーエリア）
-func _build_synthesis_row(display_text: String, hover_target: String, y: float, color: Color) -> float:
-	var row = Control.new()
-	row.position = Vector2(15, y)
-	row.size = Vector2(_info_w - 30, 18)
-	_info_container.add_child(row)
+# 項目4: 合成行を「[対象] + [素材] → [結果]」のカードアイコン形式で表示
+func _build_synthesis_card_row(base_name: String, mat_name: String, result_name: String, y: float) -> float:
+	const ICON_W = 60
+	const ICON_H = 78
+	const OP_W = 14
+	var total_w = ICON_W * 3 + OP_W * 2 + 4
+	var start_x = (_info_w - total_w) / 2.0
 
-	var lbl = Label.new()
-	lbl.text = display_text
-	lbl.size = Vector2(_info_w - 30, 18)
-	lbl.add_theme_font_size_override("font_size", 11)
-	lbl.add_theme_color_override("font_color", color)
-	lbl.mouse_filter = Control.MOUSE_FILTER_PASS
-	row.add_child(lbl)
+	var row_ctrl = Control.new()
+	row_ctrl.position = Vector2(0, y)
+	row_ctrl.size = Vector2(_info_w, ICON_H + 2)
+	row_ctrl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_info_container.add_child(row_ctrl)
 
-	# ホバーポップアップ（項目6,7）
-	if hover_target != "" and (CardDB.UNITS.has(hover_target) or CardDB.SPELLS.has(hover_target)):
-		var target_name = hover_target
-		row.mouse_entered.connect(func(): _show_hover_popup(target_name, row.global_position + Vector2(0, -80)))
-		row.mouse_exited.connect(func(): _hide_hover_popup())
+	# 3枚のカードアイコン + 演算子を配置
+	var icons = [
+		{"name": base_name,   "x": start_x},
+		{"name": mat_name,    "x": start_x + ICON_W + OP_W},
+		{"name": result_name, "x": start_x + (ICON_W + OP_W) * 2},
+	]
+	var operators = [
+		{"text": "+", "x": start_x + ICON_W},
+		{"text": "→", "x": start_x + ICON_W * 2 + OP_W},
+	]
 
-	return y + 20
+	for op in operators:
+		var op_lbl = Label.new()
+		op_lbl.text = op["text"]
+		op_lbl.position = Vector2(op["x"], ICON_H / 2.0 - 10)
+		op_lbl.size = Vector2(OP_W, 20)
+		op_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		op_lbl.add_theme_font_size_override("font_size", 12)
+		op_lbl.add_theme_color_override("font_color", Color(0.6, 0.6, 0.7))
+		op_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		row_ctrl.add_child(op_lbl)
+
+	for icon_data in icons:
+		var icon_name: String = icon_data["name"]
+		var icon_x: float = icon_data["x"]
+		var icon = create_mini_card_icon(icon_name, Vector2(ICON_W, ICON_H))
+		icon.position = Vector2(icon_x, 0)
+		# ホバーポップアップ（項目5）
+		icon.mouse_entered.connect(func():
+			_show_hover_popup(icon_name, row_ctrl.global_position + Vector2(icon_x - 20, -90))
+		)
+		icon.mouse_exited.connect(func(): _hide_hover_popup())
+		row_ctrl.add_child(icon)
+
+	return y + ICON_H + 8
+
+# 項目2: ミニカードアイコン生成（グラフィック領域+名前+枠色でレア表現）
+func create_mini_card_icon(card_name: String, size: Vector2 = Vector2(60, 78)) -> Control:
+	var frame = Panel.new()
+	frame.custom_minimum_size = size
+	frame.size = size
+	frame.mouse_filter = Control.MOUSE_FILTER_STOP  # ホバー検知のため
+
+	# 枠色決定（種族 or 呪文 or デフォルト）
+	var accent_color = DEFAULT_COLOR
+	if CardDB.UNITS.has(card_name):
+		var race = CardDB.UNITS[card_name].get("race", "")
+		accent_color = RACE_COLORS.get(race, DEFAULT_COLOR)
+	elif CardDB.SPELLS.has(card_name):
+		accent_color = SPELL_COLOR
+	elif CardDB.STATUS_SPELLS.has(card_name):
+		accent_color = Color(0.6, 0.3, 0.5)
+
+	var style = StyleBoxFlat.new()
+	style.bg_color = accent_color.darkened(0.55)
+	style.border_color = accent_color
+	style.set_border_width_all(2)
+	style.set_corner_radius_all(4)
+	frame.add_theme_stylebox_override("panel", style)
+
+	# ヘッダー帯（名前表示）
+	var header = ColorRect.new()
+	header.position = Vector2(0, 0)
+	header.size = Vector2(size.x, 16)
+	header.color = accent_color
+	header.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	frame.add_child(header)
+
+	var name_lbl = Label.new()
+	name_lbl.text = card_name
+	name_lbl.position = Vector2(2, 0)
+	name_lbl.size = Vector2(size.x - 4, 15)
+	name_lbl.add_theme_font_size_override("font_size", 7)
+	name_lbl.add_theme_color_override("font_color", Color(1, 1, 1))
+	name_lbl.clip_text = true
+	name_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	frame.add_child(name_lbl)
+
+	# グラフィック領域（仮: 色帯）
+	var illust = ColorRect.new()
+	illust.position = Vector2(3, 19)
+	illust.size = Vector2(size.x - 6, size.y - 32)
+	illust.color = accent_color.darkened(0.65)
+	illust.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	frame.add_child(illust)
+
+	# 下部: 簡易ステータス
+	var bot_lbl = Label.new()
+	if CardDB.UNITS.has(card_name):
+		var d = CardDB.UNITS[card_name]
+		bot_lbl.text = "HP%d" % d.get("hp", 0)
+	elif CardDB.SPELLS.has(card_name):
+		var d = CardDB.SPELLS[card_name]
+		bot_lbl.text = "C:%d" % d.get("cost", 0)
+	else:
+		bot_lbl.text = "???"
+	bot_lbl.position = Vector2(2, size.y - 13)
+	bot_lbl.size = Vector2(size.x - 4, 12)
+	bot_lbl.add_theme_font_size_override("font_size", 7)
+	bot_lbl.add_theme_color_override("font_color", Color(0.85, 0.85, 0.85))
+	bot_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	frame.add_child(bot_lbl)
+
+	return frame
 
 # ===== ホバーポップアップ（項目6,7対応）=====
 
@@ -236,6 +333,13 @@ func create_card_hover_popup(card_name: String) -> Control:
 		cost_lbl.add_theme_font_size_override("font_size", 10)
 		cost_lbl.add_theme_color_override("font_color", SPELL_COLOR)
 		vbox.add_child(cost_lbl)
+	elif CardDB.STATUS_SPELLS.has(card_name):
+		var d = CardDB.STATUS_SPELLS[card_name]
+		var cost_lbl = Label.new()
+		cost_lbl.text = "[異常状態] コスト:%d" % d.get("cost", 0)
+		cost_lbl.add_theme_font_size_override("font_size", 10)
+		cost_lbl.add_theme_color_override("font_color", UIF.DEMERIT_COLOR)
+		vbox.add_child(cost_lbl)
 
 	return popup
 
@@ -265,17 +369,14 @@ func _show_unit_info(card_name: String) -> void:
 	var d = CardDB.UNITS[card_name]
 	var y: float = 8
 
-	# 項目5: カード詳細右上に選択カードのカード枠を追加
+	# 項目3: 大型カード枠ヘッダー（コスト/HP/ATK/SPD含む）
 	y = _build_card_frame_header(card_name, d, y)
-	y += 5
 
-	# 基本ステータス
-	y = _info_label("コスト: %d" % d.get("cost", 0), y, 13, Color(0.5, 0.7, 0.9))
-	y = _info_label("HP: %d  ATK: %d  SPD: %.1fs" % [d.get("hp", 0), d.get("atk", 0), d.get("interval", 0)], y, 12, UIF.TEXT_COLOR)
+	# 種族（枠外に表示）
 	var race = d.get("race", "")
 	var race_color = RACE_COLORS.get(race, DEFAULT_COLOR)
 	y = _info_label("種族: %s" % race, y, 12, race_color)
-	y += 8
+	y += 6
 
 	# 効果セクション（3分類）
 	var skills = d.get("skills", [])
@@ -337,11 +438,9 @@ func _show_spell_info(card_name: String) -> void:
 	var d = CardDB.SPELLS[card_name]
 	var y: float = 8
 
-	# 項目5: カード枠ヘッダー
+	# 項目3: 大型カード枠ヘッダー（コスト含む）
 	y = _build_card_frame_header(card_name, d, y)
 	y = _info_label("[呪文]", y, 12, SPELL_COLOR)
-	y += 5
-	y = _info_label("コスト: %d" % d.get("cost", 0), y, 13, Color(0.5, 0.7, 0.9))
 	y += 5
 
 	y = _info_section("効果", y)
@@ -371,76 +470,114 @@ func _show_spell_info_status(card_name: String) -> void:
 	y = _build_card_frame_header(card_name, d, y)
 	y = _info_label("[異常状態カード]", y, 12, UIF.DEMERIT_COLOR)
 	y += 5
-	y = _info_label("コスト: %d" % d.get("cost", 0), y, 13, Color(0.5, 0.7, 0.9))
 	if d.get("is_consumable", false):
 		_info_label("消費型（使用後デッキから消滅）", y, 11, UIF.DEMERIT_COLOR)
 
-# 項目5: 右上にカード型ミニ枠を表示
+# 項目3: 解説レーン幅に合わせた大型カード枠ヘッダー
 func _build_card_frame_header(card_name: String, d: Dictionary, y: float) -> float:
-	# カード型枠（右上）
+	var frame_w = _info_w - 16  # 解説レーン幅に揃える（約240px）
+	var frame_h = 175
+	var race = d.get("race", "")
+	var accent_color = RACE_COLORS.get(race, SPELL_COLOR)
+
 	var card_frame = Panel.new()
-	var frame_w = 72
-	var frame_h = 88
-	card_frame.position = Vector2(_info_w - frame_w - 8, y)
+	card_frame.position = Vector2(8, y)
 	card_frame.size = Vector2(frame_w, frame_h)
 	var frame_style = StyleBoxFlat.new()
-	var race = d.get("race", "")
-	frame_style.bg_color = RACE_COLORS.get(race, SPELL_COLOR).darkened(0.3)
-	frame_style.border_color = RACE_COLORS.get(race, SPELL_COLOR)
+	frame_style.bg_color = accent_color.darkened(0.55)
+	frame_style.border_color = accent_color
 	frame_style.set_border_width_all(2)
-	frame_style.set_corner_radius_all(4)
+	frame_style.set_corner_radius_all(6)
 	card_frame.add_theme_stylebox_override("panel", frame_style)
 	_info_container.add_child(card_frame)
 
-	# カード枠内: ヘッダー色帯
+	# ヘッダー色帯（上部）
 	var header_bar = ColorRect.new()
 	header_bar.position = Vector2(0, 0)
-	header_bar.size = Vector2(frame_w, 18)
-	header_bar.color = RACE_COLORS.get(race, SPELL_COLOR)
+	header_bar.size = Vector2(frame_w, 26)
+	header_bar.color = accent_color
 	card_frame.add_child(header_bar)
 
-	# カード枠内: 名前（短縮）
-	var mini_name = Label.new()
-	mini_name.text = card_name
-	mini_name.position = Vector2(2, 1)
-	mini_name.size = Vector2(frame_w - 4, 16)
-	mini_name.add_theme_font_size_override("font_size", 8)
-	mini_name.add_theme_color_override("font_color", Color(1, 1, 1))
-	mini_name.clip_text = true
-	card_frame.add_child(mini_name)
-
-	# カード枠内: イラスト枠（仮: 色帯）
-	var illust = ColorRect.new()
-	illust.position = Vector2(4, 21)
-	illust.size = Vector2(frame_w - 8, 38)
-	illust.color = RACE_COLORS.get(race, SPELL_COLOR).darkened(0.5)
-	card_frame.add_child(illust)
-
-	# カード枠内: ステータス縦並び
-	if CardDB.UNITS.has(card_name):
-		var stats_box = VBoxContainer.new()
-		stats_box.position = Vector2(3, 62)
-		stats_box.size = Vector2(frame_w - 6, 24)
-		stats_box.add_theme_constant_override("separation", 0)
-		card_frame.add_child(stats_box)
-		for stat_text in ["HP:%d" % d.get("hp", 0), "ATK:%d SPD:%.0f" % [d.get("atk", 0), d.get("interval", 0)]]:
-			var sl = Label.new()
-			sl.text = stat_text
-			sl.add_theme_font_size_override("font_size", 7)
-			sl.add_theme_color_override("font_color", Color(0.9, 0.9, 0.9))
-			stats_box.add_child(sl)
-
-	# カード名（左側、大きく）
+	# カード名（ヘッダー帯内）
 	var name_lbl = Label.new()
 	name_lbl.text = card_name
-	name_lbl.position = Vector2(10, y + 4)
-	name_lbl.size = Vector2(_info_w - frame_w - 24, 22)
-	name_lbl.add_theme_font_size_override("font_size", 16)
-	name_lbl.add_theme_color_override("font_color", UIF.TITLE_COLOR)
+	name_lbl.position = Vector2(8, 4)
+	name_lbl.size = Vector2(frame_w - 16, 20)
+	name_lbl.add_theme_font_size_override("font_size", 14)
+	name_lbl.add_theme_color_override("font_color", Color(1, 1, 1))
 	name_lbl.clip_text = true
-	_info_container.add_child(name_lbl)
+	card_frame.add_child(name_lbl)
 
-	return y + frame_h + 4
+	# イラスト枠（中段）
+	var illust = ColorRect.new()
+	illust.position = Vector2(6, 30)
+	illust.size = Vector2(frame_w - 12, 90)
+	illust.color = accent_color.darkened(0.65)
+	card_frame.add_child(illust)
+
+	# 種族ラベル（イラスト右下）
+	if race != "":
+		var race_lbl = Label.new()
+		race_lbl.text = race
+		race_lbl.position = Vector2(frame_w - 50, 108)
+		race_lbl.size = Vector2(42, 14)
+		race_lbl.add_theme_font_size_override("font_size", 9)
+		race_lbl.add_theme_color_override("font_color", accent_color.lightened(0.3))
+		card_frame.add_child(race_lbl)
+
+	# ステータス行（下段）
+	if CardDB.UNITS.has(card_name):
+		var stats_hbox = HBoxContainer.new()
+		stats_hbox.position = Vector2(8, 126)
+		stats_hbox.size = Vector2(frame_w - 16, 18)
+		stats_hbox.add_theme_constant_override("separation", 10)
+		card_frame.add_child(stats_hbox)
+		for stat_text in [
+			"コスト:%d" % d.get("cost", 0),
+			"HP:%d" % d.get("hp", 0),
+			"ATK:%d" % d.get("atk", 0),
+			"SPD:%.1fs" % d.get("interval", 0)
+		]:
+			var sl = Label.new()
+			sl.text = stat_text
+			sl.add_theme_font_size_override("font_size", 10)
+			sl.add_theme_color_override("font_color", Color(0.9, 0.9, 0.9))
+			stats_hbox.add_child(sl)
+	elif CardDB.SPELLS.has(card_name) or CardDB.STATUS_SPELLS.has(card_name):
+		var cost_lbl = Label.new()
+		cost_lbl.text = "コスト: %d" % d.get("cost", 0)
+		cost_lbl.position = Vector2(8, 130)
+		cost_lbl.add_theme_font_size_override("font_size", 11)
+		cost_lbl.add_theme_color_override("font_color", Color(0.6, 0.8, 1.0))
+		card_frame.add_child(cost_lbl)
+
+	# 効果サマリ（最下段）
+	var effect_summary = _get_effect_summary(card_name, d)
+	if effect_summary != "":
+		var eff_lbl = Label.new()
+		eff_lbl.text = effect_summary
+		eff_lbl.position = Vector2(8, 148)
+		eff_lbl.size = Vector2(frame_w - 16, 22)
+		eff_lbl.add_theme_font_size_override("font_size", 9)
+		eff_lbl.add_theme_color_override("font_color", Color(0.75, 0.8, 0.75))
+		eff_lbl.clip_text = true
+		card_frame.add_child(eff_lbl)
+
+	return y + frame_h + 8
+
+func _get_effect_summary(card_name: String, d: Dictionary) -> String:
+	var skills = d.get("skills", [])
+	if skills.size() == 0:
+		return ""
+	var _edb = load("res://scripts/EffectDB.gd")
+	var parts: Array = []
+	for skill in skills.slice(0, 2):
+		var eid = skill.get("effect_id", "")
+		var edef = _edb.EFFECTS.get(eid, {})
+		var disp = edef.get("display", eid)
+		if disp != "":
+			parts.append(disp)
+	return " / ".join(parts)
 
 func _get_flavor_text(card_name: String) -> String:
 	var flavors = {
