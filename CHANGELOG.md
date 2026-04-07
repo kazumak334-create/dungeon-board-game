@@ -2,6 +2,32 @@
 
 ## [Unreleased]
 
+### CheckAgent：バトルループ通しテスト — 2026-04-07 静的検証+シナリオテスト追加
+
+#### 静的検証結果
+
+1. Title→MaterialSelect: class_idをGameSessionに保存し遷移 — 正常
+2. MaterialSelect→DeckPrep: selected_deck/selected_material/placement_configを構築して遷移 — 正常
+3. DeckPrep→Battle: go_to(BATTLE)のみ（battle_configはGameSession維持） — 正常
+4. Battle→Result: game_over時にlast_resultを設定しSceneManager.go_to(RESULT) — 正常
+5. Result→DeckPrep: _cleanup_battle_cards()でpersistence="battle"除去 → run_depth加算(カード選択時) → go_to(DECK_PREP) — 正常
+6. 敗北時: タイトルへボタン→GameSession.reset()→go_to(TITLE) / もう一度ボタン→go_to(BATTLE) — 正常
+7. battle_configリセット: reset()は呼ばれないがDEFAULT_BATTLE_CONFIGが初期値のため実害なし — 正常
+
+#### 検出された既知の未実装（修正不要・報告のみ）
+
+- selected_material.demerits（HP低下/マナリジェネ低下等）がバトル開始時に適用されていない（Main.gdにselected_material参照なし）
+- last_resultの`turns`フィールドが常に0（未集計）
+- run_depthはカードスキップ時に加算されない（設計上問題なし）
+
+#### 追加テスト（TestSession.gd）
+
+- シナリオ1: Title→MaterialSelect→DeckPrepのデータ引き継ぎ（class_id/素材/deck/config）
+- シナリオ2: DeckPrep→Battle→Resultの1ラン（battle_config初期化/last_result設定/run_depth加算）
+- シナリオ3: バトル終了後のpersistence="battle"カードクリーンアップ
+- シナリオ4: Result→DeckPrep戻り時のデータ保持（gold/SP/class_id/placement_config）
+- テスト結果: 1860 passed / 0 failed（+19件）
+
 ### CheckAgent：確認完了・修正なし — 2026-04-07 DeckPrep持ち物タブ実装検証
 
 #### 検証内容: DeckPrep.gd 持ち物タブ（カテゴリフィルタ + 素材グリッド）
