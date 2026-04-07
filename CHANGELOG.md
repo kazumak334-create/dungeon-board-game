@@ -2,6 +2,21 @@
 
 ## [Unreleased]
 
+### 2026-04-07 Phase3基盤実装（GameSessionマップフィールド+bossesデータ+MapGenerator+Result遷移変更）
+
+**変更ファイル:**
+- `scripts/GameSession.gd`: map_data/race_theme/map_seed/current_act/current_node/completed_nodes/boss_candidates/selected_boss_id フィールド追加、reset()対応
+- `data/cards.json`: bossesセクション追加（boss_beast_king/boss_slime_mother/boss_death_lord、Act1各種族テーマ）
+- `scripts/CardDB.gd`: BOSSES変数追加、cards.json読み込み時に登録
+- `scripts/MapGenerator.gd`: _generate_act()実装（横StS風、3レーンスタート、depth 2-4にevent強制・depth 3-5にshop強制、seed再現性確保）、validate_connectivity()実装（BFS連結検証）
+- `scripts/Result.gd`: _on_continue()遷移先をDECK_PREP→MAP_SELECTに変更、run_depth加算をカード選択スキップ時も実行するよう移動
+- `scripts/TestSession.gd`: テスト5件追加（map_fields/map_reset/seed_reproducibility/acts_count/bosses_count）
+
+**設計:**
+- MapGeneratorはseed再現性のため全RNG操作を`_rng`インスタンスに統一（pool.shuffle()禁止）
+- bossesデータはAct2/3拡張を前提とした最小スケルトン（act/race_themeフィールドで将来のフィルタリングに対応）
+- ボス候補選択はrace_theme一致→act一致→全体のフォールバック順
+
 ### 2026-04-07 段階5: 報酬システム（バトル中gold累積 + Result報酬パネル分離 + キャストゲージ下表示）
 
 **変更ファイル:**
