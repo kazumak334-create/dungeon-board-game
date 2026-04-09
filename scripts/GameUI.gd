@@ -409,22 +409,28 @@ func render_cell(side: int, r: int, c: int) -> void:
 		if unit.poison_stacks > 0:      debuffs.append("毒%d" % unit.poison_stacks)
 		var debuff_line = " ".join(debuffs) if debuffs.size() > 0 else ""
 
-		# バフ表示（デバフは分離したので除外）
-		var buff_only: Array = []
-		if unit._atk_bonus > 0:        buff_only.append("ATK+%d" % unit._atk_bonus)
-		if unit._interval_bonus > 0.0:  buff_only.append("SPD+")
-		if unit._damage_reduction > 0:  buff_only.append("鎧%d" % unit._damage_reduction)
-		if unit.lifesteal_stacks > 0:   buff_only.append("吸血%d" % unit.lifesteal_stacks)
-		if unit._regen_stacks > 0:      buff_only.append("再生%d" % unit._regen_stacks)
-		if unit._invincible_timer > 0.0: buff_only.append("無敵")
-		var buff_only_line = " ".join(buff_only) if buff_only.size() > 0 else ""
+		# バフ表示（アイコンのみ・情報密度削減）
+		var buff_icons: Array = []
+		if unit._atk_bonus > 0:        buff_icons.append("⚔")
+		if unit._interval_bonus > 0.0:  buff_icons.append("⏩")
+		if unit._damage_reduction > 0:  buff_icons.append("🛡")
+		if unit.lifesteal_stacks > 0:   buff_icons.append("💉")
+		if unit._regen_stacks > 0:      buff_icons.append("💚")
+		if unit._invincible_timer > 0.0: buff_icons.append("✨")
+		var buff_line = "".join(buff_icons) if buff_icons.size() > 0 else ""
 
-		var lines: Array = [
-			unit.unit_name,
-			"ATK%d" % unit.attack,
-		]
-		if buff_only_line != "": lines.append(buff_only_line)
-		if debuff_line != "": lines.append(debuff_line)
+		# デバフ表示（アイコンのみ）
+		var debuff_icons: Array = []
+		if unit.burn_turns > 0:         debuff_icons.append("🔥")
+		if unit.frozen_turns > 0:       debuff_icons.append("❄")
+		if unit.paralysis_turns > 0:    debuff_icons.append("⚡")
+		if unit.poison_stacks > 0:      debuff_icons.append("☠")
+		var debuff_line = "".join(debuff_icons) if debuff_icons.size() > 0 else ""
+
+		# セル内表示：ユニット名 + バフ/デバフアイコンのみ
+		var lines: Array = [unit.unit_name]
+		var status_line = buff_line + debuff_line
+		if status_line != "": lines.append(status_line)
 		if flash_line != "": lines.append(flash_line)
 		lbl.text = "\n".join(lines)
 		# ColorRect HPバー更新

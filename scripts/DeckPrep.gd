@@ -116,7 +116,10 @@ func _build_ui() -> void:
 	# 左パネル（ステータス上部 + 装備スロット下部）
 	_build_sidebar()
 
-	# タブコンテナ（中央メイン: タブバーなし・配置のみ）
+	# タブバー（配置・持ち物の2タブ）
+	_build_tab_bar()
+
+	# タブコンテナ（中央メイン）
 	_tab_container = Control.new()
 	_tab_container.position = Vector2(CONTENT_X, CONTENT_Y)
 	_tab_container.size = Vector2(CONTENT_W, CONTENT_H)
@@ -128,10 +131,8 @@ func _build_ui() -> void:
 	# 冒険ボタン行（下部）
 	_build_adventure_buttons()
 
-	# 配置タブを直接表示（タブバー廃止）
-	_board.tab_container = _tab_container
-	_board.build_placement_tab(_tab_container, _PL)
-	_update_info_lane()
+	# 配置タブを初期表示
+	_show_tab("placement")
 
 # ===== 左サイドバー =====
 
@@ -279,7 +280,6 @@ func _build_tab_bar() -> void:
 	var tabs = [
 		{"id": "placement", "label": "配置"},
 		{"id": "inventory", "label": "持ち物"},
-		{"id": "skill_tree", "label": "スキル"},
 	]
 	var tab_w = int(TAB_BAR_W / tabs.size()) - 4
 	var x = TAB_BAR_X + 2
@@ -294,6 +294,8 @@ func _build_tab_bar() -> void:
 		add_child(btn)
 		_tab_buttons.append({"id": tab_id, "button": btn})
 		x += tab_w + 4
+	# 初期選択ハイライト
+	_update_tab_highlight()
 
 func _build_adventure_buttons() -> void:
 	UIF.add_button(self, "← マップへ", Vector2(220, ADVENTURE_Y), Vector2(180, 32), 14,
@@ -330,15 +332,32 @@ func _save_initial_units() -> void:
 	print("[DeckPrep] 初期配置保存: %d個のユニット" % GameSession.initial_units.filter(func(x): return x != null).size())
 
 func _show_tab(tab_id: String) -> void:
-	# タブバー廃止: 配置のみ。互換維持のため関数は残す
-	_current_tab = "placement"
+	_current_tab = tab_id
 	_board_detail_container = null
 	_selected_material = {}
+	_selected_card_idx = -1
+
+	# タブコンテンツをクリア
 	for child in _tab_container.get_children():
 		child.queue_free()
-	_board.tab_container = _tab_container
-	_board.build_placement_tab(_tab_container, _PL)
+
+	# タブ別コンテンツ構築
+	if tab_id == "placement":
+		_board.tab_container = _tab_container
+		_board.build_placement_tab(_tab_container, _PL)
+	elif tab_id == "inventory":
+		_build_inventory_tab()
+
+	_update_tab_highlight()
 	_update_info_lane()
+
+func _update_tab_highlight() -> void:
+	for tab_btn in _tab_buttons:
+		var btn: Button = tab_btn["button"]
+		if tab_btn["id"] == _current_tab:
+			btn.modulate = Color(1.2, 1.2, 0.8)
+		else:
+			btn.modulate = Color(1, 1, 1)
 
 func _process(delta: float) -> void:
 	if _board != null:
