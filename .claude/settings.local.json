@@ -78,7 +78,8 @@
       "Bash(iconv -f utf-8 -t utf-8)",
       "Bash(\"/c/Users/kazum/OneDrive/デスクトップ/プライベート/Godot/Godot_v4.6.2-stable_win64.exe\" --path /c/Users/kazum/dungeon-board-game --headless --script res://scripts/RunTests.gd)",
       "Bash(\"/c/Users/kazum/OneDrive/デスクトップ/プライベート/Godot/Godot_v4.6.2-stable_win64.exe\" --path . --headless --quit)",
-      "Bash(\"/c/Users/kazum/OneDrive/デスクトップ/プライベート/Godot/Godot_v4.6.2-stable_win64.exe\" --path . --headless --script res://scripts/RunTests.gd)"
+      "Bash(\"/c/Users/kazum/OneDrive/デスクトップ/プライベート/Godot/Godot_v4.6.2-stable_win64.exe\" --path . --headless --script res://scripts/RunTests.gd)",
+      "Bash(\"/c/Users/kazum/OneDrive/デスクトップ/プライベート/Godot/Godot_v4.6.2-stable_win64.exe\" --path . --headless -s test_map_isolation.gd --quit)"
     ]
   },
   "enableAllProjectMcpServers": true,

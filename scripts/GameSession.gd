@@ -70,6 +70,8 @@ func reset() -> void:
 	selected_deck = []
 	selected_material = {}
 	placement_config = []
+	initial_units = []
+	spell_slots = []
 	materials = []
 	gold = 0
 	skill_points = 0

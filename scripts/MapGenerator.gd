@@ -107,6 +107,20 @@ func _generate_act(act_num: int, race_theme: String) -> Dictionary:
 			})
 			current_depth_ids.append(nid)
 
+		# 逆方向孤立チェック: 前のdepthの全ノードから次のdepthに行けるか確認
+		for pid in prev_depth_ids:
+			var has_outgoing = false
+			for nid in current_depth_ids:
+				var node = _find_node(nodes, nid)
+				if pid in node.get("connections", []):
+					has_outgoing = true
+					break
+			# 前のノードから行けるノードがなければ、最も近いノードに接続追加
+			if not has_outgoing and current_depth_ids.size() > 0:
+				var target_node = _find_node(nodes, current_depth_ids[0])
+				if target_node.has("connections"):
+					target_node["connections"].append(pid)
+
 		prev_depth_ids = current_depth_ids
 
 	# 強制配置の未配置分を最終ノードに近い場所に追加（depth 5 を使用）
