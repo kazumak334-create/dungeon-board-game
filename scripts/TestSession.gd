@@ -60,7 +60,8 @@ func _test_base_deck_integrity(r: RefCounted) -> void:
 		var is_unit = CardDB.UNITS.has(name)
 		var is_spell = CardDB.SPELLS.has(name)
 		var is_status = CardDB.STATUS_SPELLS.has(name)
-		r._assert_true(is_unit or is_spell or is_status, "BASE_DECKカードがDB存在: %s" % name)
+		var is_system = CardDB.SYSTEM_SPELLS.has(name)
+		r._assert_true(is_unit or is_spell or is_status or is_system, "BASE_DECKカードがDB存在: %s" % name)
 
 func _test_scene_manager_paths(r: RefCounted) -> void:
 	# SceneManagerの全パスにファイルが存在するか

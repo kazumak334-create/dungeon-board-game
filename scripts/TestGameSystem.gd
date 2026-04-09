@@ -90,7 +90,7 @@ func _test_card_queue_data(r: RefCounted) -> void:
 	# base_deckの全カードがCardDBに存在
 	for entry in CardDB.BASE_DECK:
 		var card_name = entry.get("name", "")
-		var exists = CardDB.UNITS.has(card_name) or CardDB.SPELLS.has(card_name) or CardDB.STATUS_SPELLS.has(card_name)
+		var exists = CardDB.UNITS.has(card_name) or CardDB.SPELLS.has(card_name) or CardDB.STATUS_SPELLS.has(card_name) or CardDB.SYSTEM_SPELLS.has(card_name)
 		r._assert_true(exists, "BASE_DECK '%s' がCardDBに存在" % card_name)
 
 	# 呪文回収の効果確認

@@ -1389,8 +1389,21 @@
 			"race": "アンデッド",
 			"range": "1行",
 			"sfx": "",
-			"skills": [],
-			"texture": ""
+			"skills": [
+				{
+					"trigger": "on_death",
+					"target": "self",
+					"effect_id": "self_revive",
+					"params": {
+						"hp": 5,
+						"delay": 3.0
+					}
+				}
+			],
+			"texture": "",
+			"roles": [
+				"壁"
+			]
 		},
 		"スライム": {
 			"anim": "",

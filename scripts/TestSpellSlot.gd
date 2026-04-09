@@ -14,6 +14,8 @@ func _test_slot_structure() -> void:
 	# SpellSlotSystemの構造確認
 	var SSS = load("res://scripts/SpellSlotSystem.gd")
 	var sss = SSS.new()
+	# setup()呼び出しでスロット初期化
+	sss.setup(null, null, null, null)
 
 	_runner._assert_eq(sss.slots.size(), 3, "3スロット存在")
 	for i in range(3):
@@ -26,6 +28,7 @@ func _test_set_clear_slot() -> void:
 	# set_slot/clear_slotの動作確認
 	var SSS = load("res://scripts/SpellSlotSystem.gd")
 	var sss = SSS.new()
+	sss.setup(null, null, null, null)
 
 	# ダミー呪文
 	var UD = load("res://scripts/UnitData.gd")

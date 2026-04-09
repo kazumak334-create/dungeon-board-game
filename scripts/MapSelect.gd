@@ -55,7 +55,7 @@ func _build_ui() -> void:
 	# マップ描画
 	_draw_map()
 
-	UIF.add_back_button(self, "← デッキ準備", func(): SceneManager.go_to(SceneManager.DECK_PREP), 640)
+	UIF.add_back_button(self, "← 素材選択", func(): SceneManager.go_to(SceneManager.MATERIAL_SELECT), 640)
 
 func _randomize_environment() -> void:
 	var env_ids = CardDB.ENVIRONMENTS.keys()

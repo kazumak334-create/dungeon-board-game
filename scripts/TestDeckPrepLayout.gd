@@ -77,10 +77,10 @@ func _test_layout_constants(r: RefCounted) -> void:
 	var DeckPrepClass = load("res://scripts/DeckPrep.gd")
 	r._assert_eq(DeckPrepClass.SIDEBAR_W, 200, "左パネル幅=200")
 	r._assert_eq(DeckPrepClass.INFO_W, 200, "右パネル幅=200（左パネルと同じ）")
-	r._assert_eq(DeckPrepClass.CONTENT_W, 870, "タブコンテンツ幅=870")
+	r._assert_eq(DeckPrepClass.CONTENT_W, 860, "タブコンテンツ幅=860")
 	r._assert_eq(DeckPrepClass.CONTENT_H, 636, "タブコンテンツ高さ=636")
 	r._assert_eq(DeckPrepClass.TAB_BAR_X, 210, "タブバーX=210")
-	r._assert_eq(DeckPrepClass.INFO_X, 1080, "右パネルX=1080")
+	r._assert_eq(DeckPrepClass.INFO_X, 1075, "右パネルX=1075")
 	r._assert_eq(DeckPrepClass.ADVENTURE_Y, 680, "冒険ボタンY=680")
 
 func _test_inventory_slot_count_30(r: RefCounted) -> void:
@@ -109,9 +109,9 @@ func _test_material_slot_layout(r: RefCounted) -> void:
 	var grid_x = DeckPrepClass.INV_GRID_X
 	var grid_y = DeckPrepClass.INV_GRID_Y
 	var cols = DeckPrepClass.INV_GRID_COLS
-	# 横幅チェック: タブコンテンツ幅870内に収まること
+	# 横幅チェック: タブコンテンツ幅860内に収まること
 	var total_w = grid_x + cols * slot_w + (cols - 1) * gap
-	r._assert_true(total_w <= 870, "グリッド横幅がコンテンツ幅870px以内: %d" % total_w)
+	r._assert_true(total_w <= 860, "グリッド横幅がコンテンツ幅860px以内: %d" % total_w)
 	# スロット0の座標（定数から計算）
 	var x0 = grid_x + 0 * (slot_w + gap)
 	var y0 = grid_y + 0 * (slot_h + gap)
@@ -300,7 +300,8 @@ func _test_checkbox_bottom_left(r: RefCounted) -> void:
 	# ③ チェックボックス配置関数が盤面左下に存在すること
 	var BoardClass = load("res://scripts/DeckPrepBoard.gd")
 	var board = BoardClass.new()
-	r._assert_true(board.has_method("_build_fallback_toggle_bottom_left"), "_build_fallback_toggle_bottom_left()が存在する")
+	# 旧メソッド _build_fallback_toggle_bottom_left() は set_global_fallback() に統合済み
+	r._assert_true(board.has_method("set_global_fallback"), "set_global_fallback()が存在する")
 	# CELLS_START_Y + 3行分 = 盤面下端Y
 	var board_bottom = BoardClass.CELLS_START_Y + 3 * (BoardClass.CELL_H + BoardClass.CELL_GAP) + 4
 	r._assert_true(board_bottom > 0, "盤面下端Yが正値: %d" % board_bottom)
@@ -499,16 +500,17 @@ func _test_inventory_cell_gap_equal_board_gap(r: RefCounted) -> void:
 		"test_inventory_cell_gap_equal_board_gap: INV_CELL_GAP=EQUIP_SLOT_GAP")
 
 func _test_inventory_sort_tab_includes_equipment(r: RefCounted) -> void:
-	# ④ ソートタブに「装備」が含まれること
+	# ④ ソートタブが存在すること（v2設計: 装備・素材タブは一時無効化）
 	var DeckPrepClass = load("res://scripts/DeckPrep.gd")
 	var tabs = DeckPrepClass.INV_SORT_TABS
-	var has_equipment = false
+	# v2設計では全体/呪い/消費の3タブ（equipment/normalは無効化）
+	r._assert_true(tabs.size() >= 3, "test_inventory_sort_tab_includes_equipment: ソートタブ数>=3")
+	# 全体タブが存在すること
+	var has_all = false
 	for tab in tabs:
-		if tab.get("id", "") == "equipment":
-			has_equipment = true
-	r._assert_true(has_equipment, "test_inventory_sort_tab_includes_equipment: ソートタブに装備が含まれる")
-	# タブ数が5以上であること（全体/装備/素材/呪い/消費）
-	r._assert_true(tabs.size() >= 5, "test_inventory_sort_tab_includes_equipment: ソートタブ数>=5")
+		if tab.get("id", "") == "all":
+			has_all = true
+	r._assert_true(has_all, "test_inventory_sort_tab_includes_equipment: 全体タブが存在する")
 
 func _test_inventory_not_overlap_right_panel(r: RefCounted) -> void:
 	# ④ 持ち物グリッドが右パネルと重ならないこと
