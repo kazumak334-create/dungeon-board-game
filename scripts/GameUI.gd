@@ -71,9 +71,11 @@ func build_ui() -> void:
 
 	# 列アイコンヘッダー（自陣）
 	var player_col_icons := ["🏹", "🚩", "⚔"]
+	var x: int
+	var lbl: Label
 	for c in range(3):
-		var x: int = _cell_x(0, c)
-		var lbl := Label.new()
+		x = _cell_x(0, c)
+		lbl = Label.new()
 		lbl.text = player_col_icons[c]
 		lbl.position = Vector2(x, main.BOARD_TOP - 18)
 		lbl.size = Vector2(main.CELL_W, 16)
@@ -84,8 +86,8 @@ func build_ui() -> void:
 	# 列アイコンヘッダー（敵陣）
 	var enemy_col_icons := ["⚔", "🚩", "🏹"]
 	for c in range(3):
-		var x: int = _cell_x(1, c)
-		var lbl := Label.new()
+		x = _cell_x(1, c)
+		lbl = Label.new()
 		lbl.text = enemy_col_icons[c]
 		lbl.position = Vector2(x, main.BOARD_TOP - 18)
 		lbl.size = Vector2(main.CELL_W, 16)
@@ -98,6 +100,8 @@ func build_ui() -> void:
 	main.cell_labels = [[], []]
 	_cell_hp_bars  = [[], []]
 	_cell_hp_labels = [[], []]
+	var cell_y: int
+	var rect: ColorRect
 	for side in range(2):
 		for r in range(3):
 			main.cell_rects[side].append([])
@@ -105,9 +109,9 @@ func build_ui() -> void:
 			_cell_hp_bars[side].append([])
 			_cell_hp_labels[side].append([])
 			for c in range(3):
-				var x: int = _cell_x(side, c)
-				var cell_y: int = main.BOARD_TOP + r * main.CELL_H
-				var rect := ColorRect.new()
+				x = _cell_x(side, c)
+				cell_y = main.BOARD_TOP + r * main.CELL_H
+				rect = ColorRect.new()
 				rect.size     = Vector2(main.CELL_W - 4, main.CELL_H - 4)
 				rect.position = Vector2(x + 2, cell_y + 2)
 				rect.color    = Color(0.13, 0.13, 0.2)
@@ -116,7 +120,7 @@ func build_ui() -> void:
 				main.add_child(rect)
 				main.cell_rects[side][r].append(rect)
 
-				var lbl := Label.new()
+				lbl = Label.new()
 				lbl.position  = rect.position + Vector2(2, 2)
 				lbl.size      = Vector2(rect.size.x - 4, rect.size.y - 4)
 				lbl.add_theme_font_size_override("font_size", 12)
@@ -366,9 +370,11 @@ func render_cell(side: int, r: int, c: int) -> void:
 	var artifact = main.board_manager.board_artifacts[side][r][c]
 	var rect: ColorRect = main.cell_rects[side][r][c]
 	var lbl:  Label     = main.cell_labels[side][r][c]
+	var f: float
+	var hp_dict: Dictionary
 	if artifact != null and unit == null:
 		if main.skill_flash_timers[side][r][c] > 0.0:
-			var f: float = main.skill_flash_timers[side][r][c]
+			f = main.skill_flash_timers[side][r][c]
 			rect.color = Color(0.9, 0.75 * f + 0.1, 0.0)
 		else:
 			rect.color = Color(0.11, 0.11, 0.17)
@@ -384,7 +390,7 @@ func render_cell(side: int, r: int, c: int) -> void:
 		# 背景色: スキル発動 > 攻撃チャージ > 通常
 		var base_color = Color(0.11, 0.11, 0.17)
 		if main.skill_flash_timers[side][r][c] > 0.0:
-			var f: float = main.skill_flash_timers[side][r][c]
+			f = main.skill_flash_timers[side][r][c]
 			base_color = Color(0.9, 0.75 * f + 0.1, 0.0)
 		else:
 			# 攻撃チャージアニメーション（残り1秒以下で光り始める）
@@ -400,14 +406,6 @@ func render_cell(side: int, r: int, c: int) -> void:
 		var flash_line: String = ""
 		if main.skill_flash_timers[side][r][c] > 0.0:
 			flash_line = "★" + main.skill_flash_names[side][r][c] + "!"
-
-		# デバフ残ターン集約表示
-		var debuffs: Array = []
-		if unit.burn_turns > 0:         debuffs.append("火%d" % unit.burn_turns)
-		if unit.frozen_turns > 0:       debuffs.append("凍%d" % unit.frozen_turns)
-		if unit.paralysis_turns > 0:    debuffs.append("痺%d" % unit.paralysis_turns)
-		if unit.poison_stacks > 0:      debuffs.append("毒%d" % unit.poison_stacks)
-		var debuff_line = " ".join(debuffs) if debuffs.size() > 0 else ""
 
 		# バフ表示（アイコンのみ・情報密度削減）
 		var buff_icons: Array = []
@@ -435,7 +433,7 @@ func render_cell(side: int, r: int, c: int) -> void:
 		lbl.text = "\n".join(lines)
 		# ColorRect HPバー更新
 		if _cell_hp_bars.size() > side and _cell_hp_bars[side].size() > r and _cell_hp_bars[side][r].size() > c:
-			var hp_dict = _cell_hp_bars[side][r][c]
+			hp_dict = _cell_hp_bars[side][r][c]
 			var bar_max_w: float = rect.size.x - 10.0
 			hp_dict["bg"].visible = true
 			hp_dict["bar"].visible = true
@@ -455,7 +453,7 @@ func render_cell(side: int, r: int, c: int) -> void:
 		lbl.text   = ""
 		# HPバー非表示
 		if _cell_hp_bars.size() > side and _cell_hp_bars[side].size() > r and _cell_hp_bars[side][r].size() > c:
-			var hp_dict = _cell_hp_bars[side][r][c]
+			hp_dict = _cell_hp_bars[side][r][c]
 			hp_dict["bg"].visible = false
 			hp_dict["bar"].visible = false
 		if _cell_hp_labels.size() > side and _cell_hp_labels[side].size() > r and _cell_hp_labels[side][r].size() > c:
