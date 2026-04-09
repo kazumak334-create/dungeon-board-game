@@ -1,5 +1,38 @@
 # CHANGELOG
 
+## 2026-04-10
+
+### Phase 2完了
+
+**スキルツリー実装**
+- 6階層ランダム生成（T1-T6）、70+ダミースキル
+- T4/T6階層でクラス固有カード報酬
+- 横ツリーUI・前提スキルシステム
+- ファイル：`scripts/SkillTree.gd`, `scripts/SkillTreeGenerator.gd`
+
+**敵スケーリングシステム**
+- Act別敵プール実装（5ランク：弱→中間→中→中間→強）
+- `data/cards.json` enemy_pools、`GameSession.current_act` でプール選択
+- ファイル：`scripts/EnemyAI.gd`, `scripts/CardDB.gd`
+
+**警戒レベルシステム設計**
+- 戦闘マス+1、レスト-2、Lv3+でデッキランク上昇、Lv5+でエリート確定
+- `GameSession.alert_level` 追加、実装はPhase 3
+- 設計：`docs/GAME_DESIGN.md`
+
+**UI/UX改善**
+- DeckPrep.gd: タブバー復活（配置・持ち物）
+- GameUI.gd: セル内情報密度削減、バフ/デバフアイコン化
+
+**ツール作成**
+- `tools/session_check.py`: セッション開始時チェック
+- `tools/generate_image.py`: Gemini画像生成スクリプト
+
+**設計文書**
+- `docs/GAME_DESIGN.md`: Single Source of Truth確立
+
+---
+
 ## 2026-04-06
 
 ### ドキュメント
