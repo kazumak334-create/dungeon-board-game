@@ -195,6 +195,9 @@ func _create_tile_layout(cards: Array) -> Control:
 	var container = Control.new()
 	container.custom_minimum_size = Vector2(CELL_W - 4, CELL_H - 4)
 	container.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	# v2設計: 初期配置保存用にカード名をメタに設定
+	if cards.size() > 0:
+		container.set_meta("card_name", cards[0]["name"])
 
 	var available_w = float(CELL_W - 4)
 	var available_h = float(CELL_H - 4)
@@ -289,6 +292,9 @@ func _create_bar_scroll_layout(cards: Array) -> Control:
 	var scroll = ScrollContainer.new()
 	scroll.custom_minimum_size = Vector2(CELL_W - 4, CELL_H - 4)
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	# v2設計: 初期配置保存用にカード名をメタに設定
+	if cards.size() > 0:
+		scroll.set_meta("card_name", cards[0]["name"])
 
 	var vbox = VBoxContainer.new()
 	vbox.add_theme_constant_override("separation", 2)
