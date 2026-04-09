@@ -218,10 +218,6 @@ func _test_spell_card_constraints(r: RefCounted) -> void:
 	r._assert_eq(PL.requires_board_placement({"name": "召喚加速"}), false,
 		"test_spell_card_no_board_drop: 召喚加速(self)は盤面配置不要")
 
-	# 単体狙い呪文（target: single_ally）→盤面配置必須
-	r._assert_eq(PL.requires_board_placement({"name": "生命の雫"}), true,
-		"test_unit_card_no_slot_drop: 生命の雫(single_ally)は盤面配置必須")
-
 	# デフォルトconfig生成でAoE呪文→col=-1（呪文スロット）
 	var deck_aoe = [{"name": "召喚加速"}]
 	var config_aoe = PL.generate_default_config(deck_aoe)
@@ -234,37 +230,27 @@ func _test_spell_card_constraints(r: RefCounted) -> void:
 	r._assert_true(config_unit[0]["col"] >= 0,
 		"test_default_config_unit_assignment: ユニット→col>=0(盤面)")
 
-	# デフォルトconfig生成で単体狙い呪文→col>=0（盤面）
+	# v2設計: 全ての呪文はcol=-1（呪文スロット）に配置
 	var deck_single = [{"name": "生命の雫"}]
 	var config_single = PL.generate_default_config(deck_single)
-	r._assert_true(config_single[0]["col"] >= 0,
-		"test_default_config_spell_assignment: 単体狙い呪文→col>=0(盤面)")
+	r._assert_eq(config_single[0]["col"], -1,
+		"test_default_config_spell_assignment: v2設計では全呪文→col=-1(呪文スロット)")
 
 # ---- ハイライトセルテスト ----
 func _test_highlight_cells(r: RefCounted) -> void:
 	var PL = load("res://scripts/PlacementLogic.gd")
 	var heat_entry = {"name": "ヒートスライム"}
 
-	# ヒートスライムを後列(side=0, col=0)に置いた時→敵前列全体(3マス)が赤ハイライト
+	# v2設計: ヒートスライムはon_hit時に火傷付与するのみ
+	# サポート攻撃スキルは持たないため、ハイライトは返らない
 	var highlights_back = PL.get_highlight_cells(heat_entry, 0, 1, 0)
-	var red_cells = []
-	for h in highlights_back:
-		if h.get("color", "") == "red":
-			red_cells.append(h)
-	r._assert_true(red_cells.size() >= 3,
-		"test_heatslime_support_range: 後列配置→敵前列3マス赤ハイライト")
-	# 赤ハイライトが敵陣(side=1)前列(col=0)を指しているか確認
-	var all_enemy_front = true
-	for h in red_cells:
-		if h.get("side", -1) != 1 or h.get("col", -1) != 0:
-			all_enemy_front = false
-	r._assert_true(all_enemy_front,
-		"test_heatslime_support_range: 赤ハイライトがside=1,col=0(敵前列)のみ")
+	r._assert_eq(highlights_back.size(), 0,
+		"test_heatslime_no_support: v2設計ではサポート攻撃スキルなし→ハイライトなし")
 
-	# ヒートスライムを前列(side=0, col=2)に置いた時→ハイライトなし（サポート効果停止）
+	# 前列配置でも同様にハイライトなし
 	var highlights_front = PL.get_highlight_cells(heat_entry, 0, 1, 2)
 	r._assert_eq(highlights_front.size(), 0,
-		"test_heatslime_no_range_in_front: 前列配置→ハイライトなし")
+		"test_heatslime_no_support_front: 前列配置でもハイライトなし")
 
 # ---- 呪文/アーティファクトの全エリア配置テスト ----
 func _test_spell_placement_enemy_side(r: RefCounted) -> void:

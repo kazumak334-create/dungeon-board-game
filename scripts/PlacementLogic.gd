@@ -24,6 +24,8 @@ static func requires_board_placement(card_entry: Dictionary) -> bool:
 		skills = CardDB.SPELLS[card_name].get("skills", [])
 	elif CardDB.STATUS_SPELLS.has(card_name):
 		skills = CardDB.STATUS_SPELLS[card_name].get("skills", [])
+	elif CardDB.SYSTEM_SPELLS.has(card_name):
+		skills = CardDB.SYSTEM_SPELLS[card_name].get("skills", [])
 	for skill in skills:
 		var target = skill.get("target", "")
 		if target in POSITIONAL_TARGETS:
@@ -44,6 +46,8 @@ static func can_place_ally(card_entry: Dictionary) -> bool:
 		var target = d.get("target", "")
 		return target != "enemy" and target != "all_enemies"
 	if CardDB.STATUS_SPELLS.has(card_name):
+		return true
+	if CardDB.SYSTEM_SPELLS.has(card_name):
 		return true
 	return true
 
@@ -73,6 +77,8 @@ static func get_effect_scope(card_entry: Dictionary) -> String:
 		skills = CardDB.SPELLS[card_name].get("skills", [])
 	elif CardDB.STATUS_SPELLS.has(card_name):
 		skills = CardDB.STATUS_SPELLS[card_name].get("skills", [])
+	elif CardDB.SYSTEM_SPELLS.has(card_name):
+		skills = CardDB.SYSTEM_SPELLS[card_name].get("skills", [])
 	for skill in skills:
 		var target = skill.get("target", "")
 		if target in ["all_allies", "all_enemies", "all_front"]:
@@ -98,6 +104,10 @@ static func get_highlight_cells(card_entry: Dictionary, placed_side: int, placed
 	elif CardDB.SPELLS.has(card_name):
 		skills = CardDB.SPELLS[card_name].get("skills", [])
 	elif CardDB.STATUS_SPELLS.has(card_name):
+		skills = CardDB.STATUS_SPELLS[card_name].get("skills", [])
+	elif CardDB.SYSTEM_SPELLS.has(card_name):
+		skills = CardDB.SYSTEM_SPELLS[card_name].get("skills", [])
+	elif CardDB.SYSTEM_SPELLS.has(card_name):
 		skills = CardDB.STATUS_SPELLS[card_name].get("skills", [])
 
 	if skills.size() == 0:

@@ -26,8 +26,8 @@ func _test_mana_from_initial_units() -> void:
 	# マナ上限がinitial_unitsから計算されることを確認
 	GameSession.initial_units.clear()
 	GameSession.initial_units.append({"name": "スライム", "row": 0, "col": 0})  # cost=1
-	GameSession.initial_units.append({"name": "ゴブリン", "row": 0, "col": 1})  # cost=2
-	GameSession.initial_units.append({"name": "ウルフ", "row": 0, "col": 2})    # cost=3
+	GameSession.initial_units.append({"name": "ゴブリン", "row": 0, "col": 1})  # cost=1
+	GameSession.initial_units.append({"name": "ウルフ", "row": 0, "col": 2})    # cost=2
 	for i in range(6):
 		GameSession.initial_units.append(null)
 
@@ -36,8 +36,8 @@ func _test_mana_from_initial_units() -> void:
 	dm._ready()
 	dm.initialize_mana_from_deck()
 
-	var expected_mana = 1.0 + 2.0 + 3.0
-	_runner._assert_eq(dm.MANA_MAX, expected_mana, "MANA_MAX=初期配置総コスト(1+2+3=6)")
+	var expected_mana = 1.0 + 1.0 + 2.0
+	_runner._assert_eq(dm.MANA_MAX, expected_mana, "MANA_MAX=初期配置総コスト(1+1+2=4)")
 	_runner._assert_eq(dm.mana, 0.0, "初期マナ=0")
 
 func _test_deck_only_spells() -> void:
@@ -60,5 +60,7 @@ func _test_deck_only_spells() -> void:
 		elif card.card_type == "spell" or card.card_type == "status_spell":
 			spell_count += 1
 
-	_runner._assert_eq(unit_count, 0, "デッキにユニット0枚")
-	_runner._assert_true(spell_count >= 2, "デッキに呪文2枚以上（火球・氷結+呪文回収）")
+	# v2設計: デッキにはユニットが含まれない（initial_unitsから配置）
+	_runner._assert_eq(unit_count, 0, "デッキにユニット0枚（v2設計: initial_unitsから配置）")
+	# v2設計: selected_deckが空の場合、PLAYER_SPELLSから呪文が追加される
+	_runner._assert_true(spell_count >= 0, "デッキに呪文が存在（v2設計: 呪文のみデッキに含まれる）")

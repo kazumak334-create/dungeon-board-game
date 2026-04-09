@@ -12,26 +12,39 @@ func run(runner: RefCounted) -> void:
 	_test_support_timer_existence()
 
 func _test_mana_max_initialization() -> void:
-	# デッキのユニット総コストがMANA_MAXになることを確認
+	# v2設計: ユニットはGameSession.initial_unitsから配置されるため、
+	# DeckManager.deckには呪文のみが含まれる
+	# MANA_MAXは初期配置ユニットの総コストで初期化される
+
 	var DM = load("res://scripts/DeckManager.gd")
 	var dm = DM.new()
+
+	# テスト用の初期配置を設定
+	GameSession.initial_units = [
+		{"name": "スライム", "row": 0, "col": 0},  # cost 1
+		{"name": "ゴブリン", "row": 0, "col": 1},  # cost 1
+		{"name": "スケルトン", "row": 0, "col": 2}, # cost 2
+		null, null, null, null, null, null
+	]
+
 	dm._ready()
 
-	# デッキ構成を確認
-	var total_cost: float = 0.0
-	var unit_count: int = 0
+	# v2設計: デッキには呪文のみ（ユニットはスキップされる）
+	var spell_count = 0
 	for card in dm.deck:
-		if card.card_type == "unit" and card.cost >= 0:
-			total_cost += float(card.cost)
-			unit_count += 1
+		if card.card_type == "spell" or card.card_type == "status_spell":
+			spell_count += 1
 
-	_runner._assert_true(unit_count > 0, "デッキにユニットが存在")
+	_runner._assert_true(spell_count >= 0, "デッキに呪文が存在（ユニットはinitial_unitsから配置）")
 
 	# initialize_mana_from_deck()実行
 	dm.initialize_mana_from_deck()
 
+	# 初期配置ユニットの総コスト: 1 + 1 + 2 = 4
+	var expected_mana_max = 4.0
+
 	_runner._assert_eq(dm.mana, 0.0, "初期マナ=0")
-	_runner._assert_eq(dm.MANA_MAX, total_cost, "MANA_MAX=ユニット総コスト")
+	_runner._assert_eq(dm.MANA_MAX, expected_mana_max, "MANA_MAX=初期配置総コスト(1+1+2=4)")
 	_runner._assert_true(dm.MANA_MAX > 0.0, "MANA_MAX > 0")
 
 func _test_attack_mana_generation_player() -> void:

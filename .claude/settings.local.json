@@ -65,7 +65,20 @@
       "Bash(powershell.exe:*)",
       "Bash(/c/Users/kazum/OneDrive/デスクトップ/プライベート/Godot/Godot_v4.6.2-stable_win64_console.exe:*)",
       "Bash(npm install:*)",
-      "Bash(py:*)"
+      "Bash(py:*)",
+      "Bash(pip install:*)",
+      "Bash(./Godot_v4.4-stable_win64.exe --path /c/Users/kazum/dungeon-board-game --headless --quit)",
+      "Bash(./Godot_v4.4-stable_win64.exe --path /c/Users/kazum/dungeon-board-game --headless -s addons/gut/gut_cmdln.gd -gtest=tests/test_map_generator.gd)",
+      "Bash(\"/c/Users/kazum/OneDrive/デスクトップ/プライベート/Godot/Godot_v4.6.2-stable_win64.exe\" --path /c/Users/kazum/dungeon-board-game --headless --quit)",
+      "Bash(\"/c/Users/kazum/OneDrive/デスクトップ/プライベート/Godot/Godot_v4.6.2-stable_win64.exe\" --path /c/Users/kazum/dungeon-board-game --headless --script res://scripts/GameUI.gd --check-only)",
+      "Bash(tee /tmp/godot_errors.txt)",
+      "Bash(awk '/^func /{func=$0} /^\\\\tvar [a-zA-Z_]/ {vars[func\" \"$2]++} END {for\\(v in vars\\) if\\(vars[v]>1\\) print v, vars[v]}' scripts/GameUI.gd)",
+      "Bash(awk '{print $2}')",
+      "Bash(\"/c/Users/kazum/OneDrive/デスクトップ/プライベート/Godot/Godot_v4.6.2-stable_win64.exe\" --path /c/Users/kazum/dungeon-board-game --headless -s addons/gut/gut_cmdln.gd -gexit)",
+      "Bash(iconv -f utf-8 -t utf-8)",
+      "Bash(\"/c/Users/kazum/OneDrive/デスクトップ/プライベート/Godot/Godot_v4.6.2-stable_win64.exe\" --path /c/Users/kazum/dungeon-board-game --headless --script res://scripts/RunTests.gd)",
+      "Bash(\"/c/Users/kazum/OneDrive/デスクトップ/プライベート/Godot/Godot_v4.6.2-stable_win64.exe\" --path . --headless --quit)",
+      "Bash(\"/c/Users/kazum/OneDrive/デスクトップ/プライベート/Godot/Godot_v4.6.2-stable_win64.exe\" --path . --headless --script res://scripts/RunTests.gd)"
     ]
   },
   "enableAllProjectMcpServers": true,

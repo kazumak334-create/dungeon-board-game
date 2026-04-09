@@ -47,7 +47,7 @@ func _test_set_clear_slot() -> void:
 	# clear_slot
 	sss.clear_slot(0)
 	_runner._assert_true(sss.slots[0]["spell"] == null, "スロット0: クリア")
-	_runner._assert_false(sss.slots[0]["enabled"], "スロット0: enabled=false")
+	_runner._assert_eq(sss.slots[0]["enabled"], false, "スロット0: enabled=false")
 
 func _test_mana_consumption() -> void:
 	# マナ消費確認

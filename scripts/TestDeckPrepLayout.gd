@@ -184,9 +184,9 @@ func _test_spell_slot_count(r: RefCounted) -> void:
 	r._assert_eq(BoardClass.SPELL_SLOTS_ROWS, 2, "呪文スロット行数=2")
 
 func _test_artifact_slot_count(r: RefCounted) -> void:
-	# アーティファクトスロットが6個固定であること
-	var BoardClass = load("res://scripts/DeckPrepBoard.gd")
-	r._assert_eq(BoardClass.ARTIFACT_SLOTS_COUNT, 6, "アーティファクトスロット=6個固定")
+	# 装備スロットが6個固定であること
+	var DP = load("res://scripts/DeckPrep.gd")
+	r._assert_eq(DP.EQUIP_SLOTS.size(), 6, "装備スロット=6個固定")
 
 func _test_cell_layout_tile_layouts(r: RefCounted) -> void:
 	# タイル分割定義: 1-4種類のレイアウトが定義されていること
@@ -252,8 +252,9 @@ func _test_areas_left_aligned(r: RefCounted) -> void:
 	# _build_spell_slots_hybrid 内で sx = BOARD_X + ... なので BOARD_X が起点
 	r._assert_eq(BoardClass.SPELL_TILE_W, 80, "呪文タイル幅=80px")
 	r._assert_eq(BoardClass.SPELL_TILE_H, 100, "呪文タイル高さ=100px")
-	# アーティファクト: 同様にBOARD_Xから開始（コード上で確認済み）
-	r._assert_eq(BoardClass.ARTIFACT_TILE_W, 80, "アーティファクトタイル幅=80px")
+	# 装備スロット: DeckPrep.gdで定義
+	var DP = load("res://scripts/DeckPrep.gd")
+	r._assert_eq(DP.EQUIP_SLOT_SIZE, 55, "装備スロットサイズ=55px")
 
 func _test_synthesis_right_panel(r: RefCounted) -> void:
 	# DeckPrepInfoが合成セクション構築メソッドを持つこと
@@ -339,9 +340,9 @@ func _test_tile_5_7_ratio(r: RefCounted) -> void:
 	# 呪文タイル基準値: 幅80, 高さ = 80 * 7 / 5 = 112
 	var expected_h: int = BoardClass.SPELL_TILE_W * 7 / 5
 	r._assert_eq(expected_h, 112, "タイル高さ計算: 80 × 7/5 = 112px")
-	# アーティファクトも同様
-	var art_expected_h: int = BoardClass.ARTIFACT_TILE_W * 7 / 5
-	r._assert_eq(art_expected_h, 112, "アーティファクトタイル高さ: 80 × 7/5 = 112px")
+	# 装備スロットは正方形（55x55）
+	var DP = load("res://scripts/DeckPrep.gd")
+	r._assert_eq(DP.EQUIP_SLOT_SIZE, 55, "装備スロットは正方形（55x55）")
 
 func _test_empty_slot_hidden(r: RefCounted) -> void:
 	# ④ 空スロットを表示しないこと:
@@ -462,11 +463,12 @@ func _test_spell_area_no_overlap_with_artifact_area(r: RefCounted) -> void:
 		"test_spell_area_no_overlap_with_artifact_area: 呪文エリアとアーティファクトエリアが重ならない")
 
 func _test_synthesis_area_no_overlap_with_artifact_area(r: RefCounted) -> void:
-	# ② 合成エリアと呪文/アーティファクトエリアがY方向に重ならないこと
+	# ② 合成エリアと呪文/装備エリアがY方向に重ならないこと
 	var DPB = load("res://scripts/DeckPrepBoard.gd")
-	# 呪文/アーティファクトエリアの終端Y（タイル高さが最大の場合を想定）
+	var DP = load("res://scripts/DeckPrep.gd")
+	# 呪文/装備エリアの終端Y（タイル高さが最大の場合を想定）
 	var area_y = float(DPB.CELLS_START_Y) + 3.0 * float(DPB.CELL_H + DPB.CELL_GAP) + 50.0
-	var max_tile_h = float(DPB.SPELL_TILE_W) * 7.0 / 5.0 + float(DPB.ARTIFACT_SLOTS_Y_OFFSET)
+	var max_tile_h = float(DPB.SPELL_TILE_W) * 7.0 / 5.0 + float(DP.EQUIP_AREA_Y)
 	var sub_area_end_y = area_y + max_tile_h
 	# 合成エリアは sub_area_end_y から開始する（_build_synthesis_area(sub_area_y) の引数）
 	# テストでは合成エリアのY >= sub_area_end_y であることを確認

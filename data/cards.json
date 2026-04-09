@@ -1256,6 +1256,26 @@
 		}
 	],
 	"system_spells": {
+		"召喚加速": {
+			"anim": "",
+			"rarity": "common",
+			"cost": 1,
+			"effect": "ユニット召喚間隔-0.5秒（重複可）",
+			"is_consumable": false,
+			"sfx": "",
+			"skills": [
+				{
+					"effect_id": "summon_speed_buff",
+					"params": {
+						"bonus": 0.5
+					},
+					"target": "all_allies",
+					"trigger": "on_play"
+				}
+			],
+			"target": "self",
+			"texture": ""
+		},
 		"呪文回収": {
 			"anim": "",
 			"rarity": "common",
