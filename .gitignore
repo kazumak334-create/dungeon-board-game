@@ -8,6 +8,9 @@ sns-poster/node_modules/
 sns-poster/.twitter-session.json
 sns-poster/.note-session.json
 
+# MCP server
+mcp/godot-mcp/node_modules/
+
 # Secrets
 *.env
 .env*

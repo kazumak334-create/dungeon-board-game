@@ -1,151 +1,4 @@
 {
-	"artifacts": {
-		"加速の石板": {
-			"anim": "",
-			"rarity": "epic",
-			"card_type": "permanent_artifact",
-			"sfx": "",
-			"skills": [
-				{
-					"effect_id": "mana_regen_boost",
-					"params": {
-						"pct": 0.2
-					},
-					"target": "self",
-					"trigger": "always"
-				}
-			],
-			"texture": ""
-		},
-		"召喚門": {
-			"anim": "",
-			"rarity": "epic",
-			"card_type": "artifact",
-			"hp": 30,
-			"protect_tiles": false,
-			"sfx": "",
-			"skills": [
-				{
-					"effect_id": "summon_to_empty",
-					"params": {
-						"interval": 8,
-						"unit_id": "ゴブリン"
-					},
-					"target": "random_empty_ally",
-					"trigger": "timer"
-				}
-			],
-			"texture": ""
-		},
-		"呪いの祭壇": {
-			"anim": "",
-			"rarity": "epic",
-			"card_type": "artifact",
-			"hp": 15,
-			"protect_tiles": false,
-			"sfx": "",
-			"skills": [
-				{
-					"effect_id": "poison_apply",
-					"params": {
-						"interval": 5,
-						"stacks": 1
-					},
-					"target": "all_enemies",
-					"trigger": "timer"
-				}
-			],
-			"texture": ""
-		},
-		"守護の紋章": {
-			"anim": "",
-			"rarity": "epic",
-			"card_type": "permanent_artifact",
-			"sfx": "",
-			"skills": [
-				{
-					"effect_id": "base_damage_reduce",
-					"params": {
-						"pct": 0.1
-					},
-					"target": "self",
-					"trigger": "always"
-				}
-			],
-			"texture": ""
-		},
-		"戦旗": {
-			"anim": "",
-			"rarity": "epic",
-			"card_type": "artifact",
-			"hp": 20,
-			"protect_tiles": false,
-			"sfx": "",
-			"skills": [
-				{
-					"effect_id": "atk_buff_apply",
-					"params": {
-						"stacks": 2
-					},
-					"target": "adjacent_8",
-					"trigger": "always"
-				},
-				{
-					"effect_id": "spd_buff_apply",
-					"params": {
-						"stacks": 1
-					},
-					"target": "adjacent_8",
-					"trigger": "always"
-				}
-			],
-			"texture": ""
-		},
-		"王墓の石碑": {
-			"anim": "",
-			"rarity": "epic",
-			"card_type": "artifact",
-			"hp": 25,
-			"protect_tiles": true,
-			"sfx": "",
-			"skills": [
-				{
-					"effect_id": "tile_set_all",
-					"params": {
-						"tile_id": "tile_grave"
-					},
-					"target": "adjacent_8",
-					"trigger": "on_summon"
-				},
-				{
-					"effect_id": "tile_set_all",
-					"params": {
-						"tile_id": "tile_crack"
-					},
-					"target": "adjacent_8",
-					"trigger": "on_death"
-				}
-			],
-			"texture": ""
-		},
-		"速攻の刃": {
-			"anim": "",
-			"rarity": "epic",
-			"card_type": "permanent_artifact",
-			"sfx": "",
-			"skills": [
-				{
-					"effect_id": "atk_buff_apply",
-					"params": {
-						"stacks": 2
-					},
-					"target": "front_ally_all",
-					"trigger": "always"
-				}
-			],
-			"texture": ""
-		}
-	},
 	"classes": {
 		"alchemist": {
 			"anim": "",
@@ -314,6 +167,35 @@
 			"name": "ヴリコラカス"
 		}
 	],
+	"enemy_pools": {
+		"1": [
+			{"name": "スライム", "col": 1},
+			{"name": "スケルトン", "col": 0},
+			{"name": "ゴブリン", "col": 0},
+			{"name": "マッドスライム", "col": 1},
+			{"name": "スライム", "col": 1},
+			{"name": "スケルトン", "col": 2},
+			{"name": "ゴブリン", "col": 2}
+		],
+		"2": [
+			{"name": "グール", "col": 1},
+			{"name": "ウルフ", "col": 1},
+			{"name": "ブラッドスライム", "col": 2},
+			{"name": "バンシー", "col": 2},
+			{"name": "グール", "col": 0},
+			{"name": "ウルフ", "col": 0},
+			{"name": "マッドスライム", "col": 1}
+		],
+		"3": [
+			{"name": "タイガー", "col": 2},
+			{"name": "リッチ", "col": 2},
+			{"name": "ヴリコラカス", "col": 1},
+			{"name": "バンシー", "col": 2},
+			{"name": "ブラッドスライム", "col": 1},
+			{"name": "タイガー", "col": 0},
+			{"name": "リッチ", "col": 1}
+		]
+	},
 	"equipment": {
 		"古びた護符": {
 			"anim": "",
@@ -415,7 +297,6 @@
 		}
 	],
 	"player_spells": [
-		"召喚加速",
 		"生命の雫",
 		"盤面強化"
 	],
@@ -481,44 +362,6 @@
 				}
 			],
 			"target": "all_enemies",
-			"texture": ""
-		},
-		"召喚加速": {
-			"anim": "",
-			"rarity": "common",
-			"cost": 1,
-			"effect": "マナ即時+3回復",
-			"sfx": "",
-			"skills": [
-				{
-					"effect_id": "mana_boost",
-					"params": {
-						"amount": 3
-					},
-					"target": "self",
-					"trigger": "on_play"
-				}
-			],
-			"target": "self",
-			"texture": ""
-		},
-		"召喚妨害": {
-			"anim": "",
-			"rarity": "common",
-			"cost": 1,
-			"effect": "敵の次の召喚を3s遅延",
-			"sfx": "",
-			"skills": [
-				{
-					"effect_id": "delay_enemy_spawn",
-					"params": {
-						"seconds": 3
-					},
-					"target": "enemy",
-					"trigger": "on_play"
-				}
-			],
-			"target": "enemy_queue",
 			"texture": ""
 		},
 		"圧縮の書": {
@@ -648,23 +491,6 @@
 				}
 			],
 			"target": "single_ally",
-			"texture": ""
-		},
-		"急召": {
-			"anim": "",
-			"rarity": "common",
-			"cost": 1,
-			"effect": "低コストユニット1体即時召喚",
-			"sfx": "",
-			"skills": [
-				{
-					"effect_id": "summon_low_cost",
-					"params": {},
-					"target": "self",
-					"trigger": "on_play"
-				}
-			],
-			"target": "self",
 			"texture": ""
 		},
 		"戦場の鼓動": {
@@ -1430,11 +1256,11 @@
 		}
 	],
 	"system_spells": {
-		"マナ吸収": {
+		"呪文回収": {
 			"anim": "",
 			"rarity": "common",
 			"cost": 0,
-			"effect": "マナ上限+1＋山札をシャッフル＋自身を山札最下部に追加",
+			"effect": "山札をシャッフル＋自身を山札最下部に追加",
 			"is_consumable": true,
 			"sfx": "",
 			"skills": [
@@ -1467,29 +1293,13 @@
 			"hp": 20,
 			"interval": 1.5,
 			"race": "獣",
-			"range": "1行",
+			"range": "近接",
 			"sfx": "",
-			"skills": [
-				{
-					"effect_id": "spd_buff_apply",
-					"params": {
-						"stacks": 3
-					},
-					"target": "same_row_beast",
-					"trigger": "always"
-				},
-				{
-					"effect_id": "atk_buff_apply",
-					"params": {
-						"duration": 5,
-						"interval": 10,
-						"stacks": 3
-					},
-					"target": "same_row_beast",
-					"trigger": "timer"
-				}
-			],
-			"texture": ""
+			"skills": [],
+			"texture": "",
+			"roles": [
+				"攻撃"
+			]
 		},
 		"キングスライム": {
 			"anim": "",
@@ -1500,26 +1310,13 @@
 			"hp": 100,
 			"interval": 6,
 			"race": "スライム",
-			"range": "上下含む3行",
+			"range": "近接",
 			"sfx": "",
-			"skills": [
-				{
-					"effect_id": "slime_global_buff",
-					"params": {
-						"atk_pct": 0.5,
-						"race": "スライム"
-					},
-					"target": "all_allies",
-					"trigger": "always"
-				},
-				{
-					"effect_id": "auto_promote",
-					"params": {},
-					"target": "self",
-					"trigger": "always"
-				}
-			],
-			"texture": ""
+			"skills": [],
+			"texture": "",
+			"roles": [
+				"攻撃"
+			]
 		},
 		"クリスタルスライム": {
 			"anim": "",
@@ -1530,27 +1327,13 @@
 			"hp": 10,
 			"interval": 2,
 			"race": "スライム",
-			"range": "1行",
+			"range": "近接",
 			"sfx": "",
-			"skills": [
-				{
-					"effect_id": "mana_regen_boost",
-					"params": {
-						"pct": 0.1
-					},
-					"target": "self",
-					"trigger": "always"
-				},
-				{
-					"effect_id": "armor_apply",
-					"params": {
-						"stacks": 1
-					},
-					"target": "front_ally_all",
-					"trigger": "always"
-				}
-			],
-			"texture": ""
+			"skills": [],
+			"texture": "",
+			"roles": [
+				"攻撃"
+			]
 		},
 		"グール": {
 			"anim": "",
@@ -1561,15 +1344,9 @@
 			"hp": 25,
 			"interval": 2,
 			"race": "アンデッド",
-			"range": "1行",
+			"range": "近接",
 			"sfx": "",
 			"skills": [
-				{
-					"effect_id": "debuff_spread",
-					"params": {},
-					"target": "front_enemy",
-					"trigger": "always"
-				},
 				{
 					"effect_id": "lifesteal_apply",
 					"params": {
@@ -1577,18 +1354,12 @@
 					},
 					"target": "self",
 					"trigger": "on_hit"
-				},
-				{
-					"effect_id": "atk_accumulate",
-					"params": {
-						"amount": 2,
-						"cap": 10
-					},
-					"target": "self",
-					"trigger": "on_kill"
 				}
 			],
-			"texture": ""
+			"texture": "",
+			"roles": [
+				"攻撃"
+			]
 		},
 		"ゴブリン": {
 			"anim": "",
@@ -1599,27 +1370,13 @@
 			"hp": 15,
 			"interval": 1,
 			"race": "獣",
-			"range": "1行",
+			"range": "近接",
 			"sfx": "",
-			"skills": [
-				{
-					"effect_id": "atk_buff_apply",
-					"params": {
-						"stacks": 2
-					},
-					"target": "front_one",
-					"trigger": "always"
-				},
-				{
-					"effect_id": "draw_cards",
-					"params": {
-						"count": 2
-					},
-					"target": "self",
-					"trigger": "on_summon"
-				}
-			],
-			"texture": ""
+			"skills": [],
+			"texture": "",
+			"roles": [
+				"攻撃"
+			]
 		},
 		"スケルトン": {
 			"anim": "",
@@ -1632,23 +1389,7 @@
 			"race": "アンデッド",
 			"range": "1行",
 			"sfx": "",
-			"skills": [
-				{
-					"effect_id": "enemy_mana_drain",
-					"params": {},
-					"target": "enemy",
-					"trigger": "always"
-				},
-				{
-					"effect_id": "self_revive",
-					"params": {
-						"delay": 3,
-						"hp": 5
-					},
-					"target": "same_row",
-					"trigger": "on_death"
-				}
-			],
+			"skills": [],
 			"texture": ""
 		},
 		"スライム": {
@@ -1662,17 +1403,7 @@
 			"race": "スライム",
 			"range": "1行",
 			"sfx": "",
-			"skills": [
-				{
-					"effect_id": "summon_same_row",
-					"params": {
-						"chain": false,
-						"unit_id": "スライム"
-					},
-					"target": "same_row",
-					"trigger": "on_summon"
-				}
-			],
+			"skills": [],
 			"texture": ""
 		},
 		"ゼリーフィッシュ": {
@@ -1686,25 +1417,7 @@
 			"race": "スライム",
 			"range": "1行",
 			"sfx": "",
-			"skills": [
-				{
-					"effect_id": "heal_pct",
-					"params": {
-						"factor": 0.15
-					},
-					"target": "front_ally_all",
-					"trigger": "on_summon"
-				},
-				{
-					"effect_id": "regen_apply",
-					"params": {
-						"interval": 3,
-						"stacks": 1
-					},
-					"target": "random_front_ally",
-					"trigger": "timer"
-				}
-			],
+			"skills": [],
 			"texture": ""
 		},
 		"タイガー": {
@@ -1720,14 +1433,6 @@
 			"sfx": "",
 			"skills": [
 				{
-					"effect_id": "atk_buff_apply",
-					"params": {
-						"stacks": 2
-					},
-					"target": "adjacent_beast",
-					"trigger": "always"
-				},
-				{
 					"effect_id": "critical",
 					"params": {
 						"factor": 2,
@@ -1735,20 +1440,6 @@
 					},
 					"target": "hit_target",
 					"trigger": "on_hit"
-				},
-				{
-					"effect_id": "force_front",
-					"params": {},
-					"target": "self",
-					"trigger": "on_summon"
-				},
-				{
-					"effect_id": "big_damage",
-					"params": {
-						"interval": 20
-					},
-					"target": "enemy_max_hp",
-					"trigger": "timer"
 				}
 			],
 			"texture": ""
@@ -1766,46 +1457,12 @@
 			"sfx": "",
 			"skills": [
 				{
-					"effect_id": "support_fire",
-					"params": {
-						"atk_factor": 0.3
-					},
-					"target": "self",
-					"trigger": "always"
-				},
-				{
-					"effect_id": "spd_buff_apply",
-					"params": {
-						"stacks": 3
-					},
-					"target": "same_col_ally",
-					"trigger": "always"
-				},
-				{
 					"effect_id": "burn_apply",
 					"params": {
 						"stacks": 2
 					},
 					"target": "hit_target",
 					"trigger": "on_hit"
-				},
-				{
-					"effect_id": "all_enemy_debuff",
-					"params": {
-						"interval": 15,
-						"stacks": 2,
-						"status": "burn"
-					},
-					"target": "all_enemies",
-					"trigger": "timer"
-				},
-				{
-					"effect_id": "freeze_apply",
-					"params": {
-						"stacks": 4
-					},
-					"target": "all_enemies",
-					"trigger": "on_kill"
 				}
 			],
 			"texture": ""
@@ -1822,15 +1479,6 @@
 			"range": "1行",
 			"sfx": "",
 			"skills": [
-				{
-					"effect_id": "paralysis_apply",
-					"params": {
-						"interval": 3,
-						"stacks": 1
-					},
-					"target": "random_front_enemy",
-					"trigger": "timer"
-				},
 				{
 					"effect_id": "paralysis_apply",
 					"params": {
@@ -1857,15 +1505,6 @@
 				{
 					"effect_id": "burn_apply",
 					"params": {
-						"interval": 3,
-						"stacks": 3
-					},
-					"target": "random_front_enemy",
-					"trigger": "timer"
-				},
-				{
-					"effect_id": "burn_apply",
-					"params": {
 						"stacks": 2
 					},
 					"target": "hit_target",
@@ -1885,20 +1524,7 @@
 			"race": "スライム",
 			"range": "1行",
 			"sfx": "",
-			"skills": [
-				{
-					"effect_id": "synthesis_boost",
-					"params": {},
-					"target": "self_deck",
-					"trigger": "on_summon"
-				},
-				{
-					"effect_id": "split_on_death",
-					"params": {},
-					"target": "same_row",
-					"trigger": "on_death"
-				}
-			],
+			"skills": [],
 			"texture": ""
 		},
 		"フロストスライム": {
@@ -1913,15 +1539,6 @@
 			"range": "1行",
 			"sfx": "",
 			"skills": [
-				{
-					"effect_id": "freeze_apply",
-					"params": {
-						"interval": 3,
-						"stacks": 3
-					},
-					"target": "random_front_enemy",
-					"trigger": "timer"
-				},
 				{
 					"effect_id": "freeze_apply",
 					"params": {
@@ -1944,22 +1561,7 @@
 			"race": "スライム",
 			"range": "1行",
 			"sfx": "",
-			"skills": [
-				{
-					"effect_id": "lifesteal_apply",
-					"params": {
-						"stacks": 5
-					},
-					"target": "random_front_ally",
-					"trigger": "on_summon"
-				},
-				{
-					"effect_id": "deck_add_self",
-					"params": {},
-					"target": "self_deck",
-					"trigger": "on_summon"
-				}
-			],
+			"skills": [],
 			"texture": ""
 		},
 		"ポイズンスライム": {
@@ -1974,15 +1576,6 @@
 			"range": "1行",
 			"sfx": "",
 			"skills": [
-				{
-					"effect_id": "poison_apply",
-					"params": {
-						"interval": 3,
-						"stacks": 5
-					},
-					"target": "random_front_enemy",
-					"trigger": "timer"
-				},
 				{
 					"effect_id": "poison_apply",
 					"params": {
@@ -2005,16 +1598,7 @@
 			"race": "スライム",
 			"range": "1行",
 			"sfx": "",
-			"skills": [
-				{
-					"effect_id": "armor_apply",
-					"params": {
-						"stacks": 1
-					},
-					"target": "self",
-					"trigger": "always"
-				}
-			],
+			"skills": [],
 			"texture": ""
 		},
 		"ラージスライム": {
@@ -2028,20 +1612,7 @@
 			"race": "スライム",
 			"range": "1行",
 			"sfx": "",
-			"skills": [
-				{
-					"effect_id": "synthesis_boost",
-					"params": {},
-					"target": "self_deck",
-					"trigger": "on_summon"
-				},
-				{
-					"effect_id": "split_on_death",
-					"params": {},
-					"target": "same_row",
-					"trigger": "on_death"
-				}
-			],
+			"skills": [],
 			"texture": ""
 		},
 		"リッチ": {
@@ -2057,39 +1628,12 @@
 			"sfx": "",
 			"skills": [
 				{
-					"effect_id": "snipe",
-					"params": {},
-					"target": "self",
-					"trigger": "always"
-				},
-				{
-					"effect_id": "support_revive",
-					"params": {},
-					"target": "same_row",
-					"trigger": "always"
-				},
-				{
 					"effect_id": "freeze_apply",
 					"params": {
 						"stacks": 3
 					},
 					"target": "hit_target",
 					"trigger": "on_hit"
-				},
-				{
-					"effect_id": "poison_apply",
-					"params": {
-						"interval": 20,
-						"stacks": 3
-					},
-					"target": "all_enemies",
-					"trigger": "timer"
-				},
-				{
-					"effect_id": "revive_undead",
-					"params": {},
-					"target": "ally_undead_lowest",
-					"trigger": "on_kill"
 				}
 			],
 			"texture": ""
@@ -2105,28 +1649,7 @@
 			"race": "獣",
 			"range": "1行",
 			"sfx": "",
-			"skills": [
-				{
-					"effect_id": "spd_buff_apply",
-					"params": {
-						"stacks": 1
-					},
-					"target": "front_beast",
-					"trigger": "always"
-				},
-				{
-					"effect_id": "flying",
-					"params": {},
-					"target": "self",
-					"trigger": "always"
-				},
-				{
-					"effect_id": "penetrate",
-					"params": {},
-					"target": "self",
-					"trigger": "always"
-				}
-			],
+			"skills": [],
 			"texture": ""
 		},
 		"ヴリコラカス": {
@@ -2142,24 +1665,10 @@
 			"sfx": "",
 			"skills": [
 				{
-					"effect_id": "debuff_spread",
-					"params": {},
-					"target": "adjacent_enemy",
-					"trigger": "always"
-				},
-				{
 					"effect_id": "steal_buffs",
 					"params": {},
 					"target": "hit_target",
 					"trigger": "on_hit"
-				},
-				{
-					"effect_id": "steal_all_buffs",
-					"params": {
-						"interval": 20
-					},
-					"target": "enemy_most_buffs",
-					"trigger": "timer"
 				}
 			],
 			"texture": ""
@@ -2176,14 +1685,6 @@
 			"range": "1行",
 			"sfx": "",
 			"skills": [
-				{
-					"trigger": "always",
-					"target": "random_front_ally",
-					"effect_id": "atk_buff_apply",
-					"params": {
-						"stacks": 2
-					}
-				},
 				{
 					"trigger": "on_hit",
 					"target": "self",
@@ -2214,12 +1715,6 @@
 					"params": {
 						"stacks": 3
 					}
-				},
-				{
-					"trigger": "always",
-					"target": "same_row",
-					"effect_id": "debuff_spread",
-					"params": {}
 				}
 			],
 			"texture": ""
@@ -2235,22 +1730,7 @@
 			"race": "アンデッド",
 			"range": "1行",
 			"sfx": "",
-			"skills": [
-				{
-					"trigger": "always",
-					"target": "adjacent",
-					"effect_id": "armor_apply",
-					"params": {
-						"stacks": 1
-					}
-				},
-				{
-					"trigger": "on_summon",
-					"target": "self",
-					"effect_id": "penetrate",
-					"params": {}
-				}
-			],
+			"skills": [],
 			"texture": ""
 		},
 		"デュラハン": {
@@ -2264,25 +1744,7 @@
 			"race": "アンデッド",
 			"range": "上下含む3行",
 			"sfx": "",
-			"skills": [
-				{
-					"trigger": "always",
-					"target": "same_row",
-					"effect_id": "atk_buff_apply",
-					"params": {
-						"stacks": 2
-					}
-				},
-				{
-					"trigger": "timer",
-					"target": "self",
-					"effect_id": "draw_cards",
-					"params": {
-						"count": 1,
-						"interval": 15
-					}
-				}
-			],
+			"skills": [],
 			"texture": ""
 		},
 		"デスナイト": {
@@ -2298,12 +1760,6 @@
 			"sfx": "",
 			"skills": [
 				{
-					"trigger": "always",
-					"target": "all_allies",
-					"effect_id": "support_revive",
-					"params": {}
-				},
-				{
 					"trigger": "on_hit",
 					"target": "front_one",
 					"effect_id": "freeze_apply",
@@ -2317,14 +1773,6 @@
 					"effect_id": "poison_apply",
 					"params": {
 						"stacks": 2
-					}
-				},
-				{
-					"trigger": "on_kill",
-					"target": "all_enemies",
-					"effect_id": "poison_apply",
-					"params": {
-						"stacks": 3
 					}
 				}
 			],
@@ -2349,15 +1797,6 @@
 					"params": {
 						"stacks": 2
 					}
-				},
-				{
-					"trigger": "timer",
-					"target": "same_row",
-					"effect_id": "paralysis_apply",
-					"params": {
-						"stacks": 1,
-						"interval": 10
-					}
 				}
 			],
 			"texture": ""
@@ -2373,24 +1812,7 @@
 			"race": "獣",
 			"range": "1行",
 			"sfx": "",
-			"skills": [
-				{
-					"trigger": "always",
-					"target": "adjacent",
-					"effect_id": "spd_buff_apply",
-					"params": {
-						"stacks": 2
-					}
-				},
-				{
-					"trigger": "timer",
-					"target": "self_deck",
-					"effect_id": "summon_low_cost",
-					"params": {
-						"interval": 10
-					}
-				}
-			],
+			"skills": [],
 			"texture": ""
 		},
 		"マンティコア": {
@@ -2412,18 +1834,6 @@
 					"params": {
 						"stacks": 2
 					}
-				},
-				{
-					"trigger": "on_summon",
-					"target": "self",
-					"effect_id": "penetrate",
-					"params": {}
-				},
-				{
-					"trigger": "always",
-					"target": "same_row",
-					"effect_id": "debuff_spread",
-					"params": {}
 				}
 			],
 			"texture": ""
@@ -2439,33 +1849,7 @@
 			"race": "獣",
 			"range": "1行",
 			"sfx": "",
-			"skills": [
-				{
-					"trigger": "always",
-					"target": "all_allies",
-					"effect_id": "atk_buff_apply",
-					"params": {
-						"stacks": 1
-					}
-				},
-				{
-					"trigger": "on_summon",
-					"target": "all_allies",
-					"effect_id": "heal_pct",
-					"params": {
-						"factor": 0.15
-					}
-				},
-				{
-					"trigger": "timer",
-					"target": "all_allies",
-					"effect_id": "regen_apply",
-					"params": {
-						"stacks": 1,
-						"interval": 20
-					}
-				}
-			],
+			"skills": [],
 			"texture": ""
 		},
 		"ビャッコ": {
@@ -2479,24 +1863,7 @@
 			"race": "獣",
 			"range": "上下含む3行",
 			"sfx": "",
-			"skills": [
-				{
-					"trigger": "always",
-					"target": "same_col_ally",
-					"effect_id": "atk_buff_apply",
-					"params": {
-						"stacks": 2
-					}
-				},
-				{
-					"trigger": "always",
-					"target": "same_col_ally",
-					"effect_id": "spd_buff_apply",
-					"params": {
-						"stacks": 2
-					}
-				}
-			],
+			"skills": [],
 			"texture": ""
 		},
 		"グリフォン": {
@@ -2510,29 +1877,7 @@
 			"race": "獣",
 			"range": "上下含む3行",
 			"sfx": "",
-			"skills": [
-				{
-					"trigger": "on_summon",
-					"target": "self",
-					"effect_id": "flying",
-					"params": {}
-				},
-				{
-					"trigger": "on_summon",
-					"target": "self",
-					"effect_id": "support_fire",
-					"params": {}
-				},
-				{
-					"trigger": "timer",
-					"target": "all_allies",
-					"effect_id": "atk_buff_apply",
-					"params": {
-						"stacks": 2,
-						"interval": 25
-					}
-				}
-			],
+			"skills": [],
 			"texture": ""
 		},
 		"フェンリル": {
@@ -2547,22 +1892,6 @@
 			"range": "上下含む3行",
 			"sfx": "",
 			"skills": [
-				{
-					"trigger": "on_summon",
-					"target": "all_enemies",
-					"effect_id": "burn_apply",
-					"params": {
-						"stacks": 5
-					}
-				},
-				{
-					"trigger": "always",
-					"target": "all_allies",
-					"effect_id": "spd_buff_apply",
-					"params": {
-						"stacks": 3
-					}
-				},
 				{
 					"trigger": "on_hit",
 					"target": "front_one",
@@ -2593,22 +1922,6 @@
 					"params": {
 						"factor": 1.5
 					}
-				},
-				{
-					"trigger": "on_kill",
-					"target": "self",
-					"effect_id": "atk_accumulate",
-					"params": {
-						"amount": 3
-					}
-				},
-				{
-					"trigger": "on_kill",
-					"target": "self",
-					"effect_id": "heal_pct",
-					"params": {
-						"factor": 0.3
-					}
 				}
 			],
 			"texture": ""
@@ -2626,34 +1939,11 @@
 			"sfx": "",
 			"skills": [
 				{
-					"trigger": "on_summon",
-					"target": "self",
-					"effect_id": "snipe",
-					"params": {}
-				},
-				{
 					"trigger": "on_hit",
 					"target": "front_one",
 					"effect_id": "poison_apply",
 					"params": {
 						"stacks": 3
-					}
-				},
-				{
-					"trigger": "timer",
-					"target": "enemy_deck",
-					"effect_id": "inject_status_card",
-					"params": {
-						"card_id": "毒カード",
-						"interval": 12
-					}
-				},
-				{
-					"trigger": "on_death",
-					"target": "all_enemies",
-					"effect_id": "poison_apply",
-					"params": {
-						"stacks": 5
 					}
 				}
 			],
@@ -2672,26 +1962,12 @@
 			"sfx": "",
 			"skills": [
 				{
-					"trigger": "on_summon",
-					"target": "self",
-					"effect_id": "flying",
-					"params": {}
-				},
-				{
 					"trigger": "on_hit",
 					"target": "front_one",
 					"effect_id": "critical",
 					"params": {
 						"first_only": true,
 						"factor": 2
-					}
-				},
-				{
-					"trigger": "always",
-					"target": "same_col_ally",
-					"effect_id": "spd_buff_apply",
-					"params": {
-						"stacks": 2
 					}
 				}
 			],
@@ -2710,32 +1986,11 @@
 			"sfx": "",
 			"skills": [
 				{
-					"trigger": "on_summon",
-					"target": "self",
-					"effect_id": "big_penetrate",
-					"params": {}
-				},
-				{
-					"trigger": "on_summon",
-					"target": "self",
-					"effect_id": "impact",
-					"params": {}
-				},
-				{
 					"trigger": "on_hit",
 					"target": "front_one",
 					"effect_id": "burn_apply",
 					"params": {
 						"stacks": 4
-					}
-				},
-				{
-					"trigger": "timer",
-					"target": "self",
-					"effect_id": "atk_buff_apply",
-					"params": {
-						"stacks": 3,
-						"interval": 5
 					}
 				}
 			],
@@ -2752,25 +2007,7 @@
 			"race": "アンデッド",
 			"range": "1行",
 			"sfx": "",
-			"skills": [
-				{
-					"trigger": "on_death",
-					"target": "self",
-					"effect_id": "mana_boost",
-					"params": {
-						"amount": 1
-					}
-				},
-				{
-					"trigger": "always",
-					"target": "self",
-					"effect_id": "self_revive",
-					"params": {
-						"hp": 3,
-						"delay": 3
-					}
-				}
-			],
+			"skills": [],
 			"texture": ""
 		},
 		"ホブゴブリン": {
@@ -2784,24 +2021,7 @@
 			"race": "獣",
 			"range": "1行",
 			"sfx": "",
-			"skills": [
-				{
-					"trigger": "on_summon",
-					"target": "random_front_ally",
-					"effect_id": "atk_buff_apply",
-					"params": {
-						"stacks": 2
-					}
-				},
-				{
-					"trigger": "on_kill",
-					"target": "self",
-					"effect_id": "atk_accumulate",
-					"params": {
-						"amount": 2
-					}
-				}
-			],
+			"skills": [],
 			"texture": ""
 		}
 	},
@@ -2826,7 +2046,7 @@
 			"description": "無限に分裂し続ける巨大スライム",
 			"difficulty": 2,
 			"enemy_deck_id": "boss_act1_slime",
-			"hp_multiplier": 2.0,
+			"hp_multiplier": 2,
 			"atk_multiplier": 0.8,
 			"reward_gold": 200,
 			"reward_sp": 2,

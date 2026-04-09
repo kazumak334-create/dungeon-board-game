@@ -32,10 +32,16 @@ var environment_override: Dictionary = {}  # 環境変化（side→tile_id）
 var selected_deck: Array = []
 var selected_material: Dictionary = {}
 var placement_config: Array = []  # デッキインデックス→{col_priority, row_priority, modifiers}
+# v2設計: 初期配置9マス（呪文はselected_deckに残る）
+var initial_units: Array = []  # 9個の要素 [{name, row, col}, ...] or null
+# v2設計: 呪文3スロット設定
+var spell_slots: Array = []  # 3個の要素 [{spell_name, condition}, ...] or null
 var materials: Array = []  # 所持素材（バトル報酬で蓄積）
 var gold: int = 0          # 通貨
 var skill_points: int = 0  # スキルポイント
-var last_result: Dictionary = {"win": false, "player_hp_remaining": 0, "enemy_hp_dealt": 0, "turns": 0}
+var unlocked_skills: Array = []  # 解放済みスキルID配列
+var skill_tree_data: Dictionary = {}  # 現在のランで生成されたスキルツリー（SkillTreeGenerator.generate()の結果）
+var last_result: Dictionary = {"win": false, "player_hp_remaining": 0, "enemy_hp_remaining": 0, "turns": 0}
 var run_depth: int = 0
 var artifacts_acquired: Array = []
 var battle_seed: int = 0       # リプレイ用ランダムシード
@@ -52,6 +58,7 @@ var completed_nodes: Array = []      # 通過済みノードID
 var boss_candidates: Array = []      # 表示するボス候補
 var selected_boss_id: String = ""    # 選択したボスID
 var last_scene: String = ""          # 直前のシーン名（戻るボタン用）
+var alert_level: int = 0             # 警戒レベル（戦闘マス選択で+1、レストで-2）
 
 func reset() -> void:
 	battle_config = DEFAULT_BATTLE_CONFIG.duplicate(true)
@@ -66,7 +73,9 @@ func reset() -> void:
 	materials = []
 	gold = 0
 	skill_points = 0
-	last_result = {"win": false, "player_hp_remaining": 0, "enemy_hp_dealt": 0, "turns": 0}
+	unlocked_skills = []
+	skill_tree_data = {}
+	last_result = {"win": false, "player_hp_remaining": 0, "enemy_hp_remaining": 0, "turns": 0}
 	run_depth = 0
 	artifacts_acquired = []
 	battle_seed = 0
@@ -83,4 +92,5 @@ func reset() -> void:
 	boss_candidates = []
 	selected_boss_id = ""
 	last_scene = ""
+	alert_level = 0
 	print("[GameSession] reset")

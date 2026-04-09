@@ -213,30 +213,13 @@ static func generate_default_config(deck: Array) -> Array:
 				"fallback_same_col": true,
 			})
 		elif CardDB.SPELLS.has(card_name) or CardDB.STATUS_SPELLS.has(card_name):
-			var d: Dictionary
-			if CardDB.SPELLS.has(card_name):
-				d = CardDB.SPELLS[card_name]
-			else:
-				d = CardDB.STATUS_SPELLS[card_name]
-			var skills: Array = d.get("skills", [])
-			var first_target: String = skills[0].get("target", "") if skills.size() > 0 else ""
-			var side = 1 if first_target in ["enemy", "all_enemies", "enemy_random_col", "enemy_front_one"] else 0
-			if requires_board_placement(entry):
-				# 行列指定必要→盤面（rowはバトル時に解決、col=1デフォルト）
-				config.append({
-					"side": side,
-					"row": -1,
-					"col": 1,
-					"fallback_same_col": true,
-				})
-			else:
-				# AoE/プレイヤー影響→呪文スロット（col=-1）
-				config.append({
-					"side": side,
-					"row": -1,
-					"col": -1,
-					"fallback_same_col": true,
-				})
+			# v2設計: 呪文は全て呪文デッキ（col=-1, row=0）に配置
+			config.append({
+				"side": 0,
+				"row": 0,
+				"col": -1,
+				"fallback_same_col": true,
+			})
 		else:
 			# SYSTEM_SPELLS等
 			config.append({

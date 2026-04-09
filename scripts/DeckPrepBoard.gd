@@ -29,20 +29,17 @@ const SPELL_SLOT_GAP = 6     # バー時のギャップ（後方互換）
 const SPELL_TILE_SWITCH = 4  # タイル→バー切り替え枚数（4以下タイル, 5以上バー）
 const SPELL_SLOTS_Y = BOARD_H + 4
 
-# アーティファクトスロット定数 (タイル最大4枚→80×100px, 5枚以上→バー形式)
-const ARTIFACT_TILE_W = 80
-const ARTIFACT_TILE_H = 100
-const ARTIFACT_TILE_GAP = 6
-const ARTIFACT_BAR_H = 28
-const ARTIFACT_BAR_GAP = 4
-const ARTIFACT_SLOT_W = 78
-const ARTIFACT_SLOT_H = 38
-const ARTIFACT_SLOT_GAP = 6
-const ARTIFACT_SLOTS_COUNT = 6
-const ARTIFACT_TILE_SWITCH = 4  # タイル→バー切り替え枚数
+# v2設計: 手持ちカード（ユニット・呪文両対応）
+const SPELL_HAND_TILE_W = 80
+const SPELL_HAND_TILE_H = 100
+const SPELL_HAND_TILE_GAP = 6
+const SPELL_HAND_BAR_H = 28
+const SPELL_HAND_BAR_GAP = 4
+const SPELL_HAND_TILE_SWITCH = 4  # タイル→バー切り替え枚数（呪文デッキと同じ）
+const SPELL_HAND_SLOTS_COUNT = 6
 
-# アーティファクトY（呪文エリア高さは動的なのでbuild時に計算）
-const ARTIFACT_SLOTS_Y_OFFSET = 12  # 呪文エリア下のオフセット
+# 手持ちカードY（呪文デッキエリア下のオフセット）
+const SPELL_HAND_Y_OFFSET = 12
 
 # カード詳細エリア定数（盤面左下）
 const CARD_DETAIL_W = 130   # 盤面1列分幅（约130px）
@@ -83,9 +80,7 @@ func build_placement_tab(_tab_container_arg: Control, PL) -> void:
 	_build_board_col_labels(enemy_x)
 	_build_board_cells(enemy_x)
 	populate_cards()
-	# ③ チェックボックスを盤面左下に配置
-	_build_fallback_toggle_bottom_left()
-	# ⑧⑨ 呪文エリア（左半分）+ アーティファクトエリア（右半分）: 盤面直下
+	# ⑧⑨ 呪文デッキ（左半分）+ 手持ちカード（右半分）: 盤面直下
 	var sub_area_y = _build_spell_artifact_split()
 	# ⑥ 合成可能エリア（中央下部）
 	_build_synthesis_area(sub_area_y)
@@ -125,11 +120,9 @@ const CELLS_START_Y = BOARD_Y + 25
 func _build_board_cells(enemy_x: float) -> void:
 	var row_names = ["上段", "中段", "下段"]
 	_cell_rects = [
-		[[null,null,null],[null,null,null],[null,null,null]],
 		[[null,null,null],[null,null,null],[null,null,null]]
 	]
 	_cell_card_containers = [
-		[[null,null,null],[null,null,null],[null,null,null]],
 		[[null,null,null],[null,null,null],[null,null,null]]
 	]
 
@@ -146,31 +139,26 @@ func _build_board_cells(enemy_x: float) -> void:
 		rl_ally.pressed.connect(func(): select_row(0, ally_ri))
 		tab_container.add_child(rl_ally)
 
-		# 項目9: 敵陣の行ラベル非表示（代わりに何も追加しない）
-
-		for si in range(2):
-			for ci in range(3):
-				var bx: float = (BOARD_X + ROW_LABEL_W + ci * (CELL_W + CELL_GAP)) if si == 0 else (enemy_x + ci * (CELL_W + CELL_GAP))
-				var by = CELLS_START_Y + ri * (CELL_H + CELL_GAP)
-				var cell = Panel.new()
-				cell.position = Vector2(bx, by)
-				cell.size = Vector2(CELL_W, CELL_H)
-				var cell_style = StyleBoxFlat.new()
-				cell_style.bg_color = Color(0.1, 0.12, 0.16) if si == 0 else Color(0.14, 0.1, 0.1)
-				cell_style.border_color = Color(0.2, 0.3, 0.25) if si == 0 else Color(0.3, 0.2, 0.2)
-				cell_style.set_border_width_all(1)
-				cell.add_theme_stylebox_override("panel", cell_style)
-				tab_container.add_child(cell)
-				# 項目1: セル内をカード型（ヘッダー+イラスト枠+ステータス縦並び）に変更
-				# vbox は populate_cards でカード型チップを入れる際に使用
-				var vbox = VBoxContainer.new()
-				vbox.position = Vector2(2, 2)
-				vbox.size = Vector2(CELL_W - 4, CELL_H - 4)
-				vbox.add_theme_constant_override("separation", 2)
-				vbox.mouse_filter = Control.MOUSE_FILTER_IGNORE
-				cell.add_child(vbox)
-				_cell_rects[si][ri][ci] = cell
-				_cell_card_containers[si][ri][ci] = vbox
+		for ci in range(3):
+			var bx: float = BOARD_X + ROW_LABEL_W + ci * (CELL_W + CELL_GAP)
+			var by = CELLS_START_Y + ri * (CELL_H + CELL_GAP)
+			var cell = Panel.new()
+			cell.position = Vector2(bx, by)
+			cell.size = Vector2(CELL_W, CELL_H)
+			var cell_style = StyleBoxFlat.new()
+			cell_style.bg_color = Color(0.1, 0.12, 0.16)
+			cell_style.border_color = Color(0.2, 0.3, 0.25)
+			cell_style.set_border_width_all(1)
+			cell.add_theme_stylebox_override("panel", cell_style)
+			tab_container.add_child(cell)
+			var vbox = VBoxContainer.new()
+			vbox.position = Vector2(2, 2)
+			vbox.size = Vector2(CELL_W - 4, CELL_H - 4)
+			vbox.add_theme_constant_override("separation", 2)
+			vbox.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			cell.add_child(vbox)
+			_cell_rects[0][ri][ci] = cell
+			_cell_card_containers[0][ri][ci] = vbox
 
 func set_global_fallback(on: bool) -> void:
 	for cfg in GameSession.placement_config:
@@ -363,115 +351,91 @@ func _create_bar_chip(card_name: String, count: int, w: float, h: float,
 	panel.gui_input.connect(func(event): _on_chip_input(event, idx, all_indices, panel))
 	return panel
 
-# ---- ⑤ チェックボックスを敵盤面の右下に配置 ----
 
-func _build_fallback_toggle_bottom_left() -> void:
-	var board_bottom = float(CELLS_START_Y) + 3.0 * float(CELL_H + CELL_GAP) + 4.0
-	# 敵盤面の右端X座標を計算
-	# 構造: BOARD_X → ROW_LABEL_W → 自陣3列 → CENTER_GAP → 敵陣3列
-	var enemy_right_x = float(BOARD_X) + float(ROW_LABEL_W) + 3.0 * float(CELL_W + CELL_GAP) + float(CENTER_GAP) + 3.0 * float(CELL_W + CELL_GAP)
-	var toggle_w = 380.0
-	var toggle = CheckBox.new()
-	toggle.text = "指定セルが埋まっている場合、同列の他空セルに召喚"
-	toggle.button_pressed = true
-	# 右端揃え: 敵盤面右端 - チェックボックス幅
-	toggle.position = Vector2(enemy_right_x - toggle_w, board_bottom)
-	toggle.size = Vector2(toggle_w, 20.0)
-	toggle.add_theme_font_size_override("font_size", 10)
-	toggle.toggled.connect(func(on: bool): set_global_fallback(on))
-	tab_container.add_child(toggle)
-
-# ---- ⑧⑨ 呪文エリア（左半分）+ アーティファクトエリア（右半分）----
-# 盤面直下に左右分割で配置。戻り値: 合成エリア開始Y
+# ---- ⑧⑨ 呪文デッキ（敵盤面位置）+ 手持ちカード（盤面直下全幅）----
 
 func _build_spell_artifact_split() -> float:
-	# 盤面エリアの幅・開始Xを計算（タブコンテナ内）
-	var board_area_w = float(ROW_LABEL_W) + 3.0 * float(CELL_W + CELL_GAP) + float(CENTER_GAP) + 3.0 * float(CELL_W + CELL_GAP)
 	var board_start_x = float(BOARD_X)
-	var half_w = board_area_w / 2.0
-	# 盤面直下Y（チェックボックス下に余白: 50pxでラベルと干渉しない）
-	var area_y = float(CELLS_START_Y) + 3.0 * float(CELL_H + CELL_GAP) + 50.0
+	var ally_board_w = float(ROW_LABEL_W) + 3.0 * float(CELL_W + CELL_GAP)
+	var spell_deck_x = board_start_x + ally_board_w + float(CENTER_GAP)
+	var spell_deck_w = 3.0 * float(CELL_W + CELL_GAP)
+	var spell_deck_y = float(CELLS_START_Y)
 
-	# 呪文エリアラベル（左半分）
+	# 呪文デッキラベル（敵盤面位置上部）
 	var spell_lbl = Label.new()
-	spell_lbl.text = "呪文エリア"
-	spell_lbl.position = Vector2(board_start_x, area_y - 14.0)
+	spell_lbl.text = "呪文デッキ"
+	spell_lbl.position = Vector2(spell_deck_x, spell_deck_y - 20.0)
 	spell_lbl.add_theme_font_size_override("font_size", 11)
 	spell_lbl.add_theme_color_override("font_color", Color(0.6, 0.65, 0.85))
 	tab_container.add_child(spell_lbl)
 
-	# アーティファクトエリアラベル（右半分）
-	var art_lbl = Label.new()
-	art_lbl.text = "アーティファクトエリア"
-	art_lbl.position = Vector2(board_start_x + half_w, area_y - 14.0)
-	art_lbl.add_theme_font_size_override("font_size", 11)
-	art_lbl.add_theme_color_override("font_color", Color(0.75, 0.65, 0.4))
-	tab_container.add_child(art_lbl)
-
-	# 呪文カード描画（左半分・タイル/バー切替）
+	# 呪文カード描画（敵盤面位置・タイル/バー切替）
 	var spell_cards = _build_spell_cards_list()
 	var spell_count = spell_cards.size()
 	var spell_area_h: float = 0.0
 
 	if spell_count <= SPELL_TILE_SWITCH:
-		# タイル形式: 縦横比5:7を維持。幅を half_w / SPELL_TILE_SWITCH 以下で計算
-		var tile_w = minf(float(SPELL_TILE_W), (half_w - float(BOARD_X) - float(SPELL_TILE_GAP) * (SPELL_TILE_SWITCH - 1)) / float(SPELL_TILE_SWITCH))
+		var tile_w = minf(float(SPELL_TILE_W), (spell_deck_w - float(SPELL_TILE_GAP) * (SPELL_TILE_SWITCH - 1)) / float(SPELL_TILE_SWITCH))
 		var tile_h = tile_w * 7.0 / 5.0
 		for i in range(spell_count):
 			var sc = spell_cards[i]
-			var sx = board_start_x + float(i) * (tile_w + float(SPELL_TILE_GAP))
+			var sx = spell_deck_x + float(i) * (tile_w + float(SPELL_TILE_GAP))
 			var tile = _create_tile_chip(sc[1], sc[2], tile_w, tile_h, sc[0], sc[3])
-			tile.position = Vector2(sx, area_y)
+			tile.position = Vector2(sx, spell_deck_y)
 			tab_container.add_child(tile)
-		# 空スロットは表示しない（仕様④）
-		spell_area_h = tile_h + float(ARTIFACT_SLOTS_Y_OFFSET)
+		spell_area_h = tile_h
 	else:
-		# バー形式（5枚以上: 幅 half_w - BOARD_X × 28px）
-		var bar_w = half_w - float(BOARD_X)
+		var bar_w = spell_deck_w - 4.0
 		for i in range(spell_count):
-			var sy = area_y + float(i) * float(SPELL_BAR_H + SPELL_BAR_GAP)
+			var sy = spell_deck_y + float(i) * float(SPELL_BAR_H + SPELL_BAR_GAP)
 			var bar = _create_bar_chip(spell_cards[i][1], spell_cards[i][2], bar_w, float(SPELL_BAR_H), spell_cards[i][0], spell_cards[i][3])
-			bar.position = Vector2(board_start_x, sy)
+			bar.position = Vector2(spell_deck_x, sy)
 			tab_container.add_child(bar)
-		spell_area_h = float(spell_count) * float(SPELL_BAR_H + SPELL_BAR_GAP) + float(ARTIFACT_SLOTS_Y_OFFSET)
+		spell_area_h = float(spell_count) * float(SPELL_BAR_H + SPELL_BAR_GAP)
 
-	# アーティファクトカード描画（右半分・常に空スロット表示なし）
-	var art_count = 0  # 将来: アーティファクトカード数
-	var art_area_h: float = 0.0
-	var art_start_x = board_start_x + half_w
-	if art_count <= ARTIFACT_TILE_SWITCH:
-		var tile_w = minf(float(ARTIFACT_TILE_W), (half_w - float(ARTIFACT_TILE_GAP) * (ARTIFACT_TILE_SWITCH - 1)) / float(ARTIFACT_TILE_SWITCH))
+	# 手持ちカードエリア（盤面直下全幅）
+	var hand_area_y = float(CELLS_START_Y) + 3.0 * float(CELL_H + CELL_GAP) + 4.0
+	var hand_lbl = Label.new()
+	hand_lbl.text = "手持ちカード"
+	hand_lbl.position = Vector2(board_start_x, hand_area_y - 14.0)
+	hand_lbl.add_theme_font_size_override("font_size", 11)
+	hand_lbl.add_theme_color_override("font_color", Color(0.75, 0.65, 0.4))
+	tab_container.add_child(hand_lbl)
+
+	# 手持ちカード描画（全幅）
+	var hand_cards = _build_hand_cards_list()
+	var hand_count = hand_cards.size()
+	var hand_area_h: float = 0.0
+	var hand_area_w = ally_board_w - float(BOARD_X)
+
+	if hand_count <= SPELL_HAND_TILE_SWITCH:
+		var tile_w = minf(float(SPELL_HAND_TILE_W), (hand_area_w - float(SPELL_HAND_TILE_GAP) * (SPELL_HAND_TILE_SWITCH - 1)) / float(SPELL_HAND_TILE_SWITCH))
 		var tile_h = tile_w * 7.0 / 5.0
-		# 空スロットは表示しない（仕様④）: art_count == 0 なのでループなし
-		art_area_h = tile_h + float(ARTIFACT_SLOTS_Y_OFFSET)
+		for i in range(hand_count):
+			var hc = hand_cards[i]
+			var sx = board_start_x + float(i) * (tile_w + float(SPELL_HAND_TILE_GAP))
+			var tile = _create_tile_chip(hc[1], hc[2], tile_w, tile_h, hc[0], hc[3])
+			tile.position = Vector2(sx, hand_area_y)
+			tab_container.add_child(tile)
+		hand_area_h = tile_h + float(SPELL_HAND_Y_OFFSET)
 	else:
-		art_area_h = float(art_count) * float(ARTIFACT_BAR_H + ARTIFACT_BAR_GAP) + float(ARTIFACT_SLOTS_Y_OFFSET)
+		var bar_w = hand_area_w - 2.0
+		for i in range(hand_count):
+			var hy = hand_area_y + float(i) * float(SPELL_HAND_BAR_H + SPELL_HAND_BAR_GAP)
+			var bar = _create_bar_chip(hand_cards[i][1], hand_cards[i][2], bar_w, float(SPELL_HAND_BAR_H), hand_cards[i][0], hand_cards[i][3])
+			bar.position = Vector2(board_start_x, hy)
+			tab_container.add_child(bar)
+		hand_area_h = float(hand_count) * float(SPELL_HAND_BAR_H + SPELL_HAND_BAR_GAP) + float(SPELL_HAND_Y_OFFSET)
 
-	# エリア間区切り線（呪文/アーティファクト境界・縦線）
-	var divider = ColorRect.new()
-	divider.position = Vector2(board_start_x + half_w - 2.0, area_y - 18.0)
-	divider.size = Vector2(1.0, maxf(spell_area_h, art_area_h) + 18.0)
-	divider.color = Color(0.3, 0.35, 0.45, 0.7)
-	divider.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	tab_container.add_child(divider)
+	# 手持ちカード下境界線
+	var hand_border = ColorRect.new()
+	hand_border.position = Vector2(board_start_x, hand_area_y + hand_area_h - float(SPELL_HAND_Y_OFFSET))
+	hand_border.size = Vector2(hand_area_w, 1.0)
+	hand_border.color = Color(0.3, 0.35, 0.45, 0.7)
+	hand_border.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	tab_container.add_child(hand_border)
 
-	# 呪文エリア下境界線
-	var spell_border = ColorRect.new()
-	spell_border.position = Vector2(board_start_x, area_y + spell_area_h - float(ARTIFACT_SLOTS_Y_OFFSET))
-	spell_border.size = Vector2(half_w - 4.0, 1.0)
-	spell_border.color = Color(0.3, 0.35, 0.45, 0.7)
-	spell_border.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	tab_container.add_child(spell_border)
-
-	# アーティファクトエリア下境界線
-	var art_border = ColorRect.new()
-	art_border.position = Vector2(art_start_x, area_y + art_area_h - float(ARTIFACT_SLOTS_Y_OFFSET))
-	art_border.size = Vector2(half_w - 2.0, 1.0)
-	art_border.color = Color(0.3, 0.35, 0.45, 0.7)
-	art_border.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	tab_container.add_child(art_border)
-
-	return area_y + maxf(spell_area_h, art_area_h)
+	return hand_area_y + hand_area_h
 
 # ---- ⑥ 合成可能エリア（盤面直下・中央）+ ⑦ Yes/No確認省略トグル ----
 
@@ -715,43 +679,43 @@ func build_card_detail_container(_tc: Control) -> Control:
 	return detail
 
 func populate_cards() -> void:
-	for si in range(2):
-		for ri in range(3):
-			for ci in range(3):
-				var vbox = _cell_card_containers[si][ri][ci]
-				if vbox != null:
-					for child in vbox.get_children():
-						child.queue_free()
+	for ri in range(3):
+		for ci in range(3):
+			var vbox = _cell_card_containers[0][ri][ci]
+			if vbox != null:
+				for child in vbox.get_children():
+					child.queue_free()
 
 	var cell_cards = _build_cell_cards_map()
 
 	for key in cell_cards:
 		var parts = key.split("_")
 		var si = int(parts[0]); var ri = int(parts[1]); var ci = int(parts[2])
-		var vbox = _cell_card_containers[si][ri][ci]
+		if si != 0:
+			continue
+		var vbox = _cell_card_containers[0][ri][ci]
 		if vbox == null:
 			continue
 		vbox.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		# ハイブリッド表示: セル内カードを集約してタイル/バー形式で描画
-		var grouped = _group_cards_by_name(cell_cards[key])
-		# {name, count, idx_first, indices} 形式に変換
-		var card_defs: Array = []
-		for arr in grouped:
-			card_defs.append({"name": arr[1], "count": arr[2], "idx_first": arr[0], "indices": arr[3]})
-		var content = _create_cell_content(card_defs)
-		vbox.add_child(content)
+		# v2設計: 1セルに1枚まで（グループ化なし）
+		var cards = cell_cards[key]
+		if cards.size() > 0:
+			var card = cards[0]
+			var card_defs: Array = [{"name": card["name"], "count": 1, "idx_first": card["idx"], "indices": [card["idx"]]}]
+			var content = _create_cell_content(card_defs)
+			vbox.add_child(content)
 
 		# セル操作（Panelのgui_input）
-		var cell_panel = _cell_rects[si][ri][ci]
+		var cell_panel = _cell_rects[0][ri][ci]
 		if cell_panel != null and not cell_panel.has_meta("click_connected"):
-			var s = si; var r = ri; var c = ci
+			var r = ri; var c = ci
 			cell_panel.gui_input.connect(func(event):
 				if _dragging:
 					return
 				if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
 					if event.double_click:
 						# ダブルクリック → セル内全カード選択
-						select_cell(s, r, c)
+						select_cell(0, r, c)
 					else:
 						# シングルクリック → 選択リセット
 						_selected_card_idx = -1
@@ -773,19 +737,39 @@ func _build_cell_cards_map() -> Dictionary:
 		var side = config.get("side", 0)
 		var row = max(0, config.get("row", 0))
 		var key = "%d_%d_%d" % [side, row, col]
-		if not result.has(key): result[key] = []
+		# v2設計: 1セルに1枚まで（既に存在する場合はスキップ）
+		if result.has(key):
+			continue
+		result[key] = []
 		var card_name = entry.get("name", "???") if entry is Dictionary else str(entry)
 		result[key].append({"idx": i, "name": card_name})
 	return result
 
-# 呪文スロット用カードリスト（col=-1のカードを集約して返す）
+# 呪文スロット用カードリスト（col=-1 かつ row=0 のカードを集約して返す）
 func _build_spell_cards_list() -> Array:
 	var raw: Array = []
 	for i in range(GameSession.selected_deck.size()):
 		var entry = GameSession.selected_deck[i]
 		var config = GameSession.placement_config[i] if i < GameSession.placement_config.size() else {}
 		var col = config.get("col", -1)
-		if col >= 0:
+		var row = config.get("row", 0)
+		# v2設計: col=-1 かつ row=0 が呪文デッキ
+		if col >= 0 or row != 0:
+			continue
+		var card_name = entry.get("name", "???") if entry is Dictionary else str(entry)
+		raw.append({"idx": i, "name": card_name})
+	return _group_cards_by_name(raw)
+
+# 手持ちカード用カードリスト（col=-1 かつ row=1 のカードを集約して返す）
+func _build_hand_cards_list() -> Array:
+	var raw: Array = []
+	for i in range(GameSession.selected_deck.size()):
+		var entry = GameSession.selected_deck[i]
+		var config = GameSession.placement_config[i] if i < GameSession.placement_config.size() else {}
+		var col = config.get("col", -1)
+		var row = config.get("row", 0)
+		# v2設計: col=-1 かつ row=1 が手持ちカード（ユニット・呪文両対応）
+		if col >= 0 or row != 1:
 			continue
 		var card_name = entry.get("name", "???") if entry is Dictionary else str(entry)
 		raw.append({"idx": i, "name": card_name})
@@ -914,34 +898,68 @@ func try_drop_at_mouse(_tc: Control) -> void:
 
 	var mouse = main_node.get_viewport().get_mouse_position()
 	var local = mouse - _tc.global_position
-	var enemy_x = BOARD_X + ROW_LABEL_W + 3 * (CELL_W + CELL_GAP) + CENTER_GAP
 
-	for si in range(2):
-		for ri in range(3):
-			for ci in range(3):
-				var bx: float = (BOARD_X + ROW_LABEL_W + ci * (CELL_W + CELL_GAP)) if si == 0 else (enemy_x + ci * (CELL_W + CELL_GAP))
-				var by = CELLS_START_Y + ri * (CELL_H + CELL_GAP)
-				if local.x >= bx and local.x < bx + CELL_W and local.y >= by and local.y < by + CELL_H:
-					try_drop_card(_drag_source_idx, si, ri, ci)
-					return
+	# 自陣盤面のドロップ判定
+	for ri in range(3):
+		for ci in range(3):
+			var bx: float = BOARD_X + ROW_LABEL_W + ci * (CELL_W + CELL_GAP)
+			var by = CELLS_START_Y + ri * (CELL_H + CELL_GAP)
+			if local.x >= bx and local.x < bx + CELL_W and local.y >= by and local.y < by + CELL_H:
+				try_drop_card(_drag_source_idx, 0, ri, ci)
+				return
 	end_drag()
 
 func try_drop_card(idx: int, new_side: int, new_row: int, new_col: int) -> void:
 	var indices_to_move = _drag_group_indices if _drag_group_indices.size() > 0 else [idx]
 
-	# ドロップ先整合性チェック: 盤面セル（col>=0）へのドロップ制約
-	# AoE/プレイヤー影響カードは盤面ドロップ不可（呪文スロットのみ）
+	# v2設計: 盤面にはユニットのみ配置可能、1マス1枚まで
 	if new_col >= 0:
+		# チェック1: ユニットのみ配置可能
 		for move_idx in indices_to_move:
 			if move_idx < 0 or move_idx >= GameSession.selected_deck.size():
 				continue
 			var entry = GameSession.selected_deck[move_idx]
-			if not _PL.requires_board_placement(entry):
-				# AoE呪文→盤面ドロップ拒否
-				push_warning("[DeckPrepBoard] AoE呪文は盤面に配置できません: %s" % entry.get("name", "?"))
+			var card_name = entry.get("name", "") if entry is Dictionary else str(entry)
+
+			if not CardDB.UNITS.has(card_name):
+				push_warning("[DeckPrepBoard] 盤面にはユニットのみ配置できます: %s" % card_name)
 				end_drag()
 				return
 
+		# チェック2: ドロップ先に既にカードがあるか → 入れ替え処理
+		var target_container = _cell_card_containers[new_side][new_row][new_col]
+		if target_container.get_child_count() > 0:
+			# ドロップ先のカードインデックスを取得
+			var target_indices = _PL.get_cell_group(new_side, new_row, new_col, GameSession.placement_config)
+			if target_indices.is_empty():
+				push_warning("[DeckPrepBoard] ドロップ先のカード情報が取得できません")
+				end_drag()
+				return
+
+			# ドラッグ元の位置を取得（複数カードの場合は代表1枚の位置を使用）
+			var source_idx = indices_to_move[0]
+			var source_config = GameSession.placement_config[source_idx] if source_idx < GameSession.placement_config.size() else {}
+			var source_side = source_config.get("side", 0)
+			var source_row = source_config.get("row", 0)
+			var source_col = source_config.get("col", -1)
+
+			# 入れ替え処理
+			if source_col >= 0:
+				# 盤面 → 盤面: 単純に入れ替え
+				for target_idx in target_indices:
+					var cfg = GameSession.placement_config[target_idx]
+					cfg["side"] = source_side
+					cfg["row"] = source_row
+					cfg["col"] = source_col
+			elif source_row == 1:
+				# 手持ちカード（row=1） → 盤面: ドロップ先カードを手持ちカードエリアへ
+				for target_idx in target_indices:
+					var cfg = GameSession.placement_config[target_idx]
+					cfg["side"] = 0
+					cfg["row"] = 1
+					cfg["col"] = -1
+
+	# ドラッグカードをドロップ先へ移動
 	var success = _PL.move_group(indices_to_move, new_side, new_row, new_col,
 		GameSession.selected_deck, GameSession.placement_config)
 

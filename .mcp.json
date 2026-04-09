@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "godot": {
+      "command": "node",
+      "args": ["mcp/godot-mcp/index.js"],
+      "description": "Godot Editor integration for screenshot capture, scene inspection, and node property editing"
+    }
+  }
+}

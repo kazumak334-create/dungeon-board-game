@@ -272,7 +272,7 @@ func _build_dev_panel() -> void:
 
 	var deck_tools_y: int = 22
 	var deck_btns: Array = [
-		{"text": "マナ吸収", "cb": _on_deck_shuffle},
+		{"text": "呪文回収", "cb": _on_deck_shuffle},
 		{"text": "全削除",     "cb": _on_deck_clear},
 	]
 	for i in range(deck_btns.size()):
@@ -365,7 +365,7 @@ func _on_deck_move_up(index: int) -> void:
 	var arr: Array = deck_manager.deck
 	if index > 0 and index < arr.size():
 		# シャッフルカードは最下部固定（移動不可）
-		if arr[index].unit_name == "マナ吸収" or arr[index - 1].unit_name == "マナ吸収":
+		if arr[index].unit_name == "呪文回収" or arr[index - 1].unit_name == "呪文回収":
 			return
 		var tmp = arr[index]
 		arr[index] = arr[index - 1]
@@ -376,7 +376,7 @@ func _on_deck_remove(index: int) -> void:
 	var arr: Array = deck_manager.deck
 	if index >= 0 and index < arr.size():
 		# シャッフル���ードは除外不可
-		if arr[index].unit_name == "マナ吸収":
+		if arr[index].unit_name == "呪文回収":
 			return
 		arr.remove_at(index)
 	_refresh_deck_list()
@@ -393,7 +393,7 @@ func on_drop_to_deck() -> void:
 	# シャッフルカードの上（最下部の1つ上）に挿入
 	var arr: Array = deck_manager.deck
 	var insert_pos: int = arr.size()
-	if arr.size() > 0 and arr[arr.size() - 1].unit_name == "マナ吸収":
+	if arr.size() > 0 and arr[arr.size() - 1].unit_name == "呪文回収":
 		insert_pos = arr.size() - 1
 	arr.insert(insert_pos, card)
 	_refresh_deck_list()

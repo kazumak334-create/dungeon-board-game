@@ -69,7 +69,7 @@ func _generate_rewards() -> void:
 	GameSession.gold += battle_gold
 	# 固定報酬: 勝利ボーナス
 	_reward_gold = 100
-	_reward_sp = 1
+	_reward_sp = 3  # Phase 2: スキルツリー報酬（3SP固定）
 	if CardDB.MATERIALS.size() > 0:
 		var pool = CardDB.MATERIALS.duplicate()
 		pool.shuffle()

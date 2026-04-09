@@ -131,7 +131,7 @@ func build_ui() -> void:
 				hp_bar_bg.size     = Vector2(rect.size.x - 10, 7)
 				hp_bar_bg.position = Vector2(x + 7, cell_y + 36)
 				hp_bar_bg.color    = Color(0.2, 0.2, 0.2)
-				hp_bar_bg.visible  = false
+				hp_bar_bg.visible  = true
 				main.add_child(hp_bar_bg)
 
 				# HPバー前景
@@ -139,7 +139,7 @@ func build_ui() -> void:
 				hp_bar.size     = Vector2(rect.size.x - 10, 7)
 				hp_bar.position = Vector2(x + 7, cell_y + 36)
 				hp_bar.color    = Color(0.2, 0.8, 0.3)
-				hp_bar.visible  = false
+				hp_bar.visible  = true
 				main.add_child(hp_bar)
 				_cell_hp_bars[side][r].append({"bg": hp_bar_bg, "bar": hp_bar})
 
@@ -149,26 +149,26 @@ func build_ui() -> void:
 				hp_lbl.size     = Vector2(rect.size.x - 10, 14)
 				hp_lbl.add_theme_font_size_override("font_size", 10)
 				hp_lbl.add_theme_color_override("font_color", Color(0.85, 0.85, 0.85))
-				hp_lbl.visible  = false
+				hp_lbl.visible  = true
 				main.add_child(hp_lbl)
 				_cell_hp_labels[side][r].append(hp_lbl)
 
 	# ---- プレイヤー/敵キャラ立絵+HPバー ----
 
-	# 旧HP表示（互換）
+	# 本体HP表示（行突破カウンター）
 	var base_y: int = main.BOARD_TOP + 3 * main.CELL_H + 12
 	main.player_base_label = Label.new()
 	main.player_base_label.position = Vector2(_cell_x(0, 0), base_y)
 	main.player_base_label.add_theme_font_size_override("font_size", 14)
 	main.player_base_label.modulate = Color(0.4, 0.9, 0.4)
-	main.player_base_label.visible = false  # 立絵+HPバーに移行
+	main.player_base_label.visible = true
 	main.add_child(main.player_base_label)
 
 	main.enemy_base_label = Label.new()
 	main.enemy_base_label.position = Vector2(_cell_x(1, 0), base_y)
 	main.enemy_base_label.add_theme_font_size_override("font_size", 14)
 	main.enemy_base_label.modulate = Color(1.0, 0.45, 0.45)
-	main.enemy_base_label.visible = false
+	main.enemy_base_label.visible = true
 	main.add_child(main.enemy_base_label)
 
 	# 盤面セルホバー用ツールチップ

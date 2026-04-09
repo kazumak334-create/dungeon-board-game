@@ -83,8 +83,9 @@ const INV_TOTAL_SLOTS = INV_GRID_COLS * INV_GRID_ROWS  # 総スロット数
 # ソートタブ定義（持ち物タブ内サブタブ）
 const INV_SORT_TABS = [
 	{"id": "all",       "label": "全体"},
-	{"id": "equipment", "label": "装備"},
-	{"id": "normal",    "label": "素材"},
+	# v2設計: 装備・素材タブ一時無効化
+	# {"id": "equipment", "label": "装備"},
+	# {"id": "normal",    "label": "素材"},
 	{"id": "cursed",    "label": "呪い"},
 	{"id": "consumable","label": "消費"},
 ]
@@ -298,7 +299,35 @@ func _build_adventure_buttons() -> void:
 	UIF.add_button(self, "← マップへ", Vector2(220, ADVENTURE_Y), Vector2(180, 32), 14,
 		func(): SceneManager.go_to(SceneManager.MAP_SELECT))
 	UIF.add_button(self, "出撃 →", Vector2(820, ADVENTURE_Y), Vector2(180, 32), 14,
-		func(): SceneManager.go_to(SceneManager.BATTLE))
+		func(): _on_start_battle())
+
+func _on_start_battle() -> void:
+	# v2設計: 初期配置9マス情報をGameSession.initial_unitsに保存
+	_save_initial_units()
+	SceneManager.go_to(SceneManager.BATTLE)
+
+func _save_initial_units() -> void:
+	# 配置タブの9マス状態をGameSession.initial_unitsに保存
+	GameSession.initial_units.clear()
+	if _board == null:
+		return
+
+	# _board._cell_card_containersから各セルの配置情報を取得（自陣side=0のみ）
+	for row in range(3):
+		for col in range(3):
+			var container = _board._cell_card_containers[0][row][col]
+			var unit_info = null
+
+			# コンテナ内のカードを確認
+			if container.get_child_count() > 0:
+				var card_ui = container.get_child(0)
+				if card_ui.has_meta("card_name"):
+					var card_name = card_ui.get_meta("card_name")
+					unit_info = {"name": card_name, "row": row, "col": col}
+
+			GameSession.initial_units.append(unit_info)
+
+	print("[DeckPrep] 初期配置保存: %d個のユニット" % GameSession.initial_units.filter(func(x): return x != null).size())
 
 func _show_tab(tab_id: String) -> void:
 	# タブバー廃止: 配置のみ。互換維持のため関数は残す

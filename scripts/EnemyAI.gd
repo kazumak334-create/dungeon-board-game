@@ -3,7 +3,7 @@ class_name EnemyAI
 extends Node
 
 var mana: float = 0.0
-var MANA_MAX: float = 3.0    # マナ吸収で成長（constからvarに変更）
+var MANA_MAX: float = 0.0    # v2設計: ユニット総コストで初期化
 var MANA_REGEN: float = 1.0
 var check_interval: float = 1.0
 var _check_timer: float = 0.0
@@ -30,7 +30,15 @@ func _ready() -> void:
 	_pick_next_card()
 
 func _build_enemy_deck() -> void:
-	for entry in CardDB.ENEMY_DECK:
+	# current_actから敵プールを選択
+	var pool_key: String = str(GameSession.current_act)
+	var pool: Array = CardDB.ENEMY_POOLS.get(pool_key, [])
+
+	if pool.is_empty():
+		print("[EnemyAI] WARNING: Act%d のプールが未定義、ENEMY_DECKを使用" % GameSession.current_act)
+		pool = CardDB.ENEMY_DECK
+
+	for entry in pool:
 		var d: Dictionary = CardDB.UNITS[entry["name"]]
 		var u = _UnitDataScript.new()
 		u.unit_name = entry["name"]
@@ -42,24 +50,36 @@ func _build_enemy_deck() -> void:
 		u.skills = d.get("skills", []).duplicate(true)
 		enemy_deck.append(u)
 	enemy_deck.shuffle()
+	print("[EnemyAI] 敵デッキ構築: Act%d %d枚" % [GameSession.current_act, enemy_deck.size()])
 
 func ensure_shuffle_card() -> void:
 	for i in range(enemy_deck.size() - 1, -1, -1):
-		if enemy_deck[i].unit_name == "マナ吸収":
+		if enemy_deck[i].unit_name == "呪文回収":
 			enemy_deck.remove_at(i)
-	if not CardDB.SYSTEM_SPELLS.has("マナ吸収"):
+	if not CardDB.SYSTEM_SPELLS.has("呪文回収"):
 		return
-	var sd = CardDB.SYSTEM_SPELLS["マナ吸収"]
+	var sd = CardDB.SYSTEM_SPELLS["呪文回収"]
 	var card = _UnitDataScript.new()
-	card.unit_name = "マナ吸収"
+	card.unit_name = "呪文回収"
 	card.card_type = "spell"
-	card.spell_id = "マナ吸収"
+	card.spell_id = "呪文回収"
 	card.cost = 0
 	card.is_consumable = true
 	card.spell_target = sd["target"]
 	card.spell_effect = sd["effect"]
 	card.skills = sd.get("skills", []).duplicate(true)
 	enemy_deck.append(card)
+
+func initialize_mana_from_deck() -> void:
+	# v2設計: 敵の初期配置ユニット総コストをMANA_MAXに設定
+	# TODO: 敵側もinitial_unitsを使うように変更（現状は暫定でenemy_deckから）
+	var total_cost: float = 0.0
+	for card in enemy_deck:
+		if card.card_type == "unit" and card.cost >= 0:
+			total_cost += float(card.cost)
+	MANA_MAX = total_cost
+	mana = 0.0
+	print("[EnemyAI] マナ上限初期化: %.1f（ユニット総コスト・暫定）" % MANA_MAX)
 
 func _pick_next_card() -> void:
 	if enemy_deck.is_empty():

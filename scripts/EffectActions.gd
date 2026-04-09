@@ -210,9 +210,7 @@ func do_shuffle_deck(merged: Dictionary, ctx: Dictionary) -> void:
 			deck_mgr.deck.append(card)
 		deck_mgr.discard.clear()
 		deck_mgr.deck.shuffle()
-		# マナ吸収：マナ上限+1
-		deck_mgr.MANA_MAX += 1.0
-		print("[マナ吸収] マナ上限 → %d" % int(deck_mgr.MANA_MAX))
+		print("[呪文回収] 山札をシャッフルしました")
 
 func do_summon_low_cost(merged: Dictionary, ctx: Dictionary) -> void:
 	var bm: Node  = ctx.get("bm", null)

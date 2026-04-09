@@ -48,7 +48,28 @@
       "Bash(\"/c/Users/kazum/OneDrive/デスクトップ/プライベート/ゲーム開発/Godot_v4.6.2-stable_win64_console.exe\" --path \"C:/Users/kazum/dungeon-board-game\" --headless --check-only --script res://scripts/DeckPrepBoard.gd)",
       "Bash(mv /c/Users/kazum/.claude/projects/C--Users-kazum-dungeon-board-game/memory/project_pseudo3d_board.md /c/Users/kazum/dungeon-board-game/docs/future/)",
       "Bash(mv /c/Users/kazum/.claude/projects/C--Users-kazum-dungeon-board-game/memory/reference_battle_ui_design.md /c/Users/kazum/dungeon-board-game/docs/future/)",
-      "Bash(\"/c/Users/kazum/OneDrive/デスクトップ/プライベート/Godot/Godot_v4.6.2-stable_win64_console.exe\" --path \"C:/Users/kazum/dungeon-board-game\" --headless --script res://scripts/RunTests.gd)"
+      "Bash(\"/c/Users/kazum/OneDrive/デスクトップ/プライベート/Godot/Godot_v4.6.2-stable_win64_console.exe\" --path \"C:/Users/kazum/dungeon-board-game\" --headless --script res://scripts/RunTests.gd)",
+      "Bash(godot4 --path . --headless --script scripts/TestSession.gd)",
+      "Bash(find scripts:*)",
+      "Bash(godot --headless -s scripts/TestManaGeneration.gd --quit)",
+      "Bash(\"/c/Users/kazum/OneDrive/デスクトップ/プライベート/Godot/Godot_v4.6.2-stable_win64.exe\" --headless --quit --path .)",
+      "Bash(\"/c/Users/kazum/OneDrive/デスクトップ/プライベート/Godot/Godot_v4.6.2-stable_win64.exe\" --headless --script test_runner_script.gd)",
+      "Bash(\"/c/Users/kazum/OneDrive/デスクトップ/プライベート/Godot/Godot_v4.6.2-stable_win64.exe\" --headless --script test_mana_only.gd)",
+      "Bash(\"/c/Users/kazum/OneDrive/デスクトップ/プライベート/Godot/Godot_v4.6.2-stable_win64.exe\" --headless --script test_all_v2.gd)",
+      "Bash(sed:*)",
+      "Bash(\"/c/Users/kazum/OneDrive/デスクトップ/プライベート/Godot/Godot_v4.6.2-stable_win64.exe\" --headless --script scripts/TestRunner.gd)",
+      "Bash(/c/Users/kazum/OneDrive/デスクトップ/プライベート/Godot/Godot_v4.6.2-stable_win64.exe:*)",
+      "Read(//tmp/**)",
+      "Bash(claude-code agent marketing --prompt '__CMDSUB_OUTPUT__:*)",
+      "Bash(cat /c/Users/kazum/.claude/projects/C--Users-kazum-dungeon-board-game/9e9c3b32-704e-4883-b251-afc74a9db3a0/subagents/*.meta.json)",
+      "Bash(powershell.exe:*)",
+      "Bash(/c/Users/kazum/OneDrive/デスクトップ/プライベート/Godot/Godot_v4.6.2-stable_win64_console.exe:*)",
+      "Bash(npm install:*)",
+      "Bash(py:*)"
     ]
-  }
+  },
+  "enableAllProjectMcpServers": true,
+  "enabledMcpjsonServers": [
+    "godot"
+  ]
 }

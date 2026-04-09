@@ -22,8 +22,13 @@ const GAP       := 20
 var board_manager: Node
 var deck_manager: Node
 var enemy_ai: Node
+var spell_slot_system: RefCounted = null  # v2設計: 呪文3スロットシステム
 
 var base_hp: Array = [30, 30]
+var row_breached: Array = [
+	[false, false, false],  # 自陣: 各行の突破状態
+	[false, false, false]   # 敵陣: 各行の突破状態
+]
 
 var cell_rects:  Array = []
 var cell_labels: Array = []
@@ -74,6 +79,11 @@ var _battle_timer_active: bool = false  # 通常モードのみtrue（dev_mode�
 
 # ---- 初期化 ----
 func _ready() -> void:
+	# 自動テストモード
+	if OS.has_feature("autotest") or OS.get_cmdline_args().has("--autotest") or OS.get_environment("DUNGEON_AUTOTEST") == "1":
+		_run_autotest()
+		return
+
 	var event_queue = Node.new()
 	event_queue.set_script(EventQueueScript)
 	add_child(event_queue)
@@ -108,6 +118,11 @@ func _ready() -> void:
 	deck_manager.spell_executor = spell_executor
 	deck_manager.enemy_ai_ref = enemy_ai
 	enemy_ai.spell_executor = spell_executor
+
+	# v2設計: SpellSlotSystem 初期化
+	var SpellSlotScript = load("res://scripts/SpellSlotSystem.gd")
+	spell_slot_system = SpellSlotScript.new()
+	spell_slot_system.setup(board_manager, deck_manager, enemy_ai, spell_executor, self)
 	enemy_ai.deck_manager_ref = deck_manager
 
 	# EffectExecutor 初期化・注入（遅延ロード）
@@ -129,10 +144,10 @@ func _ready() -> void:
 	player_data.mana_max = class_def["mana_max"]
 	player_data.mana_regen = class_def["mana_regen"]
 	player_data.skills = class_def["skills"].duplicate(true)
-	# DeckManager に反映（マナ上限3固定、リジェネ1.0/s固定）
+	# DeckManager に反映（マナ上限3固定）
 	deck_manager.mana = 0.0
 	deck_manager.MANA_MAX = 3.0
-	deck_manager.MANA_REGEN = 1.0
+	# MANA_REGEN削除: v2設計でユニット生成マナに変更
 	# BoardManager に設定
 	board_manager.player_data = player_data
 	# 装備効果の適用（初期装備なし）
@@ -140,11 +155,6 @@ func _ready() -> void:
 
 	_EDB = load("res://scripts/EffectDB.gd")
 	_build_synthesis_registry()
-	var GameUIScript = load("res://scripts/GameUI.gd")
-	game_ui = GameUIScript.new()
-	game_ui.setup(self)
-	game_ui.build_ui()
-	_build_mode_select()
 	skill_flash_timers = [
 		[[0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0]],
 		[[0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0]]
@@ -157,7 +167,23 @@ func _ready() -> void:
 		[[true, true, true], [true, true, true], [true, true, true]],
 		[[true, true, true], [true, true, true], [true, true, true]]
 	]
+	var GameUIScript = load("res://scripts/GameUI.gd")
+	game_ui = GameUIScript.new()
+	game_ui.setup(self)
+	game_ui.build_ui()
+	_build_mode_select()
 	_add_log("=== Dungeon Board Game 起動 ===")
+
+func _run_autotest() -> void:
+	print("[Main] 自動テストモード起動")
+	var AutoTestScript = load("res://scripts/AutoTest.gd")
+	var autotest = Node.new()
+	autotest.set_script(AutoTestScript)
+	add_child(autotest)
+	# 通常の初期化は継続（テストに必要なため）
+	var event_queue = Node.new()
+	event_queue.set_script(EventQueueScript)
+	add_child(event_queue)
 
 # ---- 盤面合成レジストリ ----
 func _build_synthesis_registry() -> void:
@@ -203,6 +229,11 @@ func _build_mode_select() -> void:
 		_apply_battle_config()
 		deck_manager.ensure_shuffle_card()
 		enemy_ai.ensure_shuffle_card()
+		# v2設計: 初期配置ユニットを盤面に展開
+		_place_initial_units()
+		# v2設計: マナ上限をユニット総コストで初期化
+		deck_manager.initialize_mana_from_deck()
+		enemy_ai.initialize_mana_from_deck()
 		_apply_environment()
 		_add_log("=== バトル開始 (seed: %d) ===" % GameSession.battle_seed)
 
@@ -210,9 +241,9 @@ func _apply_battle_config() -> void:
 	var cfg: Dictionary = GameSession.battle_config
 	base_hp[0] = cfg.get("player_base_hp", 30)
 	base_hp[1] = cfg.get("enemy_base_hp", 30)
-	deck_manager.MANA_REGEN   = cfg.get("mana_regen_rate", 1.0)
+	# MANA_REGEN削除: v2設計でユニット生成マナに変更
 	deck_manager.check_interval = cfg.get("card_play_interval", 1.0)
-	enemy_ai.MANA_REGEN       = cfg.get("mana_regen_rate", 1.0)
+	# enemy_ai.MANA_REGEN削除: v2設計で敵も初期配置に変更
 	enemy_ai.check_interval   = cfg.get("enemy_check_interval", 1.0)
 	var tl: float = cfg.get("time_limit", 60.0)
 	_battle_timer = tl
@@ -221,6 +252,45 @@ func _apply_battle_config() -> void:
 	# mana_max_override: 将来実装
 	# initial_units, summon_race_filter, placement_restriction: 将来実装
 	print("[Main] battle_config適用: hp=[%d,%d] timer=%.1f active=%s" % [base_hp[0], base_hp[1], tl, str(_battle_timer_active)])
+
+func _place_initial_units() -> void:
+	# v2設計: GameSession.initial_unitsを盤面に配置
+	if GameSession.initial_units.is_empty():
+		print("[Main] 初期配置ユニットなし")
+		return
+
+	var UnitDataScript = load("res://scripts/UnitData.gd")
+	for unit_info in GameSession.initial_units:
+		if unit_info == null:
+			continue
+
+		var unit_name = unit_info.get("name", "")
+		var row = unit_info.get("row", -1)
+		var col = unit_info.get("col", -1)
+
+		if not CardDB.UNITS.has(unit_name):
+			print("[Main] 初期配置エラー: %s はユニットDBに存在しない" % unit_name)
+			continue
+
+		if row < 0 or row > 2 or col < 0 or col > 2:
+			print("[Main] 初期配置エラー: %s の座標が不正 (row=%d, col=%d)" % [unit_name, row, col])
+			continue
+
+		var unit_data = CardDB.UNITS[unit_name]
+		var unit = UnitDataScript.new()
+		unit.unit_name = unit_name
+		unit.max_hp = unit_data["hp"]
+		unit.current_hp = unit_data["hp"]
+		unit.attack = unit_data["atk"]
+		unit.attack_interval = unit_data["interval"]
+		unit.cost = unit_data["cost"]
+		unit.race = unit_data["race"]
+		unit.attack_range = unit_data["range"]
+		unit.skills = unit_data.get("skills", []).duplicate(true)
+		unit.card_type = "unit"
+
+		board_manager.place_unit(0, unit, {"row": row, "col": col})
+		print("[Main] 初期配置: %s → (%d, %d)" % [unit_name, row, col])
 
 func _apply_environment() -> void:
 	var env_id = GameSession.base_environment
@@ -321,19 +391,21 @@ func _unhandled_input(event: InputEvent) -> void:
 
 func _process(delta: float) -> void:
 	# ダメージフロート+フキダシ更新
-	game_ui.update_damage_floats(delta)
-	game_ui.update_bubble(delta)
+	if game_ui != null:
+		game_ui.update_damage_floats(delta)
+		game_ui.update_bubble(delta)
 	# ドラッグ中のラベル追従
 	if dev_mode:
 		_dev_update_drag()
 	# フラッシュタイマー更新（game_over中も継続）
-	for s in range(2):
-		for r in range(3):
-			for c in range(3):
-				if skill_flash_timers[s][r][c] > 0.0:
-					skill_flash_timers[s][r][c] = max(0.0, skill_flash_timers[s][r][c] - delta)
-					if skill_flash_timers[s][r][c] == 0.0:
-						_cell_dirty[s][r][c] = true  # フラッシュ終了→通常色に戻す
+	if skill_flash_timers.size() > 0:
+		for s in range(2):
+			for r in range(3):
+				for c in range(3):
+					if skill_flash_timers[s][r][c] > 0.0:
+						skill_flash_timers[s][r][c] = max(0.0, skill_flash_timers[s][r][c] - delta)
+						if skill_flash_timers[s][r][c] == 0.0:
+							_cell_dirty[s][r][c] = true  # フラッシュ終了→通常色に戻す
 
 	if not game_started or game_over:
 		return
@@ -341,7 +413,8 @@ func _process(delta: float) -> void:
 		# バトルタイマー（リアル経過時間、speed_scale非適用）
 		if _battle_timer_active:
 			_battle_timer -= delta
-			game_ui.update_battle_timer(_battle_timer, delta)
+			if game_ui != null:
+				game_ui.update_battle_timer(_battle_timer, delta)
 			if _battle_timer <= 0.0:
 				_battle_timer = 0.0
 				_battle_timer_active = false
@@ -351,6 +424,9 @@ func _process(delta: float) -> void:
 		deck_manager.process_deck(effective_delta, board_manager)
 		enemy_ai.process_ai(effective_delta, board_manager)
 		board_manager.process_combat(effective_delta, base_hp)
+		# v2設計: 呪文3スロット並列監視
+		if spell_slot_system != null:
+			spell_slot_system.process_slots(effective_delta)
 		if not dev_mode:
 			_check_game_over()
 		# 開発者モード: デッキ表示を更新（サイズ変化時のみ）
@@ -363,23 +439,40 @@ func _process(delta: float) -> void:
 		_support_log_timer = 5.0
 		_log_support_effects()
 
-	game_ui.update_ui()
+	if game_ui != null:
+		game_ui.update_ui()
 
 func _check_game_over() -> void:
-	if base_hp[0] <= 0:
+	# v2設計: 本体HP0 OR 全滅で負け
+	var player_all_dead = _check_all_units_dead(0)
+	var enemy_all_dead = _check_all_units_dead(1)
+
+	if base_hp[0] <= 0 or player_all_dead:
 		game_over = true
 		game_over_label.text     = "GAME OVER"
 		game_over_label.modulate = Color(1.0, 0.3, 0.3)
 		game_over_label.visible  = true
+		var reason = "本体HP0" if base_hp[0] <= 0 else "全滅"
+		_add_log("=== 敗北（%s）===" % reason)
 		GameSession.last_result = {"win": false, "player_hp_remaining": base_hp[0], "turns": 0, "battle_gold": GameSession.current_battle_gold}
 		_transition_to_result_timer()
-	elif base_hp[1] <= 0:
+	elif base_hp[1] <= 0 or enemy_all_dead:
 		game_over = true
 		game_over_label.text     = "YOU WIN!"
 		game_over_label.modulate = Color(0.3, 1.0, 0.5)
 		game_over_label.visible  = true
+		var reason = "本体HP0" if base_hp[1] <= 0 else "全滅"
+		_add_log("=== 勝利（%s）===" % reason)
 		GameSession.last_result = {"win": true, "player_hp_remaining": base_hp[0], "turns": 0, "battle_gold": GameSession.current_battle_gold}
 		_transition_to_result_timer()
+
+func _check_all_units_dead(side: int) -> bool:
+	"""指定陣営のユニットが全滅しているか判定"""
+	for r in range(3):
+		for c in range(3):
+			if board_manager.board[side][r][c] != null:
+				return false
+	return true
 
 func _on_battle_timeout() -> void:
 	var result: String = GameSession.battle_config.get("time_up_result", "lose")
@@ -413,6 +506,10 @@ func _on_unit_died(side: int, row: int, col: int, died_unit: Object) -> void:
 	var display_col: int = (2 - col) if side == 0 else col
 	var col_names: Array  = ["前列", "中列", "後列"]
 	_add_log("倒 %s %d行%s" % [side_name, row + 1, col_names[display_col]])
+
+	# v2設計: 行突破判定（その行が全滅したら本体HPを削る）
+	_check_row_breach(side, row)
+
 	# 敵ユニット撃破時: cost × 5G を累積（reward_multiplierで倍率調整可能）
 	if side == 1 and died_unit != null:
 		var unit_cost: int = died_unit.cost if "cost" in died_unit else 1
@@ -433,12 +530,37 @@ func _on_unit_died(side: int, row: int, col: int, died_unit: Object) -> void:
 					_add_log("[死霊術師] 味方死亡: マナ+%d (累計%d/%d)" % [amount, board_manager.player_data._death_mana_count, max_count])
 	_mark_all_cells_dirty()
 
+func _check_row_breach(side: int, row: int) -> void:
+	"""行突破判定: 指定行が全滅したら本体HPを削る"""
+	# 既に突破済みならスキップ
+	if row_breached[side][row]:
+		return
+
+	# その行の全セルをチェック
+	var row_units_alive = false
+	for c in range(3):
+		if board_manager.board[side][row][c] != null:
+			row_units_alive = true
+			break
+
+	# 全滅していたら行突破
+	if not row_units_alive:
+		row_breached[side][row] = true
+		var damage = 10
+		base_hp[side] = max(0, base_hp[side] - damage)
+		var side_name = "自陣" if side == 0 else "敵陣"
+		var row_name = ["上段", "中段", "下段"][row]
+		_add_log("! %s %s突破！本体 -%d (残:%d)" % [side_name, row_name, damage, base_hp[side]])
+		if game_ui != null:
+			game_ui.spawn_base_damage_float(side, damage)
+		_update_base_hp()
+
 func _on_unit_damaged(side: int, row: int, col: int) -> void:
 	if side >= 0 and row >= 0 and col >= 0:
 		_cell_dirty[side][row][col] = true
 		# ダメージフロート（ダメージ量はunitのHP差分から取れないのでシグナル拡張が必要。仮で表示）
 		var unit = board_manager.get_unit(side, row, col)
-		if unit != null:
+		if unit != null and game_ui != null:
 			game_ui.spawn_damage_float(side, row, col, 0, false)  # 仮：量は後で対応
 
 func _on_unit_revived(side: int, row: int, col: int) -> void:
@@ -452,7 +574,8 @@ func _on_unit_revived(side: int, row: int, col: int) -> void:
 func _on_base_damaged(side: int, amount: int) -> void:
 	var side_name: String = "自陣" if side == 0 else "敵陣"
 	_add_log("! %s本体 -%d (残:%d)" % [side_name, amount, base_hp[side]])
-	game_ui.spawn_base_damage_float(side, amount)
+	if game_ui != null:
+		game_ui.spawn_base_damage_float(side, amount)
 
 func _on_skill_triggered(side: int, row: int, col: int, skill_name: String) -> void:
 	var unit = board_manager.get_unit(side, row, col)
@@ -498,9 +621,8 @@ func _apply_equipment_effects(pdata: RefCounted) -> void:
 			var eid: String = skill.get("effect_id", "")
 			if eid == "mana_regen_boost":
 				total_mana_regen_pct += skill.get("params", {}).get("pct", 0.2)
-	var base_regen: float = pdata.mana_regen
-	deck_manager.MANA_REGEN = base_regen * (1.0 + total_mana_regen_pct)
-	print("[Main] 装備効果適用: MANA_REGEN=%.2f player_artifacts=%d件" % [deck_manager.MANA_REGEN, board_manager.player_artifacts.size()])
+	# MANA_REGEN削除: v2設計でユニット生成マナに変更
+	print("[Main] 装備効果適用: player_artifacts=%d件" % [board_manager.player_artifacts.size()])
 
 func _on_spell_cast(side: int, spell_name: String) -> void:
 	var side_name: String = "自陣" if side == 0 else "敵陣"

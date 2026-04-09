@@ -4,6 +4,7 @@ extends Node
 
 var board: Array = []
 var attack_timers: Array = []
+var support_timers: Array = []  # v2設計: サポート効果発動タイマー（attack_intervalと同じ）
 var board_effects: Array = []  # board_effects[side][row][col] = null or {effect_id, remaining, tick_timer, tick_interval}
 var board_artifacts: Array = []  # board_artifacts[side][row][col] = null or {name, hp, max_hp, skills, protect_tiles, timers}
 var player_artifacts: Array = []  # 永久効果型アーティファクト（プレイヤー側）
@@ -42,16 +43,19 @@ func _ready() -> void:
 func _setup() -> void:
 	board = []
 	attack_timers = []
+	support_timers = []
 	board_effects = []
 	board_artifacts = []
 	for s in range(2):
 		board.append([])
 		attack_timers.append([])
+		support_timers.append([])
 		board_effects.append([])
 		board_artifacts.append([])
 		for r in range(3):
 			board[s].append([null, null, null])
 			attack_timers[s].append([0.0, 0.0, 0.0])
+			support_timers[s].append([0.0, 0.0, 0.0])
 			board_effects[s].append([null, null, null])
 			board_artifacts[s].append([null, null, null])
 	# 状態異常・HP回復を1秒ごとに処理するTimerノード
@@ -135,6 +139,7 @@ func place_unit(side: int, unit_data: Object, config_entry: Dictionary = {}) -> 
 							print("[BoardManager] 死霊術師HP補正: %s max_hp+%d" % [placed.unit_name, bonus])
 		board[side][row][col] = placed
 		attack_timers[side][row][col] = placed.attack_interval
+		support_timers[side][row][col] = placed.attack_interval
 		emit_signal("unit_placed", side, row, col, placed)
 		on_board_changed()
 		if col == 1 and event_queue != null:
@@ -216,6 +221,7 @@ func _execute_synthesis(side: int, row: int, col: int, existing: Object, result_
 	synthesized.attack_interval = result_data.attack_interval
 	var timer_ratio: float = attack_timers[side][row][col] / max(0.01, existing.attack_interval)
 	attack_timers[side][row][col] = synthesized.attack_interval * timer_ratio
+	support_timers[side][row][col] = synthesized.attack_interval * timer_ratio
 	# 盤面に配置
 	board[side][row][col] = synthesized
 	_init_skill_timers(synthesized)
@@ -320,6 +326,7 @@ func remove_unit(side: int, row: int, col: int) -> void:
 		unit._support_revive_used = true
 		unit.current_hp = 1
 		attack_timers[side][row][col] = unit.attack_interval
+		support_timers[side][row][col] = unit.attack_interval
 		emit_signal("unit_revived", side, row, col)
 		return
 	# 盤面効果 on_leave チェック
@@ -327,6 +334,7 @@ func remove_unit(side: int, row: int, col: int) -> void:
 	var died_unit = unit  # emit後もunitを参照できるよう保持
 	board[side][row][col] = null
 	attack_timers[side][row][col] = 0.0
+	support_timers[side][row][col] = 0.0
 	emit_signal("unit_died", side, row, col, died_unit)
 	# 前列が空になったら promote_check を遅延キューに積む（イベント駆動・1フレームラグ）
 	var front_col_ref: int = 2 if side == 0 else 0
@@ -416,8 +424,10 @@ func _fire_hp_threshold_skill(side: int, row: int, col: int, unit: Object, entry
 		if col != back_col and board[side][row][back_col] == null:
 			board[side][row][back_col] = unit
 			attack_timers[side][row][back_col] = unit.attack_interval
+			support_timers[side][row][back_col] = unit.attack_interval
 			board[side][row][col] = null
 			attack_timers[side][row][col] = 0.0
+			support_timers[side][row][col] = 0.0
 			on_board_changed()
 			skill_triggered.emit(side, row, back_col, "後退")
 	# 結晶化（完全無敵3s）
@@ -430,8 +440,10 @@ func _fire_hp_threshold_skill(side: int, row: int, col: int, unit: Object, entry
 		if col != front_col and board[side][row][front_col] == null:
 			board[side][row][front_col] = unit
 			attack_timers[side][row][front_col] = unit.attack_interval
+			support_timers[side][row][front_col] = unit.attack_interval
 			board[side][row][col] = null
 			attack_timers[side][row][col] = 0.0
+			support_timers[side][row][col] = 0.0
 			on_board_changed()
 			skill_triggered.emit(side, row, front_col, "前列強制突撃")
 	# ATK/SPD2倍（10秒間）

@@ -3,8 +3,8 @@ class_name DeckManager
 extends Node
 
 var mana: float = 0.0
-var MANA_MAX: float = 3.0     # 初期マナ上限（マナ吸収で成長）
-var MANA_REGEN: float = 1.0   # 全クラス共通
+var MANA_MAX: float = 0.0     # v2設計: ユニット総コストで初期化
+# v2設計: マナ生成は攻撃/スキル発動時にトリガー
 
 var deck: Array = []
 var discard: Array = []
@@ -34,26 +34,15 @@ func _get_placement_config(card: Object) -> Dictionary:
 	return {}
 
 func _build_default_deck() -> void:
-	# GameSession.selected_deckがあればそれを使う
+	# v2設計: デッキには呪文のみ（ユニットはGameSession.initial_unitsから配置）
 	var session_deck = GameSession.selected_deck if GameSession.selected_deck.size() > 0 else []
 	if session_deck.size() > 0:
 		for i in range(session_deck.size()):
 			var entry = session_deck[i]
 			var card_name = entry.get("name", "") if entry is Dictionary else str(entry)
-			var col = entry.get("col", 1) if entry is Dictionary else 1
-			# ユニット？呪文？判定
+			# ユニットはスキップ（初期配置から配置する）
 			if CardDB.UNITS.has(card_name):
-				var d: Dictionary = CardDB.UNITS[card_name]
-				var u = _UnitDataScript.new()
-				u.unit_name = card_name
-				u.max_hp = d["hp"]; u.current_hp = d["hp"]
-				u.attack = d["atk"]; u.attack_interval = d["interval"]
-				u.cost = d["cost"]; u.assigned_col = col
-				u.race = d["race"]; u.attack_range = d["range"]
-				u.support_effect = ""; u.passive_skill = ""
-				u.skills = d.get("skills", []).duplicate(true)
-				u._deck_index = i
-				deck.append(u)
+				continue
 			elif CardDB.SPELLS.has(card_name):
 				var d: Dictionary = CardDB.SPELLS[card_name]
 				var u = _UnitDataScript.new()
@@ -76,18 +65,7 @@ func _build_default_deck() -> void:
 				deck.append(u)
 		deck.shuffle()
 		return
-	# フォールバック: cards.jsonのデフォルトデッキ
-	for entry in CardDB.PLAYER_DECK:
-		var d: Dictionary = CardDB.UNITS[entry["name"]]
-		var u = _UnitDataScript.new()
-		u.unit_name = entry["name"]
-		u.max_hp = d["hp"]; u.current_hp = d["hp"]
-		u.attack = d["atk"]; u.attack_interval = d["interval"]
-		u.cost = d["cost"]; u.assigned_col = entry["col"]
-		u.race = d["race"]; u.attack_range = d["range"]
-		u.support_effect = ""; u.passive_skill = ""
-		u.skills = d.get("skills", []).duplicate(true)
-		deck.append(u)
+	# v2設計: フォールバックも呪文のみ（ユニットはinitial_unitsから配置）
 	for spell_name in CardDB.PLAYER_SPELLS:
 		var d: Dictionary = CardDB.SPELLS[spell_name]
 		var u = _UnitDataScript.new()
@@ -102,16 +80,16 @@ func _build_default_deck() -> void:
 func ensure_shuffle_card() -> void:
 	# 既存のシャッフルカードを除去（位置リセット）
 	for i in range(deck.size() - 1, -1, -1):
-		if deck[i].unit_name == "マナ吸収":
+		if deck[i].unit_name == "呪文回収":
 			deck.remove_at(i)
 	# 最下部に新規追加
-	if not CardDB.SYSTEM_SPELLS.has("マナ吸収"):
+	if not CardDB.SYSTEM_SPELLS.has("呪文回収"):
 		return
-	var sd = CardDB.SYSTEM_SPELLS["マナ吸収"]
+	var sd = CardDB.SYSTEM_SPELLS["呪文回収"]
 	var card = _UnitDataScript.new()
-	card.unit_name = "マナ吸収"
+	card.unit_name = "呪文回収"
 	card.card_type = "spell"
-	card.spell_id = "マナ吸収"
+	card.spell_id = "呪文回収"
 	card.cost = 0
 	card.is_consumable = true
 	card.spell_target = sd["target"]
@@ -120,37 +98,7 @@ func ensure_shuffle_card() -> void:
 	deck.append(card)
 
 func process_deck(delta: float, board: Node) -> void:
-	# 敵ユニットのmana_drainスキル（always）によるマナ回復妨害
-	var drain_count: int = 0
-	for r in range(3):
-		for c in range(3):
-			var u = board.board[1][r][c]
-			if u == null:
-				continue
-			for sk in u.skills:
-				if sk.get("trigger", "") == "always":
-					var _eid_drain: String = sk.get("effect_id", "")
-					var _edef_drain: Dictionary = _EDB.EFFECTS.get(_eid_drain, {})
-					if _edef_drain.get("type", "") == "mana_drain":
-						drain_count += 1
-						break
-	var per_unit: float = -0.1
-	for eid_d in _EDB.EFFECTS:
-		if _EDB.EFFECTS[eid_d].get("type", "") == "mana_drain":
-			per_unit = _EDB.EFFECTS[eid_d].get("per_unit", -0.1)
-			break
-	var effective_regen: float = max(0.1, MANA_REGEN + drain_count * per_unit)
-	# 永久効果型アーティファクト: mana_regen_modify type のスキルを反映
-	for art_entry in board.player_artifacts:
-		if not (art_entry is Dictionary):
-			continue
-		for sk in art_entry.get("skills", []):
-			var _eid_regen: String = sk.get("effect_id", "")
-			var _edef_regen: Dictionary = _EDB.EFFECTS.get(_eid_regen, {})
-			if _edef_regen.get("type", "") == "mana_regen_modify":
-				var pct: float = sk.get("params", {}).get("pct", _edef_regen.get("pct", 0.2))
-				effective_regen *= (1.0 + pct)
-	mana = min(MANA_MAX, mana + effective_regen * delta)
+	# v2設計: マナ生成は攻撃/スキル発動時にトリガー（BoardManagerで実行）
 	emit_signal("mana_changed", mana)
 
 	# クールダウン中は発動しない
@@ -261,6 +209,22 @@ func force_play_card(board: Node) -> void:
 	elif top.card_type == "status_spell":
 		emit_signal("card_played", top)
 		spell_executor.execute(top, 0, board, self, enemy_ai_ref)
+
+func initialize_mana_from_deck() -> void:
+	# v2設計: GameSession.initial_unitsのユニット総コストをMANA_MAXに設定
+	var total_cost: float = 0.0
+	for unit_info in GameSession.initial_units:
+		if unit_info == null:
+			continue
+		var unit_name = unit_info.get("name", "")
+		if CardDB.UNITS.has(unit_name):
+			var unit_data = CardDB.UNITS[unit_name]
+			var cost = unit_data.get("cost", 0)
+			if cost >= 0:
+				total_cost += float(cost)
+	MANA_MAX = total_cost
+	mana = 0.0
+	print("[DeckManager] マナ上限初期化: %.1f（初期配置ユニット総コスト）" % MANA_MAX)
 
 func get_next_card() -> Object:
 	if deck.is_empty():

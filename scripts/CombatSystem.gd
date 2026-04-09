@@ -79,6 +79,9 @@ func process_combat(delta: float, base_hp: Array) -> void:
 				var mid_atk: int = max(1, int(unit.attack * unit._back_atk_factor) + unit._atk_bonus)
 				_do_attack(side, row, mid_col, unit, enemy_side, base_hp, mid_atk, unit._back_target_rear, unit._back_no_on_hit)
 
+	# v2設計: サポート効果発動（中列・後列のみ、SPD依存タイマー）
+	_process_support_effects(delta)
+
 	# 全イベントを優先度順に一括処理
 	if bm.event_queue != null:
 		bm.event_queue.flush(bm, base_hp)
@@ -180,6 +183,14 @@ func _do_attack(side: int, row: int, col: int, attacker: Object, enemy_side: int
 			attacker, null, "base_damage", float(effective_atk),
 			{"side": enemy_side}
 		)
+	# v2設計: 攻撃発動時にマナ生成（両陣営）
+	var mana_gain: float = float(attacker.cost) if attacker.cost >= 0 else 0.0
+	if side == 0 and bm.deck_manager_ref != null:
+		bm.deck_manager_ref.mana += mana_gain
+		bm.deck_manager_ref.mana = min(bm.deck_manager_ref.mana, bm.deck_manager_ref.MANA_MAX)
+	elif side == 1 and bm.enemy_ai_ref != null:
+		bm.enemy_ai_ref.mana += mana_gain
+		bm.enemy_ai_ref.mana = min(bm.enemy_ai_ref.mana, bm.enemy_ai_ref.MANA_MAX)
 
 func _push_on_hit_effects(side: int, row: int, col: int, attacker: Object, target: Object,
 		enemy_side: int, target_row: int, target_col: int, damage: int) -> void:
@@ -212,6 +223,81 @@ func _get_target_rows(attacker_row: int, attack_range: String) -> Array:
 			return [0, 1, 2]
 		_:
 			return [attacker_row]
+
+func _process_support_effects(delta: float) -> void:
+	# v2設計: 中列・後列のサポート効果をSPD依存で発動
+	for side in range(2):
+		var front_col: int = 2 if side == 0 else 0
+		var mid_col: int = 1
+		var back_col: int = 0 if side == 0 else 2
+
+		for row in range(3):
+			# 中列
+			var mid_unit = bm.board[side][row][mid_col]
+			if mid_unit != null and mid_unit.paralysis_turns <= 0:
+				bm.support_timers[side][row][mid_col] -= delta
+				if bm.support_timers[side][row][mid_col] <= 0.0:
+					var freeze_penalty: float = 0.0
+					if mid_unit.frozen_turns > 0:
+						var freeze_reduction: float = 0.5 * float(mid_unit.frozen_turns) / float(mid_unit.frozen_turns + 2)
+						freeze_penalty = mid_unit.attack_interval * freeze_reduction
+					var eff_interval: float = max(0.3, mid_unit.attack_interval - mid_unit._interval_bonus - mid_unit._temp_spd_bonus + freeze_penalty)
+					bm.support_timers[side][row][mid_col] = eff_interval
+					_trigger_support(side, row, mid_col, mid_unit)
+
+			# 後列
+			var back_unit = bm.board[side][row][back_col]
+			if back_unit != null and back_unit.paralysis_turns <= 0:
+				bm.support_timers[side][row][back_col] -= delta
+				if bm.support_timers[side][row][back_col] <= 0.0:
+					var freeze_penalty: float = 0.0
+					if back_unit.frozen_turns > 0:
+						var freeze_reduction: float = 0.5 * float(back_unit.frozen_turns) / float(back_unit.frozen_turns + 2)
+						freeze_penalty = back_unit.attack_interval * freeze_reduction
+					var eff_interval: float = max(0.3, back_unit.attack_interval - back_unit._interval_bonus - back_unit._temp_spd_bonus + freeze_penalty)
+					bm.support_timers[side][row][back_col] = eff_interval
+					_trigger_support(side, row, back_col, back_unit)
+
+func _trigger_support(side: int, row: int, col: int, unit: Object) -> void:
+	# v2設計: サポート効果発動 + マナ生成
+
+	# サポート効果発動（skills配列から実行）
+	# v2設計: 前列ではサポート効果発動しない
+	var front_col: int = 2 if side == 0 else 0
+	if col != front_col and bm.effect_executor != null:
+		for skill in unit.skills:
+			# v2設計: on_hit以外のスキルをサポート効果として実行
+			var trigger = skill.get("trigger", "")
+			if trigger == "on_hit":
+				continue
+
+			# サポート効果実行（always, on_tick など）
+			var merged_params: Dictionary = skill.get("params", {}).duplicate()
+			if skill.has("target"):
+				merged_params["target"] = skill["target"]
+
+			bm.effect_executor.execute(skill["effect_id"], merged_params, {
+				"trigger": "support",
+				"side": side,
+				"row": row,
+				"col": col,
+				"source": unit,
+				"target": null,
+				"damage": 0,
+				"board_manager": bm,
+				"deck_manager": bm.deck_manager_ref,
+				"enemy_ai": bm.enemy_ai_ref,
+				"event_queue": bm.event_queue
+			})
+
+	# マナ生成（両陣営）
+	var mana_gain: float = float(unit.cost) if unit.cost >= 0 else 0.0
+	if side == 0 and bm.deck_manager_ref != null:
+		bm.deck_manager_ref.mana += mana_gain
+		bm.deck_manager_ref.mana = min(bm.deck_manager_ref.mana, bm.deck_manager_ref.MANA_MAX)
+	elif side == 1 and bm.enemy_ai_ref != null:
+		bm.enemy_ai_ref.mana += mana_gain
+		bm.enemy_ai_ref.mana = min(bm.enemy_ai_ref.mana, bm.enemy_ai_ref.MANA_MAX)
 
 func _process_auto_promote() -> void:
 	for side in range(2):

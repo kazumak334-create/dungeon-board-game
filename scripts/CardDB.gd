@@ -13,6 +13,7 @@ var SYNTHESIS: Array = []
 var PLAYER_DECK: Array = []
 var PLAYER_SPELLS: Array = []
 var ENEMY_DECK: Array = []
+var ENEMY_POOLS: Dictionary = {}
 var BASE_DECK: Array = []
 var MATERIALS: Array = []
 var ENVIRONMENTS: Dictionary = {}
@@ -40,6 +41,7 @@ func _ready() -> void:
 	PLAYER_DECK = data.get("player_deck", [])
 	PLAYER_SPELLS = data.get("player_spells", [])
 	ENEMY_DECK = data.get("enemy_deck", [])
+	ENEMY_POOLS = data.get("enemy_pools", {})
 	BASE_DECK = data.get("base_deck", [])
 	MATERIALS = data.get("materials", [])
 	ENVIRONMENTS = data.get("environments", {})

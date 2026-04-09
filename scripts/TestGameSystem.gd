@@ -42,10 +42,10 @@ func _test_mana_system(r: RefCounted) -> void:
 	r._assert_eq(int(CardDB.CLASSES["berserker"]["mana_max"]), 3, "バーサーカーmana_max=3")
 	r._assert_eq(int(CardDB.CLASSES["necromancer"]["mana_max"]), 3, "死霊術師mana_max=3")
 
-	# マナ吸収カードの存在確認
-	r._assert_true(CardDB.SYSTEM_SPELLS.has("マナ吸収"), "マナ吸収カード存在")
-	var mana_card = CardDB.SYSTEM_SPELLS["マナ吸収"]
-	r._assert_eq(mana_card.get("cost", -1), 0, "マナ吸収コスト=0")
+	# 呪文回収カードの存在確認
+	r._assert_true(CardDB.SYSTEM_SPELLS.has("呪文回収"), "呪文回収カード存在")
+	var mana_card = CardDB.SYSTEM_SPELLS["呪文回収"]
+	r._assert_eq(mana_card.get("cost", -1), 0, "呪文回収コスト=0")
 
 	# コスト超過スキップのロジック確認（データレベル）
 	r._assert_true(5 > 3, "コスト5 > マナ上限3 → スキップ対象")
@@ -93,13 +93,13 @@ func _test_card_queue_data(r: RefCounted) -> void:
 		var exists = CardDB.UNITS.has(card_name) or CardDB.SPELLS.has(card_name) or CardDB.STATUS_SPELLS.has(card_name)
 		r._assert_true(exists, "BASE_DECK '%s' がCardDBに存在" % card_name)
 
-	# マナ吸収の効果確認
-	var mana_card = CardDB.SYSTEM_SPELLS.get("マナ吸収", {})
+	# 呪文回収の効果確認
+	var mana_card = CardDB.SYSTEM_SPELLS.get("呪文回収", {})
 	var has_shuffle = false
 	for skill in mana_card.get("skills", []):
 		if skill.get("effect_id", "") == "shuffle_deck":
 			has_shuffle = true
-	r._assert_true(has_shuffle, "マナ吸収にshuffle_deck効果あり")
+	r._assert_true(has_shuffle, "呪文回収にshuffle_deck効果あり")
 
 	# PlacementLogicのラウンドロビン行割り当て確認
 	var PL = load("res://scripts/PlacementLogic.gd")

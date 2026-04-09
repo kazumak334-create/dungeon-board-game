@@ -500,7 +500,7 @@ func _is_important_event(text: String) -> bool:
 	if "本体" in text: return true
 	if "[スキル]" in text: return true
 	if "合成" in text: return true
-	if "マナ吸収" in text: return true
+	if "呪文回収" in text: return true
 	if "GAME OVER" in text or "YOU WIN" in text: return true
 	return false
 

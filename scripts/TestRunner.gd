@@ -40,6 +40,18 @@ func run_all() -> String:
 	var layout_tests = load("res://scripts/TestDeckPrepLayout.gd").new()
 	layout_tests.run(self)
 
+	# v2設計: マナ生成システム
+	var mana_tests = load("res://scripts/TestManaGeneration.gd").new()
+	mana_tests.run(self)
+
+	# v2設計: 初期配置システム
+	var initial_placement_tests = load("res://scripts/TestInitialPlacement.gd").new()
+	initial_placement_tests.run(self)
+
+	# v2設計: 呪文3スロット
+	var spell_slot_tests = load("res://scripts/TestSpellSlot.gd").new()
+	spell_slot_tests.run(self)
+
 	var summary: String = "テスト結果: %d passed / %d failed" % [_pass_count, _fail_count]
 	_results.insert(0, summary)
 	return "\n".join(_results)
