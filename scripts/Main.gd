@@ -231,6 +231,7 @@ func _build_mode_select() -> void:
 		enemy_ai.ensure_shuffle_card()
 		# v2設計: 初期配置ユニットを盤面に展開
 		_place_initial_units()
+		_place_enemy_initial_units()
 		# v2設計: マナ上限をユニット総コストで初期化
 		deck_manager.initialize_mana_from_deck()
 		enemy_ai.initialize_mana_from_deck()
@@ -291,6 +292,64 @@ func _place_initial_units() -> void:
 
 		board_manager.place_unit(0, unit, {"row": row, "col": col})
 		print("[Main] 初期配置: %s → (%d, %d)" % [unit_name, row, col])
+
+func _place_enemy_initial_units() -> void:
+	# v2設計: 敵のenemy_deckから全ユニットを初期配置として盤面に展開
+	if enemy_ai.enemy_deck.is_empty():
+		print("[Main] 敵デッキが空です")
+		return
+
+	var units_to_place: Array = []
+	var remaining_cards: Array = []
+
+	# デッキからユニットと非ユニットを分離
+	for card in enemy_ai.enemy_deck:
+		if card.card_type == "unit":
+			units_to_place.append(card)
+		else:
+			remaining_cards.append(card)
+
+	# ユニットを盤面に配置
+	var placed_count = 0
+	var total_cost = 0.0
+	for unit in units_to_place:
+		var col = unit.assigned_col if unit.has("assigned_col") else 1
+		col = clampi(col, 0, 2)
+
+		# 配置可能な行を探す
+		var row = -1
+		for r in range(3):
+			if board_manager.board[1][r][col] == null:
+				row = r
+				break
+
+		# その列が埋まっていたら他の列を探す
+		if row == -1:
+			for c in range(3):
+				for r in range(3):
+					if board_manager.board[1][r][c] == null:
+						row = r
+						col = c
+						break
+				if row != -1:
+					break
+
+		# 配置実行
+		if row != -1:
+			board_manager.place_unit(1, unit, {"row": row, "col": col})
+			print("[Main] 敵初期配置: %s → (%d, %d)" % [unit.unit_name, row, col])
+			placed_count += 1
+			total_cost += float(unit.cost) if unit.has("cost") else 0.0
+		else:
+			print("[Main] 敵初期配置失敗: %s（盤面が満杯）" % unit.unit_name)
+			remaining_cards.append(unit)
+
+	# デッキを非ユニットのみに更新
+	enemy_ai.enemy_deck = remaining_cards
+	# MANA_MAXを初期配置ユニット総コストに設定
+	enemy_ai.MANA_MAX = total_cost
+	enemy_ai.mana = 0.0
+	print("[Main] 敵初期配置完了: %d体配置、総コスト%.1f、デッキ残り%d枚" % [placed_count, total_cost, remaining_cards.size()])
 
 func _apply_environment() -> void:
 	var env_id = GameSession.base_environment
