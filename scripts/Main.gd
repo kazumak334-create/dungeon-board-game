@@ -313,7 +313,7 @@ func _place_enemy_initial_units() -> void:
 	var placed_count = 0
 	var total_cost = 0.0
 	for unit in units_to_place:
-		var col = unit.assigned_col if unit.has("assigned_col") else 1
+		var col = unit.assigned_col
 		col = clampi(col, 0, 2)
 
 		# 配置可能な行を探す
@@ -339,7 +339,7 @@ func _place_enemy_initial_units() -> void:
 			board_manager.place_unit(1, unit, {"row": row, "col": col})
 			print("[Main] 敵初期配置: %s → (%d, %d)" % [unit.unit_name, row, col])
 			placed_count += 1
-			total_cost += float(unit.cost) if unit.has("cost") else 0.0
+			total_cost += float(unit.cost)
 		else:
 			print("[Main] 敵初期配置失敗: %s（盤面が満杯）" % unit.unit_name)
 			remaining_cards.append(unit)
