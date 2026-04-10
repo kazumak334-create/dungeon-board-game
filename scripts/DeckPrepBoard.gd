@@ -407,35 +407,18 @@ func _build_spell_artifact_split() -> float:
 	hand_lbl.add_theme_color_override("font_color", Color(0.75, 0.65, 0.4))
 	tab_container.add_child(hand_lbl)
 
-	# 手持ちカード描画（全幅）
+	# 新UI: 縦長カード形式（CardSlot使用）
 	var hand_cards = _build_hand_cards_list()
-	var hand_count = hand_cards.size()
-	var hand_area_h: float = 0.0
-	var hand_area_w = ally_board_w - float(BOARD_X)
+	var hand_container = _build_hand_card_container(hand_cards, board_start_x, hand_area_y)
+	tab_container.add_child(hand_container)
 
-	if hand_count <= SPELL_HAND_TILE_SWITCH:
-		var tile_w = minf(float(SPELL_HAND_TILE_W), (hand_area_w - float(SPELL_HAND_TILE_GAP) * (SPELL_HAND_TILE_SWITCH - 1)) / float(SPELL_HAND_TILE_SWITCH))
-		var tile_h = tile_w * 7.0 / 5.0
-		for i in range(hand_count):
-			var hc = hand_cards[i]
-			var sx = board_start_x + float(i) * (tile_w + float(SPELL_HAND_TILE_GAP))
-			var tile = _create_tile_chip(hc[1], hc[2], tile_w, tile_h, hc[0], hc[3])
-			tile.position = Vector2(sx, hand_area_y)
-			tab_container.add_child(tile)
-		hand_area_h = tile_h + float(SPELL_HAND_Y_OFFSET)
-	else:
-		var bar_w = hand_area_w - 2.0
-		for i in range(hand_count):
-			var hy = hand_area_y + float(i) * float(SPELL_HAND_BAR_H + SPELL_HAND_BAR_GAP)
-			var bar = _create_bar_chip(hand_cards[i][1], hand_cards[i][2], bar_w, float(SPELL_HAND_BAR_H), hand_cards[i][0], hand_cards[i][3])
-			bar.position = Vector2(board_start_x, hy)
-			tab_container.add_child(bar)
-		hand_area_h = float(hand_count) * float(SPELL_HAND_BAR_H + SPELL_HAND_BAR_GAP) + float(SPELL_HAND_Y_OFFSET)
+	# 固定高さ（カード高さ130px + ホバー余白40px + ラベル余白）
+	var hand_area_h = 130.0 + 40.0 + float(SPELL_HAND_Y_OFFSET)
 
 	# 手持ちカード下境界線
 	var hand_border = ColorRect.new()
 	hand_border.position = Vector2(board_start_x, hand_area_y + hand_area_h - float(SPELL_HAND_Y_OFFSET))
-	hand_border.size = Vector2(hand_area_w, 1.0)
+	hand_border.size = Vector2(ally_board_w - float(BOARD_X), 1.0)
 	hand_border.color = Color(0.3, 0.35, 0.45, 0.7)
 	hand_border.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	tab_container.add_child(hand_border)
@@ -798,6 +781,56 @@ func _group_cards_by_name(cards: Array) -> Array:
 		out.append([g["idx_first"], gname, g["count"], g["indices"]])
 	return out
 
+# 手持ちカード新UI: 縦長カード形式（重なり配置）
+func _build_hand_card_container(hand_cards: Array, start_x: float, start_y: float) -> Control:
+	const CARD_W = 90.0
+	const CARD_H = 130.0
+	const OVERLAP_W = 22.0  # 左側1/4重なり
+
+	var container = Control.new()
+	container.position = Vector2(start_x, start_y)
+
+	var CardSlotScript = load("res://scripts/CardSlot.gd")
+
+	for i in range(hand_cards.size()):
+		var hc = hand_cards[i]
+		var idx = hc[0]
+		var card_name = hc[1]
+		var count = hc[2]
+		var indices = hc[3]
+
+		var slot = Control.new()
+		slot.set_script(CardSlotScript)
+		slot.position = Vector2(float(i) * (CARD_W - OVERLAP_W), 0.0)
+		slot.z_index = i  # 左端が背面、右端が前面
+
+		var card_color = get_card_color(card_name)
+		var card_cost = get_card_cost(card_name)
+
+		container.add_child(slot)
+		slot.setup(card_name, card_cost, count, indices, card_color)
+
+		# クリック時のコールバック設定
+		slot.on_card_clicked = func(clicked_idx: int, event: InputEvent):
+			_on_chip_input_from_slot(event, clicked_idx, indices, slot)
+
+		# ホバー時のz_index保持用
+		var original_z = i
+		slot.card_hovered.connect(func(_s): slot.z_index = 100)
+		slot.card_unhovered.connect(func(_s): slot.z_index = original_z)
+
+	container.custom_minimum_size = Vector2(CARD_W + float(hand_cards.size() - 1) * (CARD_W - OVERLAP_W), CARD_H)
+	return container
+
+func _on_chip_input_from_slot(event: InputEvent, idx: int, all_indices: Array, slot: Control) -> void:
+	# 既存のドラッグロジックに接続
+	if not (event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed):
+		return
+	_selected_card_idx = idx
+	_drag_group_indices = [idx]
+	if on_card_selected.is_valid(): on_card_selected.call(idx)
+	if on_card_pinned.is_valid(): on_card_pinned.call(idx)
+	start_drag_group(idx, [idx], slot, event.global_position)
 
 func _on_chip_input(event: InputEvent, idx: int, all_indices: Array, chip: Control) -> void:
 	if not (event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed):
