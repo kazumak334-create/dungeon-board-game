@@ -54,6 +54,7 @@ func _build_card_ui() -> void:
 	style.set_corner_radius_all(6)
 	bg.add_theme_stylebox_override("panel", style)
 	add_child(bg)
+	bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
 
 	var vbox = VBoxContainer.new()
 	vbox.add_theme_constant_override("separation", 0)
