@@ -1094,13 +1094,17 @@ func try_drop_card(idx: int, new_side: int, new_row: int, new_col: int) -> void:
 				return
 
 	# ドラッグカードをドロップ先へ移動
+	print("[DeckPrepBoard] try_drop_card: idx=%d, new_side=%d, new_row=%d, new_col=%d, indices_to_move=%s" % [idx, new_side, new_row, new_col, str(indices_to_move)])
 	var success = _PL.move_group(indices_to_move, new_side, new_row, new_col,
 		GameSession.selected_deck, GameSession.placement_config)
+	print("[DeckPrepBoard] move_group result: success=%s" % str(success))
 
 	if not success:
+		print("[DeckPrepBoard] move_group failed, aborting")
 		end_drag()
 		return
 
+	print("[DeckPrepBoard] move_group succeeded, calling populate_cards()")
 	end_drag()
 	populate_cards()
 	select_card(idx)
