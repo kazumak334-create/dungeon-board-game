@@ -47,6 +47,32 @@
 **設計文書**
 - `docs/GAME_DESIGN.md`: Single Source of Truth確立
 
+### UI/UXワークフロー確立
+
+**Designer Agent体制**
+- `.claude/agents/designer.md`: Designer Agent定義
+- `docs/meta/ui_workflow.md`: UI/UX実装ワークフロー（Designer → ui → checker → CEO）
+- `docs/meta/agents.md`: Designer責務追加（事前企画・事後レビュー）
+- UI基準6項目定義（3秒ルール/視線の一本化/状態の可視化/操作の最小化/配信映え/世界観の匂わせ）
+
+### Phase 3 ショップ画面実装
+
+**UI/UX企画書**
+- `docs/design/ui/shop.md`: ショップ画面UI/UX企画書
+- レイアウト構成（1280×720、タイトル/所持金/商品カード/リロール/戻る）
+- 色彩設計（MaterialSelect.gd踏襲）
+- UIコンポーネント詳細（商品パネル 220×320、フォントサイズ等）
+- インタラクション設計（購入フロー・リロールフロー・状態変化）
+- UI基準6項目全合格
+
+**実装完了**
+- `scripts/Shop.gd`: スタブから完全実装に置き換え
+- 商品ランダム生成（ユニット・呪文・素材から3-5個）
+- 購入処理（所持金チェック→減算→デッキ追加→UI更新）
+- リロールシステム（50G消費→商品再生成）
+- 状態管理（購入済み=赤背景、所持金不足=disabled）
+- checker検証合格
+
 ---
 
 ## 2026-04-06
