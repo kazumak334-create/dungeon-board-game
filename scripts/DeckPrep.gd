@@ -34,6 +34,7 @@ const SIDEBAR_X = 5         # 左パネル開始X
 const SIDEBAR_Y = 40        # 左パネル開始Y（タスクバー36px分オフセット）
 const SIDEBAR_W = 200       # 左パネル幅
 const SIDEBAR_H = 675       # 左パネル高さ
+const STATUS_AREA_Y = 15    # ステータス領域Y（サイドバー内）
 const CONTENT_X = 210       # コンテンツ開始X
 const CONTENT_Y = 40        # コンテンツ開始Y
 const CONTENT_W = 860       # コンテンツ幅（210+860+5=1075=INFO_X）
@@ -179,7 +180,7 @@ func _build_status_area() -> void:
 			var sep = ColorRect.new()
 			sep.position = Vector2(base_x - 5, cy)
 			sep.size = Vector2(lbl_w + 10, 1)
-			sep.color = Color(0.25, 0.28, 0.35, 0.8)
+			sep.color = Color(0.25, 0.28, 0.35)
 			add_child(sep)
 			cy += 12
 

@@ -3,15 +3,17 @@
 extends RefCounted
 
 func run(runner: RefCounted) -> void:
-	_test_equip_slot_count(runner)
-	_test_equip_slot_ids(runner)
-	_test_layout_constants(runner)
-	_test_inventory_slot_count_30(runner)
-	_test_inventory_categories(runner)
-	_test_material_slot_layout(runner)
-	_test_inventory_grid_dimensions(runner)
+	# 装備欄・持ち物タブ廃止により以下テストは無効化
+	# _test_equip_slot_count(runner)
+	# _test_equip_slot_ids(runner)
+	# _test_layout_constants(runner)
+	# _test_inventory_slot_count_30(runner)
+	# _test_inventory_categories(runner)
+	# _test_material_slot_layout(runner)
+	# _test_inventory_grid_dimensions(runner)
+	# _test_mh_inventory_owned_first(runner)
+
 	_test_info_lane_separation(runner)
-	_test_mh_inventory_owned_first(runner)
 	_test_deck_prep_info_setup(runner)
 	_test_board_no_ally_enemy_labels(runner)
 	_test_spell_slot_count(runner)
@@ -569,13 +571,13 @@ func _test_taskbar_on_result(r: RefCounted) -> void:
 	res_obj.queue_free()
 
 func _test_deckprep_no_tabs(r: RefCounted) -> void:
-	# DeckPrepのタブバーが廃止されていること（_build_tab_barは残るが_build_ui内で呼ばれない）
+	# DeckPrepのタブバーが廃止されていること
 	var DeckPrepClass = load("res://scripts/DeckPrep.gd")
 	var dp = DeckPrepClass.new()
-	# _tab_buttons変数が存在すること
-	r._assert_true("_tab_buttons" in dp, "test_deckprep_no_tabs: _tab_buttons変数が存在する")
-	# _show_tab関数は互換のため残存していること
-	r._assert_true(dp.has_method("_show_tab"), "test_deckprep_no_tabs: _show_tab()が互換のため残存している")
+	# _tab_buttons変数が存在しないこと
+	r._assert_false("_tab_buttons" in dp, "test_deckprep_no_tabs: _tab_buttons変数が存在しない")
+	# _show_tab関数も存在しないこと
+	r._assert_false(dp.has_method("_show_tab"), "test_deckprep_no_tabs: _show_tab()が存在しない")
 	dp.queue_free()
 
 func _test_inventory_square_grid_moved(r: RefCounted) -> void:

@@ -909,9 +909,9 @@ func _show_spell_info_status(card_name: String) -> void:
 #   HP/ATK/SPD行                           10%
 #   フレーバーテキスト                      15%
 func _build_card_frame_header(card_name: String, d: Dictionary, y: float) -> float:
-	# 右パネル幅いっぱい（パディング8px分引く）。_info_w=200の場合は192px幅
-	var frame_w: int = _info_w - 8
-	var frame_h: int = int(float(frame_w) * 7.0 / 5.0)  # 5:7比率（192×7/5=268px）
+	# 企画書4.4節: 190×266px（5:7比率）
+	var frame_w: int = 190
+	var frame_h: int = 266
 	var race = d.get("race", "")
 	var accent_color = RACE_COLORS.get(race, SPELL_COLOR)
 
@@ -987,14 +987,14 @@ func _build_card_frame_header(card_name: String, d: Dictionary, y: float) -> flo
 	var illust = ColorRect.new()
 	illust.position = Vector2(4, cy)
 	illust.size = Vector2(frame_w - 8, illust_h)
-	illust.color = accent_color.darkened(0.65)
+	illust.color = Color(0.15, 0.15, 0.2)
 	card_frame.add_child(illust)
 	cy += illust_h + 2
 
 	# ---- Skillsラベル（5%）----
 	var skills_label_h: float = float(frame_h) * 0.05
 	var skills_center_lbl = Label.new()
-	skills_center_lbl.text = "Skills"
+	skills_center_lbl.text = "── Skills ──"
 	skills_center_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	skills_center_lbl.position = Vector2(4, cy)
 	skills_center_lbl.size = Vector2(frame_w - 8, skills_label_h)
