@@ -219,6 +219,55 @@ func _update_info_lane() -> void:
 		return
 	_info.show_card_info(_selected_card_idx)
 
+func _build_adventure_buttons() -> void:
+	# 冒険ボタン「冒険を始める」860×35、フォントサイズ18、青系背景
+	var start_btn = Button.new()
+	start_btn.text = "冒険を始める"
+	start_btn.position = Vector2(CONTENT_X, ADVENTURE_Y)
+	start_btn.size = Vector2(CONTENT_W, 35)
+	start_btn.add_theme_font_size_override("font_size", 18)
+	start_btn.pressed.connect(_on_start_battle)
+	add_child(start_btn)
+
+	# 背景色=青系（Color(0.3, 0.5, 0.7)）、ホバー時Color(0.4, 0.6, 0.8)
+	var normal_style = StyleBoxFlat.new()
+	normal_style.bg_color = Color(0.3, 0.5, 0.7)
+	normal_style.set_corner_radius_all(4)
+	start_btn.add_theme_stylebox_override("normal", normal_style)
+
+	var hover_style = StyleBoxFlat.new()
+	hover_style.bg_color = Color(0.4, 0.6, 0.8)
+	hover_style.set_corner_radius_all(4)
+	start_btn.add_theme_stylebox_override("hover", hover_style)
+
+func _on_start_battle() -> void:
+	# v2設計: 初期配置9マス情報をGameSession.initial_unitsに保存
+	_save_initial_units()
+	SceneManager.go_to(SceneManager.BATTLE)
+
+func _save_initial_units() -> void:
+	# 配置タブの9マス状態をGameSession.initial_unitsに保存
+	GameSession.initial_units.clear()
+	if _board == null:
+		return
+
+	# _board._cell_card_containersから各セルの配置情報を取得（自陣side=0のみ）
+	for row in range(3):
+		for col in range(3):
+			var container = _board._cell_card_containers[0][row][col]
+			var unit_info = null
+
+			# コンテナ内のカードを確認
+			if container.get_child_count() > 0:
+				var card_ui = container.get_child(0)
+				if card_ui.has_meta("card_name"):
+					var card_name = card_ui.get_meta("card_name")
+					unit_info = {"name": card_name, "row": row, "col": col}
+
+			GameSession.initial_units.append(unit_info)
+
+	print("[DeckPrep] 初期配置保存: %d個のユニット" % GameSession.initial_units.filter(func(x): return x != null).size())
+
 # 後方互換用定数（装備欄廃止後もテスト等が参照する可能性があるため残す）
 const INV_CELL_SIZE = 55         # セルサイズ（元EQUIP_SLOT_SIZE）
 const INV_CELL_GAP = 8           # セル間隔（元EQUIP_SLOT_GAP）
