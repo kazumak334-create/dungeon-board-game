@@ -219,11 +219,14 @@ func _update_info_lane() -> void:
 		return
 	_info.show_card_info(_selected_card_idx)
 
-const INV_FILTER_H = 32   # フィルタタブ高さ（後方互換維持）
-# 後方互換用エイリアス（テスト等が参照する可能性があるため残す）
-const INV_SLOT_W = INV_CELL_SIZE   # スロット幅（=EQUIP_SLOT_SIZE）
-const INV_SLOT_H = INV_CELL_SIZE   # スロット高さ（正方形・=EQUIP_SLOT_SIZE）
-const INV_SLOT_GAP = INV_CELL_GAP  # スロット間隔（=EQUIP_SLOT_GAP）
+# 後方互換用定数（装備欄廃止後もテスト等が参照する可能性があるため残す）
+const INV_CELL_SIZE = 55         # セルサイズ（元EQUIP_SLOT_SIZE）
+const INV_CELL_GAP = 8           # セル間隔（元EQUIP_SLOT_GAP）
+const INV_GRID_OFFSET_X = 8      # グリッド開始X
+const INV_GRID_OFFSET_Y = 40     # グリッド開始Y
+const INV_FILTER_H = 32          # フィルタタブ高さ
+const INV_SLOT_W = INV_CELL_SIZE # スロット幅
+const INV_SLOT_H = INV_CELL_SIZE # スロット高さ（正方形）
+const INV_SLOT_GAP = INV_CELL_GAP # スロット間隔
 const INV_GRID_X = INV_GRID_OFFSET_X
 const INV_GRID_Y = INV_GRID_OFFSET_Y
-
