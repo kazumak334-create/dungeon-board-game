@@ -33,12 +33,15 @@ func _test_placement_logic(r: RefCounted) -> void:
 	]
 	var config = PL.generate_default_config(test_deck)
 	r._assert_eq(config.size(), 3, "config数=デッキ枚数")
+	# v2設計: 初期状態では全カードが手持ち（col=-1, row=1）に配置される
 	r._assert_eq(config[0]["side"], 0, "スライム: 自陣")
-	r._assert_eq(config[0]["col"], 1, "スライムcol1→中列")
-	r._assert_eq(config[0]["row"], 0, "ユニットデフォルト→上段(ラウンドロビン)")
+	r._assert_eq(config[0]["col"], -1, "v2設計: ユニット→手持ち(col=-1)")
+	r._assert_eq(config[0]["row"], 1, "v2設計: ユニット→手持ち(row=1)")
 	r._assert_eq(config[0]["fallback_same_col"], true, "デフォルトfallback=true")
-	r._assert_eq(config[1]["col"], 0, "ゴブリンcol0→後列")
-	r._assert_eq(config[2]["col"], -1, "呪文→列おまかせ")
+	r._assert_eq(config[1]["col"], -1, "v2設計: ユニット→手持ち(col=-1)")
+	r._assert_eq(config[1]["row"], 1, "v2設計: ユニット→手持ち(row=1)")
+	r._assert_eq(config[2]["col"], -1, "v2設計: 呪文→手持ち(col=-1)")
+	r._assert_eq(config[2]["row"], 1, "v2設計: 呪文→手持ち(row=1)")
 	r._assert_eq(config[2]["side"], 0, "味方呪文→自陣")
 
 func _test_placement_operations(r: RefCounted) -> void:
@@ -105,9 +108,9 @@ func _test_placement_operations(r: RefCounted) -> void:
 
 	# --- get_row_group ---
 	config[2]["side"] = 0; config[2]["row"] = 0; config[2]["col"] = 0
-	# idx3(呪文)はrow=-1→正規化で0になるため上段に4枚
+	# v2設計: idx3(呪文)はrow=1（手持ち）なので上段には含まれない
 	var row_grp = PL.get_row_group(0, 0, config)
-	r._assert_eq(row_grp.size(), 4, "row_group: 上段に4枚(スライム2+ゴブリン1+呪文1)")
+	r._assert_eq(row_grp.size(), 3, "row_group: 上段に3枚(スライム2+ゴブリン1)")
 
 	# 敵陣の行→呪文しかいない
 	config[3]["side"] = 1; config[3]["row"] = 1; config[3]["col"] = 2
@@ -218,23 +221,29 @@ func _test_spell_card_constraints(r: RefCounted) -> void:
 	r._assert_eq(PL.requires_board_placement({"name": "召喚加速"}), false,
 		"test_spell_card_no_board_drop: 召喚加速(self)は盤面配置不要")
 
-	# デフォルトconfig生成でAoE呪文→col=-1（呪文スロット）
+	# v2設計: デフォルトconfig生成でAoE呪文→手持ち（col=-1, row=1）
 	var deck_aoe = [{"name": "召喚加速"}]
 	var config_aoe = PL.generate_default_config(deck_aoe)
 	r._assert_eq(config_aoe[0]["col"], -1,
-		"test_default_config_spell_assignment: AoE呪文→col=-1(呪文スロット)")
+		"test_default_config_spell_assignment: v2設計では呪文→手持ち(col=-1)")
+	r._assert_eq(config_aoe[0]["row"], 1,
+		"test_default_config_spell_assignment: v2設計では呪文→手持ち(row=1)")
 
-	# デフォルトconfig生成でユニット→col>=0（盤面）
+	# v2設計: デフォルトconfig生成でユニット→手持ち（col=-1, row=1）
 	var deck_unit = [{"name": "スライム", "col": 1}]
 	var config_unit = PL.generate_default_config(deck_unit)
-	r._assert_true(config_unit[0]["col"] >= 0,
-		"test_default_config_unit_assignment: ユニット→col>=0(盤面)")
+	r._assert_eq(config_unit[0]["col"], -1,
+		"test_default_config_unit_assignment: v2設計ではユニット→手持ち(col=-1)")
+	r._assert_eq(config_unit[0]["row"], 1,
+		"test_default_config_unit_assignment: v2設計ではユニット→手持ち(row=1)")
 
-	# v2設計: 全ての呪文はcol=-1（呪文スロット）に配置
+	# v2設計: 全ての呪文は手持ち（col=-1, row=1）に配置
 	var deck_single = [{"name": "生命の雫"}]
 	var config_single = PL.generate_default_config(deck_single)
 	r._assert_eq(config_single[0]["col"], -1,
-		"test_default_config_spell_assignment: v2設計では全呪文→col=-1(呪文スロット)")
+		"test_default_config_spell_assignment: v2設計では全呪文→手持ち(col=-1)")
+	r._assert_eq(config_single[0]["row"], 1,
+		"test_default_config_spell_assignment: v2設計では全呪文→手持ち(row=1)")
 
 # ---- ハイライトセルテスト ----
 func _test_highlight_cells(r: RefCounted) -> void:

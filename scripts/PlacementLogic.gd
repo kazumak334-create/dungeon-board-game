@@ -211,30 +211,28 @@ static func generate_default_config(deck: Array) -> Array:
 		var card_name: String = entry.get("name", "") if entry is Dictionary else str(entry)
 
 		if CardDB.UNITS.has(card_name):
-			var assigned_col: int = entry.get("col", 1) if entry is Dictionary else 1
-			var col: int = clampi(assigned_col, 0, 2)
-			# 同名カードは行をばらけさせる（上段→中段→下段→上段...）
-			var row_idx: int = name_row_counter.get(card_name, 0)
-			name_row_counter[card_name] = (row_idx + 1) % 3
+			# v2設計: 初期状態では手持ちカード（col=-1, row=1）に配置
+			# プレイヤーが盤面にドラッグ＆ドロップすることで盤面に配置される
 			config.append({
 				"side": 0,
-				"row": row_idx,
-				"col": col,
+				"row": 1,
+				"col": -1,
 				"fallback_same_col": true,
 			})
 		elif CardDB.SPELLS.has(card_name) or CardDB.STATUS_SPELLS.has(card_name):
-			# v2設計: 呪文は全て呪文デッキ（col=-1, row=0）に配置
+			# v2設計: 呪文も初期状態では手持ちカード（col=-1, row=1）に配置
+			# プレイヤーが呪文スロット（row=0）にドラッグ＆ドロップする
 			config.append({
 				"side": 0,
-				"row": 0,
+				"row": 1,
 				"col": -1,
 				"fallback_same_col": true,
 			})
 		else:
-			# SYSTEM_SPELLS等
+			# SYSTEM_SPELLS等も手持ちカード（col=-1, row=1）に配置
 			config.append({
 				"side": 0,
-				"row": -1,
+				"row": 1,
 				"col": -1,
 				"fallback_same_col": true,
 			})

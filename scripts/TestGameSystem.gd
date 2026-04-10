@@ -101,7 +101,7 @@ func _test_card_queue_data(r: RefCounted) -> void:
 			has_shuffle = true
 	r._assert_true(has_shuffle, "呪文回収にshuffle_deck効果あり")
 
-	# PlacementLogicのラウンドロビン行割り当て確認
+	# v2設計: ラウンドロビン廃止、全ユニットは手持ち（row=1）に配置される
 	var PL = load("res://scripts/PlacementLogic.gd")
 	var test_deck_rr = [
 		{"name": "スライム", "col": 1},
@@ -109,9 +109,10 @@ func _test_card_queue_data(r: RefCounted) -> void:
 		{"name": "スライム", "col": 1},
 	]
 	var cfg_rr = PL.generate_default_config(test_deck_rr)
-	r._assert_eq(cfg_rr[0]["row"], 0, "ラウンドロビン: 1枚目=上段")
-	r._assert_eq(cfg_rr[1]["row"], 1, "ラウンドロビン: 2枚目=中段")
-	r._assert_eq(cfg_rr[2]["row"], 2, "ラウンドロビン: 3枚目=下段")
+	# v2設計: 全て手持ち（row=1）に配置される
+	r._assert_eq(cfg_rr[0]["row"], 1, "v2設計: 全ユニット→手持ち(row=1)")
+	r._assert_eq(cfg_rr[1]["row"], 1, "v2設計: 全ユニット→手持ち(row=1)")
+	r._assert_eq(cfg_rr[2]["row"], 1, "v2設計: 全ユニット→手持ち(row=1)")
 
 func _test_spell_speed_skip(r: RefCounted) -> void:
 	# スキップも詠唱扱いであることの確認（データレベル）
