@@ -67,7 +67,7 @@ func _process(_delta):
 		var conn = connections[i]
 
 		# 切断された接続を削除
-		if not conn.is_connected_to_host():
+		if conn.get_status() != StreamPeerTCP.STATUS_CONNECTED:
 			connections.remove_at(i)
 			continue
 
