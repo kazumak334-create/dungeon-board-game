@@ -913,12 +913,33 @@ func try_drop_at_mouse(_tc: Control) -> void:
 			if local.x >= bx and local.x < bx + CELL_W and local.y >= by and local.y < by + CELL_H:
 				try_drop_card(_drag_source_idx, 0, ri, ci)
 				return
+
+	# 呪文デッキエリアのドロップ判定（row=0, col=-1）
+	var ally_board_w = float(ROW_LABEL_W) + 3.0 * float(CELL_W + CELL_GAP)
+	var spell_deck_x = float(BOARD_X) + ally_board_w + float(CENTER_GAP)
+	var spell_deck_y = float(CELLS_START_Y)
+	var spell_deck_w = 3.0 * float(CELL_W + CELL_GAP)
+	var spell_deck_h = 3.0 * float(CELL_H + CELL_GAP)
+	if local.x >= spell_deck_x and local.x < spell_deck_x + spell_deck_w and \
+	   local.y >= spell_deck_y and local.y < spell_deck_y + spell_deck_h:
+		try_drop_card(_drag_source_idx, 0, 0, -1)
+		return
+
+	# 手持ちカードエリアのドロップ判定（row=1, col=-1）
+	var hand_area_y = float(CELLS_START_Y) + 3.0 * float(CELL_H + CELL_GAP) + 4.0
+	var hand_area_w = ally_board_w - float(BOARD_X)
+	var hand_area_h = 120.0  # 手持ちカードエリアの高さ（概算）
+	if local.x >= float(BOARD_X) and local.x < float(BOARD_X) + hand_area_w and \
+	   local.y >= hand_area_y and local.y < hand_area_y + hand_area_h:
+		try_drop_card(_drag_source_idx, 0, 1, -1)
+		return
+
 	end_drag()
 
 func try_drop_card(idx: int, new_side: int, new_row: int, new_col: int) -> void:
 	var indices_to_move = _drag_group_indices if _drag_group_indices.size() > 0 else [idx]
 
-	# v2設計: 盤面にはユニットのみ配置可能、1マス1枚まで
+	# v2設計: 盤面（col>=0）にはユニットのみ配置可能、1マス1枚まで
 	if new_col >= 0:
 		# チェック1: ユニットのみ配置可能
 		for move_idx in indices_to_move:
@@ -957,13 +978,13 @@ func try_drop_card(idx: int, new_side: int, new_row: int, new_col: int) -> void:
 					cfg["side"] = source_side
 					cfg["row"] = source_row
 					cfg["col"] = source_col
-			elif source_row == 1:
-				# 手持ちカード（row=1） → 盤面: ドロップ先カードを手持ちカードエリアへ
+			elif source_row == 1 or source_row == 0:
+				# 手持ちカード（row=1）or 呪文スロット（row=0） → 盤面: ドロップ先カードを元の位置へ
 				for target_idx in target_indices:
 					var cfg = GameSession.placement_config[target_idx]
-					cfg["side"] = 0
-					cfg["row"] = 1
-					cfg["col"] = -1
+					cfg["side"] = source_side
+					cfg["row"] = source_row
+					cfg["col"] = source_col
 
 	# ドラッグカードをドロップ先へ移動
 	var success = _PL.move_group(indices_to_move, new_side, new_row, new_col,

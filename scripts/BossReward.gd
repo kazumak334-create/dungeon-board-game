@@ -57,4 +57,21 @@ func _build_ui() -> void:
 		panel.add_child(vbox)
 		cards_container.add_child(panel)
 
-	UIF.add_button(self, "続ける", Vector2(515, 530), Vector2(250, 55), 22, func(): SceneManager.go_to(SceneManager.DECK_PREP))
+	UIF.add_button(self, "続ける", Vector2(515, 530), Vector2(250, 55), 22, func(): _on_continue())
+
+func _on_continue() -> void:
+	# ボス撃破後、次Actへ進む
+	GameSession.current_act += 1
+	if GameSession.current_act > 3:
+		# Act 3クリア → エンディング（Phase 6実装予定）
+		print("[BossReward] ゲームクリア（エンディング未実装）")
+		GameSession.reset()
+		SceneManager.go_to(SceneManager.TITLE)
+	else:
+		# 次Actのマップ生成
+		GameSession.current_node = ""
+		GameSession.completed_nodes = []
+		var gen = load("res://scripts/MapGenerator.gd").new()
+		GameSession.map_data = gen.generate(GameSession.map_seed, GameSession.race_theme)
+		print("[BossReward] Act %d へ進行" % GameSession.current_act)
+		SceneManager.go_to(SceneManager.MAP_SELECT)

@@ -288,7 +288,7 @@ func _create_card_panel(idx: int, card: Dictionary) -> PanelContainer:
 	# ステータス
 	var data = card["data"]
 	if card["is_unit"]:
-		var stats = "コスト:%d  HP:%d  ATK:%d  SPD:%.1fs" % [
+		var stats = "マナ:%d  HP:%d  ATK:%d  SPD:%.1fs" % [
 			data.get("cost", 0), data.get("hp", 0), data.get("atk", 0), data.get("interval", 0)]
 		var stats_label = Label.new()
 		stats_label.text = stats
@@ -305,7 +305,7 @@ func _create_card_panel(idx: int, card: Dictionary) -> PanelContainer:
 		vbox.add_child(race_label)
 	else:
 		var cost_label = Label.new()
-		cost_label.text = "コスト:%d  [呪文]" % data.get("cost", 0)
+		cost_label.text = "マナ:%d  [呪文]" % data.get("cost", 0)
 		cost_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		cost_label.add_theme_font_size_override("font_size", 12)
 		cost_label.add_theme_color_override("font_color", Color(0.5, 0.6, 0.8))

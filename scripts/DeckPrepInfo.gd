@@ -239,7 +239,7 @@ func show_card_info_in_container(container: Control, card_idx: int) -> void:
 	if CardDB.UNITS.has(card_name):
 		var d = CardDB.UNITS[card_name]
 		for stat_pair in [
-			["コスト", str(d.get("cost", 0))],
+			["マナ", str(d.get("cost", 0))],
 			["HP", str(d.get("hp", 0))],
 			["ATK", str(d.get("atk", 0))],
 			["SPD", "%.1fs" % d.get("interval", 0)],
@@ -807,21 +807,21 @@ func create_card_hover_popup(card_name: String) -> Control:
 		stats_lbl.add_theme_color_override("font_color", UIF.TEXT_COLOR)
 		vbox.add_child(stats_lbl)
 		var cost_lbl = Label.new()
-		cost_lbl.text = "コスト:%d  %s" % [d.get("cost", 0), d.get("race", "")]
+		cost_lbl.text = "マナ:%d  %s" % [d.get("cost", 0), d.get("race", "")]
 		cost_lbl.add_theme_font_size_override("font_size", 10)
 		cost_lbl.add_theme_color_override("font_color", Color(0.5, 0.7, 0.9))
 		vbox.add_child(cost_lbl)
 	elif CardDB.SPELLS.has(card_name):
 		var d = CardDB.SPELLS[card_name]
 		var cost_lbl = Label.new()
-		cost_lbl.text = "[呪文] コスト:%d" % d.get("cost", 0)
+		cost_lbl.text = "[呪文] マナ:%d" % d.get("cost", 0)
 		cost_lbl.add_theme_font_size_override("font_size", 10)
 		cost_lbl.add_theme_color_override("font_color", SPELL_COLOR)
 		vbox.add_child(cost_lbl)
 	elif CardDB.STATUS_SPELLS.has(card_name):
 		var d = CardDB.STATUS_SPELLS[card_name]
 		var cost_lbl = Label.new()
-		cost_lbl.text = "[異常状態] コスト:%d" % d.get("cost", 0)
+		cost_lbl.text = "[異常状態] マナ:%d" % d.get("cost", 0)
 		cost_lbl.add_theme_font_size_override("font_size", 10)
 		cost_lbl.add_theme_color_override("font_color", UIF.DEMERIT_COLOR)
 		vbox.add_child(cost_lbl)
@@ -865,7 +865,7 @@ func _show_spell_info(card_name: String) -> void:
 	var d = CardDB.SPELLS[card_name]
 	var y: float = 8
 
-	# 項目3: 大型カード枠ヘッダー（コスト含む）
+	# 項目3: 大型カード枠ヘッダー（マナ含む）
 	y = _build_card_frame_header(card_name, d, y)
 	y = _info_label("[呪文]", y, 12, SPELL_COLOR)
 	y += 5
@@ -902,7 +902,7 @@ func _show_spell_info_status(card_name: String) -> void:
 
 # 大型カード枠ヘッダー（5:7比率縦長・仕様カード内レイアウト準拠）
 # カード内レイアウト（上から・高さ比率）:
-#   ヘッダー行（種族+マナ+カード名+コスト）  10%
+#   ヘッダー行（種族+マナ+カード名+マナ）  10%
 #   イラスト枠                             35%
 #   Skillsラベル                            5%
 #   スキル3列グリッド（攻撃時/サポート/パッシブ） 25%
@@ -928,7 +928,7 @@ func _build_card_frame_header(card_name: String, d: Dictionary, y: float) -> flo
 
 	var cy: float = 0  # カード内部Y座標
 
-	# ---- ヘッダー行（10%）: 種族(左) + マナ(右隣) + カード名(中央) + コスト(右) ----
+	# ---- ヘッダー行（10%）: 種族(左) + マナ(右隣) + カード名(中央) + マナ(右) ----
 	var header_h: float = float(frame_h) * 0.10
 	var header_bar = ColorRect.new()
 	header_bar.position = Vector2(0, cy)
@@ -970,7 +970,7 @@ func _build_card_frame_header(card_name: String, d: Dictionary, y: float) -> flo
 	name_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	card_frame.add_child(name_lbl)
 
-	# コスト（右寄り・小）
+	# マナ（右寄り・小）
 	var cost_lbl = Label.new()
 	cost_lbl.text = "%d" % mana_val
 	cost_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
