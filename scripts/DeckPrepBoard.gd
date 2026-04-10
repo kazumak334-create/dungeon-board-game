@@ -71,6 +71,9 @@ var _drag_offset: Vector2 = Vector2.ZERO
 var _drag_source_idx: int = -1
 var _drag_group_indices: Array = []
 
+# タスク#5: 呪文デッキマナ表示用ラベル
+var _spell_deck_label: Label = null
+
 func build_placement_tab(_tab_container_arg: Control, PL) -> void:
 	tab_container = _tab_container_arg
 	_PL = PL
@@ -416,14 +419,14 @@ func _build_spell_artifact_split() -> float:
 	spell_bg.add_theme_stylebox_override("panel", spell_bg_style)
 	tab_container.add_child(spell_bg)
 
-	# 呪文デッキラベル（項目3: 大きく表示）
-	var spell_lbl = Label.new()
-	spell_lbl.text = "呪文デッキ"
-	spell_lbl.position = Vector2(spell_deck_x + 10.0, spell_deck_y + 4.0)
-	spell_lbl.add_theme_font_size_override("font_size", 14)  # 11→14に拡大
-	spell_lbl.add_theme_color_override("font_color", Color(0.6, 0.65, 0.85))
-	spell_lbl.set_meta("hand_spell_area", true)
-	tab_container.add_child(spell_lbl)
+	# 呪文デッキラベル（項目3: 大きく表示、タスク#5: 総マナ追加）
+	_spell_deck_label = Label.new()
+	_spell_deck_label.text = "呪文デッキ  総マナ: 0"  # タスク#5: 総マナ表示
+	_spell_deck_label.position = Vector2(spell_deck_x + 10.0, spell_deck_y + 4.0)
+	_spell_deck_label.add_theme_font_size_override("font_size", 11)  # タスク#5: 企画書通り11に戻す
+	_spell_deck_label.add_theme_color_override("font_color", Color(0.6, 0.65, 0.85))
+	_spell_deck_label.set_meta("hand_spell_area", true)
+	tab_container.add_child(_spell_deck_label)
 
 	# 呪文カード描画（縦長配置）
 	var spell_cards = _build_spell_cards_list()
@@ -793,6 +796,9 @@ func populate_cards() -> void:
 	# 手持ちカードエリア・呪文デッキエリアの再描画
 	_build_spell_artifact_split()
 
+	# タスク#5: 呪文デッキマナ更新
+	_update_spell_deck_mana()
+
 	# タスク#4: カード再描画完了通知（盤面マナ更新用）
 	if on_cards_populated.is_valid():
 		on_cards_populated.call()
@@ -929,6 +935,27 @@ func _on_chip_input(event: InputEvent, idx: int, all_indices: Array, chip: Contr
 	# ピン留め通知（ドラッグ開始前に通知してDeckPrep.gdがピン留め状態を管理）
 	if on_card_pinned.is_valid(): on_card_pinned.call(idx)
 	start_drag_group(idx, [idx], chip, event.global_position)
+
+# タスク#5: 呪文デッキマナ更新
+func _update_spell_deck_mana() -> void:
+	if _spell_deck_label == null:
+		return
+	var spell_mana: int = 0
+	for i in range(GameSession.selected_deck.size()):
+		if i >= GameSession.placement_config.size():
+			continue
+		var config = GameSession.placement_config[i]
+		var row = config.get("row", 0)
+		var col = config.get("col", -1)
+		if row != 0 or col != -1:  # row=0, col=-1が呪文デッキ
+			continue
+		var entry = GameSession.selected_deck[i]
+		var card_name = entry.get("name", "") if entry is Dictionary else str(entry)
+		if CardDB.SPELLS.has(card_name):
+			spell_mana += CardDB.SPELLS[card_name].get("cost", 0)
+		elif CardDB.STATUS_SPELLS.has(card_name):
+			spell_mana += CardDB.STATUS_SPELLS[card_name].get("cost", 0)
+	_spell_deck_label.text = "呪文デッキ  総マナ: %d" % spell_mana
 
 func get_card_color(card_name: String) -> Color:
 	if CardDB.UNITS.has(card_name):
