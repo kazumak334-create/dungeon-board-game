@@ -159,6 +159,53 @@ func _build_board_cells(enemy_x: float) -> void:
 			_cell_rects[0][ri][ci] = cell
 			_cell_card_containers[0][ri][ci] = vbox
 
+			# 項目1: 役割アイコン追加（列ごと）
+			_add_role_icon(cell, ci)
+
+# 項目1: セル内に役割アイコンを描画（前列=攻撃、中列=両用、後列=盾）
+func _add_role_icon(cell: Panel, col: int) -> void:
+	const ICON_SIZE = 16.0
+	const ICON_Y = 4.0  # セル上部
+	const ICON_X = (CELL_W - ICON_SIZE) / 2.0  # 中央揃え
+
+	var icon_container = Control.new()
+	icon_container.position = Vector2(ICON_X, ICON_Y)
+	icon_container.size = Vector2(ICON_SIZE, ICON_SIZE)
+	icon_container.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	cell.add_child(icon_container)
+
+	if col == 2:
+		# 前列: 攻撃アイコン（三角形）
+		var attack_icon = ColorRect.new()
+		attack_icon.size = Vector2(ICON_SIZE, ICON_SIZE)
+		attack_icon.color = Color(0.9, 0.35, 0.35, 0.6)
+		attack_icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		icon_container.add_child(attack_icon)
+		# 三角形描画用のカスタムノード（簡易的に矩形で代用）
+		# TODO: Polygon2Dで三角形実装予定
+	elif col == 1:
+		# 中列: 攻撃+盾アイコン（上下2段）
+		var attack_top = ColorRect.new()
+		attack_top.position = Vector2(0, 0)
+		attack_top.size = Vector2(ICON_SIZE, ICON_SIZE / 2.0)
+		attack_top.color = Color(0.9, 0.35, 0.35, 0.6)
+		attack_top.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		icon_container.add_child(attack_top)
+
+		var shield_bottom = ColorRect.new()
+		shield_bottom.position = Vector2(0, ICON_SIZE / 2.0)
+		shield_bottom.size = Vector2(ICON_SIZE, ICON_SIZE / 2.0)
+		shield_bottom.color = Color(0.5, 0.7, 0.9, 0.6)
+		shield_bottom.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		icon_container.add_child(shield_bottom)
+	elif col == 0:
+		# 後列: 盾アイコン（円形風矩形）
+		var shield_icon = ColorRect.new()
+		shield_icon.size = Vector2(ICON_SIZE, ICON_SIZE)
+		shield_icon.color = Color(0.5, 0.7, 0.9, 0.6)
+		shield_icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		icon_container.add_child(shield_icon)
+
 func set_global_fallback(on: bool) -> void:
 	for cfg in GameSession.placement_config:
 		cfg["fallback_same_col"] = on
@@ -362,55 +409,83 @@ func _create_bar_chip(card_name: String, count: int, w: float, h: float,
 func _build_spell_artifact_split() -> float:
 	var board_start_x = float(BOARD_X)
 	var ally_board_w = float(ROW_LABEL_W) + 3.0 * float(CELL_W + CELL_GAP)
-	var spell_deck_x = board_start_x + ally_board_w + float(CENTER_GAP)
-	var spell_deck_w = 3.0 * float(CELL_W + CELL_GAP)
-	var spell_deck_y = float(CELLS_START_Y)
 
-	# 呪文デッキラベル（敵盤面位置上部）
+	# 項目3: 呪文デッキを盤面右側に縦長表示
+	const SPELL_DECK_W = 200.0
+	var spell_deck_x = board_start_x + ally_board_w + float(CENTER_GAP)
+	var spell_deck_y = float(CELLS_START_Y) - 20.0  # ラベル込みで上端揃え
+
+	# 呪文デッキ背景パネル（項目3: 存在感強化）
+	var spell_bg = Panel.new()
+	spell_bg.position = Vector2(spell_deck_x, spell_deck_y)
+	spell_bg.size = Vector2(SPELL_DECK_W, 3.0 * float(CELL_H + CELL_GAP) + 20.0)
+	var spell_bg_style = StyleBoxFlat.new()
+	spell_bg_style.bg_color = Color(0.13, 0.13, 0.2)  # MaterialSelect COLOR_PANEL準拠
+	spell_bg_style.border_color = Color(0.4, 0.45, 0.6)  # 強調色
+	spell_bg_style.set_border_width_all(2)
+	spell_bg.add_theme_stylebox_override("panel", spell_bg_style)
+	tab_container.add_child(spell_bg)
+
+	# 呪文デッキラベル（項目3: 大きく表示）
 	var spell_lbl = Label.new()
 	spell_lbl.text = "呪文デッキ"
-	spell_lbl.position = Vector2(spell_deck_x, spell_deck_y - 20.0)
-	spell_lbl.add_theme_font_size_override("font_size", 11)
+	spell_lbl.position = Vector2(spell_deck_x + 10.0, spell_deck_y + 4.0)
+	spell_lbl.add_theme_font_size_override("font_size", 14)  # 11→14に拡大
 	spell_lbl.add_theme_color_override("font_color", Color(0.6, 0.65, 0.85))
 	tab_container.add_child(spell_lbl)
 
-	# 呪文カード描画（敵盤面位置・タイル/バー切替）
+	# 呪文カード描画（縦長配置）
 	var spell_cards = _build_spell_cards_list()
 	var spell_count = spell_cards.size()
-	var spell_area_h: float = 0.0
+	var card_start_y = spell_deck_y + 28.0  # ラベル下から
 
-	if spell_count <= SPELL_TILE_SWITCH:
-		var tile_w = minf(float(SPELL_TILE_W), (spell_deck_w - float(SPELL_TILE_GAP) * (SPELL_TILE_SWITCH - 1)) / float(SPELL_TILE_SWITCH))
-		var tile_h = tile_w * 7.0 / 5.0
-		for i in range(spell_count):
-			var sc = spell_cards[i]
-			var sx = spell_deck_x + float(i) * (tile_w + float(SPELL_TILE_GAP))
-			var tile = _create_tile_chip(sc[1], sc[2], tile_w, tile_h, sc[0], sc[3])
-			tile.position = Vector2(sx, spell_deck_y)
-			tab_container.add_child(tile)
-		spell_area_h = tile_h
-	else:
-		var bar_w = spell_deck_w - 4.0
-		for i in range(spell_count):
-			var sy = spell_deck_y + float(i) * float(SPELL_BAR_H + SPELL_BAR_GAP)
-			var bar = _create_bar_chip(spell_cards[i][1], spell_cards[i][2], bar_w, float(SPELL_BAR_H), spell_cards[i][0], spell_cards[i][3])
-			bar.position = Vector2(spell_deck_x, sy)
-			tab_container.add_child(bar)
-		spell_area_h = float(spell_count) * float(SPELL_BAR_H + SPELL_BAR_GAP)
+	# 縦並びバー形式（横幅はパネルに合わせる）
+	var bar_w = SPELL_DECK_W - 20.0  # 左右余白10pxずつ
+	for i in range(spell_count):
+		var sy = card_start_y + float(i) * float(SPELL_BAR_H + SPELL_BAR_GAP)
+		var bar = _create_bar_chip(spell_cards[i][1], spell_cards[i][2], bar_w, float(SPELL_BAR_H), spell_cards[i][0], spell_cards[i][3])
+		bar.position = Vector2(spell_deck_x + 10.0, sy)
+		tab_container.add_child(bar)
 
-	# 手持ちカードエリア（盤面直下全幅）
+	# 項目2: 手持ちカードを2エリアに分離（ユニット・呪文）
 	var hand_area_y = float(CELLS_START_Y) + 3.0 * float(CELL_H + CELL_GAP) + 4.0
-	var hand_lbl = Label.new()
-	hand_lbl.text = "手持ちカード"
-	hand_lbl.position = Vector2(board_start_x, hand_area_y - 14.0)
-	hand_lbl.add_theme_font_size_override("font_size", 11)
-	hand_lbl.add_theme_color_override("font_color", Color(0.75, 0.65, 0.4))
-	tab_container.add_child(hand_lbl)
-
-	# 新UI: 縦長カード形式（CardSlot使用）
 	var hand_cards = _build_hand_cards_list()
-	var hand_container = _build_hand_card_container(hand_cards, board_start_x, hand_area_y)
-	tab_container.add_child(hand_container)
+
+	# ユニット・呪文に分離
+	var unit_cards: Array = []
+	var spell_hand_cards: Array = []
+	for hc in hand_cards:
+		var card_name = hc[1]
+		if CardDB.UNITS.has(card_name):
+			unit_cards.append(hc)
+		elif CardDB.SPELLS.has(card_name) or CardDB.STATUS_SPELLS.has(card_name):
+			spell_hand_cards.append(hc)
+		else:
+			# 種別不明は一旦ユニット扱い
+			unit_cards.append(hc)
+
+	# ユニットエリア（左側）
+	var unit_lbl = Label.new()
+	unit_lbl.text = "ユニット"
+	unit_lbl.position = Vector2(board_start_x, hand_area_y - 14.0)
+	unit_lbl.add_theme_font_size_override("font_size", 11)
+	unit_lbl.add_theme_color_override("font_color", Color(0.6, 0.7, 0.6))  # 緑系
+	tab_container.add_child(unit_lbl)
+
+	var unit_container = _build_hand_card_container(unit_cards, board_start_x, hand_area_y)
+	tab_container.add_child(unit_container)
+
+	# 呪文エリア（右側）
+	var spell_hand_x = board_start_x + ally_board_w / 2.0 + 10.0
+	var spell_hand_lbl = Label.new()
+	spell_hand_lbl.text = "呪文"
+	spell_hand_lbl.position = Vector2(spell_hand_x, hand_area_y - 14.0)
+	spell_hand_lbl.add_theme_font_size_override("font_size", 11)
+	spell_hand_lbl.add_theme_color_override("font_color", Color(0.6, 0.65, 0.85))  # 青系
+	tab_container.add_child(spell_hand_lbl)
+
+	var spell_hand_container = _build_hand_card_container(spell_hand_cards, spell_hand_x, hand_area_y)
+	tab_container.add_child(spell_hand_container)
 
 	# 固定高さ（カード高さ130px + ホバー余白40px + ラベル余白）
 	var hand_area_h = 130.0 + 40.0 + float(SPELL_HAND_Y_OFFSET)
@@ -819,7 +894,9 @@ func _build_hand_card_container(hand_cards: Array, start_x: float, start_y: floa
 		slot.card_hovered.connect(func(_s): slot.z_index = 100)
 		slot.card_unhovered.connect(func(_s): slot.z_index = original_z)
 
-	container.custom_minimum_size = Vector2(CARD_W + float(hand_cards.size() - 1) * (CARD_W - OVERLAP_W), CARD_H)
+	# 空配列対応: 最小サイズは0
+	var container_w = CARD_W + float(max(0, hand_cards.size() - 1)) * (CARD_W - OVERLAP_W) if hand_cards.size() > 0 else 0.0
+	container.custom_minimum_size = Vector2(container_w, CARD_H)
 	return container
 
 func _on_chip_input_from_slot(event: InputEvent, idx: int, all_indices: Array, slot: Control) -> void:
