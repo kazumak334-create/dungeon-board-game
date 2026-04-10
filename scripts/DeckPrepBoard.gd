@@ -59,6 +59,7 @@ var tab_container: Control = null
 var _PL = null
 var on_card_selected: Callable = Callable()
 var on_card_pinned: Callable = Callable()  # クリックピン留め通知（DeckPrep.gdが設定）
+var on_cards_populated: Callable = Callable()  # カード再描画通知（タスク#4: 盤面マナ更新用）
 
 # 配置タブ状態
 var _cell_rects: Array = []
@@ -791,6 +792,10 @@ func populate_cards() -> void:
 
 	# 手持ちカードエリア・呪文デッキエリアの再描画
 	_build_spell_artifact_split()
+
+	# タスク#4: カード再描画完了通知（盤面マナ更新用）
+	if on_cards_populated.is_valid():
+		on_cards_populated.call()
 
 func _build_cell_cards_map() -> Dictionary:
 	var result: Dictionary = {}

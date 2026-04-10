@@ -29,6 +29,9 @@ var _info_container: Control = null  # 右パネル（カード詳細専用）
 # 選択状態（_boardと同期）
 var _selected_card_idx: int = -1
 
+# 盤面マナ表示用ラベル
+var _board_mana_label: Label = null
+
 # レイアウト定数
 const SIDEBAR_X = 5         # 左パネル開始X
 const SIDEBAR_Y = 40        # 左パネル開始Y（タスクバー36px分オフセット）
@@ -59,6 +62,8 @@ func _ready() -> void:
 		_selected_card_idx = idx
 		_update_info_lane()
 		_board.update_highlight()
+	_board.on_cards_populated = func():
+		_update_board_mana()  # タスク#4: 盤面マナ更新
 	var InfoClass = load("res://scripts/DeckPrepInfo.gd")
 	_info = InfoClass.new()
 	_build_ui()
@@ -148,6 +153,7 @@ func _build_status_area() -> void:
 		["HP: 30", COLOR_TEXT],
 		["マナ: %.0f / %d" % [cls.get("initial_mana", 3), int(cls.get("mana_max", 10))], Color(0.5, 0.7, 0.9)],
 		["リジェネ: %.1f/s" % mana_regen, Color(0.5, 0.7, 0.9)],
+		["盤面マナ: 0", COLOR_SELECTED],  # タスク#4: 盤面総マナ表示
 	]
 	# グループ2: デッキ情報
 	var group2 = [
@@ -173,6 +179,9 @@ func _build_status_area() -> void:
 			lbl.add_theme_font_size_override("font_size", 11)
 			lbl.add_theme_color_override("font_color", item[1])
 			add_child(lbl)
+			# タスク#4: 盤面マナラベルを保持
+			if group == group1 and item == group1[-1]:
+				_board_mana_label = lbl
 			cy += 18
 		# グループ間: 区切り線 + 12px余白
 		if group != group3:
@@ -183,6 +192,9 @@ func _build_status_area() -> void:
 			sep.color = Color(0.25, 0.28, 0.35)
 			add_child(sep)
 			cy += 12
+
+	# タスク#4: 盤面マナ初期値を計算
+	_update_board_mana()
 
 func _process(delta: float) -> void:
 	if _board != null:
@@ -219,6 +231,24 @@ func _update_info_lane() -> void:
 		_info.show_empty()
 		return
 	_info.show_card_info(_selected_card_idx)
+
+# タスク#4: 盤面マナ更新
+func _update_board_mana() -> void:
+	if _board_mana_label == null:
+		return
+	var board_mana: int = 0
+	for i in range(GameSession.selected_deck.size()):
+		if i >= GameSession.placement_config.size():
+			continue
+		var config = GameSession.placement_config[i]
+		var col = config.get("col", -1)
+		if col < 0:  # col=-1は呪文デッキ・手持ちカード（盤面外）
+			continue
+		var entry = GameSession.selected_deck[i]
+		var card_name = entry.get("name", "") if entry is Dictionary else str(entry)
+		if CardDB.UNITS.has(card_name):
+			board_mana += CardDB.UNITS[card_name].get("cost", 0)
+	_board_mana_label.text = "盤面マナ: %d" % board_mana
 
 func _build_adventure_buttons() -> void:
 	# 冒険ボタン「冒険を始める」860×35、フォントサイズ18、青系背景
