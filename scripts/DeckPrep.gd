@@ -8,6 +8,16 @@ extends Control
 const UIF = preload("res://scripts/UIFactory.gd")
 const TaskbarClass = preload("res://scripts/CommonTaskbar.gd")
 
+# 色彩設計（企画書3節準拠・MaterialSelect.gd踏襲）
+const COLOR_BG          := Color(0.08, 0.08, 0.12)  # 背景
+const COLOR_SIDE_PANEL  := Color(0.07, 0.07, 0.11)  # 左右パネル背景（中央より暗く）
+const COLOR_PANEL       := Color(0.13, 0.13, 0.2)   # 中央パネル背景
+const COLOR_BORDER      := Color(0.3, 0.3, 0.4)     # 枠線（通常）
+const COLOR_TITLE       := Color(0.9, 0.85, 0.6)    # タイトル文字
+const COLOR_TEXT        := Color(0.8, 0.8, 0.8)     # 通常テキスト
+const COLOR_SELECTED    := Color(0.9, 0.75, 0.3)    # 選択中ハイライト
+const COLOR_DIM         := Color(0.5, 0.5, 0.5)     # タブ非選択
+
 var _taskbar: RefCounted = null
 var _PL = null
 var _board = null  # DeckPrepBoard インスタンス
@@ -137,10 +147,14 @@ func _build_ui() -> void:
 # ===== 左サイドバー =====
 
 func _build_sidebar() -> void:
-	# サイドバー背景
+	# サイドバー背景（企画書3節: COLOR_SIDE_PANEL使用）
 	var sidebar_panel = UIF.create_panel(
 		Vector2(SIDEBAR_X, SIDEBAR_Y),
-		Vector2(SIDEBAR_W, SIDEBAR_H)
+		Vector2(SIDEBAR_W, SIDEBAR_H),
+		COLOR_SIDE_PANEL,  # 左右パネルは中央より暗く
+		COLOR_BORDER,
+		1,
+		4
 	)
 	add_child(sidebar_panel)
 
@@ -187,26 +201,26 @@ func _build_status_area() -> void:
 	var header = Label.new()
 	header.text = "ステータス"
 	header.position = Vector2(base_x, cy)
-	header.add_theme_font_size_override("font_size", 13)
-	header.add_theme_color_override("font_color", UIF.TITLE_COLOR)
+	header.add_theme_font_size_override("font_size", 14)
+	header.add_theme_color_override("font_color", COLOR_TITLE)
 	add_child(header)
 	cy += 24
 
 	# 項目8: グループ間を区切り線+12px余白で分割
 	# グループ1: クラス基本情報
 	var group1 = [
-		["%s" % cls.get("display", "---"), UIF.TITLE_COLOR],
-		["HP: 30", UIF.TEXT_COLOR],
+		["%s" % cls.get("display", "---"), COLOR_TITLE],
+		["HP: 30", COLOR_TEXT],
 		["マナ: %.0f / %d" % [cls.get("initial_mana", 3), int(cls.get("mana_max", 10))], Color(0.5, 0.7, 0.9)],
 		["リジェネ: %.1f/s" % mana_regen, Color(0.5, 0.7, 0.9)],
 	]
 	# グループ2: デッキ情報
 	var group2 = [
-		["デッキ: %d枚" % deck_size, UIF.TEXT_COLOR],
+		["デッキ: %d枚" % deck_size, COLOR_TEXT],
 		["  ユニット: %d枚" % unit_count, Color(0.6, 0.7, 0.6)],
 		["  呪文: %d枚" % spell_count, Color(0.6, 0.6, 0.8)],
-		["平均コスト: %.1f" % avg_cost, UIF.TITLE_COLOR],
-		["循環: 約%.0f秒/周" % cycle_time, UIF.TITLE_COLOR],
+		["平均コスト: %.1f" % avg_cost, COLOR_TITLE],
+		["循環: 約%.0f秒/周" % cycle_time, COLOR_TITLE],
 	]
 	# グループ3: 所持情報
 	var group3 = [
@@ -242,8 +256,8 @@ func _build_equipment_area() -> void:
 	var header = Label.new()
 	header.text = "装備"
 	header.position = Vector2(base_x, base_y)
-	header.add_theme_font_size_override("font_size", 13)
-	header.add_theme_color_override("font_color", UIF.TITLE_COLOR)
+	header.add_theme_font_size_override("font_size", 14)
+	header.add_theme_color_override("font_color", COLOR_TITLE)
 	add_child(header)
 
 	# 装備スロット3×2配置（左列=頭/胴/足, 右列=アクセ1/2/3）
@@ -253,14 +267,14 @@ func _build_equipment_area() -> void:
 		_build_equipment_slot(slot["id"], slot["label"], sx, sy)
 
 func _build_equipment_slot(slot_id: String, label: String, x: float, y: float) -> void:
-	# スロット枠
+	# スロット枠（企画書4.2節: 空スロット背景=COLOR_BG、枠線=COLOR_BORDER）
 	var cell = Panel.new()
 	cell.position = Vector2(x, y)
 	cell.size = Vector2(EQUIP_SLOT_SIZE, EQUIP_SLOT_SIZE)
 	cell.name = "equip_slot_" + slot_id
 	var style = StyleBoxFlat.new()
-	style.bg_color = Color(0.12, 0.10, 0.18)
-	style.border_color = Color(0.35, 0.28, 0.45)
+	style.bg_color = COLOR_BG
+	style.border_color = COLOR_BORDER
 	style.set_border_width_all(1)
 	style.set_corner_radius_all(4)
 	cell.add_theme_stylebox_override("panel", style)
@@ -273,7 +287,7 @@ func _build_equipment_slot(slot_id: String, label: String, x: float, y: float) -
 	slot_lbl.position = Vector2(0, EQUIP_SLOT_SIZE - 14)
 	slot_lbl.size = Vector2(EQUIP_SLOT_SIZE, 12)
 	slot_lbl.add_theme_font_size_override("font_size", 9)
-	slot_lbl.add_theme_color_override("font_color", Color(0.5, 0.45, 0.6))
+	slot_lbl.add_theme_color_override("font_color", COLOR_DIM)
 	cell.add_child(slot_lbl)
 
 func _build_tab_bar() -> void:
@@ -281,27 +295,42 @@ func _build_tab_bar() -> void:
 		{"id": "placement", "label": "配置"},
 		{"id": "inventory", "label": "持ち物"},
 	]
-	var tab_w = int(TAB_BAR_W / tabs.size()) - 4
-	var x = TAB_BAR_X + 2
+	var tab_w = 120  # 企画書4.3節: タブボタンサイズ120×30
+	var x = TAB_BAR_X
 	for tab in tabs:
 		var btn = Button.new()
 		btn.text = tab["label"]
 		btn.position = Vector2(x, TAB_BAR_Y)
 		btn.size = Vector2(tab_w, TAB_BAR_H)
-		btn.add_theme_font_size_override("font_size", 13)
+		btn.add_theme_font_size_override("font_size", 14)
 		var tab_id = tab["id"]
 		btn.pressed.connect(func(): _show_tab(tab_id))
 		add_child(btn)
 		_tab_buttons.append({"id": tab_id, "button": btn})
-		x += tab_w + 4
+		x += tab_w + 10  # 企画書4.3節: separation=10
 	# 初期選択ハイライト
 	_update_tab_highlight()
 
 func _build_adventure_buttons() -> void:
-	UIF.add_button(self, "← マップへ", Vector2(220, ADVENTURE_Y), Vector2(180, 32), 14,
-		func(): SceneManager.go_to(SceneManager.MAP_SELECT))
-	UIF.add_button(self, "出撃 →", Vector2(820, ADVENTURE_Y), Vector2(180, 32), 14,
-		func(): _on_start_battle())
+	# 企画書4.6節: 冒険ボタン「冒険を始める」860×35、フォントサイズ18、青系背景
+	var start_btn = Button.new()
+	start_btn.text = "冒険を始める"
+	start_btn.position = Vector2(CONTENT_X, ADVENTURE_Y)
+	start_btn.size = Vector2(CONTENT_W, 35)
+	start_btn.add_theme_font_size_override("font_size", 18)
+	start_btn.pressed.connect(_on_start_battle)
+	add_child(start_btn)
+
+	# 企画書4.6節: 背景色=青系（Color(0.3, 0.5, 0.7)）、ホバー時Color(0.4, 0.6, 0.8)
+	var normal_style = StyleBoxFlat.new()
+	normal_style.bg_color = Color(0.3, 0.5, 0.7)
+	normal_style.set_corner_radius_all(4)
+	start_btn.add_theme_stylebox_override("normal", normal_style)
+
+	var hover_style = StyleBoxFlat.new()
+	hover_style.bg_color = Color(0.4, 0.6, 0.8)
+	hover_style.set_corner_radius_all(4)
+	start_btn.add_theme_stylebox_override("hover", hover_style)
 
 func _on_start_battle() -> void:
 	# v2設計: 初期配置9マス情報をGameSession.initial_unitsに保存
@@ -352,12 +381,25 @@ func _show_tab(tab_id: String) -> void:
 	_update_info_lane()
 
 func _update_tab_highlight() -> void:
+	# 企画書4.3節・5.1節: 選択中=COLOR_TITLE+背景ハイライト、非選択=COLOR_DIM+背景なし
 	for tab_btn in _tab_buttons:
 		var btn: Button = tab_btn["button"]
+		var style = StyleBoxFlat.new()
 		if tab_btn["id"] == _current_tab:
-			btn.modulate = Color(1.2, 1.2, 0.8)
+			# 選択中: COLOR_TITLE（金色）+ 背景ハイライト
+			btn.add_theme_color_override("font_color", COLOR_TITLE)
+			style.bg_color = Color(0.2, 0.2, 0.3)
+			style.set_corner_radius_all(4)
+			btn.add_theme_stylebox_override("normal", style)
+			btn.add_theme_stylebox_override("hover", style)
+			btn.add_theme_stylebox_override("pressed", style)
 		else:
-			btn.modulate = Color(1, 1, 1)
+			# 非選択: COLOR_DIM（暗いグレー）+ 背景なし
+			btn.add_theme_color_override("font_color", COLOR_DIM)
+			style.bg_color = Color(0, 0, 0, 0)  # 透明
+			btn.add_theme_stylebox_override("normal", style)
+			btn.add_theme_stylebox_override("hover", style)
+			btn.add_theme_stylebox_override("pressed", style)
 
 func _process(delta: float) -> void:
 	if _board != null:
@@ -366,21 +408,21 @@ func _process(delta: float) -> void:
 # ===== 右パネル（カード詳細専用） =====
 
 func _build_info_lane() -> void:
+	# 右パネル（企画書4.5節: カード詳細専用、背景=COLOR_SIDE_PANEL、枠線=COLOR_BORDER）
+	var info_panel = UIF.create_panel(
+		Vector2(INFO_X, INFO_Y),
+		Vector2(INFO_W, INFO_H),
+		COLOR_SIDE_PANEL,  # 左右パネルは中央より暗く
+		COLOR_BORDER,
+		1,
+		4
+	)
+	add_child(info_panel)
+
 	_info_container = Control.new()
 	_info_container.position = Vector2(INFO_X, INFO_Y)
 	_info_container.size = Vector2(INFO_W, INFO_H)
 	add_child(_info_container)
-
-	var bg = ColorRect.new()
-	bg.size = Vector2(INFO_W, INFO_H)
-	bg.color = Color(0.07, 0.07, 0.11)
-	_info_container.add_child(bg)
-
-	var border = ColorRect.new()
-	border.position = Vector2(0, 0)
-	border.size = Vector2(1, INFO_H)
-	border.color = Color(0.2, 0.2, 0.3)
-	_info_container.add_child(border)
 
 	# DeckPrepInfoにinfo_containerを渡してセットアップ（カード詳細専用モード）
 	_info.setup(self, _info_container, INFO_W, _PL)
@@ -427,19 +469,30 @@ func _build_inventory_tab() -> void:
 	_build_inventory_square_grid(_tab_container)
 
 func _build_inventory_sort_tabs(parent: Node) -> void:
+	# 企画書4.4節（持ち物タブ）: フィルタタブ、サイズ80×26、フォント11、separation=6
 	var x = 10
 	for tab in INV_SORT_TABS:
 		var btn = Button.new()
 		btn.text = tab["label"]
 		btn.position = Vector2(x, 3)
 		btn.size = Vector2(80, 26)
-		btn.add_theme_font_size_override("font_size", 12)
-		if tab["id"] == _inventory_filter:
-			btn.modulate = Color(1.0, 1.0, 0.5)
+		btn.add_theme_font_size_override("font_size", 11)
 		var tab_id = tab["id"]
 		btn.pressed.connect(func(): _set_inventory_filter(tab_id))
+		# 企画書5.5節: 選択中=COLOR_TITLE+背景ハイライト、非選択=COLOR_DIM
+		var style = StyleBoxFlat.new()
+		if tab["id"] == _inventory_filter:
+			btn.add_theme_color_override("font_color", COLOR_TITLE)
+			style.bg_color = Color(0.2, 0.2, 0.3)
+			style.set_corner_radius_all(4)
+		else:
+			btn.add_theme_color_override("font_color", COLOR_DIM)
+			style.bg_color = Color(0, 0, 0, 0)
+		btn.add_theme_stylebox_override("normal", style)
+		btn.add_theme_stylebox_override("hover", style)
+		btn.add_theme_stylebox_override("pressed", style)
 		parent.add_child(btn)
-		x += 88
+		x += 80 + 6  # separation=6
 
 func _set_inventory_filter(filter: String) -> void:
 	_inventory_filter = filter
@@ -522,19 +575,21 @@ func _build_inventory_square_grid(parent: Node) -> void:
 			_build_inv_empty_cell(parent, x, y, cell)
 
 func _build_inv_square_cell(parent: Node, item: Dictionary, x: int, y: int, size: int) -> void:
+	# 企画書4.4節（持ち物タブ）: セル背景=COLOR_BG、枠線=COLOR_BORDER（1px）
 	var panel = Panel.new()
 	panel.position = Vector2(x, y)
 	panel.size = Vector2(size, size)
 	var style = StyleBoxFlat.new()
 	var item_type = item.get("type", "material")
 	var is_cursed = item["data"].get("is_cursed", false) if item_type == "material" else false
-	style.bg_color = Color(0.12, 0.12, 0.18)
+	style.bg_color = COLOR_BG
+	# レアリティ枠線: common=グレー、rare=青、epic=紫、legend=金（企画書4.4節）
 	if item_type == "equipment":
-		style.border_color = Color(0.6, 0.5, 0.2)  # 装備: 金色
+		style.border_color = Color(0.6, 0.5, 0.2)  # 装備: 金色（legend相当）
 	elif is_cursed:
-		style.border_color = Color(0.8, 0.3, 0.5)  # 呪い: 紫
+		style.border_color = Color(0.8, 0.3, 0.5)  # 呪い: 紫（epic相当）
 	else:
-		style.border_color = Color(0.3, 0.5, 0.7)  # 通常: 青
+		style.border_color = COLOR_BORDER  # 通常: グレー（common相当）
 	style.set_border_width_all(1)
 	style.set_corner_radius_all(4)
 	panel.add_theme_stylebox_override("panel", style)
@@ -571,12 +626,13 @@ func _build_inv_square_cell(parent: Node, item: Dictionary, x: int, y: int, size
 	)
 
 func _build_inv_empty_cell(parent: Node, x: int, y: int, size: int) -> void:
+	# 企画書4.4節（持ち物タブ）: 空セル背景=COLOR_BG、枠線=COLOR_BORDER
 	var panel = Panel.new()
 	panel.position = Vector2(x, y)
 	panel.size = Vector2(size, size)
 	var style = StyleBoxFlat.new()
-	style.bg_color = Color(0.06, 0.06, 0.09)
-	style.border_color = Color(0.12, 0.12, 0.16)
+	style.bg_color = COLOR_BG
+	style.border_color = COLOR_BORDER
 	style.set_border_width_all(1)
 	style.set_corner_radius_all(4)
 	panel.add_theme_stylebox_override("panel", style)
@@ -597,5 +653,5 @@ func _build_placeholder_tab(tab_id: String) -> void:
 	lbl.position = Vector2(0, 200)
 	lbl.size = Vector2(980, 30)
 	lbl.add_theme_font_size_override("font_size", 20)
-	lbl.add_theme_color_override("font_color", UIF.DIM_COLOR)
+	lbl.add_theme_color_override("font_color", COLOR_DIM)
 	_tab_container.add_child(lbl)
