@@ -419,6 +419,7 @@ func _build_spell_artifact_split() -> float:
 	var spell_bg = Panel.new()
 	spell_bg.position = Vector2(spell_deck_x, spell_deck_y)
 	spell_bg.size = Vector2(SPELL_DECK_W, 3.0 * float(CELL_H + CELL_GAP) + 20.0)
+	spell_bg.set_meta("hand_spell_area", true)
 	var spell_bg_style = StyleBoxFlat.new()
 	spell_bg_style.bg_color = Color(0.13, 0.13, 0.2)  # MaterialSelect COLOR_PANEL準拠
 	spell_bg_style.border_color = Color(0.4, 0.45, 0.6)  # 強調色
@@ -432,6 +433,7 @@ func _build_spell_artifact_split() -> float:
 	spell_lbl.position = Vector2(spell_deck_x + 10.0, spell_deck_y + 4.0)
 	spell_lbl.add_theme_font_size_override("font_size", 14)  # 11→14に拡大
 	spell_lbl.add_theme_color_override("font_color", Color(0.6, 0.65, 0.85))
+	spell_lbl.set_meta("hand_spell_area", true)
 	tab_container.add_child(spell_lbl)
 
 	# 呪文カード描画（縦長配置）
@@ -445,6 +447,7 @@ func _build_spell_artifact_split() -> float:
 		var sy = card_start_y + float(i) * float(SPELL_BAR_H + SPELL_BAR_GAP)
 		var bar = _create_bar_chip(spell_cards[i][1], spell_cards[i][2], bar_w, float(SPELL_BAR_H), spell_cards[i][0], spell_cards[i][3])
 		bar.position = Vector2(spell_deck_x + 10.0, sy)
+		bar.set_meta("hand_spell_area", true)
 		tab_container.add_child(bar)
 
 	# 項目2: 手持ちカードを2エリアに分離（ユニット・呪文）
@@ -470,9 +473,11 @@ func _build_spell_artifact_split() -> float:
 	unit_lbl.position = Vector2(board_start_x, hand_area_y - 14.0)
 	unit_lbl.add_theme_font_size_override("font_size", 11)
 	unit_lbl.add_theme_color_override("font_color", Color(0.6, 0.7, 0.6))  # 緑系
+	unit_lbl.set_meta("hand_spell_area", true)
 	tab_container.add_child(unit_lbl)
 
 	var unit_container = _build_hand_card_container(unit_cards, board_start_x, hand_area_y)
+	unit_container.set_meta("hand_spell_area", true)
 	tab_container.add_child(unit_container)
 
 	# 呪文エリア（右側）
@@ -482,9 +487,11 @@ func _build_spell_artifact_split() -> float:
 	spell_hand_lbl.position = Vector2(spell_hand_x, hand_area_y - 14.0)
 	spell_hand_lbl.add_theme_font_size_override("font_size", 11)
 	spell_hand_lbl.add_theme_color_override("font_color", Color(0.6, 0.65, 0.85))  # 青系
+	spell_hand_lbl.set_meta("hand_spell_area", true)
 	tab_container.add_child(spell_hand_lbl)
 
 	var spell_hand_container = _build_hand_card_container(spell_hand_cards, spell_hand_x, hand_area_y)
+	spell_hand_container.set_meta("hand_spell_area", true)
 	tab_container.add_child(spell_hand_container)
 
 	# 固定高さ（カード高さ130px + ホバー余白40px + ラベル余白）
@@ -742,12 +749,18 @@ func build_card_detail_container(_tc: Control) -> Control:
 	return detail
 
 func populate_cards() -> void:
+	# 盤面セルのクリア
 	for ri in range(3):
 		for ci in range(3):
 			var vbox = _cell_card_containers[0][ri][ci]
 			if vbox != null:
 				for child in vbox.get_children():
 					child.queue_free()
+
+	# 手持ちカードエリア・呪文デッキエリアのクリア（メタデータを持つノードを削除）
+	for child in tab_container.get_children():
+		if child.has_meta("hand_spell_area"):
+			child.queue_free()
 
 	var cell_cards = _build_cell_cards_map()
 
@@ -787,6 +800,9 @@ func populate_cards() -> void:
 							on_card_selected.call(-1)
 			)
 			cell_panel.set_meta("click_connected", true)
+
+	# 手持ちカードエリア・呪文デッキエリアの再描画
+	_build_spell_artifact_split()
 
 func _build_cell_cards_map() -> Dictionary:
 	var result: Dictionary = {}
