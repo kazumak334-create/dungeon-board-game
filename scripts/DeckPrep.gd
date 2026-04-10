@@ -1,7 +1,7 @@
 # DeckPrep.gd
-# デッキ準備画面: 完全統合版レイアウト
-# 左パネル(w=200): ステータス上部 + 装備スロット下部
-# 中央エリア(w=880): タブコンテンツ（配置のみ）+ 冒険ボタン行
+# デッキ準備画面: カード配置専用画面
+# 左パネル(w=200): ステータス表示のみ
+# 中央エリア(w=880): 配置タブ（盤面・手持ちカード・呪文デッキ）+ 冒険ボタン
 # 右パネル(w=200): カード詳細専用（5:7比率TCGカード）
 extends Control
 
@@ -23,38 +23,21 @@ var _PL = null
 var _board = null  # DeckPrepBoard インスタンス
 var _info: Object = null  # DeckPrepInfo インスタンス
 
-var _tab_buttons: Array = []
 var _tab_container: Control = null
 var _info_container: Control = null  # 右パネル（カード詳細専用）
-var _current_tab: String = "placement"
 
 # 選択状態（_boardと同期）
 var _selected_card_idx: int = -1
 
-# 持ち物タブ選択状態
-var _selected_material: Dictionary = {}
-var _inventory_filter: String = "all"  # "all" / "normal" / "cursed" / "consumable"
-
-# 配置タブ内のカード詳細コンテナ（盤面左下・廃止→右パネルへ移管）
-var _board_detail_container: Control = null
-
-# レイアウト定数（完全統合版）
+# レイアウト定数
 const SIDEBAR_X = 5         # 左パネル開始X
 const SIDEBAR_Y = 40        # 左パネル開始Y（タスクバー36px分オフセット）
 const SIDEBAR_W = 200       # 左パネル幅
 const SIDEBAR_H = 675       # 左パネル高さ
-const STATUS_AREA_Y = 15    # ステータス領域Y（サイドバー内）
-const STATUS_AREA_H = 430   # ステータス領域高さ（装備スロットが収まるよう調整）
-const EQUIP_AREA_Y = 445    # 装備スロット領域Y（サイドバー内・装備6スロットが収まる高さ）
-const EQUIP_AREA_H = 230    # 装備スロット領域高さ
-const TAB_BAR_X = 210       # タブバー開始X
-const TAB_BAR_Y = 5         # タブバー開始Y
-const TAB_BAR_W = 870       # タブバー幅（中央エリア）
-const TAB_BAR_H = 30        # タブバー高さ
-const CONTENT_X = 210       # タブコンテンツ開始X
-const CONTENT_Y = 40        # タブコンテンツ開始Y
-const CONTENT_W = 860       # タブコンテンツ幅（210+860+5=1075=INFO_X）
-const CONTENT_H = 636       # タブコンテンツ高さ
+const CONTENT_X = 210       # コンテンツ開始X
+const CONTENT_Y = 40        # コンテンツ開始Y
+const CONTENT_W = 860       # コンテンツ幅（210+860+5=1075=INFO_X）
+const CONTENT_H = 636       # コンテンツ高さ
 const ADVENTURE_Y = 680     # 冒険ボタン行Y
 # 右パネル（カード詳細専用）: 左パネルと同じ幅
 const SIDE_PANEL_W = SIDEBAR_W  # 共通定数: 左右パネル幅
@@ -62,43 +45,6 @@ const INFO_X = 1075         # 右パネル開始X（左右余白5pxで線対称�
 const INFO_Y = 40           # 右パネル開始Y（タスクバー36px分オフセット）
 const INFO_W = SIDE_PANEL_W # 右パネル幅（=左パネル幅 200px）
 const INFO_H = 675          # 右パネル高さ
-
-# 装備スロット定義（絶対変更禁止: 頭/胴/足/アクセ×3の6個固定）
-# 配置: 3行×2列（左列=頭/胴/足, 右列=アクセ1/2/3）
-const EQUIP_SLOTS = [
-	{"id": "head",       "label": "頭",    "row": 0, "col": 0},
-	{"id": "body",       "label": "胴",    "row": 1, "col": 0},
-	{"id": "feet",       "label": "足",    "row": 2, "col": 0},
-	{"id": "accessory1", "label": "アクセ1", "row": 0, "col": 1},
-	{"id": "accessory2", "label": "アクセ2", "row": 1, "col": 1},
-	{"id": "accessory3", "label": "アクセ3", "row": 2, "col": 1},
-]
-const EQUIP_SLOT_SIZE = 55   # スロットサイズ（持ち物グリッドのセルサイズと同一）
-const EQUIP_SLOT_GAP = 8     # スロット間隔（持ち物グリッドのギャップと同一）
-
-# 持ち物グリッド定数（装備スロットと同一サイズ・間隔を使用）
-# セルサイズ = EQUIP_SLOT_SIZE, セル間隔 = EQUIP_SLOT_GAP
-const INV_CELL_SIZE = EQUIP_SLOT_SIZE   # 正方形セルサイズ（装備スロットと統一）
-const INV_CELL_GAP  = EQUIP_SLOT_GAP   # セル間隔（装備スロットと統一）
-const INV_GRID_OFFSET_X = 8            # グリッド開始X（タブコンテナ内）
-const INV_GRID_OFFSET_Y = 40           # グリッド開始Y（フィルタタブ下）
-# 列数: コンテンツ幅(870) - 右パネル干渉なし - OFFSET_X - 余白 から計算
-# 870 - 8 - 8 = 854 / (55 + 8) = 13.5 → 13列
-# ただし右パネル（INFO_X=1080）まで中央エリア幅870内なので問題なし
-const INV_GRID_COLS = 12               # グリッド列数（870px内に収まる最大列数）
-# 行数: コンテンツ高さ(636) - OFFSET_Y - フィルタ(32) = 564 / (55+8) = 8.9 → 8行
-const INV_GRID_ROWS = 8                # グリッド行数
-const INV_TOTAL_SLOTS = INV_GRID_COLS * INV_GRID_ROWS  # 総スロット数
-
-# ソートタブ定義（持ち物タブ内サブタブ）
-const INV_SORT_TABS = [
-	{"id": "all",       "label": "全体"},
-	# v2設計: 装備・素材タブ一時無効化
-	# {"id": "equipment", "label": "装備"},
-	# {"id": "normal",    "label": "素材"},
-	{"id": "cursed",    "label": "呪い"},
-	{"id": "consumable","label": "消費"},
-]
 
 func _ready() -> void:
 	_PL = load("res://scripts/PlacementLogic.gd")
@@ -123,13 +69,10 @@ func _build_ui() -> void:
 	_taskbar = TaskbarClass.new()
 	_taskbar.attach(self, SceneManager.DECK_PREP)
 
-	# 左パネル（ステータス上部 + 装備スロット下部）
+	# 左パネル（ステータス表示のみ）
 	_build_sidebar()
 
-	# タブバー（配置・持ち物の2タブ）
-	_build_tab_bar()
-
-	# タブコンテナ（中央メイン）
+	# コンテンツコンテナ（中央メイン）
 	_tab_container = Control.new()
 	_tab_container.position = Vector2(CONTENT_X, CONTENT_Y)
 	_tab_container.size = Vector2(CONTENT_W, CONTENT_H)
@@ -141,8 +84,9 @@ func _build_ui() -> void:
 	# 冒険ボタン行（下部）
 	_build_adventure_buttons()
 
-	# 配置タブを初期表示
-	_show_tab("placement")
+	# 配置タブを表示
+	_board.tab_container = _tab_container
+	_board.build_placement_tab(_tab_container, _PL)
 
 # ===== 左サイドバー =====
 
@@ -158,18 +102,8 @@ func _build_sidebar() -> void:
 	)
 	add_child(sidebar_panel)
 
-	# ステータス領域（上部）
+	# ステータス領域
 	_build_status_area()
-
-	# 区切りライン
-	var sep = ColorRect.new()
-	sep.position = Vector2(SIDEBAR_X + 10, SIDEBAR_Y + EQUIP_AREA_Y - 10)
-	sep.size = Vector2(SIDEBAR_W - 20, 1)
-	sep.color = Color(0.3, 0.3, 0.4, 0.6)
-	add_child(sep)
-
-	# 装備スロット領域（下部）
-	_build_equipment_area()
 
 func _build_status_area() -> void:
 	var cls = CardDB.CLASSES.get(GameSession.class_id, {})
@@ -249,158 +183,6 @@ func _build_status_area() -> void:
 			add_child(sep)
 			cy += 12
 
-func _build_equipment_area() -> void:
-	var base_x = SIDEBAR_X + 15
-	var base_y = SIDEBAR_Y + EQUIP_AREA_Y
-
-	var header = Label.new()
-	header.text = "装備"
-	header.position = Vector2(base_x, base_y)
-	header.add_theme_font_size_override("font_size", 14)
-	header.add_theme_color_override("font_color", COLOR_TITLE)
-	add_child(header)
-
-	# 装備スロット3×2配置（左列=頭/胴/足, 右列=アクセ1/2/3）
-	for slot in EQUIP_SLOTS:
-		var sx = base_x + 3 + slot["col"] * (EQUIP_SLOT_SIZE + EQUIP_SLOT_GAP + 10)
-		var sy = base_y + 20 + slot["row"] * (EQUIP_SLOT_SIZE + EQUIP_SLOT_GAP + 14)
-		_build_equipment_slot(slot["id"], slot["label"], sx, sy)
-
-func _build_equipment_slot(slot_id: String, label: String, x: float, y: float) -> void:
-	# スロット枠（企画書4.2節: 空スロット背景=COLOR_BG、枠線=COLOR_BORDER）
-	var cell = Panel.new()
-	cell.position = Vector2(x, y)
-	cell.size = Vector2(EQUIP_SLOT_SIZE, EQUIP_SLOT_SIZE)
-	cell.name = "equip_slot_" + slot_id
-	var style = StyleBoxFlat.new()
-	style.bg_color = COLOR_BG
-	style.border_color = COLOR_BORDER
-	style.set_border_width_all(1)
-	style.set_corner_radius_all(4)
-	cell.add_theme_stylebox_override("panel", style)
-	add_child(cell)
-
-	# スロットラベル（スロット内下部に収める・パネル外に飛び出さない）
-	var slot_lbl = Label.new()
-	slot_lbl.text = label
-	slot_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	slot_lbl.position = Vector2(0, EQUIP_SLOT_SIZE - 14)
-	slot_lbl.size = Vector2(EQUIP_SLOT_SIZE, 12)
-	slot_lbl.add_theme_font_size_override("font_size", 9)
-	slot_lbl.add_theme_color_override("font_color", COLOR_DIM)
-	cell.add_child(slot_lbl)
-
-func _build_tab_bar() -> void:
-	var tabs = [
-		{"id": "placement", "label": "配置"},
-		{"id": "inventory", "label": "持ち物"},
-	]
-	var tab_w = 120  # 企画書4.3節: タブボタンサイズ120×30
-	var x = TAB_BAR_X
-	for tab in tabs:
-		var btn = Button.new()
-		btn.text = tab["label"]
-		btn.position = Vector2(x, TAB_BAR_Y)
-		btn.size = Vector2(tab_w, TAB_BAR_H)
-		btn.add_theme_font_size_override("font_size", 14)
-		var tab_id = tab["id"]
-		btn.pressed.connect(func(): _show_tab(tab_id))
-		add_child(btn)
-		_tab_buttons.append({"id": tab_id, "button": btn})
-		x += tab_w + 10  # 企画書4.3節: separation=10
-	# 初期選択ハイライト
-	_update_tab_highlight()
-
-func _build_adventure_buttons() -> void:
-	# 企画書4.6節: 冒険ボタン「冒険を始める」860×35、フォントサイズ18、青系背景
-	var start_btn = Button.new()
-	start_btn.text = "冒険を始める"
-	start_btn.position = Vector2(CONTENT_X, ADVENTURE_Y)
-	start_btn.size = Vector2(CONTENT_W, 35)
-	start_btn.add_theme_font_size_override("font_size", 18)
-	start_btn.pressed.connect(_on_start_battle)
-	add_child(start_btn)
-
-	# 企画書4.6節: 背景色=青系（Color(0.3, 0.5, 0.7)）、ホバー時Color(0.4, 0.6, 0.8)
-	var normal_style = StyleBoxFlat.new()
-	normal_style.bg_color = Color(0.3, 0.5, 0.7)
-	normal_style.set_corner_radius_all(4)
-	start_btn.add_theme_stylebox_override("normal", normal_style)
-
-	var hover_style = StyleBoxFlat.new()
-	hover_style.bg_color = Color(0.4, 0.6, 0.8)
-	hover_style.set_corner_radius_all(4)
-	start_btn.add_theme_stylebox_override("hover", hover_style)
-
-func _on_start_battle() -> void:
-	# v2設計: 初期配置9マス情報をGameSession.initial_unitsに保存
-	_save_initial_units()
-	SceneManager.go_to(SceneManager.BATTLE)
-
-func _save_initial_units() -> void:
-	# 配置タブの9マス状態をGameSession.initial_unitsに保存
-	GameSession.initial_units.clear()
-	if _board == null:
-		return
-
-	# _board._cell_card_containersから各セルの配置情報を取得（自陣side=0のみ）
-	for row in range(3):
-		for col in range(3):
-			var container = _board._cell_card_containers[0][row][col]
-			var unit_info = null
-
-			# コンテナ内のカードを確認
-			if container.get_child_count() > 0:
-				var card_ui = container.get_child(0)
-				if card_ui.has_meta("card_name"):
-					var card_name = card_ui.get_meta("card_name")
-					unit_info = {"name": card_name, "row": row, "col": col}
-
-			GameSession.initial_units.append(unit_info)
-
-	print("[DeckPrep] 初期配置保存: %d個のユニット" % GameSession.initial_units.filter(func(x): return x != null).size())
-
-func _show_tab(tab_id: String) -> void:
-	_current_tab = tab_id
-	_board_detail_container = null
-	_selected_material = {}
-	_selected_card_idx = -1
-
-	# タブコンテンツをクリア
-	for child in _tab_container.get_children():
-		child.queue_free()
-
-	# タブ別コンテンツ構築
-	if tab_id == "placement":
-		_board.tab_container = _tab_container
-		_board.build_placement_tab(_tab_container, _PL)
-	elif tab_id == "inventory":
-		_build_inventory_tab()
-
-	_update_tab_highlight()
-	_update_info_lane()
-
-func _update_tab_highlight() -> void:
-	# 企画書4.3節・5.1節: 選択中=COLOR_TITLE+背景ハイライト、非選択=COLOR_DIM+背景なし
-	for tab_btn in _tab_buttons:
-		var btn: Button = tab_btn["button"]
-		var style = StyleBoxFlat.new()
-		if tab_btn["id"] == _current_tab:
-			# 選択中: COLOR_TITLE（金色）+ 背景ハイライト
-			btn.add_theme_color_override("font_color", COLOR_TITLE)
-			style.bg_color = Color(0.2, 0.2, 0.3)
-			style.set_corner_radius_all(4)
-			btn.add_theme_stylebox_override("normal", style)
-			btn.add_theme_stylebox_override("hover", style)
-			btn.add_theme_stylebox_override("pressed", style)
-		else:
-			# 非選択: COLOR_DIM（暗いグレー）+ 背景なし
-			btn.add_theme_color_override("font_color", COLOR_DIM)
-			style.bg_color = Color(0, 0, 0, 0)  # 透明
-			btn.add_theme_stylebox_override("normal", style)
-			btn.add_theme_stylebox_override("hover", style)
-			btn.add_theme_stylebox_override("pressed", style)
-
 func _process(delta: float) -> void:
 	if _board != null:
 		_board.process_drag(delta)
@@ -432,27 +214,10 @@ func _update_info_lane() -> void:
 	if _info == null:
 		return
 	# 右パネルはカード詳細専用
-	# 持ち物タブ以外では素材選択リセット
-	if _current_tab != "inventory":
-		_selected_material = {}
-	# 素材選択優先（持ち物タブ）
-	if _selected_material.size() > 0:
-		_info.show_material_info(_selected_material)
-		return
 	if _selected_card_idx < 0 or _selected_card_idx >= GameSession.selected_deck.size():
 		_info.show_empty()
 		return
 	_info.show_card_info(_selected_card_idx)
-
-# ===== 配置タブ内カード詳細（廃止: 右パネルへ移管） =====
-
-func _update_board_detail() -> void:
-	# 右パネルで統一したので不使用（互換のため残す）
-	pass
-
-# ===== 持ち物タブ（ソートタブ + 正方形グリッド） =====
-# 装備スロットは左サイドバーに常時表示。このタブには装備含むソートタブ + 正方形グリッド
-# セルサイズ・間隔は装備スロットと統一（EQUIP_SLOT_SIZE / EQUIP_SLOT_GAP）
 
 const INV_FILTER_H = 32   # フィルタタブ高さ（後方互換維持）
 # 後方互換用エイリアス（テスト等が参照する可能性があるため残す）
@@ -462,196 +227,3 @@ const INV_SLOT_GAP = INV_CELL_GAP  # スロット間隔（=EQUIP_SLOT_GAP）
 const INV_GRID_X = INV_GRID_OFFSET_X
 const INV_GRID_Y = INV_GRID_OFFSET_Y
 
-func _build_inventory_tab() -> void:
-	# ソートタブ（上部）
-	_build_inventory_sort_tabs(_tab_container)
-	# 正方形グリッド（下部）
-	_build_inventory_square_grid(_tab_container)
-
-func _build_inventory_sort_tabs(parent: Node) -> void:
-	# 企画書4.4節（持ち物タブ）: フィルタタブ、サイズ80×26、フォント11、separation=6
-	var x = 10
-	for tab in INV_SORT_TABS:
-		var btn = Button.new()
-		btn.text = tab["label"]
-		btn.position = Vector2(x, 3)
-		btn.size = Vector2(80, 26)
-		btn.add_theme_font_size_override("font_size", 11)
-		var tab_id = tab["id"]
-		btn.pressed.connect(func(): _set_inventory_filter(tab_id))
-		# 企画書5.5節: 選択中=COLOR_TITLE+背景ハイライト、非選択=COLOR_DIM
-		var style = StyleBoxFlat.new()
-		if tab["id"] == _inventory_filter:
-			btn.add_theme_color_override("font_color", COLOR_TITLE)
-			style.bg_color = Color(0.2, 0.2, 0.3)
-			style.set_corner_radius_all(4)
-		else:
-			btn.add_theme_color_override("font_color", COLOR_DIM)
-			style.bg_color = Color(0, 0, 0, 0)
-		btn.add_theme_stylebox_override("normal", style)
-		btn.add_theme_stylebox_override("hover", style)
-		btn.add_theme_stylebox_override("pressed", style)
-		parent.add_child(btn)
-		x += 80 + 6  # separation=6
-
-func _set_inventory_filter(filter: String) -> void:
-	_inventory_filter = filter
-	for child in _tab_container.get_children():
-		child.queue_free()
-	_build_inventory_tab()
-
-func _get_filtered_items() -> Array:
-	# 装備・素材・消費・呪いをフィルタして返す（装備タブ追加対応）
-	var result: Array = []
-	# 装備（GameSession.equipmentから取得予定。現在は空）
-	if _inventory_filter == "all" or _inventory_filter == "equipment":
-		pass  # 将来: GameSession.equipment から生成
-	# 素材（装備タブ専用の場合は素材を含めない）
-	if _inventory_filter != "equipment":
-		for mat in CardDB.MATERIALS:
-			var is_cursed = mat.get("is_cursed", false)
-			var is_consumable = mat.get("is_consumable", false)
-			var count = _count_owned(mat.get("id", ""))
-			if count <= 0:
-				continue
-			match _inventory_filter:
-				"all":
-					result.append({"type": "material", "data": mat, "count": count})
-				"normal":
-					if not is_cursed and not is_consumable:
-						result.append({"type": "material", "data": mat, "count": count})
-				"cursed":
-					if is_cursed:
-						result.append({"type": "material", "data": mat, "count": count})
-				"consumable":
-					if is_consumable:
-						result.append({"type": "material", "data": mat, "count": count})
-	return result
-
-# 後方互換: 旧_get_filtered_materialsと同等動作
-func _get_filtered_materials() -> Array:
-	var filtered: Array = []
-	for mat in CardDB.MATERIALS:
-		var is_cursed = mat.get("is_cursed", false)
-		var is_consumable = mat.get("is_consumable", false)
-		match _inventory_filter:
-			"all":
-				filtered.append(mat)
-			"normal":
-				if not is_cursed and not is_consumable:
-					filtered.append(mat)
-			"cursed":
-				if is_cursed:
-					filtered.append(mat)
-			"consumable":
-				if is_consumable:
-					filtered.append(mat)
-	return filtered
-
-func _count_owned(mat_id: String) -> int:
-	var count = 0
-	for m in GameSession.materials:
-		if m is Dictionary and m.get("id", "") == mat_id:
-			count += 1
-	return count
-
-func _build_inventory_square_grid(parent: Node) -> void:
-	# 正方形グリッド: セルサイズ=EQUIP_SLOT_SIZE, 間隔=EQUIP_SLOT_GAP
-	var items = _get_filtered_items()
-	var cell = INV_CELL_SIZE
-	var gap = INV_CELL_GAP
-	var ox = INV_GRID_OFFSET_X
-	var oy = INV_GRID_OFFSET_Y
-
-	for i in range(INV_TOTAL_SLOTS):
-		var col_i = i % INV_GRID_COLS
-		var row_i = i / INV_GRID_COLS
-		var x = ox + col_i * (cell + gap)
-		var y = oy + row_i * (cell + gap)
-		if i < items.size():
-			var item = items[i]
-			_build_inv_square_cell(parent, item, x, y, cell)
-		else:
-			_build_inv_empty_cell(parent, x, y, cell)
-
-func _build_inv_square_cell(parent: Node, item: Dictionary, x: int, y: int, size: int) -> void:
-	# 企画書4.4節（持ち物タブ）: セル背景=COLOR_BG、枠線=COLOR_BORDER（1px）
-	var panel = Panel.new()
-	panel.position = Vector2(x, y)
-	panel.size = Vector2(size, size)
-	var style = StyleBoxFlat.new()
-	var item_type = item.get("type", "material")
-	var is_cursed = item["data"].get("is_cursed", false) if item_type == "material" else false
-	style.bg_color = COLOR_BG
-	# レアリティ枠線: common=グレー、rare=青、epic=紫、legend=金（企画書4.4節）
-	if item_type == "equipment":
-		style.border_color = Color(0.6, 0.5, 0.2)  # 装備: 金色（legend相当）
-	elif is_cursed:
-		style.border_color = Color(0.8, 0.3, 0.5)  # 呪い: 紫（epic相当）
-	else:
-		style.border_color = COLOR_BORDER  # 通常: グレー（common相当）
-	style.set_border_width_all(1)
-	style.set_corner_radius_all(4)
-	panel.add_theme_stylebox_override("panel", style)
-	parent.add_child(panel)
-
-	# アイコン枠（仮: 色付き矩形、テクスチャ実装後は置き換え）
-	var icon_bg = ColorRect.new()
-	icon_bg.position = Vector2(3, 3)
-	icon_bg.size = Vector2(size - 6, size - 18)
-	icon_bg.color = style.border_color * Color(1, 1, 1, 0.25)
-	icon_bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	panel.add_child(icon_bg)
-
-	# スタック数（右下）
-	var count = item.get("count", 1)
-	if count >= 2:
-		var stack_lbl = Label.new()
-		stack_lbl.text = "×%d" % count
-		stack_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-		stack_lbl.position = Vector2(2, size - 16)
-		stack_lbl.size = Vector2(size - 4, 14)
-		stack_lbl.add_theme_font_size_override("font_size", 9)
-		stack_lbl.add_theme_color_override("font_color", Color(0.9, 0.85, 0.5))
-		stack_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		panel.add_child(stack_lbl)
-
-	# クリックで解説レーン更新
-	var mat_ref = item["data"]
-	panel.gui_input.connect(func(event: InputEvent):
-		if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
-			_selected_material = mat_ref
-			_selected_card_idx = -1
-			_update_info_lane()
-	)
-
-func _build_inv_empty_cell(parent: Node, x: int, y: int, size: int) -> void:
-	# 企画書4.4節（持ち物タブ）: 空セル背景=COLOR_BG、枠線=COLOR_BORDER
-	var panel = Panel.new()
-	panel.position = Vector2(x, y)
-	panel.size = Vector2(size, size)
-	var style = StyleBoxFlat.new()
-	style.bg_color = COLOR_BG
-	style.border_color = COLOR_BORDER
-	style.set_border_width_all(1)
-	style.set_corner_radius_all(4)
-	panel.add_theme_stylebox_override("panel", style)
-	parent.add_child(panel)
-
-# 後方互換: _build_material_slot_mh（旧テスト・外部参照用）
-func _build_material_slot_mh(parent: Node, mat: Dictionary, count: int, x: int, y: int) -> void:
-	_build_inv_square_cell(parent, {"type": "material", "data": mat, "count": count}, x, y, INV_CELL_SIZE)
-
-func _build_empty_slot(parent: Node, x: int, y: int) -> void:
-	_build_inv_empty_cell(parent, x, y, INV_CELL_SIZE)
-
-func _build_placeholder_tab(tab_id: String) -> void:
-	var names = {"skill_tree": "スキル"}
-	var lbl = Label.new()
-	lbl.text = "%s（準備中）" % names.get(tab_id, tab_id)
-	lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	lbl.position = Vector2(0, 200)
-	lbl.size = Vector2(980, 30)
-	lbl.add_theme_font_size_override("font_size", 20)
-	lbl.add_theme_color_override("font_color", COLOR_DIM)
-	_tab_container.add_child(lbl)
