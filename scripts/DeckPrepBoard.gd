@@ -84,11 +84,10 @@ func build_placement_tab(_tab_container_arg: Control, PL) -> void:
 	# ⑥ 合成可能エリア（中央下部）
 	_build_synthesis_area(sub_area_y)
 
-# 自陣・敵陣ラベル完全削除 → 列ラベルのみ残す
+# 自陣列ラベルのみ表示（敵陣ラベル削除）
 func _build_board_col_labels(enemy_x: float) -> void:
 	var ally_cols = ["後列", "中列", "前列"]
-	var enemy_cols = ["前列", "中列", "後列"]
-	# チェックボックスは左下に移動したため、列ラベルは盤面上部に直接配置
+	# 列ラベルは盤面上部に直接配置
 	var col_label_y = BOARD_Y + 5
 	for ci in range(3):
 		var al = Button.new()
@@ -101,17 +100,6 @@ func _build_board_col_labels(enemy_x: float) -> void:
 		var ally_ci = ci
 		al.pressed.connect(func(): select_col(0, ally_ci))
 		tab_container.add_child(al)
-
-		var el = Button.new()
-		el.text = enemy_cols[ci]
-		el.flat = true
-		el.position = Vector2(enemy_x + ci * (CELL_W + CELL_GAP), col_label_y)
-		el.size = Vector2(CELL_W, 16)
-		el.add_theme_font_size_override("font_size", 10)
-		el.add_theme_color_override("font_color", Color(0.65, 0.5, 0.5))
-		var enemy_ci = ci
-		el.pressed.connect(func(): select_col(1, enemy_ci))
-		tab_container.add_child(el)
 
 # セル行の開始Y（列ラベル5px + 16px + 4px余白 = 25px）
 const CELLS_START_Y = BOARD_Y + 25
