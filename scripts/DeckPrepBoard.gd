@@ -969,29 +969,93 @@ func start_drag_group(idx: int, group: Array, source_node: Control, mouse_pos: V
 	var entry = GameSession.selected_deck[idx] if idx < GameSession.selected_deck.size() else {}
 	var card_name = entry.get("name", "???") if entry is Dictionary else str(entry)
 	var count = group.size()
-	_drag_node = PanelContainer.new()
-	_drag_node.size = Vector2(CELL_W - 10, 15); _drag_node.z_index = 100
-	var style = StyleBoxFlat.new()
-	style.bg_color = get_card_color(card_name).lightened(0.2); style.set_corner_radius_all(3)
-	_drag_node.add_theme_stylebox_override("panel", style)
-	var lbl = Label.new()
-	lbl.text = "%s x%d" % [card_name, count] if count > 1 else card_name
-	lbl.add_theme_font_size_override("font_size", 9)
-	lbl.add_theme_color_override("font_color", Color(1, 1, 0.8))
-	_drag_node.add_child(lbl); main_node.add_child(_drag_node)
-	_drag_node.global_position = mouse_pos + _drag_offset
+	var card_cost = get_card_cost(card_name)
+	var card_color = get_card_color(card_name)
 
-func _update_drag_label() -> void:
-	if _drag_node == null or _drag_source_idx < 0:
-		return
-	var entry = GameSession.selected_deck[_drag_source_idx] if _drag_source_idx < GameSession.selected_deck.size() else {}
-	var card_name = entry.get("name", "???") if entry is Dictionary else str(entry)
-	var count = _drag_group_indices.size()
-	# ラベル更新（PanelContainerの最初の子がLabel）
-	for child in _drag_node.get_children():
-		if child is Label:
-			child.text = "%s x%d" % [card_name, count] if count > 1 else card_name
-			return
+	# CardSlotと同じ縦長カード形式でドラッグノード作成（90×130px）
+	const DRAG_CARD_W = 90.0
+	const DRAG_CARD_H = 130.0
+	const DRAG_ILLUST_RATIO = 0.6
+
+	_drag_node = Control.new()
+	_drag_node.custom_minimum_size = Vector2(DRAG_CARD_W, DRAG_CARD_H)
+	_drag_node.z_index = 100
+	_drag_node.modulate = Color(1, 1, 1, 0.7)  # 半透明化
+
+	# カード枠（丸角矩形）
+	var bg = PanelContainer.new()
+	bg.size = Vector2(DRAG_CARD_W, DRAG_CARD_H)
+	var style = StyleBoxFlat.new()
+	style.bg_color = Color(0.1, 0.1, 0.15)
+	style.border_color = Color(0.3, 0.3, 0.4)
+	style.set_border_width_all(1)
+	style.set_corner_radius_all(6)
+	bg.add_theme_stylebox_override("panel", style)
+	bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_drag_node.add_child(bg)
+
+	var vbox = VBoxContainer.new()
+	vbox.add_theme_constant_override("separation", 0)
+	vbox.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	bg.add_child(vbox)
+
+	# イラストエリア（60%）
+	var illust_h = DRAG_CARD_H * DRAG_ILLUST_RATIO
+	var illust_area = ColorRect.new()
+	illust_area.custom_minimum_size = Vector2(DRAG_CARD_W - 2, illust_h)
+	illust_area.color = card_color
+	illust_area.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	vbox.add_child(illust_area)
+
+	# 左上コストバッジ
+	const COST_BADGE_SIZE = 20.0
+	var cost_badge = PanelContainer.new()
+	cost_badge.position = Vector2(4, 4)
+	cost_badge.custom_minimum_size = Vector2(COST_BADGE_SIZE, COST_BADGE_SIZE)
+	var badge_style = StyleBoxFlat.new()
+	badge_style.bg_color = Color(0.2, 0.3, 0.5)
+	badge_style.set_corner_radius_all(int(COST_BADGE_SIZE / 2))
+	cost_badge.add_theme_stylebox_override("panel", badge_style)
+	cost_badge.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var cost_lbl = Label.new()
+	cost_lbl.text = str(card_cost)
+	cost_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	cost_lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	cost_lbl.add_theme_font_size_override("font_size", 11)
+	cost_lbl.add_theme_color_override("font_color", Color(1, 1, 1))
+	cost_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	cost_badge.add_child(cost_lbl)
+	illust_area.add_child(cost_badge)
+
+	# 右上×Nバッジ（count > 1の場合のみ）
+	if count > 1:
+		var count_lbl = Label.new()
+		count_lbl.text = "×%d" % count
+		count_lbl.position = Vector2(DRAG_CARD_W - 30, 4)
+		count_lbl.size = Vector2(26, 16)
+		count_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+		count_lbl.add_theme_font_size_override("font_size", 11)
+		count_lbl.add_theme_color_override("font_color", Color(1, 0.9, 0.5))
+		count_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		illust_area.add_child(count_lbl)
+
+	# テキストエリア（40%）
+	var text_area = VBoxContainer.new()
+	text_area.custom_minimum_size = Vector2(DRAG_CARD_W - 6, DRAG_CARD_H - illust_h - 6)
+	text_area.add_theme_constant_override("separation", 2)
+	text_area.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var name_lbl = Label.new()
+	name_lbl.text = card_name
+	name_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	name_lbl.add_theme_font_size_override("font_size", 11)
+	name_lbl.add_theme_color_override("font_color", Color(0.9, 0.85, 0.6))
+	name_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD
+	name_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	text_area.add_child(name_lbl)
+	vbox.add_child(text_area)
+
+	main_node.add_child(_drag_node)
+	_drag_node.global_position = mouse_pos + _drag_offset
 
 func end_drag() -> void:
 	if _drag_node != null:
