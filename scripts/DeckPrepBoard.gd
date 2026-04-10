@@ -953,7 +953,11 @@ func try_drop_card(idx: int, new_side: int, new_row: int, new_col: int) -> void:
 				end_drag()
 				return
 
-		# チェック2: ドロップ先に既にカードがあるか → 入れ替え処理
+		# チェック2: 盤面セルは1枚のみ配置（グループドラッグの場合は先頭1枚のみ）
+		if indices_to_move.size() > 1:
+			indices_to_move = [indices_to_move[0]]
+
+		# チェック3: ドロップ先に既にカードがあるか → 入れ替え処理
 		var target_container = _cell_card_containers[new_side][new_row][new_col]
 		if target_container.get_child_count() > 0:
 			# ドロップ先のカードインデックスを取得

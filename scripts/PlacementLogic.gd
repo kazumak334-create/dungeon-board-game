@@ -320,10 +320,24 @@ static func move_group(indices: Array, new_side: int, new_row: int, new_col: int
 		if idx < 0 or idx >= deck.size() or idx >= config.size():
 			return false
 		var entry = deck[idx]
+		var card_name = entry.get("name", "") if entry is Dictionary else str(entry)
+
+		# side制約
 		if new_side == 0 and not can_place_ally(entry):
 			return false
 		if new_side == 1 and not can_place_enemy(entry):
 			return false
+
+		# 呪文デッキ制約（row=0, col=-1）: 呪文のみ
+		if new_row == 0 and new_col == -1:
+			if not (CardDB.SPELLS.has(card_name) or CardDB.STATUS_SPELLS.has(card_name) or CardDB.SYSTEM_SPELLS.has(card_name)):
+				return false
+
+		# 盤面制約（col>=0）: ユニットのみ（try_drop_cardで既にチェック済みだが念のため）
+		if new_col >= 0:
+			if not CardDB.UNITS.has(card_name):
+				return false
+
 	# 全カード移動
 	for idx in indices:
 		config[idx]["side"] = new_side
