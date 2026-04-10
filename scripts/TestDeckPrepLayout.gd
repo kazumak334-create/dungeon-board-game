@@ -17,12 +17,12 @@ func run(runner: RefCounted) -> void:
 	_test_deck_prep_info_setup(runner)
 	_test_board_no_ally_enemy_labels(runner)
 	_test_spell_slot_count(runner)
-	_test_artifact_slot_count(runner)
+	# _test_artifact_slot_count(runner)  # 装備廃止により無効化
 	_test_cell_layout_tile_layouts(runner)
 	_test_stack_count_grouping(runner)
 	# 新規テスト（8項目修正対応）
-	_test_equipment_3x2_layout(runner)
-	_test_areas_left_aligned(runner)
+	# _test_equipment_3x2_layout(runner)  # 装備廃止により無効化
+	# _test_areas_left_aligned(runner)  # 装備廃止により無効化
 	_test_synthesis_right_panel(runner)
 	_test_card_detail_bottom_left(runner)
 	_test_spell_tile_4_then_bar(runner)
@@ -32,21 +32,21 @@ func run(runner: RefCounted) -> void:
 	_test_card_detail_right_panel(runner)
 	_test_synthesis_area_bottom_center(runner)
 	_test_synthesis_toggle_top_right(runner)
-	_test_tile_5_7_ratio(runner)
+	# _test_tile_5_7_ratio(runner)  # 装備廃止により無効化
 	_test_empty_slot_hidden(runner)
 	# 追加修正4項目テスト
 	_test_no_synth_toggle_in_right_panel(runner)
-	_test_equipment_fits_in_sidebar(runner)
-	_test_equipment_last_slot_y(runner)
+	# _test_equipment_fits_in_sidebar(runner)  # 装備廃止により無効化
+	# _test_equipment_last_slot_y(runner)  # 装備廃止により無効化
 	# 今回の4項目修正テスト
 	_test_checkbox_no_overlap_with_artifact_label(runner)
 	_test_spell_area_no_overlap_with_artifact_area(runner)
-	_test_synthesis_area_no_overlap_with_artifact_area(runner)
+	# _test_synthesis_area_no_overlap_with_artifact_area(runner)  # 装備廃止により無効化
 	_test_right_panel_no_overlap_with_main_content(runner)
-	_test_inventory_square_cells_equal_equipment_size(runner)
-	_test_inventory_cell_gap_equal_board_gap(runner)
-	_test_inventory_sort_tab_includes_equipment(runner)
-	_test_inventory_not_overlap_right_panel(runner)
+	# _test_inventory_square_cells_equal_equipment_size(runner)  # 装備廃止により無効化
+	# _test_inventory_cell_gap_equal_board_gap(runner)  # 装備廃止により無効化
+	# _test_inventory_sort_tab_includes_equipment(runner)  # 持ち物廃止により無効化
+	# _test_inventory_not_overlap_right_panel(runner)  # 持ち物廃止により無効化
 	# Phase 3 タスクバー・タブ削除・画面分離テスト
 	_test_taskbar_on_title(runner)
 	_test_taskbar_on_material_select(runner)
@@ -575,9 +575,9 @@ func _test_deckprep_no_tabs(r: RefCounted) -> void:
 	var DeckPrepClass = load("res://scripts/DeckPrep.gd")
 	var dp = DeckPrepClass.new()
 	# _tab_buttons変数が存在しないこと
-	r._assert_false("_tab_buttons" in dp, "test_deckprep_no_tabs: _tab_buttons変数が存在しない")
+	r._assert_true("_tab_buttons" not in dp, "test_deckprep_no_tabs: _tab_buttons変数が存在しない")
 	# _show_tab関数も存在しないこと
-	r._assert_false(dp.has_method("_show_tab"), "test_deckprep_no_tabs: _show_tab()が存在しない")
+	r._assert_true(not dp.has_method("_show_tab"), "test_deckprep_no_tabs: _show_tab()が存在しない")
 	dp.queue_free()
 
 func _test_inventory_square_grid_moved(r: RefCounted) -> void:

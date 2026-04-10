@@ -69,7 +69,6 @@ var _drag_node: Control = null
 var _drag_offset: Vector2 = Vector2.ZERO
 var _drag_source_idx: int = -1
 var _drag_group_indices: Array = []
-var _drag_full_group: Array = []  # Ctrl切替用：元のグループを保持
 
 func build_placement_tab(_tab_container_arg: Control, PL) -> void:
 	tab_container = _tab_container_arg
@@ -763,6 +762,9 @@ func _build_spell_cards_list() -> Array:
 		if col >= 0 or row != 0:
 			continue
 		var card_name = entry.get("name", "???") if entry is Dictionary else str(entry)
+		# カード種別フィルター: 呪文のみ許可
+		if not (CardDB.SPELLS.has(card_name) or CardDB.STATUS_SPELLS.has(card_name)):
+			continue
 		raw.append({"idx": i, "name": card_name})
 	return _group_cards_by_name(raw)
 
@@ -801,20 +803,13 @@ func _on_chip_input(event: InputEvent, idx: int, all_indices: Array, chip: Contr
 	if not (event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed):
 		return
 	chip.accept_event()
-	if event.ctrl_pressed:
-		_selected_card_idx = idx
-		_drag_group_indices = [idx]
-		if on_card_selected.is_valid(): on_card_selected.call(idx)
-		start_drag_group(idx, [idx], chip, event.global_position)
-	elif idx in _drag_group_indices and _drag_group_indices.size() > 1:
-		start_drag_group(_drag_group_indices[0], _drag_group_indices.duplicate(), chip, event.global_position)
-	else:
-		_selected_card_idx = idx
-		_drag_group_indices = all_indices.duplicate()
-		if on_card_selected.is_valid(): on_card_selected.call(idx)
-		# ピン留め通知（ドラッグ開始前に通知してDeckPrep.gdがピン留め状態を管理）
-		if on_card_pinned.is_valid(): on_card_pinned.call(idx)
-		start_drag_group(idx, all_indices.duplicate(), chip, event.global_position)
+	# グループドラッグ廃止: 常に1枚のみドラッグ
+	_selected_card_idx = idx
+	_drag_group_indices = [idx]
+	if on_card_selected.is_valid(): on_card_selected.call(idx)
+	# ピン留め通知（ドラッグ開始前に通知してDeckPrep.gdがピン留め状態を管理）
+	if on_card_pinned.is_valid(): on_card_pinned.call(idx)
+	start_drag_group(idx, [idx], chip, event.global_position)
 
 func get_card_color(card_name: String) -> Color:
 	if CardDB.UNITS.has(card_name):
@@ -836,14 +831,14 @@ func start_cell_drag(si: int, ri: int, ci: int, source_node: Control, mouse_pos:
 	var group = _PL.get_cell_group(si, ri, ci, GameSession.placement_config)
 	if group.size() == 0:
 		return
-	start_drag_group(group[0], group, source_node, mouse_pos)
+	# グループドラッグ廃止: 先頭1枚のみドラッグ
+	start_drag_group(group[0], [group[0]], source_node, mouse_pos)
 
 func start_drag(idx: int, source_node: Control, mouse_pos: Vector2) -> void:
 	start_drag_group(idx, [idx], source_node, mouse_pos)
 
 func start_drag_group(idx: int, group: Array, source_node: Control, mouse_pos: Vector2) -> void:
 	_dragging = true; _drag_source_idx = idx; _drag_group_indices = group
-	_drag_full_group = group.duplicate()  # Ctrl切替用に元グループを保存
 	_drag_offset = source_node.global_position - mouse_pos
 	var entry = GameSession.selected_deck[idx] if idx < GameSession.selected_deck.size() else {}
 	var card_name = entry.get("name", "???") if entry is Dictionary else str(entry)
@@ -879,21 +874,10 @@ func end_drag() -> void:
 	_dragging = false
 	_drag_source_idx = -1
 	_drag_group_indices = []
-	_drag_full_group = []
 
 func process_drag(_delta: float) -> void:
 	if _dragging and _drag_node != null:
 		_drag_node.global_position = main_node.get_viewport().get_mouse_position() + _drag_offset
-		# ドラッグ中のCtrl切り替え：1枚⇔グループ
-		var ctrl_now = Input.is_key_pressed(KEY_CTRL)
-		if ctrl_now and _drag_group_indices.size() > 1:
-			# Ctrl押された → 1枚に絞る
-			_drag_group_indices = [_drag_source_idx]
-			_update_drag_label()
-		elif not ctrl_now and _drag_group_indices.size() == 1 and _drag_full_group.size() > 1:
-			# Ctrl離された → 元のグループに戻す
-			_drag_group_indices = _drag_full_group.duplicate()
-			_update_drag_label()
 	if _dragging and not Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT):
 		try_drop_at_mouse(tab_container)
 
@@ -953,11 +937,7 @@ func try_drop_card(idx: int, new_side: int, new_row: int, new_col: int) -> void:
 				end_drag()
 				return
 
-		# チェック2: 盤面セルは1枚のみ配置（グループドラッグの場合は先頭1枚のみ）
-		if indices_to_move.size() > 1:
-			indices_to_move = [indices_to_move[0]]
-
-		# チェック3: ドロップ先に既にカードがあるか → 入れ替え処理
+		# チェック2: ドロップ先に既にカードがあるか → 入れ替え処理
 		var target_container = _cell_card_containers[new_side][new_row][new_col]
 		if target_container.get_child_count() > 0:
 			# ドロップ先のカードインデックスを取得
@@ -989,6 +969,19 @@ func try_drop_card(idx: int, new_side: int, new_row: int, new_col: int) -> void:
 					cfg["side"] = source_side
 					cfg["row"] = source_row
 					cfg["col"] = source_col
+
+	# 呪文デッキ（row=0, col=-1）へのドロップ時バリデーション
+	if new_row == 0 and new_col == -1:
+		for move_idx in indices_to_move:
+			if move_idx < 0 or move_idx >= GameSession.selected_deck.size():
+				continue
+			var entry = GameSession.selected_deck[move_idx]
+			var card_name = entry.get("name", "") if entry is Dictionary else str(entry)
+
+			if not (CardDB.SPELLS.has(card_name) or CardDB.STATUS_SPELLS.has(card_name)):
+				push_warning("[DeckPrepBoard] 呪文デッキには呪文のみ配置できます: %s" % card_name)
+				end_drag()
+				return
 
 	# ドラッグカードをドロップ先へ移動
 	var success = _PL.move_group(indices_to_move, new_side, new_row, new_col,
