@@ -418,7 +418,7 @@ func _build_spell_artifact_split() -> float:
 	var ally_board_w = float(ROW_LABEL_W) + 3.0 * float(CELL_W + CELL_GAP)
 
 	# タスク#7: 呪文デッキを右端に寄せて余白を最小化
-	const SPELL_DECK_W = 200.0
+	const SPELL_DECK_W = 427.0
 	var container_w = tab_container.size.x if tab_container else 860.0
 	var spell_deck_x = container_w - SPELL_DECK_W - 5.0  # 右端から5px余白
 	var spell_deck_y = float(CELLS_START_Y) - 20.0  # ラベル込みで上端揃え
@@ -1006,7 +1006,7 @@ func start_drag(idx: int, source_node: Control, mouse_pos: Vector2) -> void:
 
 func start_drag_group(idx: int, group: Array, source_node: Control, mouse_pos: Vector2) -> void:
 	_dragging = true; _drag_source_idx = idx; _drag_group_indices = group
-	_drag_offset = source_node.global_position - mouse_pos
+	_drag_offset = Vector2.ZERO  # カードをマウス位置に表示してドロップ判定と一致させる
 	var entry = GameSession.selected_deck[idx] if idx < GameSession.selected_deck.size() else {}
 	var card_name = entry.get("name", "???") if entry is Dictionary else str(entry)
 	var count = group.size()
@@ -1232,7 +1232,7 @@ func try_drop_card(idx: int, new_side: int, new_row: int, new_col: int) -> void:
 			var entry = GameSession.selected_deck[move_idx]
 			var card_name = entry.get("name", "") if entry is Dictionary else str(entry)
 
-			if not (CardDB.SPELLS.has(card_name) or CardDB.STATUS_SPELLS.has(card_name)):
+			if not (CardDB.SPELLS.has(card_name) or CardDB.STATUS_SPELLS.has(card_name) or CardDB.SYSTEM_SPELLS.has(card_name)):
 				push_warning("[DeckPrepBoard] 呪文デッキには呪文のみ配置できます: %s" % card_name)
 				end_drag()
 				return
