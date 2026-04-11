@@ -1116,7 +1116,6 @@ func try_drop_at_mouse(_tc: Control) -> void:
 			return
 
 	# 呪文デッキエリアのドロップ判定（row=0, col=-1）
-	var ally_board_w = float(ROW_LABEL_W) + 3.0 * float(CELL_W + CELL_GAP)
 	var spell_deck_x = float(BOARD_X) + ally_board_w + float(CENTER_GAP)
 	var spell_deck_y = float(CELLS_START_Y)
 	var spell_deck_w = 3.0 * float(CELL_W + CELL_GAP)
