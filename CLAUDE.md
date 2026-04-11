@@ -181,6 +181,25 @@ Phase 2-3の主要タスク（roadmap.mdに記載されているもの）を完�
 - スプリント完了時にPMOがCEOに報告する
 - CEOが承認したらコミットする
 
+## エージェントモデル設定
+
+| Agent | モデル | 理由 |
+|---|---|---|
+| planning | claude-opus-4-5 | ゲーム哲学との深い整合性判断 |
+| designer | claude-opus-4-5 | UI基準6項目の質的判断・世界観解釈 |
+| architect | claude-opus-4-5 | 設計判断・アーキテクチャ決定 |
+| ceo | claude-sonnet-4-5 | 振り分け・承認・定型判断 |
+| pmo | claude-sonnet-4-5 | タスク分解・振り分け |
+| marketing | claude-sonnet-4-5 | ペルソナ・競合分析（判断基準は明文化済み） |
+| implementer | claude-sonnet-4-5 | 指示通りの実装 |
+| checker | claude-sonnet-4-5 | チェックリスト照合・構文確認 |
+
+**重要ルール（厳守）:**
+- Opus使用が許可されているのは **planning / designer / architect のみ**
+- 上記3つ以外のAgentは **絶対にOpusを使用しない**
+- Agent呼び出し時にmodelパラメータでSonnetを明示的に指定すること
+- CEOは自分自身もSonnetで動作する
+
 ## 全Agent必読ファイル
 
 - docs/GAME_DESIGN.md（設計・最優先）

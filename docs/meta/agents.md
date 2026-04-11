@@ -9,6 +9,8 @@
 
 ## CEO
 
+model: claude-sonnet-4-5
+
 ### 責務
 論点整理・設計判断・Agent振り分け・企画チェック
 
@@ -33,6 +35,8 @@ docs/meta/rejection_patterns.md のCEO欄参照
 
 ## PMO
 
+model: claude-sonnet-4-5
+
 ### 責務
 タスク分解・Agent振り分け・スプリント管理
 
@@ -55,6 +59,8 @@ docs/meta/rejection_patterns.md のCEO欄参照
 ---
 
 ## Planning
+
+model: claude-opus-4-5
 
 ### 責務
 ゲーム仕様の設計・企画会議
@@ -83,6 +89,8 @@ docs/meta/rejection_patterns.md のPlanning欄参照
 ---
 
 ## Marketing
+
+model: claude-sonnet-4-5
 
 ### 責務
 ペルソナ分析・市場調査・Steam向け訴求
@@ -114,6 +122,8 @@ docs/game_philosophy.md 2章（ペルソナ別判断基準）
 
 ## Implementer
 
+model: claude-sonnet-4-5
+
 ### 責務
 GDScriptによる実装
 
@@ -142,6 +152,8 @@ docs/meta/rejection_patterns.md のImplementer欄参照
 
 ## Checker
 
+model: claude-sonnet-4-5
+
 ### 責務
 品質検証
 
@@ -168,6 +180,8 @@ docs/meta/rejection_patterns.md のImplementer欄参照
 ---
 
 ## Designer
+
+model: claude-opus-4-5
 
 ### 責務
 UI/UX企画作成（事前）・レビュー（事後）・改善指示
@@ -218,6 +232,8 @@ docs/meta/rejection_patterns.md のUI欄参照
 ---
 
 ## Architect
+
+model: claude-opus-4-5
 
 ### 責務
 企画書を要件定義書に変換する（実装しない）
