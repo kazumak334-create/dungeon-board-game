@@ -53,6 +53,11 @@ const RACE_COLORS = {
 const SPELL_COLOR = Color(0.3, 0.4, 0.6)
 const DEFAULT_COLOR = Color(0.3, 0.3, 0.4)
 
+# ドロップヒント定数
+const COLOR_DROP_HINT = Color(0.9, 0.75, 0.3, 0.3)  # 金色半透明背景
+const COLOR_ATTACK_ICON = Color(0.9, 0.35, 0.35)    # 赤系アイコン
+const COLOR_SHIELD_ICON = Color(0.5, 0.7, 0.9)      # 青系アイコン
+
 # 外部参照（DeckPrep.gdからセット）
 var main_node: Control = null
 var tab_container: Control = null
@@ -73,6 +78,9 @@ var _drag_group_indices: Array = []
 
 # タスク#5: 呪文デッキマナ表示用ラベル
 var _spell_deck_label: Label = null
+
+# ドロップヒント表示用オーバーレイ配列
+var _hint_overlays: Array = []
 
 func build_placement_tab(_tab_container_arg: Control, PL) -> void:
 	tab_container = _tab_container_arg
@@ -1078,7 +1086,13 @@ func start_drag_group(idx: int, group: Array, source_node: Control, mouse_pos: V
 	main_node.add_child(_drag_node)
 	_drag_node.global_position = mouse_pos + _drag_offset
 
+	# ドロップヒント表示
+	_show_drop_hints(card_name)
+
 func end_drag() -> void:
+	# ドロップヒント非表示
+	_hide_drop_hints()
+
 	if _drag_node != null:
 		_drag_node.queue_free()
 		_drag_node = null
@@ -1316,3 +1330,84 @@ func update_highlight() -> void:
 		var hcolor = h.get("color", "green")
 		if hs >= 0 and hs < 2 and hr >= 0 and hr < 3 and hc >= 0 and hc < 3:
 			set_cell_color(_cell_rects[hs][hr][hc], highlight_colors.get(hcolor, highlight_colors["green"]))
+
+# ドロップヒント表示（配置可能マスに金色背景+アイコン）
+func _show_drop_hints(card_name: String) -> void:
+	# 既存ヒントをクリア
+	_hide_drop_hints()
+
+	# ユニットカードのみ盤面にドロップ可能
+	if not CardDB.UNITS.has(card_name):
+		return
+
+	# 自陣3×3の全マスにヒントを表示
+	for row in range(3):
+		for col in range(3):
+			var cell = _cell_rects[0][row][col]
+			if cell == null:
+				continue
+
+			# 金色背景オーバーレイ
+			var overlay = ColorRect.new()
+			overlay.color = COLOR_DROP_HINT
+			overlay.size = Vector2(CELL_W, CELL_H)
+			overlay.position = Vector2.ZERO
+			overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			overlay.z_index = 5
+			cell.add_child(overlay)
+			_hint_overlays.append(overlay)
+
+			# アイコンラベル（列によって変更）
+			var icon_label = Label.new()
+			icon_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+			icon_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+			icon_label.size = Vector2(CELL_W, CELL_H)
+			icon_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			icon_label.z_index = 6
+
+			if col == 2:
+				# 前列: 攻撃アイコン（▲）32px
+				icon_label.add_theme_font_size_override("font_size", 32)
+				icon_label.text = "▲"
+				icon_label.add_theme_color_override("font_color", COLOR_ATTACK_ICON)
+			elif col == 0:
+				# 後列: 盾アイコン（●）32px
+				icon_label.add_theme_font_size_override("font_size", 32)
+				icon_label.text = "●"
+				icon_label.add_theme_color_override("font_color", COLOR_SHIELD_ICON)
+			else:
+				# 中列: 攻撃+盾アイコン（上下2段）24px
+				icon_label.add_theme_font_size_override("font_size", 24)
+				icon_label.text = "▲\n●"
+				icon_label.add_theme_color_override("font_color", COLOR_ATTACK_ICON)
+
+			cell.add_child(icon_label)
+			_hint_overlays.append(icon_label)
+
+			# フェードインアニメーション（0.2秒・EASE_OUT）
+			overlay.modulate.a = 0.0
+			icon_label.modulate.a = 0.0
+			var tween = main_node.create_tween()
+			tween.set_parallel(true)
+			tween.tween_property(overlay, "modulate:a", 1.0, 0.2).set_ease(Tween.EASE_OUT)
+			tween.tween_property(icon_label, "modulate:a", 1.0, 0.2).set_ease(Tween.EASE_OUT)
+
+# ドロップヒント非表示（フェードアウト→削除）
+func _hide_drop_hints() -> void:
+	if _hint_overlays.is_empty():
+		return
+
+	# フェードアウトアニメーション（0.15秒・EASE_IN）
+	var tween = main_node.create_tween()
+	tween.set_parallel(true)
+	for overlay in _hint_overlays:
+		if overlay != null and is_instance_valid(overlay):
+			tween.tween_property(overlay, "modulate:a", 0.0, 0.15).set_ease(Tween.EASE_IN)
+
+	# アニメーション完了後に削除
+	tween.finished.connect(func():
+		for overlay in _hint_overlays:
+			if overlay != null and is_instance_valid(overlay):
+				overlay.queue_free()
+		_hint_overlays.clear()
+	)
