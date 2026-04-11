@@ -97,7 +97,17 @@
       "Bash(\"/c/Users/kazum/OneDrive/デスクトップ/プライベート/Godot/Godot_v4.6.2-stable_win64.exe\" --headless --quit --path \"C:\\\\Users\\\\kazum\\\\dungeon-board-game\")",
       "Bash(pkill -f \"Godot.*headless\")",
       "Bash(timeout 30 \"/c/Program Files/Godot/Godot_v4.6.2-stable_win64.exe\" --path . --headless --check-only)",
-      "Bash(timeout 90 /c/Program:*)"
+      "Bash(timeout 90 /c/Program:*)",
+      "Bash(\"/c/Users/kazum/OneDrive/デスクトップ/プライベート/Godot/Godot_v4.6.2-stable_win64.exe\" --path .)",
+      "Bash(\"C:\\\\Godot\\\\Godot_v4.3-stable_win64.exe\" --headless --quit --path .)",
+      "mcp__godot__godot_screenshot",
+      "Bash(bash:*)",
+      "Bash(\"/c/Users/kazum/OneDrive/デスクトップ/プライベート/Godot/Godot_v4.6.2-stable_win64.exe\" --headless --path . -s scripts/RunTests.gd)",
+      "Bash(/c/Users/kazum/Godot_v4.6.2-stable_win64.exe/Godot_v4.6.2-stable_win64_console.exe --headless --path /c/Users/kazum/dungeon-board-game --check-only --script scripts/DeckPrepBoard.gd)",
+      "Bash(C:/Program Files/Godot/Godot_v4.6.2-stable_win64.exe:*)",
+      "Bash(awk ':*)",
+      "Bash(mv /tmp/roadmap_updated.md docs/roadmap.md)",
+      "Bash(find:*)"
     ]
   },
   "enableAllProjectMcpServers": true,

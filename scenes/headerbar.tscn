@@ -1,0 +1,49 @@
+[gd_scene format=3 uid="uid://cbpgdedxe8mu7"]
+
+[node name="Headerbar" type="Control" unique_id=905322913]
+custom_minimum_size = Vector2(0, 50)
+layout_mode = 3
+anchors_preset = 10
+anchor_right = 1.0
+grow_horizontal = 2
+
+[node name="OuterMargin" type="MarginContainer" parent="." unique_id=1384351474]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="MAinRow" type="HBoxContainer" parent="OuterMargin" unique_id=1310974512]
+layout_mode = 2
+
+[node name="LeftGroup" type="HBoxContainer" parent="OuterMargin/MAinRow" unique_id=1459898832]
+layout_mode = 2
+
+[node name="ActLabel" type="Label" parent="OuterMargin/MAinRow/LeftGroup" unique_id=562891611]
+layout_mode = 2
+text = "Act 1 / 3"
+
+[node name="InfoLabel" type="Label" parent="OuterMargin/MAinRow/LeftGroup" unique_id=547772544]
+layout_mode = 2
+text = "種族: beast G: 0 SP: 0"
+
+[node name="Spacer" type="Control" parent="OuterMargin/MAinRow" unique_id=2026487289]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="RightGroup" type="HBoxContainer" parent="OuterMargin/MAinRow" unique_id=1638315481]
+layout_mode = 2
+
+[node name="DeckButton" type="Button" parent="OuterMargin/MAinRow/RightGroup" unique_id=1741254528]
+layout_mode = 2
+text = "カード一覧"
+
+[node name="SkillsButton" type="Button" parent="OuterMargin/MAinRow/RightGroup" unique_id=1089895701]
+layout_mode = 2
+text = "スキル"
+
+[node name="SettingsButton" type="Button" parent="OuterMargin/MAinRow/RightGroup" unique_id=285954364]
+layout_mode = 2
+text = "設定"

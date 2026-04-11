@@ -1,0 +1,101 @@
+[gd_scene format=3 uid="uid://ndwktlohqo13"]
+
+[ext_resource type="PackedScene" uid="uid://cg2b2jlxqwrvy" path="res://scenes/ui/cells/cell.tscn" id="1_4ueyb"]
+[ext_resource type="Script" uid="uid://b8kci8b4h8p6y" path="res://scenes/center_panel.gd" id="1_w3ocb"]
+[ext_resource type="Script" uid="uid://ba5mhk4l61s81" path="res://scenes/ui/cells/cell.gd" id="2_w3ocb"]
+
+[node name="PanelFrame" type="Control" unique_id=597636994]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="HBoxContainer" type="HBoxContainer" parent="." unique_id=1759115355]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 10.0
+offset_top = 10.0
+offset_right = -10.0
+offset_bottom = -10.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="LeftPanel" type="Panel" parent="HBoxContainer" unique_id=1596108526]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="VBoxContainer" type="VBoxContainer" parent="HBoxContainer/LeftPanel" unique_id=656973539]
+layout_mode = 0
+offset_right = 40.0
+offset_bottom = 40.0
+
+[node name="クラス名" type="Label" parent="HBoxContainer/LeftPanel/VBoxContainer" unique_id=1257424303]
+layout_mode = 2
+
+[node name="HP" type="Label" parent="HBoxContainer/LeftPanel/VBoxContainer" unique_id=263509948]
+layout_mode = 2
+
+[node name="マナ" type="Label" parent="HBoxContainer/LeftPanel/VBoxContainer" unique_id=997951452]
+layout_mode = 2
+
+[node name="デッキ情報" type="Label" parent="HBoxContainer/LeftPanel/VBoxContainer" unique_id=2097594938]
+layout_mode = 2
+
+[node name="CenterPanel" type="Panel" parent="HBoxContainer" unique_id=1196444967]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_stretch_ratio = 3.0
+script = ExtResource("1_w3ocb")
+
+[node name="GridContainer" type="GridContainer" parent="HBoxContainer/CenterPanel" unique_id=751141332]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+columns = 3
+
+[node name="Cell" parent="HBoxContainer/CenterPanel/GridContainer" unique_id=789557759 instance=ExtResource("1_4ueyb")]
+layout_mode = 2
+script = ExtResource("2_w3ocb")
+
+[node name="Cell2" parent="HBoxContainer/CenterPanel/GridContainer" unique_id=1994286948 instance=ExtResource("1_4ueyb")]
+layout_mode = 2
+script = ExtResource("2_w3ocb")
+
+[node name="Cell3" parent="HBoxContainer/CenterPanel/GridContainer" unique_id=1454960089 instance=ExtResource("1_4ueyb")]
+layout_mode = 2
+script = ExtResource("2_w3ocb")
+
+[node name="Cell4" parent="HBoxContainer/CenterPanel/GridContainer" unique_id=989350976 instance=ExtResource("1_4ueyb")]
+layout_mode = 2
+script = ExtResource("2_w3ocb")
+
+[node name="Cell5" parent="HBoxContainer/CenterPanel/GridContainer" unique_id=51868578 instance=ExtResource("1_4ueyb")]
+layout_mode = 2
+script = ExtResource("2_w3ocb")
+
+[node name="Cell6" parent="HBoxContainer/CenterPanel/GridContainer" unique_id=1618347897 instance=ExtResource("1_4ueyb")]
+layout_mode = 2
+script = ExtResource("2_w3ocb")
+
+[node name="Cell7" parent="HBoxContainer/CenterPanel/GridContainer" unique_id=234472411 instance=ExtResource("1_4ueyb")]
+layout_mode = 2
+script = ExtResource("2_w3ocb")
+
+[node name="Cell8" parent="HBoxContainer/CenterPanel/GridContainer" unique_id=1180600090 instance=ExtResource("1_4ueyb")]
+layout_mode = 2
+script = ExtResource("2_w3ocb")
+
+[node name="Cell9" parent="HBoxContainer/CenterPanel/GridContainer" unique_id=247881462 instance=ExtResource("1_4ueyb")]
+layout_mode = 2
+script = ExtResource("2_w3ocb")
+
+[node name="RightPanel" type="Panel" parent="HBoxContainer" unique_id=983818569]
+layout_mode = 2
+size_flags_horizontal = 3

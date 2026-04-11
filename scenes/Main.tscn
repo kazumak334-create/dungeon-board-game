@@ -1,6 +1,94 @@
-[gd_scene load_steps=2 format=3 uid="uid://main_scene"]
+[gd_scene format=3 uid="uid://b8nqy45wovoj5"]
 
-[ext_resource type="Script" path="res://scripts/Main.gd" id="1_main"]
+[ext_resource type="Script" uid="uid://c5ncgm54y7032" path="res://scripts/Main.gd" id="1_main"]
+[ext_resource type="PackedScene" uid="uid://ndwktlohqo13" path="res://scenes/PanelFrame.tscn" id="2_rarhs"]
+[ext_resource type="PackedScene" uid="uid://cbpgdedxe8mu7" path="res://scenes/headerbar.tscn" id="2_vcsgt"]
+[ext_resource type="PackedScene" uid="uid://cg2b2jlxqwrvy" path="res://scenes/ui/cells/cell.tscn" id="3_vcsgt"]
+[ext_resource type="Script" uid="uid://ba5mhk4l61s81" path="res://scenes/ui/cells/cell.gd" id="4_c01mt"]
 
-[node name="Main" type="Node"]
+[node name="Main" type="Node" unique_id=1758182147]
 script = ExtResource("1_main")
+
+[node name="Headerbar" parent="." unique_id=905322913 instance=ExtResource("2_vcsgt")]
+
+[node name="PanelFrame" parent="." unique_id=597636994 instance=ExtResource("2_rarhs")]
+offset_top = 50.0
+
+[node name="HBoxContainer" type="HBoxContainer" parent="PanelFrame" unique_id=1801749574]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 10.0
+offset_top = 10.0
+offset_right = -10.0
+offset_bottom = -10.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="LeftPanel" type="Panel" parent="PanelFrame/HBoxContainer" unique_id=1423240246]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="VBoxContainer" type="VBoxContainer" parent="PanelFrame/HBoxContainer/LeftPanel" unique_id=2140402637]
+layout_mode = 0
+offset_right = 40.0
+offset_bottom = 40.0
+
+[node name="クラス名" type="Label" parent="PanelFrame/HBoxContainer/LeftPanel/VBoxContainer" unique_id=104197364]
+layout_mode = 2
+
+[node name="HP" type="Label" parent="PanelFrame/HBoxContainer/LeftPanel/VBoxContainer" unique_id=1120783149]
+layout_mode = 2
+
+[node name="マナ" type="Label" parent="PanelFrame/HBoxContainer/LeftPanel/VBoxContainer" unique_id=1843929104]
+layout_mode = 2
+
+[node name="デッキ情報" type="Label" parent="PanelFrame/HBoxContainer/LeftPanel/VBoxContainer" unique_id=938514444]
+layout_mode = 2
+
+[node name="CenterPanel" type="Panel" parent="PanelFrame/HBoxContainer" unique_id=1212352712]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_stretch_ratio = 3.0
+
+[node name="GridContainer" type="GridContainer" parent="PanelFrame/HBoxContainer/CenterPanel" unique_id=975198563]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+columns = 3
+
+[node name="Cell" parent="PanelFrame/HBoxContainer/CenterPanel/GridContainer" unique_id=789557759 instance=ExtResource("3_vcsgt")]
+layout_mode = 2
+script = ExtResource("4_c01mt")
+
+[node name="Cell2" parent="PanelFrame/HBoxContainer/CenterPanel/GridContainer" unique_id=1074789529 instance=ExtResource("3_vcsgt")]
+layout_mode = 2
+
+[node name="Cell3" parent="PanelFrame/HBoxContainer/CenterPanel/GridContainer" unique_id=193916077 instance=ExtResource("3_vcsgt")]
+layout_mode = 2
+
+[node name="Cell4" parent="PanelFrame/HBoxContainer/CenterPanel/GridContainer" unique_id=983104876 instance=ExtResource("3_vcsgt")]
+layout_mode = 2
+
+[node name="Cell5" parent="PanelFrame/HBoxContainer/CenterPanel/GridContainer" unique_id=778298751 instance=ExtResource("3_vcsgt")]
+layout_mode = 2
+
+[node name="Cell6" parent="PanelFrame/HBoxContainer/CenterPanel/GridContainer" unique_id=1150587382 instance=ExtResource("3_vcsgt")]
+layout_mode = 2
+
+[node name="Cell7" parent="PanelFrame/HBoxContainer/CenterPanel/GridContainer" unique_id=1305644173 instance=ExtResource("3_vcsgt")]
+layout_mode = 2
+
+[node name="Cell8" parent="PanelFrame/HBoxContainer/CenterPanel/GridContainer" unique_id=597258329 instance=ExtResource("3_vcsgt")]
+layout_mode = 2
+
+[node name="Cell9" parent="PanelFrame/HBoxContainer/CenterPanel/GridContainer" unique_id=720394009 instance=ExtResource("3_vcsgt")]
+layout_mode = 2
+
+[node name="RightPanel" type="Panel" parent="PanelFrame/HBoxContainer" unique_id=2067071570]
+layout_mode = 2
+size_flags_horizontal = 3

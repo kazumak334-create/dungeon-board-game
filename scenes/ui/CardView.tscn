@@ -1,0 +1,129 @@
+[gd_scene format=3 uid="uid://bty068jy4ebcv"]
+
+[ext_resource type="Script" uid="uid://hh7hmlm7lfi" path="res://scripts/ui/card_view.gd" id="1_card_script"]
+[ext_resource type="Texture2D" uid="uid://btigqi7x6e1uo" path="res://assets/cards/frames/unit_common.jpg" id="2_44kbs"]
+[ext_resource type="FontFile" uid="uid://dteai20ljphge" path="res://assets/fonts/trajan.ttf" id="3_rpr8y"]
+
+[sub_resource type="Theme" id="Theme_44kbs"]
+
+[sub_resource type="Theme" id="Theme_2c40m"]
+
+[node name="CardView" type="Control" unique_id=2095033475]
+custom_minimum_size = Vector2(220, 320)
+layout_mode = 3
+anchors_preset = 0
+offset_right = 220.0
+offset_bottom = 320.0
+theme = SubResource("Theme_44kbs")
+script = ExtResource("1_card_script")
+
+[node name="FrameTexture" type="TextureRect" parent="." unique_id=824677711]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+texture = ExtResource("2_44kbs")
+expand_mode = 1
+
+[node name="OverlayRoot" type="Control" parent="." unique_id=1825631923]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="ManaLabel" type="Label" parent="OverlayRoot" unique_id=260005368]
+layout_mode = 0
+offset_left = 21.0
+offset_top = 27.0
+offset_right = 55.0
+offset_bottom = 58.0
+theme_override_font_sizes/font_size = 22
+text = "1"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="TopIcon" type="TextureRect" parent="OverlayRoot" unique_id=99111528]
+layout_mode = 0
+offset_left = 92.0
+offset_top = 10.0
+offset_right = 128.0
+offset_bottom = 46.0
+mouse_filter = 2
+expand_mode = 1
+
+[node name="NameLabel" type="Label" parent="OverlayRoot" unique_id=1479187178]
+layout_mode = 0
+offset_left = 111.0
+offset_top = 24.0
+offset_right = 196.0
+offset_bottom = 66.0
+theme = SubResource("Theme_2c40m")
+theme_override_colors/font_color = Color(0.92941177, 0.8901961, 0.78039217, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 2
+theme_override_fonts/font = ExtResource("3_rpr8y")
+theme_override_font_sizes/font_size = 18
+text = "SLIME"
+horizontal_alignment = 1
+vertical_alignment = 1
+autowrap_mode = 2
+clip_text = true
+
+[node name="ArtTexture" type="TextureRect" parent="OverlayRoot" unique_id=1107432849]
+layout_mode = 0
+offset_left = 42.0
+offset_top = 72.0
+offset_right = 177.0
+offset_bottom = 217.0
+mouse_filter = 2
+expand_mode = 1
+stretch_mode = 5
+
+[node name="EffectLabel" type="Label" parent="OverlayRoot" unique_id=395170551]
+layout_mode = 0
+offset_left = 32.0
+offset_top = 224.0
+offset_right = 196.0
+offset_bottom = 241.0
+theme_override_font_sizes/font_size = 12
+text = "合成素材になる基本ユニット"
+horizontal_alignment = 1
+autowrap_mode = 3
+
+[node name="StatRow" type="HBoxContainer" parent="OverlayRoot" unique_id=1075698618]
+layout_mode = 0
+offset_left = 35.0
+offset_top = 256.0
+offset_right = 200.0
+offset_bottom = 297.0
+theme_override_constants/separation = 26
+
+[node name="HpLabel" type="Label" parent="OverlayRoot/StatRow" unique_id=266656785]
+custom_minimum_size = Vector2(35, 35)
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "3"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="AtkLabel" type="Label" parent="OverlayRoot/StatRow" unique_id=1722675755]
+custom_minimum_size = Vector2(35, 35)
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "2"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="SpdLabel" type="Label" parent="OverlayRoot/StatRow" unique_id=939934128]
+custom_minimum_size = Vector2(35, 35)
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "1"
+horizontal_alignment = 1
+vertical_alignment = 1

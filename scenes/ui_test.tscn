@@ -1,0 +1,19 @@
+[gd_scene format=3 uid="uid://b7njkdhityxw1"]
+
+[ext_resource type="PackedScene" uid="uid://cbpgdedxe8mu7" path="res://scenes/headerbar.tscn" id="1_i6be1"]
+[ext_resource type="PackedScene" uid="uid://ndwktlohqo13" path="res://scenes/PanelFrame.tscn" id="2_3nyqi"]
+
+[node name="UITest" type="Control" unique_id=1878731235]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Headerbar" parent="." unique_id=905322913 instance=ExtResource("1_i6be1")]
+layout_mode = 1
+
+[node name="PanelFrame" parent="." unique_id=597636994 instance=ExtResource("2_3nyqi")]
+layout_mode = 1
+offset_top = 50.0

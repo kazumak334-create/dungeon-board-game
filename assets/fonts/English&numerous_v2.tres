@@ -1,0 +1,6 @@
+[gd_resource type="Theme" format=3 uid="uid://cvx86bfx4ugwc"]
+
+[ext_resource type="FontFile" uid="uid://dteai20ljphge" path="res://assets/fonts/trajan.ttf" id="1_483s8"]
+
+[resource]
+default_font = ExtResource("1_483s8")
