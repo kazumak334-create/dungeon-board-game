@@ -58,6 +58,7 @@ func _build_card_ui() -> void:
 
 	var vbox = VBoxContainer.new()
 	vbox.add_theme_constant_override("separation", 0)
+	vbox.mouse_filter = Control.MOUSE_FILTER_IGNORE  # タスク#8: 子ノードをクリック透過
 	bg.add_child(vbox)
 
 	# 上部60%: イラストエリア
@@ -65,12 +66,14 @@ func _build_card_ui() -> void:
 	var illust_area = ColorRect.new()
 	illust_area.custom_minimum_size = Vector2(CARD_W - 2, illust_h)
 	illust_area.color = card_color
+	illust_area.mouse_filter = Control.MOUSE_FILTER_IGNORE  # タスク#8: 子ノードをクリック透過
 	vbox.add_child(illust_area)
 
 	# 左上コストバッジ（イラストエリア上に重ねる）
 	var cost_badge = PanelContainer.new()
 	cost_badge.position = Vector2(4, 4)
 	cost_badge.custom_minimum_size = Vector2(COST_BADGE_SIZE, COST_BADGE_SIZE)
+	cost_badge.mouse_filter = Control.MOUSE_FILTER_IGNORE  # タスク#8: 子ノードをクリック透過
 	var badge_style = StyleBoxFlat.new()
 	badge_style.bg_color = Color(0.2, 0.3, 0.5)
 	badge_style.set_corner_radius_all(int(COST_BADGE_SIZE / 2))
@@ -81,6 +84,7 @@ func _build_card_ui() -> void:
 	cost_lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	cost_lbl.add_theme_font_size_override("font_size", 11)
 	cost_lbl.add_theme_color_override("font_color", Color(1, 1, 1))
+	cost_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE  # タスク#8: 子ノードをクリック透過
 	cost_badge.add_child(cost_lbl)
 	illust_area.add_child(cost_badge)
 
@@ -93,12 +97,14 @@ func _build_card_ui() -> void:
 		count_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 		count_lbl.add_theme_font_size_override("font_size", 11)
 		count_lbl.add_theme_color_override("font_color", Color(1, 0.9, 0.5))
+		count_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE  # タスク#8: 子ノードをクリック透過
 		illust_area.add_child(count_lbl)
 
 	# 下部40%: カード名・種族テキスト
 	var text_area = VBoxContainer.new()
 	text_area.custom_minimum_size = Vector2(CARD_W - 6, CARD_H - illust_h - 6)
 	text_area.add_theme_constant_override("separation", 2)
+	text_area.mouse_filter = Control.MOUSE_FILTER_IGNORE  # タスク#8: 子ノードをクリック透過
 
 	var name_lbl = Label.new()
 	name_lbl.text = card_name
@@ -106,6 +112,7 @@ func _build_card_ui() -> void:
 	name_lbl.add_theme_font_size_override("font_size", 11)
 	name_lbl.add_theme_color_override("font_color", Color(0.9, 0.85, 0.6))
 	name_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD
+	name_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE  # タスク#8: 子ノードをクリック透過
 	text_area.add_child(name_lbl)
 
 	# 種族・種類テキスト
@@ -116,6 +123,7 @@ func _build_card_ui() -> void:
 		race_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		race_lbl.add_theme_font_size_override("font_size", 9)
 		race_lbl.add_theme_color_override("font_color", Color(0.6, 0.6, 0.6))
+		race_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE  # タスク#8: 子ノードをクリック透過
 		text_area.add_child(race_lbl)
 
 	vbox.add_child(text_area)

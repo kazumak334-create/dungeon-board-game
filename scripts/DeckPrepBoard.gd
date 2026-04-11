@@ -402,9 +402,10 @@ func _build_spell_artifact_split() -> float:
 	var board_start_x = float(BOARD_X)
 	var ally_board_w = float(ROW_LABEL_W) + 3.0 * float(CELL_W + CELL_GAP)
 
-	# 項目3: 呪文デッキを盤面右側に縦長表示
+	# タスク#7: 呪文デッキを右端に寄せて余白を最小化
 	const SPELL_DECK_W = 200.0
-	var spell_deck_x = board_start_x + ally_board_w + float(CENTER_GAP)
+	var container_w = tab_container.size.x if tab_container else 860.0
+	var spell_deck_x = container_w - SPELL_DECK_W - 5.0  # 右端から5px余白
 	var spell_deck_y = float(CELLS_START_Y) - 20.0  # ラベル込みで上端揃え
 
 	# 呪文デッキ背景パネル（項目3: 存在感強化）
@@ -1099,14 +1100,20 @@ func try_drop_at_mouse(_tc: Control) -> void:
 	var mouse = main_node.get_viewport().get_mouse_position()
 	var local = mouse - _tc.global_position
 
-	# 自陣盤面のドロップ判定
-	for ri in range(3):
-		for ci in range(3):
-			var bx: float = BOARD_X + ROW_LABEL_W + ci * (CELL_W + CELL_GAP)
-			var by = CELLS_START_Y + ri * (CELL_H + CELL_GAP)
-			if local.x >= bx and local.x < bx + CELL_W and local.y >= by and local.y < by + CELL_H:
-				try_drop_card(_drag_source_idx, 0, ri, ci)
-				return
+	# タスク#6: 自陣盤面のドロップ判定（列のみ判定、行は自動で下から詰める）
+	var ally_board_left = float(BOARD_X) + float(ROW_LABEL_W)
+	var ally_board_w = 3.0 * float(CELL_W + CELL_GAP)
+	var board_top = float(CELLS_START_Y)
+	var board_h = 3.0 * float(CELL_H + CELL_GAP)
+
+	if local.x >= ally_board_left and local.x < ally_board_left + ally_board_w and \
+	   local.y >= board_top and local.y < board_top + board_h:
+		# 列を判定（どの列にドロップしたか）
+		var ci = int((local.x - ally_board_left) / float(CELL_W + CELL_GAP))
+		if ci >= 0 and ci < 3:
+			# タスク#6: 行は自動決定（-1を渡して下から詰める）
+			try_drop_card(_drag_source_idx, 0, -1, ci)
+			return
 
 	# 呪文デッキエリアのドロップ判定（row=0, col=-1）
 	var ally_board_w = float(ROW_LABEL_W) + 3.0 * float(CELL_W + CELL_GAP)
@@ -1132,6 +1139,20 @@ func try_drop_at_mouse(_tc: Control) -> void:
 
 func try_drop_card(idx: int, new_side: int, new_row: int, new_col: int) -> void:
 	var indices_to_move = _drag_group_indices if _drag_group_indices.size() > 0 else [idx]
+
+	# タスク#6: 盤面（col>=0）で行が未指定（-1）の場合、下から詰める
+	if new_col >= 0 and new_row == -1:
+		# その列の一番下の空いている行を探す（row=2 → 1 → 0の順）
+		var found_row = -1
+		for test_row in [2, 1, 0]:
+			var container = _cell_card_containers[new_side][test_row][new_col]
+			if container.get_child_count() == 0:
+				found_row = test_row
+				break
+		if found_row == -1:
+			# 列が満杯の場合、一番下（row=2）に強制配置（既存カードと入れ替え）
+			found_row = 2
+		new_row = found_row
 
 	# v2設計: 盤面（col>=0）にはユニットのみ配置可能、1マス1枚まで
 	if new_col >= 0:
