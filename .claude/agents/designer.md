@@ -1,11 +1,11 @@
 ---
-name: designer
+name: ui
 description: UI/UX企画・デザイン仕様策定・事後レビュー専門
 tools: [Read, Glob, Grep]
 model: sonnet
 ---
 
-# Designer Agent
+# UI Agent (Designer)
 
 ## 責務
 UI/UX企画作成（事前）・レビュー（事後）・改善指示

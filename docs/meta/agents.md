@@ -167,7 +167,7 @@ docs/meta/rejection_patterns.md のImplementer欄参照
 
 ---
 
-## Designer
+## UI
 
 ### 責務
 UI/UX企画作成（事前）・レビュー（事後）・改善指示
