@@ -41,6 +41,13 @@ const SPELL_HAND_SLOTS_COUNT = 6
 # 手持ちカードY（呪文デッキエリア下のオフセット）
 const SPELL_HAND_Y_OFFSET = 12
 
+# Architect要件定義: 手持ちエリア座標（呪文デッキ衝突回避）
+const HAND_AREA_Y = 390       # 手持ちエリアY座標
+const HAND_AREA_UNIT_X = 20   # ユニット手持ちX座標
+const HAND_AREA_SPELL_X = 340 # 呪文手持ちX座標
+const HAND_AREA_W = 310       # 各エリア幅
+const HAND_AREA_H = 150       # 各エリア高さ
+
 # カード詳細エリア定数（盤面左下）
 const CARD_DETAIL_W = 130   # 盤面1列分幅（约130px）
 const CARD_DETAIL_H = 200   # カード詳細高さ
@@ -452,7 +459,6 @@ func _build_spell_artifact_split() -> float:
 		tab_container.add_child(bar)
 
 	# 項目2: 手持ちカードを2エリアに分離（ユニット・呪文）
-	var hand_area_y = float(CELLS_START_Y) + 3.0 * float(CELL_H + CELL_GAP) + 4.0
 	var hand_cards = _build_hand_cards_list()
 
 	# ユニット・呪文に分離
@@ -471,42 +477,38 @@ func _build_spell_artifact_split() -> float:
 	# ユニットエリア（左側）
 	var unit_lbl = Label.new()
 	unit_lbl.text = "ユニット"
-	unit_lbl.position = Vector2(board_start_x, hand_area_y - 14.0)
+	unit_lbl.position = Vector2(HAND_AREA_UNIT_X, HAND_AREA_Y - 14.0)
 	unit_lbl.add_theme_font_size_override("font_size", 11)
 	unit_lbl.add_theme_color_override("font_color", Color(0.6, 0.7, 0.6))  # 緑系
 	unit_lbl.set_meta("hand_spell_area", true)
 	tab_container.add_child(unit_lbl)
 
-	var unit_container = _build_hand_card_container(unit_cards, board_start_x, hand_area_y)
+	var unit_container = _build_hand_card_container(unit_cards, HAND_AREA_UNIT_X, HAND_AREA_Y)
 	unit_container.set_meta("hand_spell_area", true)
 	tab_container.add_child(unit_container)
 
 	# 呪文エリア（右側）
-	var spell_hand_x = board_start_x + ally_board_w / 2.0 + 10.0
 	var spell_hand_lbl = Label.new()
 	spell_hand_lbl.text = "呪文"
-	spell_hand_lbl.position = Vector2(spell_hand_x, hand_area_y - 14.0)
+	spell_hand_lbl.position = Vector2(HAND_AREA_SPELL_X, HAND_AREA_Y - 14.0)
 	spell_hand_lbl.add_theme_font_size_override("font_size", 11)
 	spell_hand_lbl.add_theme_color_override("font_color", Color(0.6, 0.65, 0.85))  # 青系
 	spell_hand_lbl.set_meta("hand_spell_area", true)
 	tab_container.add_child(spell_hand_lbl)
 
-	var spell_hand_container = _build_hand_card_container(spell_hand_cards, spell_hand_x, hand_area_y)
+	var spell_hand_container = _build_hand_card_container(spell_hand_cards, HAND_AREA_SPELL_X, HAND_AREA_Y)
 	spell_hand_container.set_meta("hand_spell_area", true)
 	tab_container.add_child(spell_hand_container)
 
-	# 固定高さ（カード高さ130px + ホバー余白40px + ラベル余白）
-	var hand_area_h = 130.0 + 40.0 + float(SPELL_HAND_Y_OFFSET)
-
-	# 手持ちカード下境界線
+	# 手持ちカード下境界線（HAND_AREA_H使用）
 	var hand_border = ColorRect.new()
-	hand_border.position = Vector2(board_start_x, hand_area_y + hand_area_h - float(SPELL_HAND_Y_OFFSET))
+	hand_border.position = Vector2(HAND_AREA_UNIT_X, HAND_AREA_Y + HAND_AREA_H)
 	hand_border.size = Vector2(ally_board_w - float(BOARD_X), 1.0)
 	hand_border.color = Color(0.3, 0.35, 0.45, 0.7)
 	hand_border.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	tab_container.add_child(hand_border)
 
-	return hand_area_y + hand_area_h
+	return HAND_AREA_Y + HAND_AREA_H
 
 # ---- ⑥ 合成可能エリア（盤面直下・中央）+ ⑦ Yes/No確認省略トグル ----
 
@@ -889,6 +891,17 @@ func _build_hand_card_container(hand_cards: Array, start_x: float, start_y: floa
 	var container = Control.new()
 	container.position = Vector2(start_x, start_y)
 
+	# 空配列対応: 最小サイズは0
+	if hand_cards.size() == 0:
+		var empty_label = Label.new()
+		empty_label.text = "カードなし"
+		empty_label.position = Vector2(10.0, 10.0)
+		empty_label.add_theme_font_size_override("font_size", 10)
+		empty_label.add_theme_color_override("font_color", Color(0.4, 0.4, 0.5, 0.7))
+		container.add_child(empty_label)
+		container.custom_minimum_size = Vector2(100.0, CARD_H)
+		return container
+
 	var CardSlotScript = load("res://scripts/CardSlot.gd")
 
 	for i in range(hand_cards.size()):
@@ -918,8 +931,7 @@ func _build_hand_card_container(hand_cards: Array, start_x: float, start_y: floa
 		slot.card_hovered.connect(func(_s): slot.z_index = 100)
 		slot.card_unhovered.connect(func(_s): slot.z_index = original_z)
 
-	# 空配列対応: 最小サイズは0
-	var container_w = CARD_W + float(max(0, hand_cards.size() - 1)) * (CARD_W - OVERLAP_W) if hand_cards.size() > 0 else 0.0
+	var container_w = CARD_W + float(max(0, hand_cards.size() - 1)) * (CARD_W - OVERLAP_W)
 	container.custom_minimum_size = Vector2(container_w, CARD_H)
 	return container
 
@@ -1140,11 +1152,9 @@ func try_drop_at_mouse(_tc: Control) -> void:
 		return
 
 	# 手持ちカードエリアのドロップ判定（row=1, col=-1）
-	var hand_area_y = float(CELLS_START_Y) + 3.0 * float(CELL_H + CELL_GAP) + 4.0
 	var hand_area_w = ally_board_w - float(BOARD_X)
-	var hand_area_h = 120.0  # 手持ちカードエリアの高さ（概算）
 	if local.x >= float(BOARD_X) and local.x < float(BOARD_X) + hand_area_w and \
-	   local.y >= hand_area_y and local.y < hand_area_y + hand_area_h:
+	   local.y >= float(HAND_AREA_Y) and local.y < float(HAND_AREA_Y) + float(HAND_AREA_H):
 		try_drop_card(_drag_source_idx, 0, 1, -1)
 		return
 
