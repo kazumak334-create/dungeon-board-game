@@ -2141,6 +2141,384 @@
 			"skills": [],
 			"texture": ""
 		},
+		"Granob": {
+			"anim": "",
+			"rarity": "rare",
+			"atk": 1,
+			"col": 1,
+			"cost": 5,
+			"hp": 80,
+			"interval": 3,
+			"race": "スライム",
+			"range": "1行",
+			"sfx": "",
+			"skills": [
+				{
+					"trigger": "on_front_attack",
+					"target": "self",
+					"effect_id": "max_hp_boost",
+					"params": {
+						"amount": 5
+					}
+				},
+				{
+					"trigger": "on_support",
+					"target": "self",
+					"effect_id": "max_hp_boost_periodic",
+					"params": {
+						"amount": 3,
+						"interval": 1
+					}
+				}
+			],
+			"texture": "",
+			"roles": ["壁"]
+		},
+		"Amoeba": {
+			"anim": "",
+			"rarity": "common",
+			"atk": 2,
+			"col": 1,
+			"cost": 3,
+			"hp": 40,
+			"interval": 2,
+			"race": "スライム",
+			"range": "1行",
+			"sfx": "",
+			"skills": [
+				{
+					"trigger": "on_front_attack",
+					"target": "same_row_allies",
+					"effect_id": "heal",
+					"params": {
+						"amount": 10
+					}
+				},
+				{
+					"trigger": "on_support",
+					"target": "front_allies",
+					"effect_id": "heal_periodic",
+					"params": {
+						"amount": 3,
+						"interval": 1
+					}
+				}
+			],
+			"texture": "",
+			"roles": ["サポート"]
+		},
+		"Barbzel": {
+			"anim": "",
+			"rarity": "uncommon",
+			"atk": 5,
+			"col": 1,
+			"cost": 3,
+			"hp": 40,
+			"interval": 1,
+			"race": "スライム",
+			"range": "1行",
+			"sfx": "",
+			"skills": [
+				{
+					"trigger": "on_front_attack",
+					"target": "self",
+					"effect_id": "thorn_apply",
+					"params": {
+						"stacks": 1
+					}
+				},
+				{
+					"trigger": "on_support",
+					"target": "allies_with_thorn",
+					"effect_id": "shield_apply",
+					"params": {
+						"amount": 5
+					}
+				}
+			],
+			"texture": "",
+			"roles": ["攻撃", "サポート"]
+		},
+		"Jelfix": {
+			"anim": "",
+			"rarity": "common",
+			"atk": 0,
+			"col": 1,
+			"cost": 1,
+			"hp": 40,
+			"interval": 1,
+			"race": "スライム",
+			"range": "1行",
+			"sfx": "",
+			"skills": [
+				{
+					"trigger": "on_front_attack",
+					"target": "hit_target",
+					"effect_id": "poison_apply",
+					"params": {
+						"stacks": 1
+					}
+				},
+				{
+					"trigger": "on_support",
+					"target": "enemy_front_random",
+					"effect_id": "poison_apply_periodic",
+					"params": {
+						"stacks": 1,
+						"interval": 2
+					}
+				}
+			],
+			"texture": "",
+			"roles": ["サポート"]
+		},
+		"Mudblob": {
+			"anim": "",
+			"rarity": "uncommon",
+			"atk": 2,
+			"col": 1,
+			"cost": 3,
+			"hp": 40,
+			"interval": 2,
+			"race": "スライム",
+			"range": "1行",
+			"sfx": "",
+			"skills": [
+				{
+					"trigger": "on_front_attack",
+					"target": "hit_target",
+					"effect_id": "atk_debuff",
+					"params": {
+						"amount": 2,
+						"duration": 5
+					}
+				},
+				{
+					"trigger": "on_support",
+					"target": "enemies_with_poison",
+					"effect_id": "spd_debuff_by_poison",
+					"params": {
+						"factor": 0.1,
+						"duration": 3
+					}
+				}
+			],
+			"texture": "",
+			"roles": ["サポート"]
+		},
+		"Venpool": {
+			"anim": "",
+			"rarity": "rare",
+			"atk": 2,
+			"col": 1,
+			"cost": 3,
+			"hp": 20,
+			"interval": 4,
+			"race": "スライム",
+			"range": "1行",
+			"sfx": "",
+			"skills": [
+				{
+					"trigger": "on_front_attack",
+					"target": "hit_target",
+					"effect_id": "poison_amplify",
+					"params": {
+						"factor": 3
+					}
+				},
+				{
+					"trigger": "on_support",
+					"target": "enemies_with_poison",
+					"effect_id": "poison_amplify_all",
+					"params": {
+						"factor": 1.5
+					}
+				}
+			],
+			"texture": "",
+			"roles": ["サポート"]
+		},
+		"Plagzel": {
+			"anim": "",
+			"rarity": "uncommon",
+			"atk": 0,
+			"col": 1,
+			"cost": 1,
+			"hp": 40,
+			"interval": 1,
+			"race": "スライム",
+			"range": "1行",
+			"sfx": "",
+			"skills": [
+				{
+					"trigger": "on_front_attack",
+					"target": "hit_target",
+					"effect_id": "poison_add_if_poisoned",
+					"params": {
+						"stacks": 5
+					}
+				},
+				{
+					"trigger": "on_support",
+					"target": "enemy_front_random_poisoned",
+					"effect_id": "poison_add_periodic",
+					"params": {
+						"stacks": 5,
+						"interval": 2
+					}
+				}
+			],
+			"texture": "",
+			"roles": ["サポート"]
+		},
+		"Sparkblob": {
+			"anim": "",
+			"rarity": "uncommon",
+			"atk": 10,
+			"col": 1,
+			"cost": 1,
+			"hp": 20,
+			"interval": 0.5,
+			"race": "スライム",
+			"range": "1行",
+			"sfx": "",
+			"skills": [
+				{
+					"trigger": "on_support",
+					"target": "self",
+					"effect_id": "atk_boost_periodic",
+					"params": {
+						"amount": 0.5,
+						"interval": 1
+					}
+				}
+			],
+			"texture": "",
+			"roles": ["攻撃"]
+		},
+		"Crystel": {
+			"anim": "",
+			"rarity": "rare",
+			"atk": 2,
+			"col": 1,
+			"cost": 1,
+			"hp": 40,
+			"interval": 2,
+			"race": "スライム",
+			"range": "1行",
+			"sfx": "",
+			"skills": [
+				{
+					"trigger": "on_front_attack",
+					"target": "self",
+					"effect_id": "atk_boost_by_shield",
+					"params": {
+						"factor": 1
+					}
+				},
+				{
+					"trigger": "on_support",
+					"target": "self",
+					"effect_id": "shield_accumulate",
+					"params": {
+						"amount": 1,
+						"interval": 1
+					}
+				}
+			],
+			"texture": "",
+			"roles": ["攻撃"]
+		},
+		"Voidblob": {
+			"anim": "",
+			"rarity": "epic",
+			"atk": 0,
+			"col": 1,
+			"cost": 3,
+			"hp": 60,
+			"interval": 2,
+			"race": "スライム",
+			"range": "1行",
+			"sfx": "",
+			"skills": [
+				{
+					"trigger": "on_front_attack",
+					"target": "enemy_player",
+					"effect_id": "mana_drain",
+					"params": {
+						"amount": 3
+					}
+				},
+				{
+					"trigger": "on_support",
+					"target": "enemy_player",
+					"effect_id": "mana_drain_periodic",
+					"params": {
+						"amount": 3,
+						"interval": 2
+					}
+				},
+				{
+					"trigger": "passive",
+					"target": "self",
+					"effect_id": "max_hp_boost_by_mana_drained",
+					"params": {
+						"factor": 0.05
+					}
+				}
+			],
+			"texture": "",
+			"roles": ["サポート"],
+			"traits": ["mana_drain"]
+		},
+		"Glitzel": {
+			"anim": "",
+			"rarity": "rare",
+			"atk": 1,
+			"col": 1,
+			"cost": 3,
+			"hp": 40,
+			"interval": 3,
+			"race": "スライム",
+			"range": "1行",
+			"sfx": "",
+			"skills": [
+				{
+					"trigger": "on_support",
+					"target": "enemy_spell_slot_random",
+					"effect_id": "spell_seal",
+					"params": {
+						"duration": 3
+					}
+				}
+			],
+			"texture": "",
+			"roles": ["サポート"]
+		},
+		"Silenzel": {
+			"anim": "",
+			"rarity": "epic",
+			"atk": 1,
+			"col": 1,
+			"cost": 3,
+			"hp": 40,
+			"interval": 3,
+			"race": "スライム",
+			"range": "1行",
+			"sfx": "",
+			"skills": [
+				{
+					"trigger": "on_support",
+					"target": "all_units",
+					"effect_id": "heal_seal",
+					"params": {
+						"duration": 5
+					}
+				}
+			],
+			"texture": "",
+			"roles": ["サポート"]
+		},
 		"ホブゴブリン": {
 			"anim": "",
 			"rarity": "common",
@@ -2247,6 +2625,11 @@
 			"cost": 3,
 			"race": "獣",
 			"range": "1行",
+			"col": 1,
+			"rarity": "epic",
+			"texture": "",
+			"anim": "",
+			"sfx": "",
 			"skills": [
 				{
 					"trigger": "on_hit",
@@ -2264,6 +2647,11 @@
 			"cost": 4,
 			"race": "スライム",
 			"range": "1行",
+			"col": 2,
+			"rarity": "epic",
+			"texture": "",
+			"anim": "",
+			"sfx": "",
 			"skills": [
 				{
 					"trigger": "on_death",
@@ -2281,6 +2669,11 @@
 			"cost": 4,
 			"race": "スライム",
 			"range": "1行",
+			"col": 1,
+			"rarity": "epic",
+			"texture": "",
+			"anim": "",
+			"sfx": "",
 			"skills": [
 				{
 					"trigger": "on_hit",
@@ -2298,6 +2691,11 @@
 			"cost": 3,
 			"race": "アンデッド",
 			"range": "上下含む3行",
+			"col": 2,
+			"rarity": "epic",
+			"texture": "",
+			"anim": "",
+			"sfx": "",
 			"skills": [
 				{
 					"trigger": "on_hit",
@@ -2315,6 +2713,11 @@
 			"cost": 4,
 			"race": "アンデッド",
 			"range": "上下含む3行",
+			"col": 2,
+			"rarity": "epic",
+			"texture": "",
+			"anim": "",
+			"sfx": "",
 			"skills": [
 				{
 					"trigger": "on_hit",

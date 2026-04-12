@@ -130,4 +130,27 @@ const EFFECTS: Dictionary = {
 
 	# ---- アーティファクト用召喚（random_empty_ally） ----
 	"summon_to_empty":   {"type": "summon_to_empty", "unit_id": "スライム", "display": "空きマス召喚", "texture": "", "anim": "", "sfx": ""},
+
+	# ---- スライムカード専用効果 ----
+	"max_hp_boost":                {"type": "stat_boost",           "hp": 5,                                     "display": "最大HP上昇", "texture": "", "anim": "", "sfx": ""},
+	"max_hp_boost_periodic":       {"type": "stat_boost_periodic",  "hp": 3, "interval": 1.0,                   "display": "継続HP上昇", "texture": "", "anim": "", "sfx": ""},
+	"heal":                        {"type": "heal",                 "amount": 10,                                "display": "HP回復", "texture": "", "anim": "", "sfx": ""},
+	"heal_periodic":               {"type": "heal_periodic",        "amount": 3, "interval": 1.0,               "display": "継続回復", "texture": "", "anim": "", "sfx": ""},
+	"thorn_apply":                 {"type": "buff_apply",           "buff": "thorn", "stacks": 1,               "display": "棘付与", "texture": "", "anim": "", "sfx": ""},
+	"shield_apply":                {"type": "buff_apply",           "buff": "shield", "stacks": 5,              "display": "盾付与", "texture": "", "anim": "", "sfx": ""},
+	"poison_apply_periodic":       {"type": "debuff_apply_periodic","status": "poison", "stacks": 1, "interval": 2.0, "display": "継続毒付与", "texture": "", "anim": "", "sfx": ""},
+	"atk_debuff":                  {"type": "debuff_apply",         "status": "atk_down", "stacks": 2, "duration": 5.0, "display": "ATK低下", "texture": "", "anim": "", "sfx": ""},
+	"spd_debuff_by_poison":        {"type": "debuff_conditional",   "status": "spd_down", "factor": 0.1, "duration": 3.0, "display": "毒依存SPD低下", "texture": "", "anim": "", "sfx": ""},
+	"poison_amplify":              {"type": "poison_amplify",       "factor": 3.0,                               "display": "毒増幅", "texture": "", "anim": "", "sfx": ""},
+	"poison_amplify_all":          {"type": "poison_amplify_all",   "factor": 1.5,                               "display": "全体毒増幅", "texture": "", "anim": "", "sfx": ""},
+	"poison_add_if_poisoned":      {"type": "poison_add_conditional", "stacks": 5,                              "display": "条件付き毒追加", "texture": "", "anim": "", "sfx": ""},
+	"poison_add_periodic":         {"type": "poison_add_periodic",  "stacks": 5, "interval": 2.0,               "display": "継続毒追加", "texture": "", "anim": "", "sfx": ""},
+	"atk_boost_periodic":          {"type": "atk_boost_periodic",   "amount": 0.5, "interval": 1.0,             "display": "継続ATK上昇", "texture": "", "anim": "", "sfx": ""},
+	"atk_boost_by_shield":         {"type": "atk_boost_conditional","factor": 1.0,                               "display": "シールド依存ATK", "texture": "", "anim": "", "sfx": ""},
+	"shield_accumulate":           {"type": "shield_accumulate",    "amount": 1, "interval": 1.0,               "display": "シールド蓄積", "texture": "", "anim": "", "sfx": ""},
+	"mana_drain":                  {"type": "mana_drain",           "amount": 3,                                 "display": "マナ減少", "texture": "", "anim": "", "sfx": ""},
+	"mana_drain_periodic":         {"type": "mana_drain_periodic",  "amount": 3, "interval": 2.0,               "display": "継続マナ減少", "texture": "", "anim": "", "sfx": ""},
+	"max_hp_boost_by_mana_drained":{"type": "stat_boost_conditional", "factor": 0.05,                           "display": "マナ減少依存HP", "texture": "", "anim": "", "sfx": ""},
+	"spell_seal":                  {"type": "spell_seal",           "duration": 3.0,                             "display": "呪文封印", "texture": "", "anim": "", "sfx": ""},
+	"heal_seal":                   {"type": "heal_seal",            "duration": 5.0,                             "display": "回復封印", "texture": "", "anim": "", "sfx": ""},
 }
