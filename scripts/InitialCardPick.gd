@@ -206,7 +206,25 @@ func _bind_card(view: CardView, card_name: String) -> void:
 	view.atk = data.get("atk", 0)
 	view.spd = int(data.get("interval", 1.0))
 	view.card_kind = CardView.CardKind.UNIT
-	
+
+	# レアリティ設定
+	var rarity_str = data.get("rarity", "common").to_lower()
+	match rarity_str:
+		"common":
+			view.rarity = CardView.Rarity.COMMON
+		"uncommon":
+			view.rarity = CardView.Rarity.UNCOMMON
+		"rare":
+			view.rarity = CardView.Rarity.RARE
+		"epic":
+			view.rarity = CardView.Rarity.EPIC
+		"legend":
+			view.rarity = CardView.Rarity.LEGEND
+		"god":
+			view.rarity = CardView.Rarity.GOD
+		_:
+			view.rarity = CardView.Rarity.COMMON
+
 	var tex_path = "res://assets/cards/units/%s.png" % card_name.to_lower().replace(" ", "_")
 	if ResourceLoader.exists(tex_path):
 		view.art_texture = load(tex_path)

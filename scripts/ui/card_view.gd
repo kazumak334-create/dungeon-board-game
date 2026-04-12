@@ -2,11 +2,26 @@ extends Control
 class_name CardView
 
 enum CardKind { UNIT, SPELL }
+enum Rarity { COMMON, UNCOMMON, RARE, EPIC, LEGEND, GOD }
+
+const FRAME_TEXTURES = {
+	Rarity.COMMON:   "res://assets/cards/frames/unit_common_320.png",
+	Rarity.UNCOMMON: "res://assets/cards/frames/unit_uncommon_320.png",
+	Rarity.RARE:     "res://assets/cards/frames/unit_rare_320.png",
+	Rarity.EPIC:     "res://assets/cards/frames/unit_epic_320.png",
+	Rarity.LEGEND:   "res://assets/cards/frames/unit_legend_320.png",
+	Rarity.GOD:      "res://assets/cards/frames/unit_god_320.png",
+}
 
 @export var card_kind: CardKind = CardKind.UNIT:
 	set(value):
 		card_kind = value
 		_apply_kind()
+
+@export var rarity: Rarity = Rarity.COMMON:
+	set(value):
+		rarity = value
+		_update_frame()
 
 @export var mana: int = 1:
 	set(value):
@@ -57,10 +72,9 @@ enum CardKind { UNIT, SPELL }
 			$OverlayRoot/ArtTexture.texture = art_texture
 
 func _ready() -> void:
+	_update_frame()
 	_update_text()
 	_apply_kind()
-	if frame_texture:
-		$FrameTexture.texture = frame_texture
 	if top_icon_texture:
 		$OverlayRoot/TopIcon.texture = top_icon_texture
 	if art_texture:
@@ -71,7 +85,8 @@ func _update_text() -> void:
 		return
 	$OverlayRoot/ManaLabel.text = str(mana)
 	$OverlayRoot/NameLabel.text = card_name
-	$OverlayRoot/EffectLabel.text = effect_text
+	if has_node("OverlayRoot/EffectLabel"):
+		$OverlayRoot/EffectLabel.text = effect_text
 	$OverlayRoot/StatRow/HpLabel.text = str(hp)
 	$OverlayRoot/StatRow/AtkLabel.text = str(atk)
 	$OverlayRoot/StatRow/SpdLabel.text = str(spd)
@@ -80,3 +95,13 @@ func _apply_kind() -> void:
 	if not has_node("OverlayRoot/StatRow"):
 		return
 	$OverlayRoot/StatRow.visible = card_kind == CardKind.UNIT
+
+func _update_frame() -> void:
+	if not has_node("FrameTexture"):
+		return
+	# frame_textureが明示的に設定されている場合はそちらを優先
+	if frame_texture:
+		$FrameTexture.texture = frame_texture
+	else:
+		# レアリティに応じたフレームを自動設定
+		$FrameTexture.texture = load(FRAME_TEXTURES[rarity])
