@@ -2,6 +2,13 @@
 
 ## 2026-04-12
 
+### Phase 2 完了宣言
+
+**Phase 2（画面ループ）完了**
+- 全タスク（#1-6）実装完了
+- 1ランを通しで遊べる状態を達成
+- Title → MaterialSelect → MapSelect → DeckPrep → Battle → Result → BossReward のフロー確立
+
 ### Phase 3→4 移行：タスク整理・バランス調整計画策定
 
 **Phase 3 完了宣言**
