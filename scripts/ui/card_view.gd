@@ -13,6 +13,15 @@ const FRAME_TEXTURES = {
 	Rarity.GOD:      "res://assets/cards/frames/unit_god_320.png",
 }
 
+const RARITY_FONTS = {
+	Rarity.COMMON:   "res://assets/fonts/bronze_font.fnt",
+	Rarity.UNCOMMON: "res://assets/fonts/bronze_font.fnt",
+	Rarity.RARE:     "res://assets/fonts/silver_font.fnt",
+	Rarity.EPIC:     "res://assets/fonts/silver_font.fnt",
+	Rarity.LEGEND:   "res://assets/fonts/gold_font.fnt",
+	Rarity.GOD:      "res://assets/fonts/gold_font.fnt",
+}
+
 @export var card_kind: CardKind = CardKind.UNIT:
 	set(value):
 		card_kind = value
@@ -84,7 +93,8 @@ func _update_text() -> void:
 	if not has_node("OverlayRoot/ManaLabel"):
 		return
 	$OverlayRoot/ManaLabel.text = str(mana)
-	$OverlayRoot/NameLabel.text = card_name
+	# ビットマップフォントは大文字のみ対応のため必ずto_upper()を通す
+	$OverlayRoot/NameLabel.text = card_name.to_upper()
 	if has_node("OverlayRoot/EffectLabel"):
 		$OverlayRoot/EffectLabel.text = effect_text
 	$OverlayRoot/StatRow/HpLabel.text = str(hp)
@@ -105,3 +115,8 @@ func _update_frame() -> void:
 	else:
 		# レアリティに応じたフレームを自動設定
 		$FrameTexture.texture = load(FRAME_TEXTURES[rarity])
+
+	# レアリティに応じたフォントを設定
+	if has_node("OverlayRoot/NameLabel"):
+		var font = load(RARITY_FONTS[rarity])
+		$OverlayRoot/NameLabel.add_theme_font_override("font", font)
