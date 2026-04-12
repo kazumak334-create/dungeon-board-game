@@ -36,7 +36,7 @@ func _ready() -> void:
 func _build_ui() -> void:
 	UIF.add_bg(self, UIColors.BG)
 	_taskbar = TaskbarClass.new()
-	_taskbar.setup(self, "material_select")
+	_taskbar.attach(self, "material_select")
 	UIF.add_title(self, "初期デッキ編成", 10, 24, UIColors.TITLE)
 	_build_progress_bar()
 	_build_card_choices()

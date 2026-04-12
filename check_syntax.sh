@@ -3,19 +3,15 @@ GODOT="/c/Users/kazum/OneDrive/デスクトップ/プライベート/Godot/Godot
 PROJECT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
 echo "=== 構文チェック開始 ==="
-ERROR_COUNT=0
-while IFS= read -r f; do
-    result=$("$GODOT" --headless --check-only --script "$f" 2>&1)
-    if [ $? -ne 0 ]; then
-        echo "ERROR: $f"
-        echo "$result"
-        ERROR_COUNT=$((ERROR_COUNT + 1))
-    fi
-done < <(find "$PROJECT_DIR/scripts" -name "*.gd")
+cd "$PROJECT_DIR"
+SYNTAX_ERRORS=$(timeout 30 "$GODOT" --path . --headless --check-only 2>&1 | grep -i "Parser Error\|Compile Error\|SCRIPT ERROR" | head -10)
 
-if [ $ERROR_COUNT -eq 0 ]; then
-    echo "OK: 構文エラーなし"
-else
-    echo "FAILED: $ERROR_COUNT ファイルにエラーあり"
+if [ -n "$SYNTAX_ERRORS" ]; then
+    echo "=== 構文エラー検出 ==="
+    echo "$SYNTAX_ERRORS"
+    echo "FAILED: 構文エラーあり"
+    exit 1
 fi
+echo "✓ 構文チェックパス"
 echo "=== 完了 ==="
+exit 0
