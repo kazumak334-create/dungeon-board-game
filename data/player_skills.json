@@ -50,8 +50,8 @@
 			"display_name": "マッドサイエンティスト",
 			"display_name_en": "MAD SCIENTIST",
 			"description": "バトル開始時、自分・敵の前列マス（col=0）を全て毒沼にする。",
-			"tier": 4,
-			"sp_cost": 20,
+			"tier": 3,
+			"sp_cost": 15,
 			"trigger": "battle_start",
 			"effect_id": "convert_front_row_to_poison",
 			"params": {
