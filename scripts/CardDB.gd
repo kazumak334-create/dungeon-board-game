@@ -22,6 +22,7 @@ var EVENTS: Dictionary = {}  # イベント（StS風ランダムイベント）
 var BOSS_DECKS: Dictionary = {}
 var BOSS_EXCLUSIVE_UNITS: Dictionary = {}
 var TRAITS: Dictionary = {}  # 特性（カード固有、アーティファクト付与、低確率生成時付与）
+var PLAYER_SKILLS: Dictionary = {}  # プレイヤースキル（スキルツリーで解放）
 
 func _ready() -> void:
 	var file = FileAccess.open("res://data/cards.json", FileAccess.READ)
@@ -61,6 +62,9 @@ func _ready() -> void:
 	# 特性データ読み込み
 	_load_traits()
 
+	# プレイヤースキルデータ読み込み
+	_load_player_skills()
+
 func _load_traits() -> void:
 	var file = FileAccess.open("res://data/traits.json", FileAccess.READ)
 	if file == null:
@@ -74,3 +78,17 @@ func _load_traits() -> void:
 		return
 	TRAITS = data.get("traits", {})
 	print("[CardDB] Loaded %d traits" % TRAITS.size())
+
+func _load_player_skills() -> void:
+	var file = FileAccess.open("res://data/player_skills.json", FileAccess.READ)
+	if file == null:
+		print("[CardDB] WARNING: data/player_skills.json not found")
+		return
+	var json_text = file.get_as_text()
+	file.close()
+	var data = JSON.parse_string(json_text)
+	if data == null:
+		print("[CardDB] ERROR: player_skills.json parse failed")
+		return
+	PLAYER_SKILLS = data.get("player_skills", {})
+	print("[CardDB] Loaded %d player skills" % PLAYER_SKILLS.size())

@@ -1,0 +1,66 @@
+{
+	"_comment": "プレイヤースキル定義DB - スキルツリーで解放可能な能力",
+	"player_skills": {
+		"scout": {
+			"display_name": "スカウト",
+			"display_name_en": "SCOUT",
+			"description": "戦闘後、敵の群れ特性持ちユニットのうち最もレアリティの高いユニットを手持ちカードに加える。",
+			"tier": 5,
+			"sp_cost": 25,
+			"trigger": "battle_end",
+			"effect_id": "add_swarm_unit_to_deck",
+			"params": {
+				"target": "enemy_highest_rarity_with_swarm"
+			},
+			"category": "card_acquisition",
+			"icon_path": "res://assets/ui/skills/scout.png"
+		},
+		"cell_division": {
+			"display_name": "細胞分裂",
+			"display_name_en": "CELL DIVISION",
+			"description": "スライム属性カード入手時に50%の確率でもう1枚同じカードを入手する。",
+			"tier": 5,
+			"sp_cost": 25,
+			"trigger": "on_card_gain",
+			"effect_id": "duplicate_card_on_gain",
+			"params": {
+				"race_filter": "スライム",
+				"chance": 0.5
+			},
+			"category": "card_acquisition",
+			"icon_path": "res://assets/ui/skills/cell_division.png"
+		},
+		"blood_rage": {
+			"display_name": "血の暴走",
+			"display_name_en": "BLOOD RAGE",
+			"description": "10秒ごとにプレイヤーHPに10ダメージ。自分前列のユニット全てのATK+5。",
+			"tier": 3,
+			"sp_cost": 15,
+			"trigger": "periodic",
+			"effect_id": "damage_self_buff_front_row",
+			"params": {
+				"interval": 10.0,
+				"self_damage": 10,
+				"front_row_atk_bonus": 5
+			},
+			"category": "high_risk_high_return",
+			"icon_path": "res://assets/ui/skills/blood_rage.png"
+		},
+		"mad_scientist": {
+			"display_name": "マッドサイエンティスト",
+			"display_name_en": "MAD SCIENTIST",
+			"description": "バトル開始時、自分・敵の前列マス（col=0）を全て毒沼にする。",
+			"tier": 4,
+			"sp_cost": 20,
+			"trigger": "battle_start",
+			"effect_id": "convert_front_row_to_poison",
+			"params": {
+				"target_sides": ["player", "enemy"],
+				"target_col": 0,
+				"tile_effect": "poison_swamp"
+			},
+			"category": "board_control",
+			"icon_path": "res://assets/ui/skills/mad_scientist.png"
+		}
+	}
+}
