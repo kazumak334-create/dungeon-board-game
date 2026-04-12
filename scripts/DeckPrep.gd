@@ -7,16 +7,9 @@ extends Control
 
 const UIF = preload("res://scripts/UIFactory.gd")
 const TaskbarClass = preload("res://scripts/CommonTaskbar.gd")
+const UIColors = preload("res://scripts/ui/UIColors.gd")
 
-# 色彩設計（企画書3節準拠・MaterialSelect.gd踏襲）
-const COLOR_BG          := Color(0.08, 0.08, 0.12)  # 背景
-const COLOR_SIDE_PANEL  := Color(0.07, 0.07, 0.11)  # 左右パネル背景（中央より暗く）
-const COLOR_PANEL       := Color(0.13, 0.13, 0.2)   # 中央パネル背景
-const COLOR_BORDER      := Color(0.3, 0.3, 0.4)     # 枠線（通常）
-const COLOR_TITLE       := Color(0.9, 0.85, 0.6)    # タイトル文字
-const COLOR_TEXT        := Color(0.8, 0.8, 0.8)     # 通常テキスト
-const COLOR_SELECTED    := Color(0.9, 0.75, 0.3)    # 選択中ハイライト
-const COLOR_DIM         := Color(0.5, 0.5, 0.5)     # タブ非選択
+# 色彩設計（UIColors.gd参照）
 
 var _taskbar: RefCounted = null
 var _PL = null
@@ -97,12 +90,12 @@ func _build_ui() -> void:
 # ===== 左サイドバー =====
 
 func _build_sidebar() -> void:
-	# サイドバー背景（企画書3節: COLOR_SIDE_PANEL使用）
+	# サイドバー背景（企画書3節: UIColors.COLOR_SIDE_PANEL使用）
 	var sidebar_panel = UIF.create_panel(
 		Vector2(SIDEBAR_X, SIDEBAR_Y),
 		Vector2(SIDEBAR_W, SIDEBAR_H),
-		COLOR_SIDE_PANEL,  # 左右パネルは中央より暗く
-		COLOR_BORDER,
+		UIColors.COLOR_SIDE_PANEL,  # 左右パネルは中央より暗く
+		UIColors.COLOR_BORDER,
 		1,
 		4
 	)
@@ -142,26 +135,26 @@ func _build_status_area() -> void:
 	header.text = "ステータス"
 	header.position = Vector2(base_x, cy)
 	header.add_theme_font_size_override("font_size", 14)
-	header.add_theme_color_override("font_color", COLOR_TITLE)
+	header.add_theme_color_override("font_color", UIColors.COLOR_TITLE)
 	add_child(header)
 	cy += 24
 
 	# 項目8: グループ間を区切り線+12px余白で分割
 	# グループ1: クラス基本情報
 	var group1 = [
-		["%s" % cls.get("display", "---"), COLOR_TITLE],
-		["HP: 30", COLOR_TEXT],
+		["%s" % cls.get("display", "---"), UIColors.COLOR_TITLE],
+		["HP: 30", UIColors.COLOR_TEXT],
 		["マナ: %.0f / %d" % [cls.get("initial_mana", 3), int(cls.get("mana_max", 10))], Color(0.5, 0.7, 0.9)],
 		["リジェネ: %.1f/s" % mana_regen, Color(0.5, 0.7, 0.9)],
-		["盤面マナ: 0", COLOR_SELECTED],  # タスク#4: 盤面総マナ表示
+		["盤面マナ: 0", UIColors.COLOR_SELECTED],  # タスク#4: 盤面総マナ表示
 	]
 	# グループ2: デッキ情報
 	var group2 = [
-		["デッキ: %d枚" % deck_size, COLOR_TEXT],
+		["デッキ: %d枚" % deck_size, UIColors.COLOR_TEXT],
 		["  ユニット: %d枚" % unit_count, Color(0.6, 0.7, 0.6)],
 		["  呪文: %d枚" % spell_count, Color(0.6, 0.6, 0.8)],
-		["平均コスト: %.1f" % avg_cost, COLOR_TITLE],
-		["循環: 約%.0f秒/周" % cycle_time, COLOR_TITLE],
+		["平均コスト: %.1f" % avg_cost, UIColors.COLOR_TITLE],
+		["循環: 約%.0f秒/周" % cycle_time, UIColors.COLOR_TITLE],
 	]
 	# グループ3: 所持情報
 	var group3 = [
@@ -203,12 +196,12 @@ func _process(delta: float) -> void:
 # ===== 右パネル（カード詳細専用） =====
 
 func _build_info_lane() -> void:
-	# 右パネル（企画書4.5節: カード詳細専用、背景=COLOR_SIDE_PANEL、枠線=COLOR_BORDER）
+	# 右パネル（企画書4.5節: カード詳細専用、背景=UIColors.COLOR_SIDE_PANEL、枠線=UIColors.COLOR_BORDER）
 	var info_panel = UIF.create_panel(
 		Vector2(INFO_X, INFO_Y),
 		Vector2(INFO_W, INFO_H),
-		COLOR_SIDE_PANEL,  # 左右パネルは中央より暗く
-		COLOR_BORDER,
+		UIColors.COLOR_SIDE_PANEL,  # 左右パネルは中央より暗く
+		UIColors.COLOR_BORDER,
 		1,
 		4
 	)

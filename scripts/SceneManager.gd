@@ -22,7 +22,7 @@ const SETTINGS       = "settings"
 # シーン登録
 var _scenes: Dictionary = {
 	"title": "res://scenes/Title.tscn",
-	"material_select": "res://scenes/MaterialSelect.tscn",
+	"material_select": "res://scenes/InitialCardPick.tscn",
 	"deck_prep": "res://scenes/DeckPrep.tscn",
 	"map_select": "res://scenes/MapSelect.tscn",
 	"battle": "res://scenes/Main.tscn",
