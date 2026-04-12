@@ -23,10 +23,10 @@ const GRID_OFFSET_Y = 44   # ソートタブ(32px) + 余白(12px)
 # ソートタブ定義
 const SORT_TABS = [
 	{"id": "all",       "label": "全体"},
-	{"id": "equipment", "label": "装備"},
-	{"id": "normal",    "label": "素材"},
-	{"id": "cursed",    "label": "呪い"},
-	{"id": "consumable","label": "消費"},
+	{"id": "common",    "label": "Common"},
+	{"id": "uncommon",  "label": "Uncommon"},
+	{"id": "rare",      "label": "Rare"},
+	{"id": "boss",      "label": "Boss"},
 ]
 
 func _ready() -> void:
@@ -81,35 +81,33 @@ func _set_filter(filter: String) -> void:
 
 func _get_filtered_items() -> Array:
 	var result: Array = []
-	if _selected_filter == "all" or _selected_filter == "equipment":
-		pass  # 将来: GameSession.equipment から生成
-	if _selected_filter != "equipment":
-		for mat in CardDB.MATERIALS:
-			var is_cursed = mat.get("is_cursed", false)
-			var is_consumable = mat.get("is_consumable", false)
-			var count = _count_owned(mat.get("id", ""))
-			if count <= 0:
-				continue
-			match _selected_filter:
-				"all":
-					result.append({"type": "material", "data": mat, "count": count})
-				"normal":
-					if not is_cursed and not is_consumable:
-						result.append({"type": "material", "data": mat, "count": count})
-				"cursed":
-					if is_cursed:
-						result.append({"type": "material", "data": mat, "count": count})
-				"consumable":
-					if is_consumable:
-						result.append({"type": "material", "data": mat, "count": count})
+	for relic_id in GameSession.relics:
+		var relic_data = _get_relic_data(relic_id)
+		if relic_data.is_empty():
+			continue
+		var rarity = relic_data.get("rarity", "common")
+		match _selected_filter:
+			"all":
+				result.append({"type": "relic", "data": relic_data})
+			"common":
+				if rarity == "common":
+					result.append({"type": "relic", "data": relic_data})
+			"uncommon":
+				if rarity == "uncommon":
+					result.append({"type": "relic", "data": relic_data})
+			"rare":
+				if rarity == "rare":
+					result.append({"type": "relic", "data": relic_data})
+			"boss":
+				if rarity == "boss":
+					result.append({"type": "relic", "data": relic_data})
 	return result
 
-func _count_owned(mat_id: String) -> int:
-	var count = 0
-	for m in GameSession.materials:
-		if m is Dictionary and m.get("id", "") == mat_id:
-			count += 1
-	return count
+func _get_relic_data(relic_id: String) -> Dictionary:
+	if CardDB.RELICS.has(relic_id):
+		return CardDB.RELICS[relic_id]
+	return {}
+
 
 func _build_grid() -> void:
 	var items = _get_filtered_items()
@@ -130,16 +128,21 @@ func _build_item_cell(item: Dictionary, x: int, y: int) -> void:
 	panel.position = Vector2(x, y)
 	panel.size = Vector2(CELL_SIZE, CELL_SIZE)
 	var style = StyleBoxFlat.new()
-	var item_type = item.get("type", "material")
-	var is_cursed = item["data"].get("is_cursed", false) if item_type == "material" else false
+	var rarity = item["data"].get("rarity", "common")
 	style.bg_color = Color(0.12, 0.12, 0.18)
-	if item_type == "equipment":
-		style.border_color = Color(0.6, 0.5, 0.2)
-	elif is_cursed:
-		style.border_color = Color(0.8, 0.3, 0.5)
-	else:
-		style.border_color = Color(0.3, 0.5, 0.7)
-	style.set_border_width_all(1)
+	# レアリティ別の枠線色
+	match rarity:
+		"common":
+			style.border_color = Color(0.6, 0.6, 0.6)  # グレー
+		"uncommon":
+			style.border_color = Color(0.3, 0.7, 0.4)  # 緑
+		"rare":
+			style.border_color = Color(0.4, 0.5, 0.9)  # 青
+		"boss":
+			style.border_color = Color(0.9, 0.4, 0.2)  # オレンジ
+		_:
+			style.border_color = Color(0.5, 0.5, 0.5)
+	style.set_border_width_all(2)
 	style.set_corner_radius_all(4)
 	panel.add_theme_stylebox_override("panel", style)
 	_content_container.add_child(panel)
@@ -151,22 +154,21 @@ func _build_item_cell(item: Dictionary, x: int, y: int) -> void:
 	icon_bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	panel.add_child(icon_bg)
 
-	var count = item.get("count", 1)
-	if count >= 2:
-		var stack_lbl = Label.new()
-		stack_lbl.text = "×%d" % count
-		stack_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-		stack_lbl.position = Vector2(2, CELL_SIZE - 16)
-		stack_lbl.size = Vector2(CELL_SIZE - 4, 14)
-		stack_lbl.add_theme_font_size_override("font_size", 9)
-		stack_lbl.add_theme_color_override("font_color", Color(0.9, 0.85, 0.5))
-		stack_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		panel.add_child(stack_lbl)
+	# レリック名表示
+	var name_lbl = Label.new()
+	name_lbl.text = item["data"].get("display", "???")
+	name_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	name_lbl.position = Vector2(2, CELL_SIZE - 16)
+	name_lbl.size = Vector2(CELL_SIZE - 4, 14)
+	name_lbl.add_theme_font_size_override("font_size", 8)
+	name_lbl.add_theme_color_override("font_color", Color(0.9, 0.85, 0.5))
+	name_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	panel.add_child(name_lbl)
 
-	var mat_ref = item["data"]
+	var relic_ref = item["data"]
 	panel.gui_input.connect(func(event: InputEvent):
 		if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
-			_selected_material = mat_ref
+			_selected_material = relic_ref
 	)
 
 func _build_empty_cell(x: int, y: int) -> void:

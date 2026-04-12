@@ -168,7 +168,7 @@
 		}
 	],
 	"enemy_pools": {
-		"1": [
+		"act1_weak": [
 			{"name": "スライム", "col": 1},
 			{"name": "スケルトン", "col": 0},
 			{"name": "ゴブリン", "col": 0},
@@ -177,7 +177,34 @@
 			{"name": "スケルトン", "col": 2},
 			{"name": "ゴブリン", "col": 2}
 		],
-		"2": [
+		"act1_enhanced1": [
+			{"name": "マッドスライム", "col": 1},
+			{"name": "スケルトン", "col": 0},
+			{"name": "ゴブリン", "col": 1},
+			{"name": "スライム", "col": 2},
+			{"name": "マッドスライム", "col": 0},
+			{"name": "スケルトン", "col": 2},
+			{"name": "ゴブリン", "col": 1}
+		],
+		"act1_enhanced2": [
+			{"name": "マッドスライム", "col": 1},
+			{"name": "グール", "col": 0},
+			{"name": "ウルフ", "col": 1},
+			{"name": "スライム", "col": 2},
+			{"name": "マッドスライム", "col": 0},
+			{"name": "ゴブリン", "col": 2},
+			{"name": "スケルトン", "col": 1}
+		],
+		"act1_enhanced3": [
+			{"name": "グール", "col": 1},
+			{"name": "ウルフ", "col": 0},
+			{"name": "マッドスライム", "col": 1},
+			{"name": "ブラッドスライム", "col": 2},
+			{"name": "グール", "col": 0},
+			{"name": "ウルフ", "col": 2},
+			{"name": "マッドスライム", "col": 1}
+		],
+		"act2_weak": [
 			{"name": "グール", "col": 1},
 			{"name": "ウルフ", "col": 1},
 			{"name": "ブラッドスライム", "col": 2},
@@ -186,7 +213,34 @@
 			{"name": "ウルフ", "col": 0},
 			{"name": "マッドスライム", "col": 1}
 		],
-		"3": [
+		"act2_enhanced1": [
+			{"name": "グール", "col": 1},
+			{"name": "ウルフ", "col": 0},
+			{"name": "ブラッドスライム", "col": 2},
+			{"name": "バンシー", "col": 1},
+			{"name": "グール", "col": 0},
+			{"name": "ウルフ", "col": 2},
+			{"name": "ブラッドスライム", "col": 1}
+		],
+		"act2_enhanced2": [
+			{"name": "バンシー", "col": 1},
+			{"name": "ブラッドスライム", "col": 0},
+			{"name": "タイガー", "col": 2},
+			{"name": "グール", "col": 1},
+			{"name": "バンシー", "col": 0},
+			{"name": "ウルフ", "col": 2},
+			{"name": "ブラッドスライム", "col": 1}
+		],
+		"act2_enhanced3": [
+			{"name": "タイガー", "col": 1},
+			{"name": "バンシー", "col": 0},
+			{"name": "ブラッドスライム", "col": 2},
+			{"name": "タイガー", "col": 1},
+			{"name": "バンシー", "col": 0},
+			{"name": "リッチ", "col": 2},
+			{"name": "ブラッドスライム", "col": 1}
+		],
+		"act3_weak": [
 			{"name": "タイガー", "col": 2},
 			{"name": "リッチ", "col": 2},
 			{"name": "ヴリコラカス", "col": 1},
@@ -194,6 +248,50 @@
 			{"name": "ブラッドスライム", "col": 1},
 			{"name": "タイガー", "col": 0},
 			{"name": "リッチ", "col": 1}
+		],
+		"act3_enhanced1": [
+			{"name": "タイガー", "col": 1},
+			{"name": "リッチ", "col": 0},
+			{"name": "ヴリコラカス", "col": 2},
+			{"name": "バンシー", "col": 1},
+			{"name": "タイガー", "col": 0},
+			{"name": "リッチ", "col": 2},
+			{"name": "ヴリコラカス", "col": 1}
+		],
+		"act3_enhanced2": [
+			{"name": "ヴリコラカス", "col": 1},
+			{"name": "リッチ", "col": 0},
+			{"name": "タイガー", "col": 2},
+			{"name": "ヴリコラカス", "col": 1},
+			{"name": "リッチ", "col": 0},
+			{"name": "バンシー", "col": 2},
+			{"name": "タイガー", "col": 1}
+		],
+		"act3_enhanced3": [
+			{"name": "リッチ", "col": 1},
+			{"name": "ヴリコラカス", "col": 0},
+			{"name": "タイガー", "col": 2},
+			{"name": "リッチ", "col": 1},
+			{"name": "ヴリコラカス", "col": 0},
+			{"name": "リッチ", "col": 2},
+			{"name": "タイガー", "col": 1}
+		]
+	},
+	"elite_pools": {
+		"act1": [
+			{"name": "グール", "col": 1},
+			{"name": "ウルフ", "col": 0},
+			{"name": "ブラッドスライム", "col": 2}
+		],
+		"act2": [
+			{"name": "タイガー", "col": 1},
+			{"name": "リッチ", "col": 0},
+			{"name": "バンシー", "col": 2}
+		],
+		"act3": [
+			{"name": "リッチ", "col": 1},
+			{"name": "ヴリコラカス", "col": 0},
+			{"name": "タイガー", "col": 2}
 		]
 	},
 	"equipment": {
@@ -2058,6 +2156,176 @@
 			"texture": ""
 		}
 	},
+	"boss_decks": {
+		"boss_act1_beast": [
+			{"name": "ウルフ", "col": 0},
+			{"name": "ゴブリン", "col": 0},
+			{"name": "ウルフ", "col": 1},
+			{"name": "ケットシー", "col": 1},
+			{"name": "ゴブリン", "col": 2},
+			{"name": "ワイルドホーク", "col": 2},
+			{"name": "コカトリス", "col": 1}
+		],
+		"boss_act1_beast_strong": [
+			{"name": "タイガー", "col": 0},
+			{"name": "ウルフ", "col": 0},
+			{"name": "マンティコア", "col": 1},
+			{"name": "コカトリス", "col": 1},
+			{"name": "ワイルドホーク", "col": 2},
+			{"name": "ウルフ", "col": 2},
+			{"name": "猛獣使い", "col": 2}
+		],
+		"boss_act1_beast_enraged": [
+			{"name": "タイガー", "col": 0},
+			{"name": "マンティコア", "col": 0},
+			{"name": "グリフォン", "col": 1},
+			{"name": "コカトリス", "col": 1},
+			{"name": "猛獣使い", "col": 2},
+			{"name": "ビャッコ", "col": 2},
+			{"name": "タイガー", "col": 1}
+		],
+		"boss_act1_slime": [
+			{"name": "スライム", "col": 0},
+			{"name": "マッドスライム", "col": 0},
+			{"name": "スライム", "col": 1},
+			{"name": "ラージスライム", "col": 1},
+			{"name": "マッドスライム", "col": 2},
+			{"name": "スライム", "col": 2},
+			{"name": "ファットスライム", "col": 1}
+		],
+		"boss_act1_slime_strong": [
+			{"name": "マッドスライム", "col": 0},
+			{"name": "ファットスライム", "col": 0},
+			{"name": "ラージスライム", "col": 1},
+			{"name": "ヒートスライム", "col": 1},
+			{"name": "マッドスライム", "col": 2},
+			{"name": "ブラッドスライム", "col": 2},
+			{"name": "母スライム核", "col": 1}
+		],
+		"boss_act1_slime_enraged": [
+			{"name": "ファットスライム", "col": 0},
+			{"name": "パラライズスライム", "col": 0},
+			{"name": "ブラッドスライム", "col": 1},
+			{"name": "母スライム核", "col": 1},
+			{"name": "ヒートスライム", "col": 2},
+			{"name": "フロストスライム", "col": 2},
+			{"name": "融合スライム", "col": 0}
+		],
+		"boss_act1_undead": [
+			{"name": "スケルトン", "col": 0},
+			{"name": "グール", "col": 0},
+			{"name": "スケルトン", "col": 1},
+			{"name": "バンシー", "col": 1},
+			{"name": "グール", "col": 2},
+			{"name": "リッチ", "col": 2},
+			{"name": "シャドウ", "col": 1}
+		],
+		"boss_act1_undead_strong": [
+			{"name": "グール", "col": 0},
+			{"name": "レヴナント", "col": 0},
+			{"name": "バンシー", "col": 1},
+			{"name": "ワイト", "col": 1},
+			{"name": "リッチ", "col": 2},
+			{"name": "シャドウ", "col": 2},
+			{"name": "屍術師", "col": 2}
+		],
+		"boss_act1_undead_enraged": [
+			{"name": "ヴリコラカス", "col": 0},
+			{"name": "レヴナント", "col": 0},
+			{"name": "ワイト", "col": 1},
+			{"name": "屍術師", "col": 1},
+			{"name": "リッチ", "col": 2},
+			{"name": "バンシー", "col": 2},
+			{"name": "死骸の王座", "col": 1}
+		]
+	},
+	"boss_exclusive_units": {
+		"猛獣使い": {
+			"hp": 25,
+			"atk": 6,
+			"interval": 1.5,
+			"cost": 3,
+			"race": "獣",
+			"range": "1行",
+			"skills": [
+				{
+					"trigger": "on_hit",
+					"target": "hit_target",
+					"effect_id": "burn_apply",
+					"params": {"stacks": 2}
+				}
+			],
+			"boss_exclusive": true
+		},
+		"母スライム核": {
+			"hp": 60,
+			"atk": 1,
+			"interval": 5,
+			"cost": 4,
+			"race": "スライム",
+			"range": "1行",
+			"skills": [
+				{
+					"trigger": "on_death",
+					"target": "self",
+					"effect_id": "self_revive",
+					"params": {"hp": 20, "delay": 5.0}
+				}
+			],
+			"boss_exclusive": true
+		},
+		"融合スライム": {
+			"hp": 45,
+			"atk": 4,
+			"interval": 3,
+			"cost": 4,
+			"race": "スライム",
+			"range": "1行",
+			"skills": [
+				{
+					"trigger": "on_hit",
+					"target": "hit_target",
+					"effect_id": "freeze_apply",
+					"params": {"stacks": 2}
+				}
+			],
+			"boss_exclusive": true
+		},
+		"屍術師": {
+			"hp": 20,
+			"atk": 3,
+			"interval": 3,
+			"cost": 3,
+			"race": "アンデッド",
+			"range": "上下含む3行",
+			"skills": [
+				{
+					"trigger": "on_hit",
+					"target": "hit_target",
+					"effect_id": "poison_apply",
+					"params": {"stacks": 2}
+				}
+			],
+			"boss_exclusive": true
+		},
+		"死骸の王座": {
+			"hp": 50,
+			"atk": 5,
+			"interval": 3,
+			"cost": 4,
+			"race": "アンデッド",
+			"range": "上下含む3行",
+			"skills": [
+				{
+					"trigger": "on_hit",
+					"target": "hit_target",
+					"effect_id": "freeze_apply",
+					"params": {"stacks": 3}
+				}
+			],
+			"boss_exclusive": true
+		}
+	},
 	"bosses": {
 		"boss_beast_king": {
 			"display": "獣王",
@@ -2066,10 +2334,16 @@
 			"description": "オオカミの群れを率いる古代の王",
 			"difficulty": 3,
 			"enemy_deck_id": "boss_act1_beast",
+			"enemy_deck_id_phase2_lv4": "boss_act1_beast_strong",
+			"enemy_deck_id_phase2_lv5": "boss_act1_beast_enraged",
 			"hp_multiplier": 1.5,
 			"atk_multiplier": 1.2,
 			"reward_gold": 200,
 			"reward_sp": 2,
+			"alert_level_buffs": {
+				"4": {"hp_bonus": 5, "atk_bonus": 1},
+				"5": {"hp_bonus": 10, "atk_bonus": 2}
+			},
 			"texture": ""
 		},
 		"boss_slime_mother": {
@@ -2079,10 +2353,16 @@
 			"description": "無限に分裂し続ける巨大スライム",
 			"difficulty": 2,
 			"enemy_deck_id": "boss_act1_slime",
+			"enemy_deck_id_phase2_lv4": "boss_act1_slime_strong",
+			"enemy_deck_id_phase2_lv5": "boss_act1_slime_enraged",
 			"hp_multiplier": 2,
 			"atk_multiplier": 0.8,
 			"reward_gold": 200,
 			"reward_sp": 2,
+			"alert_level_buffs": {
+				"4": {"hp_bonus": 5, "atk_bonus": 1},
+				"5": {"hp_bonus": 10, "atk_bonus": 2}
+			},
 			"texture": ""
 		},
 		"boss_death_lord": {
@@ -2092,11 +2372,389 @@
 			"description": "何度倒しても蘇る不死の王",
 			"difficulty": 4,
 			"enemy_deck_id": "boss_act1_undead",
+			"enemy_deck_id_phase2_lv4": "boss_act1_undead_strong",
+			"enemy_deck_id_phase2_lv5": "boss_act1_undead_enraged",
 			"hp_multiplier": 1.3,
 			"atk_multiplier": 1.1,
 			"reward_gold": 220,
 			"reward_sp": 2,
+			"alert_level_buffs": {
+				"4": {"hp_bonus": 5, "atk_bonus": 1},
+				"5": {"hp_bonus": 10, "atk_bonus": 2}
+			},
 			"texture": ""
+		}
+	},
+	"relics": {
+		"iron_talisman": {
+			"display": "鉄の護符",
+			"rarity": "common",
+			"description": "全ユニットHP+2",
+			"effect": {
+				"type": "stat_buff",
+				"target": "all_units",
+				"stat": "hp",
+				"value": 2
+			}
+		},
+		"berserker_horn": {
+			"display": "狂戦士の角笛",
+			"rarity": "common",
+			"description": "前列ユニットATK+1",
+			"effect": {
+				"type": "stat_buff",
+				"target": "front_row",
+				"stat": "atk",
+				"value": 1
+			}
+		},
+		"mana_shard": {
+			"display": "魔石の欠片",
+			"rarity": "common",
+			"description": "バトル開始時マナ+3",
+			"effect": {
+				"type": "battle_start_mana",
+				"value": 3
+			}
+		},
+		"hourglass": {
+			"display": "時の砂時計",
+			"rarity": "common",
+			"description": "バトル開始10秒間、全ユニットSPD+2",
+			"effect": {
+				"type": "timed_buff",
+				"target": "all_units",
+				"stat": "spd",
+				"value": 2,
+				"duration": 10
+			}
+		},
+		"golden_coin": {
+			"display": "黄金のコイン",
+			"rarity": "common",
+			"description": "バトル勝利Gold+20%",
+			"effect": {
+				"type": "gold_bonus",
+				"value": 0.2
+			}
+		},
+		"phoenix_feather": {
+			"display": "不死鳥の羽",
+			"rarity": "uncommon",
+			"description": "バトル中、最初の死亡ユニット1体がHP50%で復活",
+			"effect": {
+				"type": "revive_first",
+				"hp_percent": 50
+			}
+		},
+		"thorn_seed": {
+			"display": "棘の種",
+			"rarity": "uncommon",
+			"description": "バトル開始時、自陣前列3マスに棘Lv1配置",
+			"effect": {
+				"type": "battle_start_tiles",
+				"tile_type": "棘",
+				"positions": "ally_front_row",
+				"level": 1
+			}
+		},
+		"subject_card": {
+			"display": "実験体の札",
+			"rarity": "event",
+			"description": "被験者番号#2891",
+			"effect": {
+				"type": "passive",
+				"note": "フレーバーアイテム（効果なし）"
+			}
+		},
+		"memory_key": {
+			"display": "記憶の鍵",
+			"rarity": "event",
+			"description": "封印された記録へのアクセス",
+			"effect": {
+				"type": "passive",
+				"note": "フレーバーアイテム（効果なし）"
+			}
+		},
+		"atlas_alpha": {
+			"display": "ATLAS破片α",
+			"rarity": "event",
+			"description": "灰色の疫病以前の記憶",
+			"effect": {
+				"type": "stat_buff",
+				"target": "player",
+				"stat": "hp",
+				"value": 10,
+				"note": "本体HP+10（未実装）"
+			}
+		},
+		"atlas_beta": {
+			"display": "ATLAS破片β",
+			"rarity": "event",
+			"description": "システムの盲点",
+			"effect": {
+				"type": "passive",
+				"note": "警戒レベル上昇無効1回（未実装）"
+			}
+		},
+		"atlas_omega": {
+			"display": "ATLAS破片Ω",
+			"rarity": "event",
+			"description": "最後の記録",
+			"effect": {
+				"type": "battle_start_mana",
+				"value": 5
+			}
+		},
+		"glitch_core": {
+			"display": "グリッチコア",
+			"rarity": "event",
+			"description": "現実の亀裂",
+			"effect": {
+				"type": "passive",
+				"note": "バトル中5%でUI演出発生（未実装）"
+			}
+		},
+		"lucky_charm": {
+			"display": "幸運のお守り",
+			"rarity": "uncommon",
+			"description": "バトル報酬選択肢+1（4択になる）",
+			"effect": {
+				"type": "reward_choices",
+				"value": 1
+			}
+		}
+	},
+	"events": {
+		"memory_fragment": {
+			"display": "記憶の断片",
+			"act": [1, 2, 3],
+			"text": "床に散らばった古い記録を見つけた。\n文字が滲んで読みにくいが、数字が見える。\n\n「#2891 - 適応率 ██.█% - 次フェーズ ██████」\n\n...#2891。どこかで見たような数字だ。",
+			"choices": [
+				{
+					"label": "記録を読み進める",
+					"results": [
+						{"type": "gold", "value": 60},
+						{"type": "flavor", "text": "...記憶...保持...条件...\n判読不能。"}
+					]
+				},
+				{
+					"label": "破り捨てる",
+					"results": []
+				},
+				{
+					"label": "持ち去る",
+					"results": [
+						{"type": "relic", "relic_id": "subject_card"},
+						{"type": "gold", "value": 30}
+					]
+				}
+			]
+		},
+		"atlas_terminal_alpha": {
+			"display": "ATLAS端末α",
+			"act": [1, 2, 3],
+			"text": "古びた端末が起動している。\n画面には「ATLAS - ████ Security Lv.3」の文字。\n\nログイン画面が表示されている。",
+			"choices": [
+				{
+					"label": "適当な番号を入力",
+					"results": [
+						{"type": "gold", "value": 40},
+						{"type": "flavor", "text": "「アクセス拒否」"}
+					]
+				},
+				{
+					"label": "2891を入力してみる",
+					"results": [
+						{"type": "gold", "value": 80},
+						{"type": "relic_choice", "count": 1, "rarity_weights": {"common": 5, "uncommon": 3}},
+						{"type": "flavor", "text": "「...許可」\n何が許可されたのか？"}
+					]
+				},
+				{
+					"label": "端末を無視する",
+					"results": []
+				}
+			]
+		},
+		"gray_stain": {
+			"display": "灰色の染み",
+			"act": [1, 2, 3],
+			"text": "壁一面に灰色の染みが広がっている。\n近づくと、かすかに蠢いているように見える。\n\n触れてはいけない、という直感がある。",
+			"choices": [
+				{
+					"label": "触れてみる",
+					"results": [
+						{"type": "hp", "value": -15},
+						{"type": "flavor", "text": "冷たい。何かを思い出しそうになる。\n灰色の...何か..."}
+					]
+				},
+				{
+					"label": "距離を取る",
+					"results": []
+				},
+				{
+					"label": "染みを調べる",
+					"results": [
+						{"type": "gold", "value": 50},
+						{"type": "flavor", "text": "染みの中に人の形が見える。\n動かない。"}
+					]
+				}
+			]
+		},
+		"unmoving_thing": {
+			"display": "動かない何か",
+			"act": [2, 3],
+			"text": "通路の隅に、何かが倒れている。\nよく見ると...人の形をしている。金属のような質感。\n\n胸部に文字：「#1247 - ████████」",
+			"choices": [
+				{
+					"label": "パーツを回収する",
+					"results": [
+						{"type": "relic_choice", "count": 1, "rarity_weights": {"uncommon": 5, "rare": 2}},
+						{"type": "gold", "value": 50}
+					]
+				},
+				{
+					"label": "そっとしておく",
+					"results": []
+				},
+				{
+					"label": "近づいて調べる",
+					"results": [
+						{"type": "gold", "value": 30},
+						{"type": "flavor", "text": "冷たい。動かない。\nあなたと似ている...？"}
+					]
+				}
+			]
+		},
+		"audio_log": {
+			"display": "音声ログ",
+			"act": [2, 3],
+			"text": "再生装置が起動した。ノイズ混じりの声。\n\n「...2891号...適応...記憶...は...\n...灰色...サンプル...接触...\n...最後...ATLAS...録...」\n\nノイズ。沈黙。何を言っていたのか分からない。",
+			"choices": [
+				{
+					"label": "ログを最後まで聞く",
+					"results": [
+						{"type": "gold", "value": 70},
+						{"type": "flavor", "text": "...希望...\n途切れる。"}
+					]
+				},
+				{
+					"label": "装置を止める",
+					"results": []
+				},
+				{
+					"label": "ログを持ち帰る",
+					"results": [
+						{"type": "relic", "relic_id": "memory_key"},
+						{"type": "sp", "value": 2}
+					]
+				}
+			]
+		},
+		"glitch_beta": {
+			"display": "グリッチ現象β",
+			"act": [2, 3],
+			"text": "視界が歪む。盤面が...デバイスが...金属の床が見える。\n\n一瞬、カプセルの中にいる。\n周囲には同じカプセルが並んでいる。全て...空？\n\n視界が戻る。いつもの通路だ。",
+			"choices": [
+				{
+					"label": "現実を疑う",
+					"results": [
+						{"type": "sp", "value": 2},
+						{"type": "flavor", "text": "真実を知りたいか？\n...声が聞こえた気がする。"}
+					]
+				},
+				{
+					"label": "幻覚だと割り切る",
+					"results": []
+				},
+				{
+					"label": "もう一度見ようとする",
+					"results": [
+						{"type": "hp", "value": -10},
+						{"type": "alert_level", "value": -2},
+						{"type": "relic", "relic_id": "glitch_core"}
+					]
+				}
+			]
+		},
+		"atlas_omega": {
+			"display": "ATLAS端末Ω",
+			"act": [3],
+			"text": "巨大な端末が部屋の中央にある。\n「ATLAS ████ System - ██████プロトコル起動中」\n\n画面には無数の数字が流れている。",
+			"choices": [
+				{
+					"label": "システムに触れる",
+					"results": [
+						{"type": "hp", "value": -10},
+						{"type": "relic_choice", "count": 2, "rarity_weights": {"uncommon": 5, "rare": 3}},
+						{"type": "flavor", "text": "警告音。\nシステムが反応した。"}
+					]
+				},
+				{
+					"label": "数字を眺める",
+					"results": [
+						{"type": "gold", "value": 90},
+						{"type": "flavor", "text": "#1, #2, #3...#2891...\n数字が続く。どこまで？"}
+					]
+				},
+				{
+					"label": "何もしない",
+					"results": [
+						{"type": "gold", "value": 100}
+					]
+				}
+			]
+		},
+		"white_coat": {
+			"display": "白衣の人物",
+			"act": [3],
+			"text": "誰かが倒れている。白衣。まだ呼吸がある。\n\n目を開ける。あなたを見る。\n「...2891...号...お前...が...」\n\n沈黙。何を言いたかったのか。",
+			"choices": [
+				{
+					"label": "話しかける",
+					"results": [
+						{"type": "hp", "value": -5},
+						{"type": "flavor", "text": "...外...へ...██...もう...\n意味不明。"}
+					]
+				},
+				{
+					"label": "その場を離れる",
+					"results": []
+				},
+				{
+					"label": "所持品を調べる",
+					"results": [
+						{"type": "relic", "relic_id": "atlas_omega"},
+						{"type": "gold", "value": 80}
+					]
+				}
+			]
+		},
+		"unknown_door": {
+			"display": "見たことのない扉",
+			"act": [3],
+			"text": "扉がある。表示には「████ - 外部█████接続」\n\n開くのか？開かないのか？\n向こうには何があるのか？\n\n分からない。",
+			"choices": [
+				{
+					"label": "扉を開けようとする",
+					"results": [
+						{"type": "gold", "value": 70},
+						{"type": "flavor", "text": "「ロック解除条件: ████████」\n開かない。"}
+					]
+				},
+				{
+					"label": "引き返す",
+					"results": []
+				},
+				{
+					"label": "扉を調べる",
+					"results": [
+						{"type": "relic_choice", "count": 1, "rarity_weights": {"rare": 10}},
+						{"type": "flavor", "text": "無数の痕跡。\n誰かが触れた跡。"}
+					]
+				}
+			]
 		}
 	}
 }

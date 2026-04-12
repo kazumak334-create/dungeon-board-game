@@ -199,6 +199,7 @@ Phase 2-3の主要タスク（roadmap.mdに記載されているもの）を完�
 - 上記3つ以外のAgentは **絶対にOpusを使用しない**
 - Agent呼び出し時にmodelパラメータでSonnetを明示的に指定すること
 - CEOは自分自身もSonnetで動作する
+- **新規作成はOpus、修正作業はSonnet**: planning/designer/architectも既存ドキュメントの修正時はSonnetを使用する（Opus節約）
 
 ## 全Agent必読ファイル
 

@@ -147,6 +147,9 @@ func _ready() -> void:
 	# DeckManager に反映（マナ上限3固定）
 	deck_manager.mana = 0.0
 	deck_manager.MANA_MAX = 3.0
+
+	# レリック効果適用（バトル開始時）
+	_apply_relic_effects_battle_start()
 	# MANA_REGEN削除: v2設計でユニット生成マナに変更
 	# BoardManager に設定
 	board_manager.player_data = player_data
@@ -226,16 +229,24 @@ func _build_mode_select() -> void:
 		GameSession.battle_log.clear()
 		seed(GameSession.battle_seed)
 		game_started = true
+		# レリック効果フラグ初期化
+		board_manager.relic_revive_used = false
+		# 警戒システム: エリート混入フラグリセット
+		GameSession.elite_injected_in_battle = false
 		_apply_battle_config()
 		deck_manager.ensure_shuffle_card()
 		enemy_ai.ensure_shuffle_card()
 		# v2設計: 初期配置ユニットを盤面に展開
 		_place_initial_units()
+		# 警戒システム: 配置前に敵デッキ加工・盤面効果付与
+		_apply_alert_modifiers()
 		_place_enemy_initial_units()
 		# v2設計: マナ上限をユニット総コストで初期化
 		deck_manager.initialize_mana_from_deck()
 		enemy_ai.initialize_mana_from_deck()
 		_apply_environment()
+		# レリック効果適用（ユニット配置後）
+		_apply_relic_effects_on_units()
 		_add_log("=== バトル開始 (seed: %d) ===" % GameSession.battle_seed)
 
 func _apply_battle_config() -> void:
@@ -350,6 +361,21 @@ func _place_enemy_initial_units() -> void:
 	enemy_ai.MANA_MAX = total_cost
 	enemy_ai.mana = 0.0
 	print("[Main] 敵初期配置完了: %d体配置、総コスト%.1f、デッキ残り%d枚" % [placed_count, total_cost, remaining_cards.size()])
+
+func _apply_alert_modifiers() -> void:
+	# 警戒システム: 敵デッキ加工・盤面効果付与
+	if GameSession.alert_level < 1:
+		return
+
+	# エリート混入・配置強化
+	var EnemyPlacementHelperScript = load("res://scripts/EnemyPlacementHelper.gd")
+	var placement_helper = EnemyPlacementHelperScript.new()
+	placement_helper.apply_alert_modifiers(enemy_ai.enemy_deck, GameSession.alert_level, GameSession.current_act)
+
+	# 盤面効果付与
+	var TileEffectManagerScript = load("res://scripts/TileEffectManager.gd")
+	var tile_manager = TileEffectManagerScript.new()
+	tile_manager.apply_alert_tile_effects(GameSession.alert_level, board_manager)
 
 func _apply_environment() -> void:
 	var env_id = GameSession.base_environment
@@ -516,6 +542,11 @@ func _check_game_over() -> void:
 		GameSession.last_result = {"win": false, "player_hp_remaining": base_hp[0], "turns": 0, "battle_gold": GameSession.current_battle_gold}
 		_transition_to_result_timer()
 	elif base_hp[1] <= 0 or enemy_all_dead:
+		# ボス連戦判定: 第1戦勝利 & 警戒Lv4以上
+		if GameSession.battle_type == "boss" and GameSession.boss_phase == 1 and GameSession.alert_level >= 4:
+			_start_boss_phase2()
+			return
+
 		game_over = true
 		game_over_label.text     = "YOU WIN!"
 		game_over_label.modulate = Color(0.3, 1.0, 0.5)
@@ -532,6 +563,40 @@ func _check_all_units_dead(side: int) -> bool:
 			if board_manager.board[side][r][c] != null:
 				return false
 	return true
+
+func _start_boss_phase2() -> void:
+	"""ボス連戦: 第2戦開始"""
+	_add_log("=== PHASE 2 開始 ===")
+
+	# フェーズ2に移行
+	GameSession.boss_phase = 2
+
+	# 第1戦クリア報酬: マナ+5
+	deck_manager.mana += 5.0
+	_add_log("第1戦クリア報酬: マナ+5")
+
+	# 敵側の状態リセット
+	base_hp[1] = GameSession.battle_config.get("enemy_base_hp", 30)
+
+	# 敵の盤面クリア
+	for r in range(3):
+		for c in range(3):
+			if board_manager.board[1][r][c] != null:
+				board_manager.remove_unit(1, r, c)
+
+	# 敵デッキ再構築（第2戦用）
+	enemy_ai.enemy_deck.clear()
+	enemy_ai.enemy_discard.clear()
+	enemy_ai._build_enemy_deck()
+	enemy_ai.ensure_shuffle_card()
+
+	# 敵の初期配置（全マス埋め）
+	_place_enemy_initial_units()
+
+	# マナ初期化
+	enemy_ai.initialize_mana_from_deck()
+
+	_add_log("=== PHASE 2 バトル開始 ===")
 
 func _on_battle_timeout() -> void:
 	var result: String = GameSession.battle_config.get("time_up_result", "lose")
@@ -682,6 +747,138 @@ func _apply_equipment_effects(pdata: RefCounted) -> void:
 				total_mana_regen_pct += skill.get("params", {}).get("pct", 0.2)
 	# MANA_REGEN削除: v2設計でユニット生成マナに変更
 	print("[Main] 装備効果適用: player_artifacts=%d件" % [board_manager.player_artifacts.size()])
+
+func _apply_relic_effects_battle_start() -> void:
+	# バトル開始時に適用可能なレリック効果
+	# NOTE: stat_buff, timed_buffはユニット配置後に別関数で適用
+	for relic_id in GameSession.relics:
+		if not CardDB.RELICS.has(relic_id):
+			continue
+		var relic = CardDB.RELICS[relic_id]
+		var effect = relic.get("effect", {})
+		var effect_type = effect.get("type", "")
+
+		match effect_type:
+			"battle_start_mana":
+				var mana_value = effect.get("value", 0)
+				deck_manager.mana += mana_value
+				print("[Main] レリック効果: %s → マナ+%d (現在: %.1f)" % [relic.get("display", ""), mana_value, deck_manager.mana])
+
+			"battle_start_tiles":
+				var tile_type = effect.get("tile_type", "")
+				var positions = effect.get("positions", "")
+				var level = effect.get("level", 1)
+				_apply_battle_start_tiles(relic.get("display", ""), tile_type, positions, level)
+
+func _apply_battle_start_tiles(relic_name: String, tile_type: String, positions: String, level: int) -> void:
+	# tile_typeからeffect_idへのマッピング
+	var tile_map = {
+		"棘": "tile_thorn",
+		"砦": "tile_fortress",
+		"呪い": "tile_curse",
+		"毒沼": "tile_poison",
+	}
+	var effect_id = tile_map.get(tile_type, "")
+	if effect_id == "":
+		print("[Main] レリック効果: %s → 不明なタイルタイプ: %s" % [relic_name, tile_type])
+		return
+
+	# positionsから配置座標リストを生成
+	var coords: Array = []
+	match positions:
+		"ally_front_row":
+			coords = [[0, 0, 0], [0, 0, 1], [0, 0, 2]]  # side=0, row=0, col=0-2
+		"ally_middle_row":
+			coords = [[0, 1, 0], [0, 1, 1], [0, 1, 2]]
+		"ally_back_row":
+			coords = [[0, 2, 0], [0, 2, 1], [0, 2, 2]]
+		"enemy_front_row":
+			coords = [[1, 0, 0], [1, 0, 1], [1, 0, 2]]
+		"enemy_middle_row":
+			coords = [[1, 1, 0], [1, 1, 1], [1, 1, 2]]
+		"enemy_back_row":
+			coords = [[1, 2, 0], [1, 2, 1], [1, 2, 2]]
+		_:
+			print("[Main] レリック効果: %s → 未対応のpositions: %s" % [relic_name, positions])
+			return
+
+	# タイル配置
+	for coord in coords:
+		var side = coord[0]
+		var row = coord[1]
+		var col = coord[2]
+		board_manager.tile_system.set_tile_effect(side, row, col, effect_id, -1.0)
+
+	print("[Main] レリック効果: %s → %s を %s に配置" % [relic_name, tile_type, positions])
+
+func _apply_relic_effects_on_units() -> void:
+	# ユニット配置後に適用するレリック効果（stat_buff, timed_buff）
+	for relic_id in GameSession.relics:
+		if not CardDB.RELICS.has(relic_id):
+			continue
+		var relic = CardDB.RELICS[relic_id]
+		var effect = relic.get("effect", {})
+		var effect_type = effect.get("type", "")
+
+		match effect_type:
+			"stat_buff":
+				var target = effect.get("target", "")
+				var stat = effect.get("stat", "")
+				var value = effect.get("value", 0)
+				_apply_stat_buff_to_units(relic.get("display", ""), target, stat, value)
+
+			"timed_buff":
+				var target = effect.get("target", "")
+				var stat = effect.get("stat", "")
+				var value = effect.get("value", 0)
+				var duration = effect.get("duration", 0)
+				_apply_timed_buff_to_units(relic.get("display", ""), target, stat, value, duration)
+
+func _apply_stat_buff_to_units(relic_name: String, target: String, stat: String, value: int) -> void:
+	var count = 0
+	for side in range(2):
+		for row in range(3):
+			for col in range(3):
+				var unit = board_manager.units[side][row][col]
+				if unit == null:
+					continue
+
+				# ターゲット判定
+				var should_apply = false
+				match target:
+					"all_units":
+						should_apply = true
+					"front_row":
+						should_apply = (row == 0)
+					"middle_row":
+						should_apply = (row == 1)
+					"back_row":
+						should_apply = (row == 2)
+					_:
+						continue
+
+				if not should_apply:
+					continue
+
+				# ステータス適用
+				match stat:
+					"hp":
+						unit.max_hp += value
+						unit.current_hp += value
+					"atk":
+						unit.attack += value
+					"spd":
+						unit.attack_interval = max(0.1, unit.attack_interval - value)
+
+				count += 1
+
+	if count > 0:
+		print("[Main] レリック効果: %s → %d体のユニットに %s+%d" % [relic_name, count, stat.to_upper(), value])
+
+func _apply_timed_buff_to_units(relic_name: String, target: String, stat: String, value: int, duration: float) -> void:
+	# 時間制限バフ（hourglassなど）
+	# TODO: 実装予定（バフシステムと統合が必要）
+	print("[Main] レリック効果: %s → timed_buff実装予定（target=%s, stat=%s, value=%d, duration=%.1fs）" % [relic_name, target, stat, value, duration])
 
 func _on_spell_cast(side: int, spell_name: String) -> void:
 	var side_name: String = "自陣" if side == 0 else "敵陣"

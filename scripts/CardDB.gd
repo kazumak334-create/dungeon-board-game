@@ -7,17 +7,20 @@ var SPELLS: Dictionary = {}
 var STATUS_SPELLS: Dictionary = {}
 var SYSTEM_SPELLS: Dictionary = {}
 var ARTIFACTS: Dictionary = {}
-var EQUIPMENT: Dictionary = {}
 var CLASSES: Dictionary = {}
 var SYNTHESIS: Array = []
 var PLAYER_DECK: Array = []
 var PLAYER_SPELLS: Array = []
 var ENEMY_DECK: Array = []
 var ENEMY_POOLS: Dictionary = {}
+var ELITE_POOLS: Dictionary = {}
 var BASE_DECK: Array = []
-var MATERIALS: Array = []
+var RELICS: Dictionary = {}  # レリック（StS風パッシブアイテム）
 var ENVIRONMENTS: Dictionary = {}
 var BOSSES: Dictionary = {}
+var EVENTS: Dictionary = {}  # イベント（StS風ランダムイベント）
+var BOSS_DECKS: Dictionary = {}
+var BOSS_EXCLUSIVE_UNITS: Dictionary = {}
 
 func _ready() -> void:
 	var file = FileAccess.open("res://data/cards.json", FileAccess.READ)
@@ -35,14 +38,21 @@ func _ready() -> void:
 	STATUS_SPELLS = data.get("status_spells", {})
 	SYSTEM_SPELLS = data.get("system_spells", {})
 	ARTIFACTS = data.get("artifacts", {})
-	EQUIPMENT = data.get("equipment", {})
 	CLASSES = data.get("classes", {})
 	SYNTHESIS = data.get("synthesis", [])
 	PLAYER_DECK = data.get("player_deck", [])
 	PLAYER_SPELLS = data.get("player_spells", [])
 	ENEMY_DECK = data.get("enemy_deck", [])
 	ENEMY_POOLS = data.get("enemy_pools", {})
+	ELITE_POOLS = data.get("elite_pools", {})
 	BASE_DECK = data.get("base_deck", [])
-	MATERIALS = data.get("materials", [])
+	RELICS = data.get("relics", {})
 	ENVIRONMENTS = data.get("environments", {})
 	BOSSES = data.get("bosses", {})
+	EVENTS = data.get("events", {})
+	BOSS_DECKS = data.get("boss_decks", {})
+	BOSS_EXCLUSIVE_UNITS = data.get("boss_exclusive_units", {})
+
+	# ボス専用ユニットをUNITSにマージ（プレイヤー入手不可フラグ付き）
+	for unit_name in BOSS_EXCLUSIVE_UNITS:
+		UNITS[unit_name] = BOSS_EXCLUSIVE_UNITS[unit_name]

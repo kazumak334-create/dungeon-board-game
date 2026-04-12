@@ -17,6 +17,7 @@ const NODE_COLORS = {
 	"shop": Color(0.9, 0.8, 0.3),
 	"event": Color(0.5, 0.5, 0.9),
 	"boss": Color(0.9, 0.2, 0.5),
+	"rest": Color(0.3, 0.9, 0.5),
 }
 
 # ノード種別記号
@@ -27,6 +28,7 @@ const NODE_SYMBOLS = {
 	"shop": "$",
 	"event": "?",
 	"boss": "☠",
+	"rest": "♥",
 }
 
 func _ready() -> void:
@@ -193,6 +195,10 @@ func _draw_nodes(act_data: Dictionary, positions: Dictionary) -> void:
 		label.add_theme_font_size_override("font_size", 24)
 		add_child(label)
 
+		# 警告マーク（戦闘ノードのみ）
+		if node_type in ["battle", "elite"]:
+			_add_alert_marker(pos, GameSession.alert_level)
+
 		# クリック可能なノードにボタン追加
 		if _is_node_reachable(node_id) and GameSession.current_node != node_id:
 			var btn = Button.new()
@@ -237,6 +243,7 @@ func _get_node_tooltip(node: Dictionary) -> String:
 		"shop": "ショップ",
 		"event": "イベント",
 		"boss": "ボス戦",
+		"rest": "レスト（警戒-2）",
 	}
 	return type_names.get(node_type, "不明")
 
@@ -252,20 +259,57 @@ func _on_node_clicked(node_id: String, node_type: String) -> void:
 	# ノード種別に応じてシーン遷移
 	match node_type:
 		"battle":
+			GameSession.alert_level += 1
 			GameSession.battle_type = "normal"
 			SceneManager.go_to(SceneManager.DECK_PREP)
 		"elite":
+			GameSession.alert_level += 1
 			GameSession.battle_type = "elite"
 			SceneManager.go_to(SceneManager.DECK_PREP)
 		"boss":
 			GameSession.battle_type = "boss"
 			SceneManager.go_to(SceneManager.DECK_PREP)
+		"rest":
+			GameSession.alert_level = max(0, GameSession.alert_level - 2)
+			print("[MapSelect] レスト: 警戒レベル -2 → %d" % GameSession.alert_level)
+			SceneManager.go_to(SceneManager.MAP_SELECT)
 		"shop":
+			GameSession.alert_level = max(0, GameSession.alert_level - 1)
+			print("[MapSelect] ショップ: 警戒レベル -1 → %d" % GameSession.alert_level)
 			SceneManager.go_to("shop")
 		"event":
+			GameSession.alert_level = max(0, GameSession.alert_level - 1)
+			print("[MapSelect] イベント: 警戒レベル -1 → %d" % GameSession.alert_level)
 			SceneManager.go_to("event")
 		"gather":
-			# 仮: 素材を1つ追加してマップに戻る
-			GameSession.materials.append("iron_ore")
-			print("[MapSelect] 素材採集完了: iron_ore")
+			GameSession.alert_level = max(0, GameSession.alert_level - 1)
+			print("[MapSelect] 素材採集: 警戒レベル -1 → %d" % GameSession.alert_level)
+			# 素材採集ノードは廃止（装備・素材システム廃止により削除）
+			print("[MapSelect] gatherノードは廃止されました")
 			SceneManager.go_to(SceneManager.MAP_SELECT)
+
+func _add_alert_marker(parent_pos: Vector2, alert: int) -> void:
+	"""警告マークを追加（警戒レベルに応じた表示）"""
+	if alert == 0:
+		return
+
+	var marker_label = Label.new()
+	marker_label.position = parent_pos + Vector2(35, -5)
+	marker_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+	marker_label.vertical_alignment = VERTICAL_ALIGNMENT_TOP
+
+	# alert_levelに応じた表示設定
+	if alert >= 5:
+		marker_label.text = "!!!"
+		marker_label.add_theme_color_override("font_color", Color(1.0, 0.2, 0.2))
+		marker_label.add_theme_font_size_override("font_size", 20)
+	elif alert >= 3:
+		marker_label.text = "!!"
+		marker_label.add_theme_color_override("font_color", Color(1.0, 0.5, 0.2))
+		marker_label.add_theme_font_size_override("font_size", 18)
+	else:  # alert == 1-2
+		marker_label.text = "!"
+		marker_label.add_theme_color_override("font_color", Color(1.0, 0.9, 0.3))
+		marker_label.add_theme_font_size_override("font_size", 16)
+
+	add_child(marker_label)

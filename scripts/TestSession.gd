@@ -1,10 +1,10 @@
 # TestSession.gd
-# セッション/画面遷移テスト（GameSession, materials, base_deck, scene_manager）
+# セッション/画面遷移テスト（GameSession, relics, base_deck, scene_manager）
 extends RefCounted
 
 func run(runner: RefCounted) -> void:
 	_test_game_session(runner)
-	_test_materials_integrity(runner)
+	# _test_materials_integrity(runner)  # 素材システム廃止により無効化
 	_test_base_deck_integrity(runner)
 	_test_scene_manager_paths(runner)
 	_test_scenario_title_to_deckprep(runner)
@@ -27,7 +27,7 @@ func _test_game_session(r: RefCounted) -> void:
 	GameSession.dev_mode = true
 	GameSession.gold = 999
 	GameSession.skill_points = 5
-	GameSession.materials = [{"id": "test"}]
+	GameSession.relics = ["test_relic"]
 	GameSession.selected_deck = [{"name": "test"}]
 	GameSession.selected_material = {"id": "test"}
 	GameSession.reset()
@@ -35,22 +35,23 @@ func _test_game_session(r: RefCounted) -> void:
 	r._assert_eq(GameSession.dev_mode, false, "reset: dev_mode=false")
 	r._assert_eq(GameSession.gold, 0, "reset: gold=0")
 	r._assert_eq(GameSession.skill_points, 0, "reset: skill_points=0")
-	r._assert_eq(GameSession.materials.size(), 0, "reset: materials空")
+	r._assert_eq(GameSession.relics.size(), 0, "reset: relics空")
 	r._assert_eq(GameSession.selected_deck.size(), 0, "reset: selected_deck空")
 	r._assert_eq(GameSession.selected_material.size(), 0, "reset: selected_material空")
 
-func _test_materials_integrity(r: RefCounted) -> void:
-	r._assert_true(CardDB.MATERIALS.size() > 0, "MATERIALS: 1個以上存在")
-	for mat in CardDB.MATERIALS:
-		r._assert_true(mat.has("id"), "素材にid: %s" % mat.get("display", "???"))
-		r._assert_true(mat.has("display"), "素材にdisplay: %s" % mat.get("id", "???"))
-		r._assert_true(mat.has("is_cursed"), "素材にis_cursed: %s" % mat.get("id", "???"))
-		r._assert_true(mat.has("benefits"), "素材にbenefits: %s" % mat.get("id", "???"))
-		r._assert_true(mat.has("demerits"), "素材にdemerits: %s" % mat.get("id", "???"))
-	# 呪い素材はデメリット必須
-	for mat in CardDB.MATERIALS:
-		if mat.get("is_cursed", false):
-			r._assert_true(mat.get("demerits", []).size() > 0, "呪い素材にデメリット: %s" % mat.get("id", ""))
+# 素材システム廃止により無効化
+#func _test_materials_integrity(r: RefCounted) -> void:
+#	r._assert_true(CardDB.MATERIALS.size() > 0, "MATERIALS: 1個以上存在")
+#	for mat in CardDB.MATERIALS:
+#		r._assert_true(mat.has("id"), "素材にid: %s" % mat.get("display", "???"))
+#		r._assert_true(mat.has("display"), "素材にdisplay: %s" % mat.get("id", "???"))
+#		r._assert_true(mat.has("is_cursed"), "素材にis_cursed: %s" % mat.get("id", "???"))
+#		r._assert_true(mat.has("benefits"), "素材にbenefits: %s" % mat.get("id", "???"))
+#		r._assert_true(mat.has("demerits"), "素材にdemerits: %s" % mat.get("id", "???"))
+#	# 呪い素材はデメリット必須
+#	for mat in CardDB.MATERIALS:
+#		if mat.get("is_cursed", false):
+#			r._assert_true(mat.get("demerits", []).size() > 0, "呪い素材にデメリット: %s" % mat.get("id", ""))
 
 func _test_base_deck_integrity(r: RefCounted) -> void:
 	r._assert_true(CardDB.BASE_DECK.size() > 0, "BASE_DECK: 1個以上存在")
@@ -206,7 +207,7 @@ func _test_result_reward_panel_fields(r: RefCounted) -> void:
 	r._assert_true("current_battle_gold" in GameSession, "reward_panel: current_battle_goldフィールド存在")
 	r._assert_true("gold" in GameSession, "reward_panel: goldフィールド存在")
 	r._assert_true("skill_points" in GameSession, "reward_panel: skill_pointsフィールド存在")
-	r._assert_true("materials" in GameSession, "reward_panel: materialsフィールド存在")
+	r._assert_true("relics" in GameSession, "reward_panel: relicsフィールド存在")
 	r._assert_true(GameSession.last_result.has("win"), "reward_panel: last_result.win存在")
 
 # テスト: カード3択生成（重みテーブルと重複なし）

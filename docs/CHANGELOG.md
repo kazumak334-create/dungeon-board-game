@@ -1,6 +1,240 @@
 # CHANGELOG
 
+## 2026-04-12
+
+### Phase 3 ボスシステムAct1完成（#6）
+
+**企画書作成**
+- boss_system_completion.md: planningエージェント（Opus）による全8ボス企画
+- 各ボス3段階デッキ（normal/strong/enraged）、boss_phase・alert_levelで切り替え
+- ボス専用ユニット15体定義（Act1: 5, Act2: 6, Act3: 4）
+
+**要件定義作成**
+- boss_system_requirements.md: architectエージェント（Sonnet）によるAct1スコープ要件定義
+- 3ボス、9デッキ、5専用ユニットに絞った実装計画
+
+**実装完了（Sprint 1-3）**
+- Sprint 1: cards.json データ追加
+  - boss_decks: 9エントリ追加（boss_act1_beast/beast_strong/beast_enraged × 3種族）
+  - boss_exclusive_units: 5体追加（猛獣使い、母スライム核、融合スライム、屍術師、死骸の王座）
+  - bosses: alert_level_buffs更新（Lv4: HP+5/ATK+1、Lv5: HP+10/ATK+2）
+
+- Sprint 2: CardDB.gd 読み込み実装
+  - BOSS_DECKS変数追加・JSON読み込み
+  - BOSS_EXCLUSIVE_UNITS変数追加・UNITS辞書にマージ
+
+- Sprint 3: EnemyAI.gd ボスデッキ構築
+  - _build_boss_deck() TODO解消（109-116行目）
+  - CardDB.BOSS_DECKSから取得、エラー時はENEMY_POOLSにフォールバック
+
+**roadmap.md更新**
+- #6: Act1データ完了・Act2/3はPhase4
+
+### Phase 3 警戒システム 企画・要件定義・実装完了（#22-26）
+
+**企画書作成**
+- alert_level_combat_impact.md: planningエージェント（Opus）による企画
+- Lv1-2: 盤面環境効果のみ（敵前列アーマー/自陣棘・呪いマス）
+- Lv3-5: 強化デッキ1/2/3 + エリート混入（50%/100%）
+- Act遷移時に警戒レベル0リセット
+- Phase 3 #13（環境変化システム）を警戒システムに統合・廃止
+
+**要件定義作成**
+- alert_level_requirements.md: architectエージェント（Sonnet）による要件定義
+- 実装対象ファイル・変更箇所・実装順序を明確化
+- レストノード実装計画を追加（alert_level -= 2の入口）
+
+**実装完了（Sprint A-C）**
+- Sprint A: レストノード・戦闘マス+1・データ定義
+  - MapGenerator.gd: restノード追加（depth 4-6, 20%確率）
+  - MapSelect.gd: rest選択処理（alert_level -= 2）、battle/elite選択（+1）
+  - cards.json: enemy_pools構造変更（act_N_weak/enhanced1/2/3）、elite_pools追加
+  - CardDB.gd: ELITE_POOLS読み込み
+  - GameSession.gd: elite_injected_in_battle追加
+
+- Sprint B: ロジック層
+  - EnemyAI.gd: 警戒レベル別プールキー決定（_select_pool_key）
+  - TileEffectManager.gd（新規）: 盤面環境効果（Lv1アーマー/Lv2棘・呪い）
+  - EnemyPlacementHelper.gd（新規）: エリート混入（Lv4=50%/Lv5=100%）
+  - Main.gd: alert修飾処理呼び出し
+
+- Sprint C: UI・報酬
+  - MapSelect.gd: 警告マーク表示（!/!!/!!!、黄/橙/赤）
+  - Result.gd: エリート混入時カード選択肢+1
+
+- 追加実装: Act遷移時リセット
+  - BossReward.gd: Act遷移時にalert_level = 0
+
+**roadmap.md更新**
+- #22-26: 警戒システムタスク追加・完了
+- #13（環境変化システム）を廃止としてマーク
+
+**プロセス改善**
+- memory/feedback_requirements_first.md: 追加仕様判明時は企画・要件定義を先に修正するルール追加
+
+**Phase 4計画追加**
+- event_worldview_candidates.md: 警戒レベル減少イベント企画追加（各Act1個、合計3個）
+- roadmap.md Phase 4 #12: 警戒レベル減少イベント追加（バランス調整時実装）
+
+**警戒レベル変動ルール修正（2026-04-12追加）**
+- alert_level_combat_impact.md: その他ノード（イベント・宝箱・ショップ）選択時-1を追加
+- alert_level_requirements.md: MapSelect.gd 変更箇所に event/shop/gather 選択時-1処理を追記
+- MapSelect.gd: event/shop/gather選択時に alert_level -= 1（下限0）を実装
+- 戦略的意義: 戦闘を避けてイベント・宝箱・ショップを通るルートで警戒レベルを緩やかに下げられる
+
+### ドロップテーブルシステム実装完了（#12）
+
+**企画書・要件定義書作成**
+- drop_table_system.md: planningエージェント（Opus）による企画
+- drop_table_requirements.md: architectエージェント（Opus）による要件定義
+- run_depth主軸の3ステージ構成（早期0-3/中期4-7/後期8+）
+- エリート混入時ステージ+1参照（警戒システムとの統合点）
+
+**実装完了（Sprint A + C）**
+- RewardTable.gd（新規）: run_depth→ステージ→重み決定ロジック分離
+- Result.gd: 既存RARITY_WEIGHTS_*削除、RewardTable.get_weights()呼び出しに差し替え
+- Result.gd: BOOSTEDアイコン追加（エリート時ステージ繰り上げ時のみ表示）
+- Late重み合計100調整（uncommon 36）、godレアリティ0%（MVP仕様）
+
+**roadmap.md更新**
+- #12: ドロップテーブル実装 完了マーク
+
+### Phase 3 #21: マップノード数増加（最大6並列）
+
+**マップ生成ロジック改善**
+- MapGenerator.gd: MAX_LANES=6, MAX_CONNECTIONS=3定数追加
+- depth別ノード数可変化
+  - 序盤（depth 1-2）: 2-4ノード
+  - 中盤（depth 3-6）: 3-6ノード
+  - 終盤（depth 7-8）: 2-4ノード
+- 接続ロジック改善
+  - シャッフルベースのランダム接続
+  - 各ノードの接続数を最大3に制限
+  - 孤立防止ロジック維持
+- TestSession.gd: コメントアウト漏れ修正
+
+### Phase 3 #4: イベントノードシステム実装
+
+**企画・設計**
+- event_system_proposal.md: イベントシステム基本設計
+- event_worldview_candidates.md: 世界観イベント9個の詳細設計
+  - Act 1-3各3個、違和感のみで真実は明かさない
+  - 報酬通常並み（Gold 60-100、レリック）
+
+**データ構造**
+- cards.json: eventsセクション追加（世界観イベント3個実装）
+  - memory_fragment（記憶の断片）
+  - atlas_terminal_alpha（ATLAS端末α）
+  - gray_stain（灰色の染み）
+- 特殊レリック2個追加: subject_card（実験体の札）、memory_key（記憶の鍵）
+- CardDB.gd: EVENTS読み込み
+- GameSession.gd: current_event_id, visited_events追加
+
+**イベントシステム実装**
+- Event.gd: 全面実装
+  - ランダムイベント選択（Act別、訪問済み除外）
+  - テキスト+選択肢表示
+  - 結果適用（gold, hp, relic, alert_level, sp, flavor）
+  - 結果表示画面
+
+**世界観イベント追加（Act 2-3）**
+- Act 2: 動かない何か、音声ログ、グリッチ現象β
+- Act 3: ATLAS端末Ω、白衣の人物、見たことのない扉
+- 特殊レリック4個追加: ATLAS破片α/β/Ω、グリッチコア
+- **合計9個の世界観イベント実装完了**
+
+**TODO**
+- レリック選択UI（relic_choice）
+- カード選択UI（card_choice）
+- 本体HPシステム連携（hp result type）
+- 特殊レリック効果実装（ATLAS破片β、グリッチコア）
+
 ## 2026-04-11
+
+### Phase 3 #5: ボス戦連戦システムの箱実装
+
+**データ構造**
+- GameSession.gd: boss_id, boss_phase追加
+- cards.json: ボス3体にフェーズ別デッキID・バフ設定追加
+  - enemy_deck_id_phase2_lv4（警戒Lv4用強化デッキ）
+  - enemy_deck_id_phase2_lv5（警戒Lv5用超強化デッキ）
+  - alert_level_buffs（警戒レベル別HP/ATKボーナス）
+
+**連戦システム**
+- Main.gd: _start_boss_phase2()実装
+- 警戒Lv4以上: 通常デッキ → 強化デッキの連戦
+- 第1戦勝利: マナ+5ボーナス、盤面/HP継続
+- 第2戦: 敵デッキ再構築、全マス埋め配置
+
+**ボス報酬**
+- Result.gd: ボス戦の場合レリック確定3択
+- レアリティ重み付き（Uncommon優遇）
+
+**TODO（バランス調整用）**
+- 実際のデッキIDからデッキ読み込み（現在は暫定でActプール使用）
+- ボス専用ユニット定義（boss_exclusive: true）
+- バフ値の調整（現在は0）
+
+### Phase 3 #7: レリックシステム実装完了
+
+**データ構造**
+- cards.json: relicsセクション追加（Common 5種、Uncommon 3種）
+- CardDB.gd/GameSession.gd: RELICS/relics実装済み
+
+**レリック管理UI**
+- Inventory.gd: レリック一覧表示（レアリティ別タブ）
+- DeckPrep.gd: レリックカウント表示
+
+**レリック効果実装（7種）**
+- Main.gd: battle_start_mana（マナ追加）、battle_start_tiles（タイル配置）、stat_buff（ユニットバフ）実装
+- Result.gd: gold_bonus（Gold報酬増加）、reward_choices（報酬選択肢増加）実装
+- BoardManager.gd: revive_first（最初の死亡ユニット復活）実装
+- timed_buff（時間制限バフ）はTODO（バフシステム統合が必要）
+
+**実装済み効果**
+- 魔石の欠片（battle_start_mana +3）
+- 鉄の護符（stat_buff 全ユニットHP+2）
+- 狂戦士の角笛（stat_buff 前列ATK+1）
+- 棘の種（battle_start_tiles 自陣前列に棘Lv1）
+- 黄金のコイン（gold_bonus +20%）
+- 不死鳥の羽（revive_first HP50%で復活）
+- 幸運のお守り（reward_choices +1）
+
+### Phase 2完了: スキルツリー実装
+
+**スキルツリー画面（6階層ランダム生成）**
+- SkillTreeGenerator.gd: 完全実装済み
+- SkillTree.gd: 横ツリー表示UI実装済み
+- T1-T6階層、T4/T6はクラス固有カード報酬
+- CommonTaskbarの「スキル」ボタンから遷移
+- T2の素材関連スキル削除（素材システム廃止対応）
+- roadmap.md更新: Phase 2 #4完了
+
+**Phase 2完全完了**
+- 全6タスク完了
+- 画面遷移ループ、バトル制限、スキルツリー実装済み
+
+### 装備・素材システム廃止 → レリックシステム導入
+
+**設計変更**
+- 装備システム全廃（装備スロット・合成ツリー削除）
+- 素材システム全廃（素材採集・合成削除）
+- レリック（StS風パッシブアイテム）導入
+- レリック企画案作成: docs/design/relic_system_proposal.md
+
+**ドキュメント更新**
+- roadmap.md: 装備・素材タスク7件廃止、レリックタスク2件追加
+- deckprep.md: 素材表示→レリック表示に変更
+- GAME_DESIGN.md: 装備・素材廃止を明記済み
+
+**実装コード修正**
+- GameSession.gd: materials → relics
+- CardDB.gd: MATERIALS/EQUIPMENT削除、RELICS追加
+- DeckPrep.gd: 素材カウント→レリックカウント
+- Inventory.gd: 素材タブ→レリックレアリティタブ
+- Result.gd, Shop.gd, MapSelect.gd: materials参照削除
+- MaterialSelect.gd, Gather.gd: 削除（画面廃止）
+- TestSession.gd: materialsテスト→relicsに変更
 
 ### Phase 3 タスク#18完了: DeckPrep UX改善
 

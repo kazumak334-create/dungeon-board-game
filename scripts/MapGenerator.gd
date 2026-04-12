@@ -13,10 +13,16 @@ const NODE_WEIGHTS = {
 	"event": 10,
 }
 
+# レストノードの深さと確率
+const REST_NODE_DEPTHS = [4, 5, 6]
+const REST_NODE_CHANCE = 0.2  # 20%
+
 # Act構造
 const ACTS_COUNT = 3
 const NODES_PER_ACT = 10
 const START_LANES = 3
+const MAX_LANES = 6  # 各depthの最大ノード数
+const MAX_CONNECTIONS = 3  # 各ノードの最大接続数
 const BOSS_CANDIDATES = 3  # 各Act終端のボス候補数
 
 # 再現性用RNG
@@ -66,11 +72,19 @@ func _generate_act(act_num: int, race_theme: String) -> Dictionary:
 
 	# depth 1〜8: ランダム生成
 	for depth in range(1, NODES_PER_ACT - 1):
-		var lane_count: int = _rng.randi_range(1, 3)
+		# ノード数をdepthに応じて調整（序盤は少なめ、中盤は多め）
+		var lane_count: int
+		if depth <= 2:
+			lane_count = _rng.randi_range(2, 4)  # 序盤: 2-4ノード
+		elif depth >= 7:
+			lane_count = _rng.randi_range(2, 4)  # 終盤: 2-4ノード
+		else:
+			lane_count = _rng.randi_range(3, MAX_LANES)  # 中盤: 3-6ノード
+
 		var current_depth_ids: Array = []
 
 		for lane in range(lane_count):
-			# 強制配置ロジック（深さ順に判定: event→shop）
+			# 強制配置ロジック（深さ順に判定: event→shop→rest）
 			var node_type: String
 			if not has_event and depth >= 2 and depth <= 4 and lane == 0:
 				# depth 2-4 に event 1個を強制配置
@@ -80,20 +94,25 @@ func _generate_act(act_num: int, race_theme: String) -> Dictionary:
 				# depth 3-5 に shop 1個を強制配置
 				node_type = "shop"
 				has_shop = true
+			elif depth in REST_NODE_DEPTHS and lane == 0 and _rng.randf() < REST_NODE_CHANCE:
+				# depth 4-6 で20%確率でrestノード配置
+				node_type = "rest"
 			else:
 				node_type = _weighted_node_type()
 
 			var nid = "act%d_d%d_n%d" % [act_num, depth, node_id_counter]
 			node_id_counter += 1
 
-			# 接続: 前のdepthノードのうち隣接（lane差 <= 1）と接続
+			# 接続: 前のdepthノードから最大MAX_CONNECTIONS個に接続
 			var conns: Array = []
-			for pid in prev_depth_ids:
-				var prev_node = _find_node(nodes, pid)
-				if prev_node.size() > 0:
-					var prev_lane = prev_node.get("lane", 0)
-					if abs(prev_lane - lane) <= 1:
-						conns.append(pid)
+			var available_prev: Array = prev_depth_ids.duplicate()
+			available_prev.shuffle()  # ランダム化
+
+			# 最大MAX_CONNECTIONS個の前ノードに接続
+			var connection_count = min(MAX_CONNECTIONS, available_prev.size())
+			for i in range(connection_count):
+				conns.append(available_prev[i])
+
 			# 孤立防止: 接続がなければ最も近いprev_depth_idsと接続
 			if conns.is_empty() and prev_depth_ids.size() > 0:
 				conns.append(prev_depth_ids[0])

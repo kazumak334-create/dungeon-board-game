@@ -277,25 +277,7 @@ func show_card_info_in_container(container: Control, card_idx: int) -> void:
 		_detail_container.add_child(row)
 		y += 15.0
 
-func show_material_in_container(container: Control, mat: Dictionary) -> void:
-	_detail_container = container
-	_detail_w = int(container.size.x) if container.size.x > 0 else 130
-	_clear_detail()
-	var name_lbl = Label.new()
-	name_lbl.text = mat.get("display", "?")
-	name_lbl.position = Vector2(4, 4)
-	name_lbl.size = Vector2(_detail_w - 8, 20)
-	name_lbl.add_theme_font_size_override("font_size", 11)
-	name_lbl.add_theme_color_override("font_color", UIF.TITLE_COLOR)
-	_detail_container.add_child(name_lbl)
-	var count = _count_owned(mat.get("id", ""))
-	var count_lbl = Label.new()
-	count_lbl.text = "所持: ×%d" % count
-	count_lbl.position = Vector2(4, 26)
-	count_lbl.size = Vector2(_detail_w - 8, 16)
-	count_lbl.add_theme_font_size_override("font_size", 10)
-	count_lbl.add_theme_color_override("font_color", Color(0.6, 0.7, 0.5))
-	_detail_container.add_child(count_lbl)
+# 素材表示機能は廃止（装備・素材システム廃止により削除）
 
 # ===== カード詳細表示（DeckPrep.gdから移植） =====
 

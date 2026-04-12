@@ -27,6 +27,8 @@ var battle_config: Dictionary = {}
 var class_id: String = ""
 var dev_mode: bool = false
 var battle_type: String = "normal"  # "normal" / "elite" / "boss"
+var boss_id: String = ""  # ボスID（例: "boss_beast_king"）
+var boss_phase: int = 1  # ボス連戦のフェーズ（1 or 2）
 var base_environment: String = "env_none"  # ベース環境（ボス区間共通）
 var environment_override: Dictionary = {}  # 環境変化（side→tile_id）
 var selected_deck: Array = []
@@ -36,7 +38,7 @@ var placement_config: Array = []  # デッキインデックス→{col_priority,
 var initial_units: Array = []  # 9個の要素 [{name, row, col}, ...] or null
 # v2設計: 呪文3スロット設定
 var spell_slots: Array = []  # 3個の要素 [{spell_name, condition}, ...] or null
-var materials: Array = []  # 所持素材（バトル報酬で蓄積）
+var relics: Array = []  # 所持レリック（バトル報酬・ショップ・イベントで取得）
 var gold: int = 0          # 通貨
 var skill_points: int = 0  # スキルポイント
 var unlocked_skills: Array = []  # 解放済みスキルID配列
@@ -57,14 +59,19 @@ var current_node: String = ""        # 現在地ノードID
 var completed_nodes: Array = []      # 通過済みノードID
 var boss_candidates: Array = []      # 表示するボス候補
 var selected_boss_id: String = ""    # 選択したボスID
+var current_event_id: String = ""    # 現在表示中のイベントID
+var visited_events: Array = []       # 既に発生したイベントID（1ラン中に同じイベントは2回出ない）
 var last_scene: String = ""          # 直前のシーン名（戻るボタン用）
 var alert_level: int = 0             # 警戒レベル（戦闘マス選択で+1、レストで-2）
+var elite_injected_in_battle: bool = false  # エリート混入済みフラグ（報酬選択肢+1用）
 
 func reset() -> void:
 	battle_config = DEFAULT_BATTLE_CONFIG.duplicate(true)
 	class_id = ""
 	dev_mode = false
 	battle_type = "normal"
+	boss_id = ""
+	boss_phase = 1
 	base_environment = "env_none"
 	environment_override = {}
 	selected_deck = []
@@ -72,7 +79,7 @@ func reset() -> void:
 	placement_config = []
 	initial_units = []
 	spell_slots = []
-	materials = []
+	relics = []
 	gold = 0
 	skill_points = 0
 	unlocked_skills = []
@@ -93,6 +100,9 @@ func reset() -> void:
 	completed_nodes = []
 	boss_candidates = []
 	selected_boss_id = ""
+	current_event_id = ""
+	visited_events = []
 	last_scene = ""
 	alert_level = 0
+	elite_injected_in_battle = false
 	print("[GameSession] reset")

@@ -228,8 +228,7 @@ func _on_buy_pressed(index: int) -> void:
 		GameSession.selected_deck.append({"name": id, "col": 1})
 	elif t == "spell":
 		GameSession.selected_deck.append({"name": id, "col": -1})
-	elif t == "material":
-		GameSession.materials.append(item.get("data", {}))
+	# 素材購入は廃止（装備・素材システム廃止により削除）
 
 	_update_ui()
 

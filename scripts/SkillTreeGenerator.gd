@@ -14,8 +14,6 @@ const SKILL_POOLS = {
 	2: [
 		{"id": "t2_economy_a", "name": "金貨収集A", "desc": "バトル報酬gold+20%"},
 		{"id": "t2_economy_b", "name": "金貨収集B", "desc": "バトル報酬gold+30%"},
-		{"id": "t2_economy_c", "name": "素材収集A", "desc": "素材ドロップ率+15%"},
-		{"id": "t2_economy_d", "name": "素材収集B", "desc": "素材ドロップ率+25%"},
 		{"id": "t2_economy_e", "name": "SP増加A", "desc": "バトル報酬SP+1"},
 		{"id": "t2_economy_f", "name": "SP増加B", "desc": "バトル報酬SP+2"},
 		{"id": "t2_combat_a", "name": "戦闘強化A", "desc": "全ユニットHP+15%"},

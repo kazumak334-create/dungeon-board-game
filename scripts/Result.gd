@@ -4,6 +4,7 @@ extends Control
 
 const UIF = preload("res://scripts/UIFactory.gd")
 const TaskbarClass = preload("res://scripts/CommonTaskbar.gd")
+const RewardTableClass = preload("res://scripts/RewardTable.gd")
 
 var _taskbar: RefCounted = null
 var _reward_gold: int = 0
@@ -21,11 +22,6 @@ const RARITY_COLORS = {
 	"legend": Color(0.9, 0.7, 0.2),
 	"god": Color(0.9, 0.3, 0.3),
 }
-
-# レアリティ重み（run_depthで変化）
-const RARITY_WEIGHTS_EARLY = {"common": 60, "uncommon": 25, "rare": 10, "epic": 4, "legend": 1, "god": 0}
-const RARITY_WEIGHTS_MID = {"common": 30, "uncommon": 35, "rare": 20, "epic": 10, "legend": 4, "god": 1}
-const RARITY_WEIGHTS_LATE = {"common": 10, "uncommon": 25, "rare": 30, "epic": 20, "legend": 10, "god": 5}
 
 func _ready() -> void:
 	_cleanup_battle_cards()
@@ -70,42 +66,74 @@ func _generate_rewards() -> void:
 	# 固定報酬: 勝利ボーナス
 	_reward_gold = 100
 	_reward_sp = 3  # Phase 2: スキルツリー報酬（3SP固定）
+
+	# レリック効果: gold_bonus
+	var gold_bonus_total: float = 0.0
+	for relic_id in GameSession.relics:
+		if not CardDB.RELICS.has(relic_id):
+			continue
+		var relic = CardDB.RELICS[relic_id]
+		var effect = relic.get("effect", {})
+		if effect.get("type", "") == "gold_bonus":
+			gold_bonus_total += effect.get("value", 0.0)
+	if gold_bonus_total > 0.0:
+		var bonus_amount = int(_reward_gold * gold_bonus_total)
+		_reward_gold += bonus_amount
+		print("[Result] レリック gold_bonus: +%d%% → +%dG (合計: %dG)" % [int(gold_bonus_total * 100), bonus_amount, _reward_gold])
 	if CardDB.MATERIALS.size() > 0:
 		var pool = CardDB.MATERIALS.duplicate()
 		pool.shuffle()
 		_reward_material = pool[0]
 	GameSession.gold += _reward_gold
 	GameSession.skill_points += _reward_sp
-	if _reward_material.size() > 0:
-		GameSession.materials.append(_reward_material)
+	# 素材報酬は廃止（装備・素材システム廃止により削除）
 	# current_battle_goldをリセット（次バトルに持ち越さない）
 	GameSession.current_battle_gold = 0
 
 func _generate_card_choices() -> void:
-	# run_depthに応じた重みテーブル選択
-	var weights: Dictionary
-	if GameSession.run_depth <= 3:
-		weights = RARITY_WEIGHTS_EARLY
-	elif GameSession.run_depth <= 7:
-		weights = RARITY_WEIGHTS_MID
-	else:
-		weights = RARITY_WEIGHTS_LATE
+	# ボス戦: レリック確定3択
+	if GameSession.battle_type == "boss":
+		_generate_boss_relic_choices()
+		return
 
-	# 全ユニット+呪文からレアリティ付きプールを構築
+	# run_depthに応じた重みテーブル選択（エリート混入時はステージ+1）
+	var weights: Dictionary = RewardTableClass.get_weights(GameSession.run_depth, GameSession.elite_injected_in_battle)
+	var effective = RewardTableClass.effective_stage(GameSession.run_depth, GameSession.elite_injected_in_battle)
+	print("[Result] run_depth=%d elite=%s stage=%d" % [GameSession.run_depth, GameSession.elite_injected_in_battle, effective])
+
+	# 全ユニット+呪文からレアリティ付きプールを構築（レリックは除外）
 	var pool: Array = []
 	for name in CardDB.UNITS:
 		var d = CardDB.UNITS[name]
 		var rarity = d.get("rarity", "common")
-		pool.append({"name": name, "data": d, "is_unit": true, "rarity": rarity})
+		pool.append({"name": name, "data": d, "type": "unit", "rarity": rarity})
 	for name in CardDB.SPELLS:
 		var d = CardDB.SPELLS[name]
 		var rarity = d.get("rarity", "common")
-		pool.append({"name": name, "data": d, "is_unit": false, "rarity": rarity})
+		pool.append({"name": name, "data": d, "type": "spell", "rarity": rarity})
 
-	# 重み付きランダム選択で3枚
+	# レリック効果: reward_choices
+	var choice_count = 3  # 基本選択肢数
+
+	# エリート混入時: 選択肢+1
+	if GameSession.elite_injected_in_battle:
+		choice_count += 1
+		print("[Result] エリート混入戦: 報酬選択肢+1 → %d枚" % choice_count)
+
+	for relic_id in GameSession.relics:
+		if not CardDB.RELICS.has(relic_id):
+			continue
+		var relic = CardDB.RELICS[relic_id]
+		var effect = relic.get("effect", {})
+		if effect.get("type", "") == "reward_choices":
+			choice_count += effect.get("value", 0)
+	if choice_count > 3:
+		print("[Result] レリック reward_choices: 選択肢 %d 枚" % choice_count)
+
+	# 重み付きランダム選択
 	_card_choices = []
 	var used_names: Array = []
-	for _i in range(3):
+	for _i in range(choice_count):
 		var card = _weighted_pick(pool, weights, used_names)
 		if card.size() > 0:
 			_card_choices.append(card)
@@ -124,6 +152,32 @@ func _weighted_pick(pool: Array, weights: Dictionary, exclude: Array) -> Diction
 	if weighted.size() == 0:
 		return {}
 	return weighted[randi() % weighted.size()]
+
+func _generate_boss_relic_choices() -> void:
+	# ボス戦: レリック確定3択
+	var relic_pool: Array = []
+	for relic_id in CardDB.RELICS:
+		var relic = CardDB.RELICS[relic_id]
+		relic_pool.append({"name": relic_id, "data": relic, "type": "relic", "rarity": relic.get("rarity", "common")})
+
+	# レアリティ重み（ボス報酬は高レアリティ優遇）
+	var boss_weights = {
+		"common": 2,
+		"uncommon": 5,
+		"rare": 3,
+		"boss": 0,  # ボスレリックはボス報酬からは出ない
+		"event": 0  # イベントレリックも出ない
+	}
+
+	_card_choices = []
+	var used_names: Array = []
+	for _i in range(3):
+		var relic = _weighted_pick(relic_pool, boss_weights, used_names)
+		if relic.size() > 0:
+			_card_choices.append(relic)
+			used_names.append(relic["name"])
+
+	print("[Result] ボス報酬: レリック3択生成完了")
 
 func _build_ui() -> void:
 	UIF.add_bg(self)
@@ -160,6 +214,9 @@ func _build_ui() -> void:
 		pick_label.add_theme_font_size_override("font_size", 16)
 		pick_label.add_theme_color_override("font_color", Color(0.9, 0.85, 0.6))
 		add_child(pick_label)
+
+		# BOOSTEDアイコン（エリート混入時）
+		_add_boost_icon()
 
 		var card_container = HBoxContainer.new()
 		card_container.position = Vector2(80, 245)
@@ -287,7 +344,9 @@ func _create_card_panel(idx: int, card: Dictionary) -> PanelContainer:
 
 	# ステータス
 	var data = card["data"]
-	if card["is_unit"]:
+	var card_type = card.get("type", "unit")
+
+	if card_type == "unit":
 		var stats = "マナ:%d  HP:%d  ATK:%d  SPD:%.1fs" % [
 			data.get("cost", 0), data.get("hp", 0), data.get("atk", 0), data.get("interval", 0)]
 		var stats_label = Label.new()
@@ -303,7 +362,7 @@ func _create_card_panel(idx: int, card: Dictionary) -> PanelContainer:
 		race_label.add_theme_font_size_override("font_size", 12)
 		race_label.add_theme_color_override("font_color", Color(0.6, 0.6, 0.5))
 		vbox.add_child(race_label)
-	else:
+	elif card_type == "spell":
 		var cost_label = Label.new()
 		cost_label.text = "マナ:%d  [呪文]" % data.get("cost", 0)
 		cost_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -318,6 +377,22 @@ func _create_card_panel(idx: int, card: Dictionary) -> PanelContainer:
 		effect_label.add_theme_font_size_override("font_size", 11)
 		effect_label.add_theme_color_override("font_color", Color(0.7, 0.7, 0.7))
 		vbox.add_child(effect_label)
+	elif card_type == "relic":
+		var type_label = Label.new()
+		type_label.text = "[レリック]"
+		type_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		type_label.add_theme_font_size_override("font_size", 14)
+		type_label.add_theme_color_override("font_color", Color(0.7, 0.5, 0.8))
+		vbox.add_child(type_label)
+
+		var desc_label = Label.new()
+		desc_label.text = data.get("description", "")
+		desc_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		desc_label.autowrap_mode = TextServer.AUTOWRAP_WORD
+		desc_label.custom_minimum_size = Vector2(340, 0)
+		desc_label.add_theme_font_size_override("font_size", 13)
+		desc_label.add_theme_color_override("font_color", Color(0.85, 0.85, 0.85))
+		vbox.add_child(desc_label)
 
 	# スキル表示
 	var _edb = load("res://scripts/EffectDB.gd")
@@ -363,18 +438,26 @@ func _on_card_selected(idx: int) -> void:
 	var card = _card_choices[idx]
 	var card_name = card["name"]
 	var data = card["data"]
+	var card_type = card.get("type", "unit")
 
-	# デッキに追加
-	var col = data.get("col", 1) if card["is_unit"] else -1
-	GameSession.selected_deck.append({"name": card_name, "col": col})
+	if card_type == "relic":
+		# レリックをGameSession.relicsに追加
+		GameSession.relics.append(card_name)
+		print("[Result] レリック獲得: %s" % card_name)
+	else:
+		# カード（ユニット・呪文）をデッキに追加
+		var col = data.get("col", 1) if card_type == "unit" else -1
+		GameSession.selected_deck.append({"name": card_name, "col": col})
 
-	# placement_config生成
-	var PL = load("res://scripts/PlacementLogic.gd")
-	var new_config = PL.generate_default_config([{"name": card_name, "col": col}])
-	if new_config.size() > 0:
-		GameSession.placement_config.append(new_config[0])
+		# placement_config生成（ユニットのみ）
+		if card_type == "unit":
+			var PL = load("res://scripts/PlacementLogic.gd")
+			var new_config = PL.generate_default_config([{"name": card_name, "col": col}])
+			if new_config.size() > 0:
+				GameSession.placement_config.append(new_config[0])
 
-	print("[Result] カード選択: %s" % card_name)
+		print("[Result] カード選択: %s" % card_name)
+
 	_on_continue()
 
 func _on_continue() -> void:
@@ -417,3 +500,17 @@ func _build_defeat_ui(is_win: bool) -> void:
 		SceneManager.go_to(SceneManager.TITLE)
 	)
 	add_child(title_btn)
+
+func _add_boost_icon() -> void:
+	# ブースト条件に合致しない場合は何もしない
+	if not RewardTableClass.is_boosted(GameSession.run_depth, GameSession.elite_injected_in_battle):
+		return
+
+	var boost_icon = Label.new()
+	boost_icon.text = "★ BOOSTED"
+	boost_icon.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+	boost_icon.position = Vector2(820, 210)
+	boost_icon.size = Vector2(200, 25)
+	boost_icon.add_theme_font_size_override("font_size", 14)
+	boost_icon.add_theme_color_override("font_color", Color(1.0, 0.85, 0.3))
+	add_child(boost_icon)

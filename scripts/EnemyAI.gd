@@ -30,12 +30,17 @@ func _ready() -> void:
 	_pick_next_card()
 
 func _build_enemy_deck() -> void:
-	# current_actから敵プールを選択
-	var pool_key: String = str(GameSession.current_act)
+	# ボス戦の場合
+	if GameSession.battle_type == "boss":
+		_build_boss_deck()
+		return
+
+	# 通常戦・エリート戦: 警戒レベルに応じたプールキー決定
+	var pool_key: String = _select_pool_key(GameSession.current_act, GameSession.alert_level)
 	var pool: Array = CardDB.ENEMY_POOLS.get(pool_key, [])
 
 	if pool.is_empty():
-		print("[EnemyAI] WARNING: Act%d のプールが未定義、ENEMY_DECKを使用" % GameSession.current_act)
+		print("[EnemyAI] WARNING: プールキー '%s' 未定義、ENEMY_DECKを使用" % pool_key)
 		pool = CardDB.ENEMY_DECK
 
 	for entry in pool:
@@ -50,7 +55,85 @@ func _build_enemy_deck() -> void:
 		u.skills = d.get("skills", []).duplicate(true)
 		enemy_deck.append(u)
 	enemy_deck.shuffle()
-	print("[EnemyAI] 敵デッキ構築: Act%d %d枚" % [GameSession.current_act, enemy_deck.size()])
+	print("[EnemyAI] 敵デッキ構築: Act%d alert_lv=%d pool_key=%s %d枚" % [GameSession.current_act, GameSession.alert_level, pool_key, enemy_deck.size()])
+
+func _select_pool_key(act: int, alert: int) -> String:
+	# Act・警戒レベルに応じた敵プールキーを決定
+	match act:
+		1:
+			if alert >= 5:
+				return "act1_enhanced2"
+			elif alert >= 3:
+				return "act1_enhanced1"
+			else:
+				return "act1_weak"
+		2:
+			if alert >= 5:
+				return "act2_enhanced2"
+			elif alert >= 3:
+				return "act2_enhanced1"
+			else:
+				return "act2_weak"
+		3:
+			if alert >= 3:
+				return "act3_enhanced1"
+			else:
+				return "act3_weak"
+		_:
+			return "act1_weak"  # フォールバック
+
+func _build_boss_deck() -> void:
+	# ボス専用デッキ構築
+	if GameSession.boss_id == "":
+		print("[EnemyAI] ERROR: boss_idが未設定")
+		return
+
+	var boss = CardDB.BOSSES.get(GameSession.boss_id, {})
+	if boss.is_empty():
+		print("[EnemyAI] ERROR: ボスID未定義: %s" % GameSession.boss_id)
+		return
+
+	# フェーズと警戒レベルに応じたデッキIDを選択
+	var deck_id: String = ""
+	if GameSession.boss_phase == 2:
+		# 第2戦: 警戒レベルに応じて強化版/超強化版
+		if GameSession.alert_level >= 5:
+			deck_id = boss.get("enemy_deck_id_phase2_lv5", "")
+		elif GameSession.alert_level >= 4:
+			deck_id = boss.get("enemy_deck_id_phase2_lv4", "")
+
+	# デッキIDが空の場合は第1戦用デッキ
+	if deck_id == "":
+		deck_id = boss.get("enemy_deck_id", "")
+
+	# deck_idから実際のデッキ構成を取得
+	var pool: Array = CardDB.BOSS_DECKS.get(deck_id, [])
+	if pool.is_empty():
+		print("[EnemyAI] ERROR: デッキID '%s' が未定義、フォールバック" % deck_id)
+		pool = CardDB.ENEMY_POOLS.get(str(GameSession.current_act), CardDB.ENEMY_DECK)
+
+	print("[EnemyAI] ボスデッキ構築: %s (deck_id=%s, phase=%d, alert=%d)" % [boss.get("display", ""), deck_id, GameSession.boss_phase, GameSession.alert_level])
+
+	# 警戒レベル別のバフ取得
+	var buffs = boss.get("alert_level_buffs", {}).get(str(GameSession.alert_level), {"hp_bonus": 0, "atk_bonus": 0})
+	var hp_bonus = buffs.get("hp_bonus", 0)
+	var atk_bonus = buffs.get("atk_bonus", 0)
+
+	for entry in pool:
+		var d: Dictionary = CardDB.UNITS[entry["name"]]
+		var u = _UnitDataScript.new()
+		u.unit_name = entry["name"]
+		u.max_hp = d["hp"] + hp_bonus
+		u.current_hp = u.max_hp
+		u.attack = d["atk"] + atk_bonus
+		u.attack_interval = d["interval"]
+		u.cost = d["cost"]; u.assigned_col = entry["col"]
+		u.race = d["race"]; u.attack_range = d["range"]
+		u.support_effect = ""; u.passive_skill = ""
+		u.skills = d.get("skills", []).duplicate(true)
+		enemy_deck.append(u)
+	enemy_deck.shuffle()
+	print("[EnemyAI] ボスデッキ構築完了: %d枚 (HP+%d, ATK+%d)" % [enemy_deck.size(), hp_bonus, atk_bonus])
 
 func ensure_shuffle_card() -> void:
 	for i in range(enemy_deck.size() - 1, -1, -1):

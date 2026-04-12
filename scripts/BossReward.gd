@@ -62,6 +62,7 @@ func _build_ui() -> void:
 func _on_continue() -> void:
 	# ボス撃破後、次Actへ進む
 	GameSession.current_act += 1
+	GameSession.alert_level = 0
 	if GameSession.current_act > 3:
 		# Act 3クリア → エンディング（Phase 6実装予定）
 		print("[BossReward] ゲームクリア（エンディング未実装）")
