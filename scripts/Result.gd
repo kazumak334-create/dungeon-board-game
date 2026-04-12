@@ -80,10 +80,6 @@ func _generate_rewards() -> void:
 		var bonus_amount = int(_reward_gold * gold_bonus_total)
 		_reward_gold += bonus_amount
 		print("[Result] レリック gold_bonus: +%d%% → +%dG (合計: %dG)" % [int(gold_bonus_total * 100), bonus_amount, _reward_gold])
-	if CardDB.MATERIALS.size() > 0:
-		var pool = CardDB.MATERIALS.duplicate()
-		pool.shuffle()
-		_reward_material = pool[0]
 	GameSession.gold += _reward_gold
 	GameSession.skill_points += _reward_sp
 	# 素材報酬は廃止（装備・素材システム廃止により削除）
