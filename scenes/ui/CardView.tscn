@@ -59,6 +59,15 @@ offset_bottom = 46.0
 mouse_filter = 2
 expand_mode = 1
 
+[node name="TraitBadges" type="HBoxContainer" parent="OverlayRoot"]
+layout_mode = 0
+offset_left = 150.0
+offset_top = 10.0
+offset_right = 210.0
+offset_bottom = 26.0
+theme_override_constants/separation = 2
+alignment = 2
+
 [node name="NameLabel" type="Label" parent="OverlayRoot" unique_id=1479187178]
 texture_filter = 1
 layout_mode = 0
@@ -92,20 +101,6 @@ mouse_filter = 2
 texture = ExtResource("5_b1dbq")
 expand_mode = 1
 stretch_mode = 5
-
-[node name="EffectLabel" type="Label" parent="OverlayRoot"]
-layout_mode = 0
-offset_left = 20.0
-offset_top = 240.0
-offset_right = 200.0
-offset_bottom = 260.0
-theme_override_colors/font_color = Color(0.8, 0.8, 0.8, 1)
-theme_override_fonts/font = ExtResource("4_yr3bm")
-theme_override_font_sizes/font_size = 10
-text = "合成素材になる基本ユニット"
-horizontal_alignment = 1
-autowrap_mode = 2
-clip_text = true
 
 [node name="StatRow" type="HBoxContainer" parent="OverlayRoot" unique_id=1075698618]
 layout_mode = 0

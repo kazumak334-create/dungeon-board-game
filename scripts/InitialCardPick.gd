@@ -225,6 +225,10 @@ func _bind_card(view: CardView, card_name: String) -> void:
 		_:
 			view.rarity = CardView.Rarity.COMMON
 
+	# 特性バッジ設定
+	if data.has("traits"):
+		view.traits = data.get("traits", [])
+
 	var tex_path = "res://assets/cards/units/%s.png" % card_name.to_lower().replace(" ", "_")
 	if ResourceLoader.exists(tex_path):
 		view.art_texture = load(tex_path)

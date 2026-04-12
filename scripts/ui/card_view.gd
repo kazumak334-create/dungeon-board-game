@@ -22,6 +22,21 @@ const RARITY_FONTS = {
 	Rarity.GOD:      "res://assets/fonts/gold_font.fnt",
 }
 
+const TRAIT_ICONS = {
+	"flying":      "res://assets/cards/traits/flying.png",
+	"pierce":      "res://assets/cards/traits/pierce.png",
+	"swarm":       "res://assets/cards/traits/swarm.png",
+	"regenerate":  "res://assets/cards/traits/regenerate.png",
+	"armored":     "res://assets/cards/traits/armored.png",
+	"toxic":       "res://assets/cards/traits/toxic.png",
+	"ranged":      "res://assets/cards/traits/ranged.png",
+	"berserker":   "res://assets/cards/traits/berserker.png",
+	"magic":       "res://assets/cards/traits/magic.png",
+	"undead":      "res://assets/cards/traits/undead.png",
+}
+
+const TRAIT_BADGE_SIZE = 16
+
 @export var card_kind: CardKind = CardKind.UNIT:
 	set(value):
 		card_kind = value
@@ -75,10 +90,16 @@ const RARITY_FONTS = {
 		if has_node("OverlayRoot/ArtTexture"):
 			$OverlayRoot/ArtTexture.texture = art_texture
 
+@export var traits: Array[String] = []:
+	set(value):
+		traits = value
+		_update_trait_badges()
+
 func _ready() -> void:
 	_update_frame()
 	_update_text()
 	_apply_kind()
+	_update_trait_badges()
 	if top_icon_texture:
 		$OverlayRoot/TopIcon.texture = top_icon_texture
 	if art_texture:
@@ -113,3 +134,35 @@ func _update_frame() -> void:
 	if has_node("OverlayRoot/NameLabel"):
 		var font = load(RARITY_FONTS[rarity])
 		$OverlayRoot/NameLabel.add_theme_font_override("font", font)
+
+func _update_trait_badges() -> void:
+	if not has_node("OverlayRoot/TraitBadges"):
+		return
+
+	var container = $OverlayRoot/TraitBadges
+	# 既存のバッジをクリア
+	for child in container.get_children():
+		child.queue_free()
+
+	# 最大10個まで表示
+	var display_count = min(traits.size(), 10)
+	for i in range(display_count):
+		var trait_name = traits[i]
+		var badge = TextureRect.new()
+		badge.custom_minimum_size = Vector2(TRAIT_BADGE_SIZE, TRAIT_BADGE_SIZE)
+		badge.expand_mode = TextureRect.EXPAND_FIT_WIDTH_PROPORTIONAL
+		badge.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		badge.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+
+		# アイコンが存在する場合は読み込み、なければプレースホルダ
+		if TRAIT_ICONS.has(trait_name) and ResourceLoader.exists(TRAIT_ICONS[trait_name]):
+			badge.texture = load(TRAIT_ICONS[trait_name])
+		else:
+			# プレースホルダ: 小さい色付き四角
+			var placeholder = ColorRect.new()
+			placeholder.custom_minimum_size = Vector2(TRAIT_BADGE_SIZE, TRAIT_BADGE_SIZE)
+			placeholder.color = Color(0.5, 0.5, 0.5, 0.8)
+			container.add_child(placeholder)
+			continue
+
+		container.add_child(badge)
