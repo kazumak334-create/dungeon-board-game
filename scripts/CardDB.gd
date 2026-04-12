@@ -91,4 +91,11 @@ func _load_player_skills() -> void:
 		print("[CardDB] ERROR: player_skills.json parse failed")
 		return
 	PLAYER_SKILLS = data.get("player_skills", {})
+
+	# sp_costをtierから自動計算
+	for skill_id in PLAYER_SKILLS:
+		var skill = PLAYER_SKILLS[skill_id]
+		if skill.has("tier"):
+			skill["sp_cost"] = skill["tier"]
+
 	print("[CardDB] Loaded %d player skills" % PLAYER_SKILLS.size())

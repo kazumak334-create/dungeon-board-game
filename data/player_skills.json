@@ -6,7 +6,6 @@
 			"display_name_en": "SCOUT",
 			"description": "戦闘後、敵の群れ特性持ちユニットのうち最もレアリティの高いユニットを手持ちカードに加える。",
 			"tier": 5,
-			"sp_cost": 5,
 			"trigger": "battle_end",
 			"effect_id": "add_swarm_unit_to_deck",
 			"params": {
@@ -20,7 +19,6 @@
 			"display_name_en": "CELL DIVISION",
 			"description": "スライム属性カード入手時に50%の確率でもう1枚同じカードを入手する。",
 			"tier": 5,
-			"sp_cost": 5,
 			"trigger": "on_card_gain",
 			"effect_id": "duplicate_card_on_gain",
 			"params": {
@@ -35,7 +33,6 @@
 			"display_name_en": "BLOOD RAGE",
 			"description": "10秒ごとにプレイヤーHPに10ダメージ。自分前列のユニット全てのATK+5。",
 			"tier": 3,
-			"sp_cost": 3,
 			"trigger": "periodic",
 			"effect_id": "damage_self_buff_front_row",
 			"params": {
@@ -51,7 +48,6 @@
 			"display_name_en": "MAD SCIENTIST",
 			"description": "バトル開始時、自分・敵の前列マス（col=0）を全て毒沼にする。",
 			"tier": 3,
-			"sp_cost": 3,
 			"trigger": "battle_start",
 			"effect_id": "convert_front_row_to_poison",
 			"params": {
