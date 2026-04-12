@@ -42,11 +42,6 @@ const RARITY_FONTS = {
 		card_name = value
 		_update_text()
 
-@export_multiline var effect_text: String = "合成素材になる基本ユニット":
-	set(value):
-		effect_text = value
-		_update_text()
-
 @export var hp: int = 3:
 	set(value):
 		hp = value
@@ -95,8 +90,6 @@ func _update_text() -> void:
 	$OverlayRoot/ManaLabel.text = str(mana)
 	# ビットマップフォントは大文字のみ対応のため必ずto_upper()を通す
 	$OverlayRoot/NameLabel.text = card_name.to_upper()
-	if has_node("OverlayRoot/EffectLabel"):
-		$OverlayRoot/EffectLabel.text = effect_text
 	$OverlayRoot/StatRow/HpLabel.text = str(hp)
 	$OverlayRoot/StatRow/AtkLabel.text = str(atk)
 	$OverlayRoot/StatRow/SpdLabel.text = str(spd)
