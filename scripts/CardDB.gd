@@ -21,6 +21,7 @@ var BOSSES: Dictionary = {}
 var EVENTS: Dictionary = {}  # イベント（StS風ランダムイベント）
 var BOSS_DECKS: Dictionary = {}
 var BOSS_EXCLUSIVE_UNITS: Dictionary = {}
+var TRAITS: Dictionary = {}  # 特性（カード固有、アーティファクト付与、低確率生成時付与）
 
 func _ready() -> void:
 	var file = FileAccess.open("res://data/cards.json", FileAccess.READ)
@@ -56,3 +57,20 @@ func _ready() -> void:
 	# ボス専用ユニットをUNITSにマージ（プレイヤー入手不可フラグ付き）
 	for unit_name in BOSS_EXCLUSIVE_UNITS:
 		UNITS[unit_name] = BOSS_EXCLUSIVE_UNITS[unit_name]
+
+	# 特性データ読み込み
+	_load_traits()
+
+func _load_traits() -> void:
+	var file = FileAccess.open("res://data/traits.json", FileAccess.READ)
+	if file == null:
+		print("[CardDB] WARNING: data/traits.json not found")
+		return
+	var json_text = file.get_as_text()
+	file.close()
+	var data = JSON.parse_string(json_text)
+	if data == null:
+		print("[CardDB] ERROR: traits.json parse failed")
+		return
+	TRAITS = data.get("traits", {})
+	print("[CardDB] Loaded %d traits" % TRAITS.size())

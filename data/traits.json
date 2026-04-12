@@ -1,0 +1,47 @@
+{
+	"_comment": "特性定義DB - カード固有、アーティファクト付与、低確率生成時付与",
+	"traits": {
+		"flying": {
+			"display_name": "飛行",
+			"display_name_en": "FLYING",
+			"description": "盤面効果を受けない。アーマー・棘・呪い・ヒビ等の盤面マス効果の影響を無視する。",
+			"icon_path": "res://assets/cards/traits/flying.png",
+			"rarity": "uncommon"
+		},
+		"pierce": {
+			"display_name": "貫通",
+			"display_name_en": "PIERCE",
+			"description": "攻撃時、中列にも同じダメージを与える。前列を倒した場合でも中列にダメージが通る。",
+			"icon_path": "res://assets/cards/traits/pierce.png",
+			"rarity": "rare"
+		},
+		"swarm": {
+			"display_name": "群れ",
+			"display_name_en": "SWARM",
+			"description": "盤面上の同名ユニット1体につきATK・SPDが+3%UP。最大5体まで（+15%）。",
+			"icon_path": "res://assets/cards/traits/swarm.png",
+			"rarity": "common"
+		},
+		"poison_charge": {
+			"display_name": "ポイズンチャージ",
+			"display_name_en": "POISON CHARGE",
+			"description": "毒状態にならない。毒沼マス上では+1HP/秒で回復する。",
+			"icon_path": "res://assets/cards/traits/poison_charge.png",
+			"rarity": "rare"
+		},
+		"wet_crown": {
+			"display_name": "濡れた王冠",
+			"display_name_en": "WET CROWN",
+			"description": "味方盤面のスライム属ユニット1体につきHP・ATKが+10%UP。最大5体まで（+50%）。",
+			"icon_path": "res://assets/cards/traits/wet_crown.png",
+			"rarity": "epic"
+		},
+		"grave_robber": {
+			"display_name": "墓荒らし",
+			"display_name_en": "GRAVE ROBBER",
+			"description": "墓マス上で攻撃する場合、相手のバフを1-5ランダムに奪う。効果発動後、墓マスは通常マスに変わる。",
+			"icon_path": "res://assets/cards/traits/grave_robber.png",
+			"rarity": "epic"
+		}
+	}
+}
