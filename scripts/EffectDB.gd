@@ -153,4 +153,16 @@ const EFFECTS: Dictionary = {
 	"max_hp_boost_by_mana_drained":{"type": "stat_boost_conditional", "factor": 0.05,                           "display": "マナ減少依存HP", "texture": "", "anim": "", "sfx": ""},
 	"spell_seal":                  {"type": "spell_seal",           "duration": 3.0,                             "display": "呪文封印", "texture": "", "anim": "", "sfx": ""},
 	"heal_seal":                   {"type": "heal_seal",            "duration": 5.0,                             "display": "回復封印", "texture": "", "anim": "", "sfx": ""},
+
+	# ---- 獣カード専用効果 ----
+	"same_row_atk_boost":          {"type": "buff_apply",           "buff": "atk", "stacks": 3,                  "display": "同行ATK上昇", "texture": "", "anim": "", "sfx": ""},
+	"grant_pierce_to_same_row":    {"type": "grant_skill_flag",     "flags": {"_has_penetrate": true},           "display": "同行貫通付与", "texture": "", "anim": "", "sfx": ""},
+	"poison_stack_variable":       {"type": "poison_variable",      "variable": "X",                             "display": "毒X付与", "texture": "", "anim": "", "sfx": ""},
+	"poison_stack_increment":      {"type": "variable_increment",   "variable": "X", "amount": 2, "interval": 2.0, "display": "X増加", "texture": "", "anim": "", "sfx": ""},
+	"atk_by_empty_slots":          {"type": "atk_by_empty_slots",                                                "display": "空きマス依存ATK", "texture": "", "anim": "", "sfx": ""},
+	"heal_pct_front":              {"type": "heal_pct_periodic",    "pct": 0.05, "interval": 2.0,                "display": "前列HP%回復", "texture": "", "anim": "", "sfx": ""},
+	"atk_by_thorn_stacks":         {"type": "atk_by_buff_stacks",   "buff": "thorn", "factor": 0.5,              "display": "棘依存ATK", "texture": "", "anim": "", "sfx": ""},
+	"on_ally_death_heal_and_buff": {"type": "on_ally_death_trigger","heal_pct": 0.25, "atk_pct": 0.05, "spd_pct": 0.05, "display": "味方死亡時回復・バフ", "texture": "", "anim": "", "sfx": ""},
+	"same_row_beast_atk_boost":    {"type": "temp_buff_race",       "race": "獣", "buff": "atk", "pct": 0.02, "duration": 3.0, "display": "同列獣ATK%上昇", "texture": "", "anim": "", "sfx": ""},
+	"front_beast_spd_boost":       {"type": "temp_buff_race",       "race": "獣", "buff": "spd", "pct": 0.01, "duration": 1.0, "display": "前列獣SPD%上昇", "texture": "", "anim": "", "sfx": ""},
 }

@@ -42,6 +42,13 @@
 			"description": "墓マス上で攻撃する場合、相手のバフを1-5ランダムに奪う。効果発動後、墓マスは通常マスに変わる。",
 			"icon_path": "res://assets/cards/traits/grave_robber.png",
 			"rarity": "epic"
+		},
+		"indomitable": {
+			"display_name": "不撓不屈",
+			"display_name_en": "INDOMITABLE",
+			"description": "味方ユニット死亡時に自身の最大HP25%回復・ATKとSPD5%上昇（スタック式）。",
+			"icon_path": "res://assets/cards/traits/indomitable.png",
+			"rarity": "rare"
 		}
 	}
 }
