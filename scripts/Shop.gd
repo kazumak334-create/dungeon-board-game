@@ -14,7 +14,8 @@ const COLOR_TEXT       := Color(0.8, 0.8, 0.8)
 const COLOR_PRICE      := Color(0.9, 0.8, 0.3)
 const COLOR_SOLDOUT    := Color(0.4, 0.1, 0.1)
 
-const REROLL_COST: int = 50
+static func get_reroll_cost() -> int:
+	return ConfigLoader.get_value("shop", "reroll_cost", 50)
 
 var _goods: Array = []           # 現在表示中の商品配列
 var _purchased: Array = []       # 購入済みインデックス
@@ -50,19 +51,19 @@ func _generate_goods() -> void:
 	for i in range(min(count, all_cards.size())):
 		_goods.append(all_cards[i])
 
-# 商品の価格計算
+# 商品の価格計算（レアリティベース）
 func _get_price(item: Dictionary) -> int:
 	var t = item.get("type", "")
 	var data = item.get("data", {})
-	if t == "unit":
-		var cost = data.get("cost", 1)
-		return cost * 20
-	elif t == "spell":
-		var cost = data.get("cost", 1)
-		return cost * 15
-	elif t == "material":
-		return 50
-	return 10
+	var rarity = data.get("rarity", "common")
+	var rarity_price = ConfigLoader.get_value("shop", "rarity_price", {
+		"common": 50,
+		"uncommon": 100,
+		"rare": 200,
+		"epic": 400,
+		"legend": 800
+	})
+	return rarity_price.get(rarity, 50)
 
 func _build_ui() -> void:
 	# 背景
@@ -106,7 +107,7 @@ func _build_ui() -> void:
 
 	# リロールボタン
 	_reroll_btn = Button.new()
-	_reroll_btn.text = "商品入れ替え: %dG" % REROLL_COST
+	_reroll_btn.text = "商品入れ替え: %dG" % get_reroll_cost()
 	_reroll_btn.position = Vector2(490, 460)
 	_reroll_btn.size = Vector2(300, 50)
 	_reroll_btn.add_theme_font_size_override("font_size", 18)
@@ -234,11 +235,12 @@ func _on_buy_pressed(index: int) -> void:
 
 # リロールボタン押下
 func _on_reroll_pressed() -> void:
-	if GameSession.gold < REROLL_COST:
+	var reroll_cost = get_reroll_cost()
+	if GameSession.gold < reroll_cost:
 		print("[Shop] リロール費用不足")
 		return
 
-	GameSession.gold -= REROLL_COST
+	GameSession.gold -= reroll_cost
 	_generate_goods()
 	_rebuild_goods_ui()
 	_update_ui()
@@ -273,7 +275,7 @@ func _update_ui() -> void:
 					child.disabled = GameSession.gold < price
 
 	# リロールボタンのdisabled状態更新
-	_reroll_btn.disabled = GameSession.gold < REROLL_COST
+	_reroll_btn.disabled = GameSession.gold < get_reroll_cost()
 
 # 商品UI再構築
 func _rebuild_goods_ui() -> void:

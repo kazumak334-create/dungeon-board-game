@@ -1,0 +1,55 @@
+{
+  "_comment": "バランス調整パラメータ（開発モード専用）",
+  "mana_economy": {
+    "initial_mana": 3,
+    "mana_max": 3,
+    "mana_regen_rate": 1.0
+  },
+  "battle_config": {
+    "time_limit": 60.0,
+    "player_base_hp": 30,
+    "enemy_base_hp": 30
+  },
+  "alert_system": {
+    "tile_effect_count_lv1": 3,
+    "tile_effect_count_lv2": 3,
+    "armor_damage_reduction": 2,
+    "thorn_damage": 2,
+    "curse_damage": 1
+  },
+  "drop_table": {
+    "rarity_weights_early": {"common": 65, "uncommon": 30, "rare": 5, "epic": 0, "legend": 0, "god": 0},
+    "rarity_weights_mid": {"common": 40, "uncommon": 40, "rare": 17, "epic": 3, "legend": 0, "god": 0},
+    "rarity_weights_late": {"common": 20, "uncommon": 36, "rare": 30, "epic": 12, "legend": 2, "god": 0},
+    "stage_early_max_depth": 3,
+    "stage_mid_max_depth": 7
+  },
+  "rewards": {
+    "battle_gold_base": 30,
+    "battle_gold_variance": 20,
+    "battle_sp": 1,
+    "boss_gold": 200,
+    "boss_sp": 2
+  },
+  "shop": {
+    "rarity_price": {
+      "common": 50,
+      "uncommon": 100,
+      "rare": 200,
+      "epic": 400,
+      "legend": 800
+    },
+    "reroll_cost": 10
+  },
+  "map_generation": {
+    "node_weights": {
+      "battle": 50,
+      "elite": 15,
+      "gather": 15,
+      "shop": 10,
+      "event": 10
+    },
+    "rest_node_chance": 0.2,
+    "rest_node_depths": [4, 5, 6]
+  }
+}

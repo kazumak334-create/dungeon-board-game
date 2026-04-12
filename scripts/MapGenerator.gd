@@ -4,18 +4,22 @@
 extends RefCounted
 class_name MapGenerator
 
-# ノード種別の重み
-const NODE_WEIGHTS = {
-	"battle": 50,
-	"elite": 15,
-	"gather": 15,
-	"shop": 10,
-	"event": 10,
-}
+# ノード種別の重み（ConfigLoader経由で取得）
+static func get_node_weights() -> Dictionary:
+	return ConfigLoader.get_value("map_generation", "node_weights", {
+		"battle": 50,
+		"elite": 15,
+		"gather": 15,
+		"shop": 10,
+		"event": 10,
+	})
 
 # レストノードの深さと確率
-const REST_NODE_DEPTHS = [4, 5, 6]
-const REST_NODE_CHANCE = 0.2  # 20%
+static func get_rest_node_depths() -> Array:
+	return ConfigLoader.get_value("map_generation", "rest_node_depths", [4, 5, 6])
+
+static func get_rest_node_chance() -> float:
+	return ConfigLoader.get_value("map_generation", "rest_node_chance", 0.2)
 
 # Act構造
 const ACTS_COUNT = 3
@@ -94,8 +98,8 @@ func _generate_act(act_num: int, race_theme: String) -> Dictionary:
 				# depth 3-5 に shop 1個を強制配置
 				node_type = "shop"
 				has_shop = true
-			elif depth in REST_NODE_DEPTHS and lane == 0 and _rng.randf() < REST_NODE_CHANCE:
-				# depth 4-6 で20%確率でrestノード配置
+			elif depth in get_rest_node_depths() and lane == 0 and _rng.randf() < get_rest_node_chance():
+				# depth 4-6 で確率でrestノード配置
 				node_type = "rest"
 			else:
 				node_type = _weighted_node_type()
@@ -179,13 +183,14 @@ func _generate_act(act_num: int, race_theme: String) -> Dictionary:
 
 # ノード種別を重み付きランダムで選択
 func _weighted_node_type() -> String:
+	var node_weights = get_node_weights()
 	var total: int = 0
-	for w in NODE_WEIGHTS.values():
+	for w in node_weights.values():
 		total += w
 	var roll: int = _rng.randi_range(0, total - 1)
 	var accum: int = 0
-	for type in NODE_WEIGHTS:
-		accum += NODE_WEIGHTS[type]
+	for type in node_weights:
+		accum += node_weights[type]
 		if roll < accum:
 			return type
 	return "battle"

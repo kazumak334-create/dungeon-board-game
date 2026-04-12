@@ -2,25 +2,32 @@
 # Autoload: ランデータの一時保管（画面遷移間のデータ引き継ぎ）
 extends Node
 
-const DEFAULT_BATTLE_CONFIG: Dictionary = {
-	"time_limit":            60.0,   # 0.0=制限なし
-	"time_up_result":        "lose", # "lose"/"draw"/"win"
-	"win_condition":         "enemy_hp_zero",
-	"lose_condition":        "player_hp_zero",
-	"player_base_hp":        30,
-	"enemy_base_hp":         30,
-	"enemy_check_interval":  1.0,
-	"mana_regen_rate":       1.0,
-	"card_play_interval":    1.0,
-	"enemy_atk_scale":       1.0,
-	"enemy_hp_scale":        1.0,
-	"reward_multiplier":     1.0,
-	"skill_points_reward":   1,
-	"initial_units":         [],    # 開始時配置済みユニット（入れ物のみ）
-	"summon_race_filter":    "",    # 空=制限なし（入れ物のみ）
-	"placement_restriction": "",    # 空=制限なし（入れ物のみ）
-	"mana_max_override":     0.0,  # 0.0=通常（クラス依存）（入れ物のみ）
-}
+# DEFAULT_BATTLE_CONFIG を関数化（ConfigLoader経由で取得）
+func get_default_battle_config() -> Dictionary:
+	var time_limit: float = ConfigLoader.get_value("battle_config", "time_limit", 60.0)
+	var player_base_hp: int = ConfigLoader.get_value("battle_config", "player_base_hp", 30)
+	var enemy_base_hp: int = ConfigLoader.get_value("battle_config", "enemy_base_hp", 30)
+	var mana_regen_rate: float = ConfigLoader.get_value("mana_economy", "mana_regen_rate", 1.0)
+
+	return {
+		"time_limit":            time_limit,
+		"time_up_result":        "lose", # "lose"/"draw"/"win"
+		"win_condition":         "enemy_hp_zero",
+		"lose_condition":        "player_hp_zero",
+		"player_base_hp":        player_base_hp,
+		"enemy_base_hp":         enemy_base_hp,
+		"enemy_check_interval":  1.0,
+		"mana_regen_rate":       mana_regen_rate,
+		"card_play_interval":    1.0,
+		"enemy_atk_scale":       1.0,
+		"enemy_hp_scale":        1.0,
+		"reward_multiplier":     1.0,
+		"skill_points_reward":   1,
+		"initial_units":         [],    # 開始時配置済みユニット（入れ物のみ）
+		"summon_race_filter":    "",    # 空=制限なし（入れ物のみ）
+		"placement_restriction": "",    # 空=制限なし（入れ物のみ）
+		"mana_max_override":     0.0,  # 0.0=通常（クラス依存）（入れ物のみ）
+	}
 
 var battle_config: Dictionary = {}
 
@@ -65,8 +72,14 @@ var last_scene: String = ""          # 直前のシーン名（戻るボタン�
 var alert_level: int = 0             # 警戒レベル（戦闘マス選択で+1、レストで-2）
 var elite_injected_in_battle: bool = false  # エリート混入済みフラグ（報酬選択肢+1用）
 
+# Godモードフラグ（デバッグUI専用）
+var god_mode_invincible: bool = false     # 無敵モード
+var god_mode_infinite_mana: bool = false  # マナ無限
+var god_mode_infinite_time: bool = false  # 時間無限
+var god_mode_auto_win: bool = false       # 必ず勝利
+
 func reset() -> void:
-	battle_config = DEFAULT_BATTLE_CONFIG.duplicate(true)
+	battle_config = get_default_battle_config()
 	class_id = ""
 	dev_mode = false
 	battle_type = "normal"
@@ -105,4 +118,9 @@ func reset() -> void:
 	last_scene = ""
 	alert_level = 0
 	elite_injected_in_battle = false
+	# Godモードフラグはreset時にクリア
+	god_mode_invincible = false
+	god_mode_infinite_mana = false
+	god_mode_infinite_time = false
+	god_mode_auto_win = false
 	print("[GameSession] reset")

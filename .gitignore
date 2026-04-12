@@ -15,6 +15,9 @@ mcp/godot-mcp/node_modules/
 *.env
 .env*
 
+# Config
+config/balance.json
+
 # OS
 .DS_Store
 Thumbs.db
