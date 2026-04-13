@@ -145,11 +145,22 @@ func _generate_act(act_num: int, race_theme: String) -> Dictionary:
 				if pid in node.get("connections", []):
 					has_outgoing = true
 					break
-			# 前のノードから行けるノードがなければ、最も近いノードに接続追加
+			# 前のノードから行けるノードがなければ、接続数が上限未満のノードに接続追加
 			if not has_outgoing and current_depth_ids.size() > 0:
-				var target_node = _find_node(nodes, current_depth_ids[0])
-				if target_node.has("connections"):
-					target_node["connections"].append(pid)
+				# 接続数が上限未満のノードを探す
+				var added = false
+				for nid in current_depth_ids:
+					var target_node = _find_node(nodes, nid)
+					var current_connections = target_node.get("connections", [])
+					if current_connections.size() < MAX_CONNECTIONS:
+						target_node["connections"].append(pid)
+						added = true
+						break
+				# すべてのノードが上限に達している場合は、最初のノードに追加（孤立回避）
+				if not added:
+					var target_node = _find_node(nodes, current_depth_ids[0])
+					if target_node.has("connections"):
+						target_node["connections"].append(pid)
 
 		prev_depth_ids = current_depth_ids
 
