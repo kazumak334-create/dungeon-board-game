@@ -360,14 +360,18 @@ func _on_confirm_pressed() -> void:
 	print("[InitialCardPick] _on_confirm_pressed() picked_cards=%s" % _picked_cards)
 	
 	var deck: Array = []
+
+	# 選択したユニットカードを追加
 	for card_name in _picked_cards:
-		var data = CardDB.UNITS.get(card_name, {})
 		deck.append({"name": card_name})
 
+	# クラス固有の呪文のみ追加（ユニットは除外）
 	var cls = CardDB.CLASSES.get(GameSession.class_id, {})
 	var initial = cls.get("initial_deck", [])
 	for name in initial:
-		deck.append({"name": name})
+		# 呪文のみ追加
+		if CardDB.SPELLS.has(name) or CardDB.STATUS_SPELLS.has(name) or CardDB.SYSTEM_SPELLS.has(name):
+			deck.append({"name": name})
 
 	GameSession.selected_deck = deck
 
