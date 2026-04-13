@@ -40,6 +40,10 @@
 - MapGenerator.gd: _generate_layer_connections()で層間接続一括生成
 - MapSelect.gd: 動的座標計算・タイトル固定位置化
 
+**スタートノード選択可能化 + 接続交差完全除去**（4ec7a3f）
+- 層0の3ノードが選択可能に（depth→layer修正）
+- 接続生成前のlane順ソート明示化（交差完全除去）
+
 ## 2026-04-12
 
 ### Phase 2 完了宣言
