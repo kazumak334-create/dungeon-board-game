@@ -104,6 +104,11 @@ func _generate_act(act_num: int, race_theme: String) -> Dictionary:
 	for layer in range(1, LAYERS_PER_ACT):
 		var prev_layer = layer_nodes[layer - 1]
 		var curr_layer = layer_nodes[layer]
+
+		# 交差防止のため明示的にlane順でソート
+		prev_layer.sort_custom(func(a, b): return a["lane"] < b["lane"])
+		curr_layer.sort_custom(func(a, b): return a["lane"] < b["lane"])
+
 		_generate_layer_connections(prev_layer, curr_layer)
 
 	print("[MapGenerator] Act%d生成完了: %d層, %dノード" % [act_num, LAYERS_PER_ACT, nodes.size()])

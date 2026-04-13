@@ -236,11 +236,11 @@ func _is_node_completed(node_id: String) -> bool:
 
 func _is_node_reachable(node_id: String) -> bool:
 	"""ノードが到達可能か判定"""
-	# 初回（current_nodeが空）ならdepth 0のノードが到達可能
+	# 初回（current_nodeが空）なら layer 0のノードが到達可能
 	if GameSession.current_node == "":
 		var act_data = _get_current_act_data()
 		for node in act_data.get("nodes", []):
-			if node.get("id", "") == node_id and node.get("depth", -1) == 0:
+			if node.get("id", "") == node_id and node.get("layer", -1) == 0:
 				return true
 		return false
 
