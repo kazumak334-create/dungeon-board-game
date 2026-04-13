@@ -11,12 +11,13 @@
 				"マッドスライム",
 				"マッドスライム",
 				"ブラッドスライム",
+				"召喚加速",
 				"生命の雫",
 				"盤面強化"
 			],
 			"initial_mana": 3,
 			"mana_max": 3,
-			"sfx": "",
+				"sfx": "",
 			"skills": [
 				{
 					"effect_id": "mana_boost",
@@ -48,12 +49,13 @@
 				"ウルフ",
 				"タイガー",
 				"ワイルドホーク",
+				"召喚加速",
 				"戦場の鼓動",
 				"盤面強化"
 			],
 			"initial_mana": 3,
 			"mana_max": 3,
-			"sfx": "",
+				"sfx": "",
 			"skills": [
 				{
 					"effect_id": "spd_buff_pct",
@@ -86,12 +88,13 @@
 				"グール",
 				"バンシー",
 				"リッチ",
+				"召喚加速",
 				"生命の雫",
 				"弱体の呪詛"
 			],
 			"initial_mana": 3,
 			"mana_max": 3,
-			"sfx": "",
+				"sfx": "",
 			"skills": [
 				{
 					"effect_id": "mana_boost",
@@ -115,410 +118,177 @@
 			"texture": ""
 		}
 	},
+	"enemy_deck": [
+		{
+			"col": 1,
+			"name": "スライム"
+		},
+		{
+			"col": 0,
+			"name": "スケルトン"
+		},
+		{
+			"col": 0,
+			"name": "ゴブリン"
+		},
+		{
+			"col": 1,
+			"name": "マッドスライム"
+		},
+		{
+			"col": 1,
+			"name": "グール"
+		},
+		{
+			"col": 1,
+			"name": "ウルフ"
+		},
+		{
+			"col": 2,
+			"name": "ブラッドスライム"
+		},
+		{
+			"col": 2,
+			"name": "バンシー"
+		},
+		{
+			"col": 2,
+			"name": "タイガー"
+		},
+		{
+			"col": 2,
+			"name": "リッチ"
+		},
+		{
+			"col": 1,
+			"name": "ヴリコラカス"
+		}
+	],
 	"enemy_pools": {
 		"act1_weak": [
-			{
-				"name": "スライム",
-				"col": 1
-			},
-			{
-				"name": "スケルトン",
-				"col": 0
-			},
-			{
-				"name": "ゴブリン",
-				"col": 0
-			},
-			{
-				"name": "マッドスライム",
-				"col": 1
-			},
-			{
-				"name": "スライム",
-				"col": 1
-			},
-			{
-				"name": "スケルトン",
-				"col": 2
-			},
-			{
-				"name": "ゴブリン",
-				"col": 2
-			}
+			{"name": "スライム", "col": 1},
+			{"name": "スケルトン", "col": 0},
+			{"name": "ゴブリン", "col": 0},
+			{"name": "マッドスライム", "col": 1},
+			{"name": "スライム", "col": 1},
+			{"name": "スケルトン", "col": 2},
+			{"name": "ゴブリン", "col": 2}
 		],
 		"act1_enhanced1": [
-			{
-				"name": "マッドスライム",
-				"col": 1
-			},
-			{
-				"name": "スケルトン",
-				"col": 0
-			},
-			{
-				"name": "ゴブリン",
-				"col": 1
-			},
-			{
-				"name": "スライム",
-				"col": 2
-			},
-			{
-				"name": "マッドスライム",
-				"col": 0
-			},
-			{
-				"name": "スケルトン",
-				"col": 2
-			},
-			{
-				"name": "ゴブリン",
-				"col": 1
-			}
+			{"name": "マッドスライム", "col": 1},
+			{"name": "スケルトン", "col": 0},
+			{"name": "ゴブリン", "col": 1},
+			{"name": "スライム", "col": 2},
+			{"name": "マッドスライム", "col": 0},
+			{"name": "スケルトン", "col": 2},
+			{"name": "ゴブリン", "col": 1}
 		],
 		"act1_enhanced2": [
-			{
-				"name": "マッドスライム",
-				"col": 1
-			},
-			{
-				"name": "グール",
-				"col": 0
-			},
-			{
-				"name": "ウルフ",
-				"col": 1
-			},
-			{
-				"name": "スライム",
-				"col": 2
-			},
-			{
-				"name": "マッドスライム",
-				"col": 0
-			},
-			{
-				"name": "ゴブリン",
-				"col": 2
-			},
-			{
-				"name": "スケルトン",
-				"col": 1
-			}
+			{"name": "マッドスライム", "col": 1},
+			{"name": "グール", "col": 0},
+			{"name": "ウルフ", "col": 1},
+			{"name": "スライム", "col": 2},
+			{"name": "マッドスライム", "col": 0},
+			{"name": "ゴブリン", "col": 2},
+			{"name": "スケルトン", "col": 1}
 		],
 		"act1_enhanced3": [
-			{
-				"name": "グール",
-				"col": 1
-			},
-			{
-				"name": "ウルフ",
-				"col": 0
-			},
-			{
-				"name": "マッドスライム",
-				"col": 1
-			},
-			{
-				"name": "ブラッドスライム",
-				"col": 2
-			},
-			{
-				"name": "グール",
-				"col": 0
-			},
-			{
-				"name": "ウルフ",
-				"col": 2
-			},
-			{
-				"name": "マッドスライム",
-				"col": 1
-			}
+			{"name": "グール", "col": 1},
+			{"name": "ウルフ", "col": 0},
+			{"name": "マッドスライム", "col": 1},
+			{"name": "ブラッドスライム", "col": 2},
+			{"name": "グール", "col": 0},
+			{"name": "ウルフ", "col": 2},
+			{"name": "マッドスライム", "col": 1}
 		],
 		"act2_weak": [
-			{
-				"name": "グール",
-				"col": 1
-			},
-			{
-				"name": "ウルフ",
-				"col": 1
-			},
-			{
-				"name": "ブラッドスライム",
-				"col": 2
-			},
-			{
-				"name": "バンシー",
-				"col": 2
-			},
-			{
-				"name": "グール",
-				"col": 0
-			},
-			{
-				"name": "ウルフ",
-				"col": 0
-			},
-			{
-				"name": "マッドスライム",
-				"col": 1
-			}
+			{"name": "グール", "col": 1},
+			{"name": "ウルフ", "col": 1},
+			{"name": "ブラッドスライム", "col": 2},
+			{"name": "バンシー", "col": 2},
+			{"name": "グール", "col": 0},
+			{"name": "ウルフ", "col": 0},
+			{"name": "マッドスライム", "col": 1}
 		],
 		"act2_enhanced1": [
-			{
-				"name": "グール",
-				"col": 1
-			},
-			{
-				"name": "ウルフ",
-				"col": 0
-			},
-			{
-				"name": "ブラッドスライム",
-				"col": 2
-			},
-			{
-				"name": "バンシー",
-				"col": 1
-			},
-			{
-				"name": "グール",
-				"col": 0
-			},
-			{
-				"name": "ウルフ",
-				"col": 2
-			},
-			{
-				"name": "ブラッドスライム",
-				"col": 1
-			}
+			{"name": "グール", "col": 1},
+			{"name": "ウルフ", "col": 0},
+			{"name": "ブラッドスライム", "col": 2},
+			{"name": "バンシー", "col": 1},
+			{"name": "グール", "col": 0},
+			{"name": "ウルフ", "col": 2},
+			{"name": "ブラッドスライム", "col": 1}
 		],
 		"act2_enhanced2": [
-			{
-				"name": "バンシー",
-				"col": 1
-			},
-			{
-				"name": "ブラッドスライム",
-				"col": 0
-			},
-			{
-				"name": "タイガー",
-				"col": 2
-			},
-			{
-				"name": "グール",
-				"col": 1
-			},
-			{
-				"name": "バンシー",
-				"col": 0
-			},
-			{
-				"name": "ウルフ",
-				"col": 2
-			},
-			{
-				"name": "ブラッドスライム",
-				"col": 1
-			}
+			{"name": "バンシー", "col": 1},
+			{"name": "ブラッドスライム", "col": 0},
+			{"name": "タイガー", "col": 2},
+			{"name": "グール", "col": 1},
+			{"name": "バンシー", "col": 0},
+			{"name": "ウルフ", "col": 2},
+			{"name": "ブラッドスライム", "col": 1}
 		],
 		"act2_enhanced3": [
-			{
-				"name": "タイガー",
-				"col": 1
-			},
-			{
-				"name": "バンシー",
-				"col": 0
-			},
-			{
-				"name": "ブラッドスライム",
-				"col": 2
-			},
-			{
-				"name": "タイガー",
-				"col": 1
-			},
-			{
-				"name": "バンシー",
-				"col": 0
-			},
-			{
-				"name": "リッチ",
-				"col": 2
-			},
-			{
-				"name": "ブラッドスライム",
-				"col": 1
-			}
+			{"name": "タイガー", "col": 1},
+			{"name": "バンシー", "col": 0},
+			{"name": "ブラッドスライム", "col": 2},
+			{"name": "タイガー", "col": 1},
+			{"name": "バンシー", "col": 0},
+			{"name": "リッチ", "col": 2},
+			{"name": "ブラッドスライム", "col": 1}
 		],
 		"act3_weak": [
-			{
-				"name": "タイガー",
-				"col": 2
-			},
-			{
-				"name": "リッチ",
-				"col": 2
-			},
-			{
-				"name": "ヴリコラカス",
-				"col": 1
-			},
-			{
-				"name": "バンシー",
-				"col": 2
-			},
-			{
-				"name": "ブラッドスライム",
-				"col": 1
-			},
-			{
-				"name": "タイガー",
-				"col": 0
-			},
-			{
-				"name": "リッチ",
-				"col": 1
-			}
+			{"name": "タイガー", "col": 2},
+			{"name": "リッチ", "col": 2},
+			{"name": "ヴリコラカス", "col": 1},
+			{"name": "バンシー", "col": 2},
+			{"name": "ブラッドスライム", "col": 1},
+			{"name": "タイガー", "col": 0},
+			{"name": "リッチ", "col": 1}
 		],
 		"act3_enhanced1": [
-			{
-				"name": "タイガー",
-				"col": 1
-			},
-			{
-				"name": "リッチ",
-				"col": 0
-			},
-			{
-				"name": "ヴリコラカス",
-				"col": 2
-			},
-			{
-				"name": "バンシー",
-				"col": 1
-			},
-			{
-				"name": "タイガー",
-				"col": 0
-			},
-			{
-				"name": "リッチ",
-				"col": 2
-			},
-			{
-				"name": "ヴリコラカス",
-				"col": 1
-			}
+			{"name": "タイガー", "col": 1},
+			{"name": "リッチ", "col": 0},
+			{"name": "ヴリコラカス", "col": 2},
+			{"name": "バンシー", "col": 1},
+			{"name": "タイガー", "col": 0},
+			{"name": "リッチ", "col": 2},
+			{"name": "ヴリコラカス", "col": 1}
 		],
 		"act3_enhanced2": [
-			{
-				"name": "ヴリコラカス",
-				"col": 1
-			},
-			{
-				"name": "リッチ",
-				"col": 0
-			},
-			{
-				"name": "タイガー",
-				"col": 2
-			},
-			{
-				"name": "ヴリコラカス",
-				"col": 1
-			},
-			{
-				"name": "リッチ",
-				"col": 0
-			},
-			{
-				"name": "バンシー",
-				"col": 2
-			},
-			{
-				"name": "タイガー",
-				"col": 1
-			}
+			{"name": "ヴリコラカス", "col": 1},
+			{"name": "リッチ", "col": 0},
+			{"name": "タイガー", "col": 2},
+			{"name": "ヴリコラカス", "col": 1},
+			{"name": "リッチ", "col": 0},
+			{"name": "バンシー", "col": 2},
+			{"name": "タイガー", "col": 1}
 		],
 		"act3_enhanced3": [
-			{
-				"name": "リッチ",
-				"col": 1
-			},
-			{
-				"name": "ヴリコラカス",
-				"col": 0
-			},
-			{
-				"name": "タイガー",
-				"col": 2
-			},
-			{
-				"name": "リッチ",
-				"col": 1
-			},
-			{
-				"name": "ヴリコラカス",
-				"col": 0
-			},
-			{
-				"name": "リッチ",
-				"col": 2
-			},
-			{
-				"name": "タイガー",
-				"col": 1
-			}
+			{"name": "リッチ", "col": 1},
+			{"name": "ヴリコラカス", "col": 0},
+			{"name": "タイガー", "col": 2},
+			{"name": "リッチ", "col": 1},
+			{"name": "ヴリコラカス", "col": 0},
+			{"name": "リッチ", "col": 2},
+			{"name": "タイガー", "col": 1}
 		]
 	},
 	"elite_pools": {
 		"act1": [
-			{
-				"name": "グール",
-				"col": 1
-			},
-			{
-				"name": "ウルフ",
-				"col": 0
-			},
-			{
-				"name": "ブラッドスライム",
-				"col": 2
-			}
+			{"name": "グール", "col": 1},
+			{"name": "ウルフ", "col": 0},
+			{"name": "ブラッドスライム", "col": 2}
 		],
 		"act2": [
-			{
-				"name": "タイガー",
-				"col": 1
-			},
-			{
-				"name": "リッチ",
-				"col": 0
-			},
-			{
-				"name": "バンシー",
-				"col": 2
-			}
+			{"name": "タイガー", "col": 1},
+			{"name": "リッチ", "col": 0},
+			{"name": "バンシー", "col": 2}
 		],
 		"act3": [
-			{
-				"name": "リッチ",
-				"col": 1
-			},
-			{
-				"name": "ヴリコラカス",
-				"col": 0
-			},
-			{
-				"name": "タイガー",
-				"col": 2
-			}
+			{"name": "リッチ", "col": 1},
+			{"name": "ヴリコラカス", "col": 0},
+			{"name": "タイガー", "col": 2}
 		]
 	},
 	"equipment": {
@@ -575,6 +345,52 @@
 			"texture": ""
 		}
 	},
+	"player_deck": [
+		{
+			"col": 1,
+			"name": "スライム"
+		},
+		{
+			"col": 0,
+			"name": "スケルトン"
+		},
+		{
+			"col": 0,
+			"name": "ゴブリン"
+		},
+		{
+			"col": 1,
+			"name": "マッドスライム"
+		},
+		{
+			"col": 1,
+			"name": "グール"
+		},
+		{
+			"col": 1,
+			"name": "ウルフ"
+		},
+		{
+			"col": 2,
+			"name": "ブラッドスライム"
+		},
+		{
+			"col": 2,
+			"name": "バンシー"
+		},
+		{
+			"col": 2,
+			"name": "タイガー"
+		},
+		{
+			"col": 2,
+			"name": "リッチ"
+		},
+		{
+			"col": 1,
+			"name": "ヴリコラカス"
+		}
+	],
 	"player_spells": [
 		"生命の雫",
 		"盤面強化"
@@ -641,6 +457,95 @@
 				}
 			],
 			"target": "all_enemies",
+			"texture": ""
+		},
+		"圧縮の書": {
+			"anim": "",
+			"rarity": "uncommon",
+			"mana": 2,
+			"effect": "山札から異常状態カード除去",
+			"sfx": "",
+			"skills": [
+				{
+					"effect_id": "remove_status_card",
+					"params": {},
+					"target": "self_deck",
+					"trigger": "on_play"
+				}
+			],
+			"target": "self",
+			"texture": ""
+		},
+		"寒波": {
+			"anim": "",
+			"rarity": "uncommon",
+			"mana": 2,
+			"effect": "前列全体に凍結+両デッキに凍結カード",
+			"sfx": "",
+			"skills": [
+				{
+					"effect_id": "front_status_both",
+					"params": {
+						"stacks": 2,
+						"status": "freeze"
+					},
+					"target": "all_front",
+					"trigger": "on_play"
+				},
+				{
+					"effect_id": "inject_status_card",
+					"params": {
+						"card_id": "凍結カード"
+					},
+					"target": "self_deck",
+					"trigger": "on_play"
+				},
+				{
+					"effect_id": "inject_status_card",
+					"params": {
+						"card_id": "凍結カード"
+					},
+					"target": "enemy_deck",
+					"trigger": "on_play"
+				}
+			],
+			"target": "front_all",
+			"texture": ""
+		},
+		"山火事": {
+			"anim": "",
+			"rarity": "uncommon",
+			"mana": 2,
+			"effect": "前列全体に火傷+両デッキに火傷カード",
+			"sfx": "",
+			"skills": [
+				{
+					"effect_id": "front_status_both",
+					"params": {
+						"stacks": 2,
+						"status": "burn"
+					},
+					"target": "all_front",
+					"trigger": "on_play"
+				},
+				{
+					"effect_id": "inject_status_card",
+					"params": {
+						"card_id": "火傷カード"
+					},
+					"target": "self_deck",
+					"trigger": "on_play"
+				},
+				{
+					"effect_id": "inject_status_card",
+					"params": {
+						"card_id": "火傷カード"
+					},
+					"target": "enemy_deck",
+					"trigger": "on_play"
+				}
+			],
+			"target": "front_all",
 			"texture": ""
 		},
 		"弱体の呪詛": {
@@ -718,6 +623,33 @@
 				}
 			],
 			"target": "single_enemy",
+			"texture": ""
+		},
+		"毒霧": {
+			"anim": "",
+			"rarity": "uncommon",
+			"mana": 2,
+			"effect": "敵ランダム列に毒5+自デッキに毒カード",
+			"sfx": "",
+			"skills": [
+				{
+					"effect_id": "poison_apply",
+					"params": {
+						"stacks": 5
+					},
+					"target": "enemy_random_col",
+					"trigger": "on_play"
+				},
+				{
+					"effect_id": "inject_status_card",
+					"params": {
+						"card_id": "毒カード"
+					},
+					"target": "self_deck",
+					"trigger": "on_play"
+				}
+			],
+			"target": "column",
 			"texture": ""
 		},
 		"泥の鎧": {
@@ -849,6 +781,43 @@
 				}
 			],
 			"target": "single_ally",
+			"texture": ""
+		},
+		"落雷": {
+			"anim": "",
+			"rarity": "rare",
+			"mana": 3,
+			"effect": "前列全体に10dmg+麻痺+両デッキに麻痺カード",
+			"sfx": "",
+			"skills": [
+				{
+					"effect_id": "front_damage_status",
+					"params": {
+						"damage": 10,
+						"stacks": 2,
+						"status": "paralysis"
+					},
+					"target": "all_front",
+					"trigger": "on_play"
+				},
+				{
+					"effect_id": "inject_status_card",
+					"params": {
+						"card_id": "麻痺カード"
+					},
+					"target": "self_deck",
+					"trigger": "on_play"
+				},
+				{
+					"effect_id": "inject_status_card",
+					"params": {
+						"card_id": "麻痺カード"
+					},
+					"target": "enemy_deck",
+					"trigger": "on_play"
+				}
+			],
+			"target": "front_all",
 			"texture": ""
 		},
 		"血の契約": {
@@ -2200,9 +2169,7 @@
 				}
 			],
 			"texture": "",
-			"roles": [
-				"壁"
-			]
+			"roles": ["壁"]
 		},
 		"Amoeba": {
 			"anim": "",
@@ -2235,9 +2202,7 @@
 				}
 			],
 			"texture": "",
-			"roles": [
-				"サポート"
-			]
+			"roles": ["サポート"]
 		},
 		"Barbzel": {
 			"anim": "",
@@ -2269,10 +2234,7 @@
 				}
 			],
 			"texture": "",
-			"roles": [
-				"攻撃",
-				"サポート"
-			]
+			"roles": ["攻撃", "サポート"]
 		},
 		"Jelfix": {
 			"anim": "",
@@ -2305,9 +2267,7 @@
 				}
 			],
 			"texture": "",
-			"roles": [
-				"サポート"
-			]
+			"roles": ["サポート"]
 		},
 		"Mudblob": {
 			"anim": "",
@@ -2341,9 +2301,7 @@
 				}
 			],
 			"texture": "",
-			"roles": [
-				"サポート"
-			]
+			"roles": ["サポート"]
 		},
 		"Venpool": {
 			"anim": "",
@@ -2375,9 +2333,7 @@
 				}
 			],
 			"texture": "",
-			"roles": [
-				"サポート"
-			]
+			"roles": ["サポート"]
 		},
 		"Plagzel": {
 			"anim": "",
@@ -2410,9 +2366,7 @@
 				}
 			],
 			"texture": "",
-			"roles": [
-				"サポート"
-			]
+			"roles": ["サポート"]
 		},
 		"Sparkblob": {
 			"anim": "",
@@ -2437,9 +2391,7 @@
 				}
 			],
 			"texture": "",
-			"roles": [
-				"攻撃"
-			]
+			"roles": ["攻撃"]
 		},
 		"Crystel": {
 			"anim": "",
@@ -2472,9 +2424,7 @@
 				}
 			],
 			"texture": "",
-			"roles": [
-				"攻撃"
-			]
+			"roles": ["攻撃"]
 		},
 		"Voidblob": {
 			"anim": "",
@@ -2515,12 +2465,8 @@
 				}
 			],
 			"texture": "",
-			"roles": [
-				"サポート"
-			],
-			"traits": [
-				"mana_drain"
-			]
+			"roles": ["サポート"],
+			"traits": ["mana_drain"]
 		},
 		"Glitzel": {
 			"anim": "",
@@ -2544,9 +2490,7 @@
 				}
 			],
 			"texture": "",
-			"roles": [
-				"サポート"
-			]
+			"roles": ["サポート"]
 		},
 		"Silenzel": {
 			"anim": "",
@@ -2570,9 +2514,7 @@
 				}
 			],
 			"texture": "",
-			"roles": [
-				"サポート"
-			]
+			"roles": ["サポート"]
 		},
 		"Fangos": {
 			"anim": "",
@@ -2605,10 +2547,7 @@
 				}
 			],
 			"texture": "",
-			"roles": [
-				"攻撃",
-				"サポート"
-			]
+			"roles": ["攻撃", "サポート"]
 		},
 		"Piercor": {
 			"anim": "",
@@ -2630,12 +2569,8 @@
 				}
 			],
 			"texture": "",
-			"roles": [
-				"サポート"
-			],
-			"traits": [
-				"pierce"
-			]
+			"roles": ["サポート"],
+			"traits": ["pierce"]
 		},
 		"Hawkis": {
 			"anim": "",
@@ -2660,12 +2595,8 @@
 				}
 			],
 			"texture": "",
-			"roles": [
-				"攻撃"
-			],
-			"traits": [
-				"flying"
-			]
+			"roles": ["攻撃"],
+			"traits": ["flying"]
 		},
 		"Stalkor": {
 			"anim": "",
@@ -2690,9 +2621,7 @@
 				}
 			],
 			"texture": "",
-			"roles": [
-				"攻撃"
-			]
+			"roles": ["攻撃"]
 		},
 		"Venomaw": {
 			"anim": "",
@@ -2726,9 +2655,7 @@
 				}
 			],
 			"texture": "",
-			"roles": [
-				"攻撃"
-			]
+			"roles": ["攻撃"]
 		},
 		"Voidclaw": {
 			"anim": "",
@@ -2759,10 +2686,7 @@
 				}
 			],
 			"texture": "",
-			"roles": [
-				"攻撃",
-				"サポート"
-			]
+			"roles": ["攻撃", "サポート"]
 		},
 		"Thornbeast": {
 			"anim": "",
@@ -2794,9 +2718,7 @@
 				}
 			],
 			"texture": "",
-			"roles": [
-				"攻撃"
-			]
+			"roles": ["攻撃"]
 		},
 		"Rageveil": {
 			"anim": "",
@@ -2822,12 +2744,8 @@
 				}
 			],
 			"texture": "",
-			"roles": [
-				"攻撃"
-			],
-			"traits": [
-				"indomitable"
-			]
+			"roles": ["攻撃"],
+			"traits": ["indomitable"]
 		},
 		"Wolfpack": {
 			"anim": "",
@@ -2861,12 +2779,8 @@
 				}
 			],
 			"texture": "",
-			"roles": [
-				"サポート"
-			],
-			"traits": [
-				"swarm"
-			]
+			"roles": ["サポート"],
+			"traits": ["swarm"]
 		},
 		"ホブゴブリン": {
 			"anim": "",
@@ -2885,274 +2799,85 @@
 	},
 	"boss_decks": {
 		"boss_act1_beast": [
-			{
-				"name": "ウルフ",
-				"col": 0
-			},
-			{
-				"name": "ゴブリン",
-				"col": 0
-			},
-			{
-				"name": "ウルフ",
-				"col": 1
-			},
-			{
-				"name": "ケットシー",
-				"col": 1
-			},
-			{
-				"name": "ゴブリン",
-				"col": 2
-			},
-			{
-				"name": "ワイルドホーク",
-				"col": 2
-			},
-			{
-				"name": "コカトリス",
-				"col": 1
-			}
+			{"name": "ウルフ", "col": 0},
+			{"name": "ゴブリン", "col": 0},
+			{"name": "ウルフ", "col": 1},
+			{"name": "ケットシー", "col": 1},
+			{"name": "ゴブリン", "col": 2},
+			{"name": "ワイルドホーク", "col": 2},
+			{"name": "コカトリス", "col": 1}
 		],
 		"boss_act1_beast_strong": [
-			{
-				"name": "タイガー",
-				"col": 0
-			},
-			{
-				"name": "ウルフ",
-				"col": 0
-			},
-			{
-				"name": "マンティコア",
-				"col": 1
-			},
-			{
-				"name": "コカトリス",
-				"col": 1
-			},
-			{
-				"name": "ワイルドホーク",
-				"col": 2
-			},
-			{
-				"name": "ウルフ",
-				"col": 2
-			},
-			{
-				"name": "猛獣使い",
-				"col": 2
-			}
+			{"name": "タイガー", "col": 0},
+			{"name": "ウルフ", "col": 0},
+			{"name": "マンティコア", "col": 1},
+			{"name": "コカトリス", "col": 1},
+			{"name": "ワイルドホーク", "col": 2},
+			{"name": "ウルフ", "col": 2},
+			{"name": "猛獣使い", "col": 2}
 		],
 		"boss_act1_beast_enraged": [
-			{
-				"name": "タイガー",
-				"col": 0
-			},
-			{
-				"name": "マンティコア",
-				"col": 0
-			},
-			{
-				"name": "グリフォン",
-				"col": 1
-			},
-			{
-				"name": "コカトリス",
-				"col": 1
-			},
-			{
-				"name": "猛獣使い",
-				"col": 2
-			},
-			{
-				"name": "ビャッコ",
-				"col": 2
-			},
-			{
-				"name": "タイガー",
-				"col": 1
-			}
+			{"name": "タイガー", "col": 0},
+			{"name": "マンティコア", "col": 0},
+			{"name": "グリフォン", "col": 1},
+			{"name": "コカトリス", "col": 1},
+			{"name": "猛獣使い", "col": 2},
+			{"name": "ビャッコ", "col": 2},
+			{"name": "タイガー", "col": 1}
 		],
 		"boss_act1_slime": [
-			{
-				"name": "スライム",
-				"col": 0
-			},
-			{
-				"name": "マッドスライム",
-				"col": 0
-			},
-			{
-				"name": "スライム",
-				"col": 1
-			},
-			{
-				"name": "ラージスライム",
-				"col": 1
-			},
-			{
-				"name": "マッドスライム",
-				"col": 2
-			},
-			{
-				"name": "スライム",
-				"col": 2
-			},
-			{
-				"name": "ファットスライム",
-				"col": 1
-			}
+			{"name": "スライム", "col": 0},
+			{"name": "マッドスライム", "col": 0},
+			{"name": "スライム", "col": 1},
+			{"name": "ラージスライム", "col": 1},
+			{"name": "マッドスライム", "col": 2},
+			{"name": "スライム", "col": 2},
+			{"name": "ファットスライム", "col": 1}
 		],
 		"boss_act1_slime_strong": [
-			{
-				"name": "マッドスライム",
-				"col": 0
-			},
-			{
-				"name": "ファットスライム",
-				"col": 0
-			},
-			{
-				"name": "ラージスライム",
-				"col": 1
-			},
-			{
-				"name": "ヒートスライム",
-				"col": 1
-			},
-			{
-				"name": "マッドスライム",
-				"col": 2
-			},
-			{
-				"name": "ブラッドスライム",
-				"col": 2
-			},
-			{
-				"name": "母スライム核",
-				"col": 1
-			}
+			{"name": "マッドスライム", "col": 0},
+			{"name": "ファットスライム", "col": 0},
+			{"name": "ラージスライム", "col": 1},
+			{"name": "ヒートスライム", "col": 1},
+			{"name": "マッドスライム", "col": 2},
+			{"name": "ブラッドスライム", "col": 2},
+			{"name": "母スライム核", "col": 1}
 		],
 		"boss_act1_slime_enraged": [
-			{
-				"name": "ファットスライム",
-				"col": 0
-			},
-			{
-				"name": "パラライズスライム",
-				"col": 0
-			},
-			{
-				"name": "ブラッドスライム",
-				"col": 1
-			},
-			{
-				"name": "母スライム核",
-				"col": 1
-			},
-			{
-				"name": "ヒートスライム",
-				"col": 2
-			},
-			{
-				"name": "フロストスライム",
-				"col": 2
-			},
-			{
-				"name": "融合スライム",
-				"col": 0
-			}
+			{"name": "ファットスライム", "col": 0},
+			{"name": "パラライズスライム", "col": 0},
+			{"name": "ブラッドスライム", "col": 1},
+			{"name": "母スライム核", "col": 1},
+			{"name": "ヒートスライム", "col": 2},
+			{"name": "フロストスライム", "col": 2},
+			{"name": "融合スライム", "col": 0}
 		],
 		"boss_act1_undead": [
-			{
-				"name": "スケルトン",
-				"col": 0
-			},
-			{
-				"name": "グール",
-				"col": 0
-			},
-			{
-				"name": "スケルトン",
-				"col": 1
-			},
-			{
-				"name": "バンシー",
-				"col": 1
-			},
-			{
-				"name": "グール",
-				"col": 2
-			},
-			{
-				"name": "リッチ",
-				"col": 2
-			},
-			{
-				"name": "シャドウ",
-				"col": 1
-			}
+			{"name": "スケルトン", "col": 0},
+			{"name": "グール", "col": 0},
+			{"name": "スケルトン", "col": 1},
+			{"name": "バンシー", "col": 1},
+			{"name": "グール", "col": 2},
+			{"name": "リッチ", "col": 2},
+			{"name": "シャドウ", "col": 1}
 		],
 		"boss_act1_undead_strong": [
-			{
-				"name": "グール",
-				"col": 0
-			},
-			{
-				"name": "レヴナント",
-				"col": 0
-			},
-			{
-				"name": "バンシー",
-				"col": 1
-			},
-			{
-				"name": "ワイト",
-				"col": 1
-			},
-			{
-				"name": "リッチ",
-				"col": 2
-			},
-			{
-				"name": "シャドウ",
-				"col": 2
-			},
-			{
-				"name": "屍術師",
-				"col": 2
-			}
+			{"name": "グール", "col": 0},
+			{"name": "レヴナント", "col": 0},
+			{"name": "バンシー", "col": 1},
+			{"name": "ワイト", "col": 1},
+			{"name": "リッチ", "col": 2},
+			{"name": "シャドウ", "col": 2},
+			{"name": "屍術師", "col": 2}
 		],
 		"boss_act1_undead_enraged": [
-			{
-				"name": "ヴリコラカス",
-				"col": 0
-			},
-			{
-				"name": "レヴナント",
-				"col": 0
-			},
-			{
-				"name": "ワイト",
-				"col": 1
-			},
-			{
-				"name": "屍術師",
-				"col": 1
-			},
-			{
-				"name": "リッチ",
-				"col": 2
-			},
-			{
-				"name": "バンシー",
-				"col": 2
-			},
-			{
-				"name": "死骸の王座",
-				"col": 1
-			}
+			{"name": "ヴリコラカス", "col": 0},
+			{"name": "レヴナント", "col": 0},
+			{"name": "ワイト", "col": 1},
+			{"name": "屍術師", "col": 1},
+			{"name": "リッチ", "col": 2},
+			{"name": "バンシー", "col": 2},
+			{"name": "死骸の王座", "col": 1}
 		]
 	},
 	"boss_exclusive_units": {
@@ -3173,9 +2898,7 @@
 					"trigger": "on_hit",
 					"target": "hit_target",
 					"effect_id": "burn_apply",
-					"params": {
-						"stacks": 2
-					}
+					"params": {"stacks": 2}
 				}
 			],
 			"boss_exclusive": true
@@ -3197,10 +2920,7 @@
 					"trigger": "on_death",
 					"target": "self",
 					"effect_id": "self_revive",
-					"params": {
-						"hp": 20,
-						"delay": 5.0
-					}
+					"params": {"hp": 20, "delay": 5.0}
 				}
 			],
 			"boss_exclusive": true
@@ -3222,9 +2942,7 @@
 					"trigger": "on_hit",
 					"target": "hit_target",
 					"effect_id": "freeze_apply",
-					"params": {
-						"stacks": 2
-					}
+					"params": {"stacks": 2}
 				}
 			],
 			"boss_exclusive": true
@@ -3246,9 +2964,7 @@
 					"trigger": "on_hit",
 					"target": "hit_target",
 					"effect_id": "poison_apply",
-					"params": {
-						"stacks": 2
-					}
+					"params": {"stacks": 2}
 				}
 			],
 			"boss_exclusive": true
@@ -3270,9 +2986,7 @@
 					"trigger": "on_hit",
 					"target": "hit_target",
 					"effect_id": "freeze_apply",
-					"params": {
-						"stacks": 3
-					}
+					"params": {"stacks": 3}
 				}
 			],
 			"boss_exclusive": true
@@ -3293,14 +3007,8 @@
 			"reward_gold": 200,
 			"reward_sp": 2,
 			"alert_level_buffs": {
-				"4": {
-					"hp_bonus": 5,
-					"atk_bonus": 1
-				},
-				"5": {
-					"hp_bonus": 10,
-					"atk_bonus": 2
-				}
+				"4": {"hp_bonus": 5, "atk_bonus": 1},
+				"5": {"hp_bonus": 10, "atk_bonus": 2}
 			},
 			"texture": ""
 		},
@@ -3318,14 +3026,8 @@
 			"reward_gold": 200,
 			"reward_sp": 2,
 			"alert_level_buffs": {
-				"4": {
-					"hp_bonus": 5,
-					"atk_bonus": 1
-				},
-				"5": {
-					"hp_bonus": 10,
-					"atk_bonus": 2
-				}
+				"4": {"hp_bonus": 5, "atk_bonus": 1},
+				"5": {"hp_bonus": 10, "atk_bonus": 2}
 			},
 			"texture": ""
 		},
@@ -3343,14 +3045,8 @@
 			"reward_gold": 220,
 			"reward_sp": 2,
 			"alert_level_buffs": {
-				"4": {
-					"hp_bonus": 5,
-					"atk_bonus": 1
-				},
-				"5": {
-					"hp_bonus": 10,
-					"atk_bonus": 2
-				}
+				"4": {"hp_bonus": 5, "atk_bonus": 1},
+				"5": {"hp_bonus": 10, "atk_bonus": 2}
 			},
 			"texture": ""
 		}
@@ -3498,24 +3194,14 @@
 	"events": {
 		"memory_fragment": {
 			"display": "記憶の断片",
-			"act": [
-				1,
-				2,
-				3
-			],
+			"act": [1, 2, 3],
 			"text": "床に散らばった古い記録を見つけた。\n文字が滲んで読みにくいが、数字が見える。\n\n「#2891 - 適応率 ██.█% - 次フェーズ ██████」\n\n...#2891。どこかで見たような数字だ。",
 			"choices": [
 				{
 					"label": "記録を読み進める",
 					"results": [
-						{
-							"type": "gold",
-							"value": 60
-						},
-						{
-							"type": "flavor",
-							"text": "...記憶...保持...条件...\n判読不能。"
-						}
+						{"type": "gold", "value": 60},
+						{"type": "flavor", "text": "...記憶...保持...条件...\n判読不能。"}
 					]
 				},
 				{
@@ -3525,59 +3211,30 @@
 				{
 					"label": "持ち去る",
 					"results": [
-						{
-							"type": "relic",
-							"relic_id": "subject_card"
-						},
-						{
-							"type": "gold",
-							"value": 30
-						}
+						{"type": "relic", "relic_id": "subject_card"},
+						{"type": "gold", "value": 30}
 					]
 				}
 			]
 		},
 		"atlas_terminal_alpha": {
 			"display": "ATLAS端末α",
-			"act": [
-				1,
-				2,
-				3
-			],
+			"act": [1, 2, 3],
 			"text": "古びた端末が起動している。\n画面には「ATLAS - ████ Security Lv.3」の文字。\n\nログイン画面が表示されている。",
 			"choices": [
 				{
 					"label": "適当な番号を入力",
 					"results": [
-						{
-							"type": "gold",
-							"value": 40
-						},
-						{
-							"type": "flavor",
-							"text": "「アクセス拒否」"
-						}
+						{"type": "gold", "value": 40},
+						{"type": "flavor", "text": "「アクセス拒否」"}
 					]
 				},
 				{
 					"label": "2891を入力してみる",
 					"results": [
-						{
-							"type": "gold",
-							"value": 80
-						},
-						{
-							"type": "relic_choice",
-							"count": 1,
-							"rarity_weights": {
-								"common": 5,
-								"uncommon": 3
-							}
-						},
-						{
-							"type": "flavor",
-							"text": "「...許可」\n何が許可されたのか？"
-						}
+						{"type": "gold", "value": 80},
+						{"type": "relic_choice", "count": 1, "rarity_weights": {"common": 5, "uncommon": 3}},
+						{"type": "flavor", "text": "「...許可」\n何が許可されたのか？"}
 					]
 				},
 				{
@@ -3588,24 +3245,14 @@
 		},
 		"gray_stain": {
 			"display": "灰色の染み",
-			"act": [
-				1,
-				2,
-				3
-			],
+			"act": [1, 2, 3],
 			"text": "壁一面に灰色の染みが広がっている。\n近づくと、かすかに蠢いているように見える。\n\n触れてはいけない、という直感がある。",
 			"choices": [
 				{
 					"label": "触れてみる",
 					"results": [
-						{
-							"type": "hp",
-							"value": -15
-						},
-						{
-							"type": "flavor",
-							"text": "冷たい。何かを思い出しそうになる。\n灰色の...何か..."
-						}
+						{"type": "hp", "value": -15},
+						{"type": "flavor", "text": "冷たい。何かを思い出しそうになる。\n灰色の...何か..."}
 					]
 				},
 				{
@@ -3615,41 +3262,22 @@
 				{
 					"label": "染みを調べる",
 					"results": [
-						{
-							"type": "gold",
-							"value": 50
-						},
-						{
-							"type": "flavor",
-							"text": "染みの中に人の形が見える。\n動かない。"
-						}
+						{"type": "gold", "value": 50},
+						{"type": "flavor", "text": "染みの中に人の形が見える。\n動かない。"}
 					]
 				}
 			]
 		},
 		"unmoving_thing": {
 			"display": "動かない何か",
-			"act": [
-				2,
-				3
-			],
+			"act": [2, 3],
 			"text": "通路の隅に、何かが倒れている。\nよく見ると...人の形をしている。金属のような質感。\n\n胸部に文字：「#1247 - ████████」",
 			"choices": [
 				{
 					"label": "パーツを回収する",
 					"results": [
-						{
-							"type": "relic_choice",
-							"count": 1,
-							"rarity_weights": {
-								"uncommon": 5,
-								"rare": 2
-							}
-						},
-						{
-							"type": "gold",
-							"value": 50
-						}
+						{"type": "relic_choice", "count": 1, "rarity_weights": {"uncommon": 5, "rare": 2}},
+						{"type": "gold", "value": 50}
 					]
 				},
 				{
@@ -3659,37 +3287,22 @@
 				{
 					"label": "近づいて調べる",
 					"results": [
-						{
-							"type": "gold",
-							"value": 30
-						},
-						{
-							"type": "flavor",
-							"text": "冷たい。動かない。\nあなたと似ている...？"
-						}
+						{"type": "gold", "value": 30},
+						{"type": "flavor", "text": "冷たい。動かない。\nあなたと似ている...？"}
 					]
 				}
 			]
 		},
 		"audio_log": {
 			"display": "音声ログ",
-			"act": [
-				2,
-				3
-			],
+			"act": [2, 3],
 			"text": "再生装置が起動した。ノイズ混じりの声。\n\n「...2891号...適応...記憶...は...\n...灰色...サンプル...接触...\n...最後...ATLAS...録...」\n\nノイズ。沈黙。何を言っていたのか分からない。",
 			"choices": [
 				{
 					"label": "ログを最後まで聞く",
 					"results": [
-						{
-							"type": "gold",
-							"value": 70
-						},
-						{
-							"type": "flavor",
-							"text": "...希望...\n途切れる。"
-						}
+						{"type": "gold", "value": 70},
+						{"type": "flavor", "text": "...希望...\n途切れる。"}
 					]
 				},
 				{
@@ -3699,37 +3312,22 @@
 				{
 					"label": "ログを持ち帰る",
 					"results": [
-						{
-							"type": "relic",
-							"relic_id": "memory_key"
-						},
-						{
-							"type": "sp",
-							"value": 2
-						}
+						{"type": "relic", "relic_id": "memory_key"},
+						{"type": "sp", "value": 2}
 					]
 				}
 			]
 		},
 		"glitch_beta": {
 			"display": "グリッチ現象β",
-			"act": [
-				2,
-				3
-			],
+			"act": [2, 3],
 			"text": "視界が歪む。盤面が...デバイスが...金属の床が見える。\n\n一瞬、カプセルの中にいる。\n周囲には同じカプセルが並んでいる。全て...空？\n\n視界が戻る。いつもの通路だ。",
 			"choices": [
 				{
 					"label": "現実を疑う",
 					"results": [
-						{
-							"type": "sp",
-							"value": 2
-						},
-						{
-							"type": "flavor",
-							"text": "真実を知りたいか？\n...声が聞こえた気がする。"
-						}
+						{"type": "sp", "value": 2},
+						{"type": "flavor", "text": "真実を知りたいか？\n...声が聞こえた気がする。"}
 					]
 				},
 				{
@@ -3739,92 +3337,51 @@
 				{
 					"label": "もう一度見ようとする",
 					"results": [
-						{
-							"type": "hp",
-							"value": -10
-						},
-						{
-							"type": "alert_level",
-							"value": -2
-						},
-						{
-							"type": "relic",
-							"relic_id": "glitch_core"
-						}
+						{"type": "hp", "value": -10},
+						{"type": "alert_level", "value": -2},
+						{"type": "relic", "relic_id": "glitch_core"}
 					]
 				}
 			]
 		},
 		"atlas_omega": {
 			"display": "ATLAS端末Ω",
-			"act": [
-				3
-			],
+			"act": [3],
 			"text": "巨大な端末が部屋の中央にある。\n「ATLAS ████ System - ██████プロトコル起動中」\n\n画面には無数の数字が流れている。",
 			"choices": [
 				{
 					"label": "システムに触れる",
 					"results": [
-						{
-							"type": "hp",
-							"value": -10
-						},
-						{
-							"type": "relic_choice",
-							"count": 2,
-							"rarity_weights": {
-								"uncommon": 5,
-								"rare": 3
-							}
-						},
-						{
-							"type": "flavor",
-							"text": "警告音。\nシステムが反応した。"
-						}
+						{"type": "hp", "value": -10},
+						{"type": "relic_choice", "count": 2, "rarity_weights": {"uncommon": 5, "rare": 3}},
+						{"type": "flavor", "text": "警告音。\nシステムが反応した。"}
 					]
 				},
 				{
 					"label": "数字を眺める",
 					"results": [
-						{
-							"type": "gold",
-							"value": 90
-						},
-						{
-							"type": "flavor",
-							"text": "#1, #2, #3...#2891...\n数字が続く。どこまで？"
-						}
+						{"type": "gold", "value": 90},
+						{"type": "flavor", "text": "#1, #2, #3...#2891...\n数字が続く。どこまで？"}
 					]
 				},
 				{
 					"label": "何もしない",
 					"results": [
-						{
-							"type": "gold",
-							"value": 100
-						}
+						{"type": "gold", "value": 100}
 					]
 				}
 			]
 		},
 		"white_coat": {
 			"display": "白衣の人物",
-			"act": [
-				3
-			],
+			"act": [3],
 			"text": "誰かが倒れている。白衣。まだ呼吸がある。\n\n目を開ける。あなたを見る。\n「...2891...号...お前...が...」\n\n沈黙。何を言いたかったのか。",
 			"choices": [
 				{
 					"label": "話しかける",
 					"results": [
-						{
-							"type": "hp",
-							"value": -5
-						},
-						{
-							"type": "flavor",
-							"text": "...外...へ...██...もう...\n意味不明。"
-						}
+						{"type": "hp", "value": -5},
+						{"type": "flavor", "text": "...外...へ...██...もう...\n意味不明。"}
 					]
 				},
 				{
@@ -3834,36 +3391,22 @@
 				{
 					"label": "所持品を調べる",
 					"results": [
-						{
-							"type": "relic",
-							"relic_id": "atlas_omega"
-						},
-						{
-							"type": "gold",
-							"value": 80
-						}
+						{"type": "relic", "relic_id": "atlas_omega"},
+						{"type": "gold", "value": 80}
 					]
 				}
 			]
 		},
 		"unknown_door": {
 			"display": "見たことのない扉",
-			"act": [
-				3
-			],
+			"act": [3],
 			"text": "扉がある。表示には「████ - 外部█████接続」\n\n開くのか？開かないのか？\n向こうには何があるのか？\n\n分からない。",
 			"choices": [
 				{
 					"label": "扉を開けようとする",
 					"results": [
-						{
-							"type": "gold",
-							"value": 70
-						},
-						{
-							"type": "flavor",
-							"text": "「ロック解除条件: ████████」\n開かない。"
-						}
+						{"type": "gold", "value": 70},
+						{"type": "flavor", "text": "「ロック解除条件: ████████」\n開かない。"}
 					]
 				},
 				{
@@ -3873,17 +3416,8 @@
 				{
 					"label": "扉を調べる",
 					"results": [
-						{
-							"type": "relic_choice",
-							"count": 1,
-							"rarity_weights": {
-								"rare": 10
-							}
-						},
-						{
-							"type": "flavor",
-							"text": "無数の痕跡。\n誰かが触れた跡。"
-						}
+						{"type": "relic_choice", "count": 1, "rarity_weights": {"rare": 10}},
+						{"type": "flavor", "text": "無数の痕跡。\n誰かが触れた跡。"}
 					]
 				}
 			]
