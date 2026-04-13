@@ -706,9 +706,14 @@ func try_drop_at_mouse(_tc: Control) -> void:
 		try_drop_card(_drag_source_idx, 0, 0, -1)
 		return
 
-	# 手持ちカードエリアのドロップ判定（row=1, col=-1）
-	var hand_area_w = ally_board_w - float(BOARD_X)
-	if local.x >= float(BOARD_X) and local.x < float(BOARD_X) + hand_area_w and \
+	# ユニット手持ちエリアのドロップ判定（row=1, col=-1）
+	if local.x >= float(HAND_AREA_UNIT_X) and local.x < float(HAND_AREA_UNIT_X) + float(HAND_AREA_W) and \
+	   local.y >= float(HAND_AREA_Y) and local.y < float(HAND_AREA_Y) + float(HAND_AREA_H):
+		try_drop_card(_drag_source_idx, 0, 1, -1)
+		return
+
+	# 呪文手持ちエリアのドロップ判定（row=1, col=-1）
+	if local.x >= float(HAND_AREA_SPELL_X) and local.x < float(HAND_AREA_SPELL_X) + float(HAND_AREA_W) and \
 	   local.y >= float(HAND_AREA_Y) and local.y < float(HAND_AREA_Y) + float(HAND_AREA_H):
 		try_drop_card(_drag_source_idx, 0, 1, -1)
 		return
@@ -791,6 +796,12 @@ func try_drop_card(idx: int, new_side: int, new_row: int, new_col: int) -> void:
 				push_warning("[DeckPrepBoard] 呪文デッキには呪文のみ配置できます: %s" % card_name)
 				end_drag()
 				return
+
+		# マナ制約チェック: ユニット総mana ≥ 呪文総mana
+		if not _check_mana_constraint(indices_to_move, new_row, new_col):
+			push_warning("[DeckPrepBoard] マナ不足: 盤面ユニットのマナでは呪文デッキに入れられません")
+			end_drag()
+			return
 
 	# ドラッグカードをドロップ先へ移動
 	print("[DeckPrepBoard] try_drop_card: idx=%d, new_side=%d, new_row=%d, new_col=%d, indices_to_move=%s" % [idx, new_side, new_row, new_col, str(indices_to_move)])
@@ -979,6 +990,45 @@ func _hide_drop_hints() -> void:
 				overlay.queue_free()
 		_hint_overlays.clear()
 	)
+
+# マナ制約チェック: ユニット総mana ≥ 呪文総mana
+func _check_mana_constraint(indices_to_move: Array, target_row: int, target_col: int) -> bool:
+	# ユニット総mana計算（盤面col>=0のユニット）
+	var unit_total_mana = 0
+	for i in range(GameSession.selected_deck.size()):
+		var cfg = GameSession.placement_config[i] if i < GameSession.placement_config.size() else {}
+		var col = cfg.get("col", -1)
+		if col >= 0:  # 盤面配置
+			var entry = GameSession.selected_deck[i]
+			var card_name = entry.get("name", "") if entry is Dictionary else str(entry)
+			if CardDB.UNITS.has(card_name):
+				unit_total_mana += CardDB.UNITS[card_name].get("mana", 0)
+
+	# 呪文総mana計算（移動後の状態をシミュレート）
+	var spell_total_mana = 0
+	for i in range(GameSession.selected_deck.size()):
+		var cfg = GameSession.placement_config[i] if i < GameSession.placement_config.size() else {}
+		var row = cfg.get("row", -1)
+		var col = cfg.get("col", -1)
+
+		# このカードが移動対象か判定
+		var is_moving = i in indices_to_move
+
+		# 移動後の位置を判定
+		var final_row = target_row if is_moving else row
+		var final_col = target_col if is_moving else col
+
+		# 呪文デッキ（row=0, col=-1）に入るか判定
+		if final_row == 0 and final_col == -1:
+			var entry = GameSession.selected_deck[i]
+			var card_name = entry.get("name", "") if entry is Dictionary else str(entry)
+			if CardDB.SPELLS.has(card_name):
+				spell_total_mana += CardDB.SPELLS[card_name].get("mana", 0)
+			elif CardDB.STATUS_SPELLS.has(card_name):
+				spell_total_mana += CardDB.STATUS_SPELLS[card_name].get("mana", 0)
+
+	print("[DeckPrepBoard] マナチェック: ユニット総mana=%d, 呪文総mana=%d" % [unit_total_mana, spell_total_mana])
+	return unit_total_mana >= spell_total_mana
 
 # シナジーチェックとフラッシュ
 func _check_and_flash_synergies(card_idx: int) -> void:
