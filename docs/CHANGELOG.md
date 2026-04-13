@@ -32,6 +32,15 @@
 - SpellSlotSystem.gd: cost→mana修正
 - テスト全パス（2432 passed / 0 failed）
 
+**ダンジョンマップ10層化**（72a310a）
+- 7層→10層に変更（層0=3スタート、層1-8=2-6ノード、層9=3ボス）
+- 接続数: min=前層ノード数, max=floor(前層ノード数*1.5)
+- 交差禁止: 単調増加インデックス順で接続生成
+- 孤立防止: 全ノードが前層・次層に最低1本接続
+- タイトル位置: ノード配置後の最小Y座標から動的計算
+- MapGenerator.gd: _generate_connections()新規実装
+- MapSelect.gd: _calculate_title_position()新規実装
+
 ## 2026-04-12
 
 ### Phase 2 完了宣言
