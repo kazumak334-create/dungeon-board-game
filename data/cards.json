@@ -3888,5 +3888,562 @@
 				}
 			]
 		}
+	},
+	"enemy_decks": {
+		"act1_slime_basic": {
+			"display": "スライムの群れ（基本）",
+			"race_theme": "slime",
+			"act": 1,
+			"tier": "basic",
+			"description": "序盤の標準的なスライム編成",
+			"units": [
+				{
+					"name": "スライム",
+					"col": 0,
+					"row": 0
+				},
+				{
+					"name": "スライム",
+					"col": 0,
+					"row": 1
+				},
+				{
+					"name": "スライム",
+					"col": 0,
+					"row": 2
+				},
+				{
+					"name": "マッドスライム",
+					"col": 1,
+					"row": 1
+				}
+			]
+		},
+		"act1_slime_enhanced1": {
+			"display": "スライムの群れ（警戒Lv3）",
+			"race_theme": "slime",
+			"act": 1,
+			"tier": "enhanced1",
+			"description": "警戒レベル3対応の強化編成",
+			"units": [
+				{
+					"name": "スライム",
+					"col": 0,
+					"row": 0
+				},
+				{
+					"name": "マッドスライム",
+					"col": 0,
+					"row": 1
+				},
+				{
+					"name": "マッドスライム",
+					"col": 0,
+					"row": 2
+				},
+				{
+					"name": "ブラッドスライム",
+					"col": 1,
+					"row": 1
+				},
+				{
+					"name": "スライム",
+					"col": 1,
+					"row": 0
+				}
+			]
+		},
+		"act1_slime_enhanced2": {
+			"display": "スライムの群れ（警戒Lv4）",
+			"race_theme": "slime",
+			"act": 1,
+			"tier": "enhanced2",
+			"description": "警戒レベル4対応の強化編成",
+			"units": [
+				{
+					"name": "マッドスライム",
+					"col": 0,
+					"row": 0
+				},
+				{
+					"name": "マッドスライム",
+					"col": 0,
+					"row": 1
+				},
+				{
+					"name": "ブラッドスライム",
+					"col": 0,
+					"row": 2
+				},
+				{
+					"name": "ブラッドスライム",
+					"col": 1,
+					"row": 1
+				},
+				{
+					"name": "マッドスライム",
+					"col": 1,
+					"row": 0
+				},
+				{
+					"name": "スライム",
+					"col": 1,
+					"row": 2
+				}
+			]
+		},
+		"act1_slime_enhanced3": {
+			"display": "スライムの群れ（警戒Lv5+）",
+			"race_theme": "slime",
+			"act": 1,
+			"tier": "enhanced3",
+			"description": "警戒レベル5以上対応の最強編成",
+			"units": [
+				{
+					"name": "マッドスライム",
+					"col": 0,
+					"row": 0
+				},
+				{
+					"name": "ブラッドスライム",
+					"col": 0,
+					"row": 1
+				},
+				{
+					"name": "ブラッドスライム",
+					"col": 0,
+					"row": 2
+				},
+				{
+					"name": "ブラッドスライム",
+					"col": 1,
+					"row": 1
+				},
+				{
+					"name": "マッドスライム",
+					"col": 1,
+					"row": 0
+				},
+				{
+					"name": "マッドスライム",
+					"col": 1,
+					"row": 2
+				},
+				{
+					"name": "スライム",
+					"col": 2,
+					"row": 1
+				}
+			]
+		},
+		"act1_beast_basic": {
+			"display": "獣の群れ（基本）",
+			"race_theme": "beast",
+			"act": 1,
+			"tier": "basic",
+			"description": "序盤の標準的な獣編成",
+			"units": [
+				{
+					"name": "ゴブリン",
+					"col": 0,
+					"row": 0
+				},
+				{
+					"name": "ゴブリン",
+					"col": 0,
+					"row": 1
+				},
+				{
+					"name": "ウルフ",
+					"col": 0,
+					"row": 2
+				},
+				{
+					"name": "ウルフ",
+					"col": 1,
+					"row": 1
+				}
+			]
+		},
+		"act1_beast_enhanced1": {
+			"display": "獣の群れ（警戒Lv3）",
+			"race_theme": "beast",
+			"act": 1,
+			"tier": "enhanced1",
+			"description": "警戒レベル3対応の強化編成",
+			"units": [
+				{
+					"name": "ゴブリン",
+					"col": 0,
+					"row": 0
+				},
+				{
+					"name": "ウルフ",
+					"col": 0,
+					"row": 1
+				},
+				{
+					"name": "ウルフ",
+					"col": 0,
+					"row": 2
+				},
+				{
+					"name": "タイガー",
+					"col": 1,
+					"row": 1
+				},
+				{
+					"name": "ゴブリン",
+					"col": 1,
+					"row": 0
+				}
+			]
+		},
+		"act1_beast_enhanced2": {
+			"display": "獣の群れ（警戒Lv4）",
+			"race_theme": "beast",
+			"act": 1,
+			"tier": "enhanced2",
+			"description": "警戒レベル4対応の強化編成",
+			"units": [
+				{
+					"name": "ウルフ",
+					"col": 0,
+					"row": 0
+				},
+				{
+					"name": "ウルフ",
+					"col": 0,
+					"row": 1
+				},
+				{
+					"name": "タイガー",
+					"col": 0,
+					"row": 2
+				},
+				{
+					"name": "タイガー",
+					"col": 1,
+					"row": 1
+				},
+				{
+					"name": "ウルフ",
+					"col": 1,
+					"row": 0
+				},
+				{
+					"name": "ゴブリン",
+					"col": 1,
+					"row": 2
+				}
+			]
+		},
+		"act1_beast_enhanced3": {
+			"display": "獣の群れ（警戒Lv5+）",
+			"race_theme": "beast",
+			"act": 1,
+			"tier": "enhanced3",
+			"description": "警戒レベル5以上対応の最強編成",
+			"units": [
+				{
+					"name": "ウルフ",
+					"col": 0,
+					"row": 0
+				},
+				{
+					"name": "タイガー",
+					"col": 0,
+					"row": 1
+				},
+				{
+					"name": "タイガー",
+					"col": 0,
+					"row": 2
+				},
+				{
+					"name": "ワイルドホーク",
+					"col": 1,
+					"row": 1
+				},
+				{
+					"name": "タイガー",
+					"col": 1,
+					"row": 0
+				},
+				{
+					"name": "ウルフ",
+					"col": 1,
+					"row": 2
+				},
+				{
+					"name": "ゴブリン",
+					"col": 2,
+					"row": 1
+				}
+			]
+		},
+		"act1_undead_basic": {
+			"display": "不死の群れ（基本）",
+			"race_theme": "undead",
+			"act": 1,
+			"tier": "basic",
+			"description": "序盤の標準的なアンデッド編成",
+			"units": [
+				{
+					"name": "スケルトン",
+					"col": 0,
+					"row": 0
+				},
+				{
+					"name": "スケルトン",
+					"col": 0,
+					"row": 1
+				},
+				{
+					"name": "スケルトン",
+					"col": 0,
+					"row": 2
+				},
+				{
+					"name": "グール",
+					"col": 1,
+					"row": 1
+				}
+			]
+		},
+		"act1_undead_enhanced1": {
+			"display": "不死の群れ（警戒Lv3）",
+			"race_theme": "undead",
+			"act": 1,
+			"tier": "enhanced1",
+			"description": "警戒レベル3対応の強化編成",
+			"units": [
+				{
+					"name": "スケルトン",
+					"col": 0,
+					"row": 0
+				},
+				{
+					"name": "グール",
+					"col": 0,
+					"row": 1
+				},
+				{
+					"name": "グール",
+					"col": 0,
+					"row": 2
+				},
+				{
+					"name": "バンシー",
+					"col": 1,
+					"row": 1
+				},
+				{
+					"name": "スケルトン",
+					"col": 1,
+					"row": 0
+				}
+			]
+		},
+		"act1_undead_enhanced2": {
+			"display": "不死の群れ（警戒Lv4）",
+			"race_theme": "undead",
+			"act": 1,
+			"tier": "enhanced2",
+			"description": "警戒レベル4対応の強化編成",
+			"units": [
+				{
+					"name": "グール",
+					"col": 0,
+					"row": 0
+				},
+				{
+					"name": "グール",
+					"col": 0,
+					"row": 1
+				},
+				{
+					"name": "バンシー",
+					"col": 0,
+					"row": 2
+				},
+				{
+					"name": "バンシー",
+					"col": 1,
+					"row": 1
+				},
+				{
+					"name": "グール",
+					"col": 1,
+					"row": 0
+				},
+				{
+					"name": "スケルトン",
+					"col": 1,
+					"row": 2
+				}
+			]
+		},
+		"act1_undead_enhanced3": {
+			"display": "不死の群れ（警戒Lv5+）",
+			"race_theme": "undead",
+			"act": 1,
+			"tier": "enhanced3",
+			"description": "警戒レベル5以上対応の最強編成",
+			"units": [
+				{
+					"name": "グール",
+					"col": 0,
+					"row": 0
+				},
+				{
+					"name": "バンシー",
+					"col": 0,
+					"row": 1
+				},
+				{
+					"name": "バンシー",
+					"col": 0,
+					"row": 2
+				},
+				{
+					"name": "リッチ",
+					"col": 1,
+					"row": 1
+				},
+				{
+					"name": "バンシー",
+					"col": 1,
+					"row": 0
+				},
+				{
+					"name": "グール",
+					"col": 1,
+					"row": 2
+				},
+				{
+					"name": "スケルトン",
+					"col": 2,
+					"row": 1
+				}
+			]
+		},
+		"act1_elite_slime": {
+			"display": "エリートスライム部隊",
+			"race_theme": "slime",
+			"act": 1,
+			"tier": "elite",
+			"description": "エリート戦用の強化スライム編成",
+			"units": [
+				{
+					"name": "ブラッドスライム",
+					"col": 0,
+					"row": 0
+				},
+				{
+					"name": "ブラッドスライム",
+					"col": 0,
+					"row": 1
+				},
+				{
+					"name": "ブラッドスライム",
+					"col": 0,
+					"row": 2
+				},
+				{
+					"name": "マッドスライム",
+					"col": 1,
+					"row": 0
+				},
+				{
+					"name": "マッドスライム",
+					"col": 1,
+					"row": 1
+				},
+				{
+					"name": "マッドスライム",
+					"col": 1,
+					"row": 2
+				}
+			]
+		},
+		"act1_elite_beast": {
+			"display": "エリート獣部隊",
+			"race_theme": "beast",
+			"act": 1,
+			"tier": "elite",
+			"description": "エリート戦用の強化獣編成",
+			"units": [
+				{
+					"name": "タイガー",
+					"col": 0,
+					"row": 0
+				},
+				{
+					"name": "タイガー",
+					"col": 0,
+					"row": 1
+				},
+				{
+					"name": "ワイルドホーク",
+					"col": 0,
+					"row": 2
+				},
+				{
+					"name": "ウルフ",
+					"col": 1,
+					"row": 0
+				},
+				{
+					"name": "ウルフ",
+					"col": 1,
+					"row": 1
+				},
+				{
+					"name": "ウルフ",
+					"col": 1,
+					"row": 2
+				}
+			]
+		},
+		"act1_elite_undead": {
+			"display": "エリート不死部隊",
+			"race_theme": "undead",
+			"act": 1,
+			"tier": "elite",
+			"description": "エリート戦用の強化アンデッド編成",
+			"units": [
+				{
+					"name": "バンシー",
+					"col": 0,
+					"row": 0
+				},
+				{
+					"name": "バンシー",
+					"col": 0,
+					"row": 1
+				},
+				{
+					"name": "リッチ",
+					"col": 0,
+					"row": 2
+				},
+				{
+					"name": "グール",
+					"col": 1,
+					"row": 0
+				},
+				{
+					"name": "グール",
+					"col": 1,
+					"row": 1
+				},
+				{
+					"name": "グール",
+					"col": 1,
+					"row": 2
+				}
+			]
+		}
 	}
 }
