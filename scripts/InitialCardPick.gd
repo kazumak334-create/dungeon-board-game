@@ -312,15 +312,27 @@ func _confirm_card(idx: int) -> void:
 		_add_to_picked_slot(card_name)
 		_current_pick += 1
 		_update_progress()
-		
+
 		card_view.scale = Vector2(1.0, 1.0)
 		card_view.modulate.a = 1.0
-		
+
 		_is_animating = false
-		
+
 		if _current_pick < 6:
 			_show_choices(_generate_choices())
 		else:
+			# ピック完了: 残っている選択肢カードを全て削除
+			for view in _card_views:
+				if is_instance_valid(view):
+					view.queue_free()
+			_card_views.clear()
+
+			# 選択枠も削除
+			for border in _select_borders:
+				if is_instance_valid(border):
+					border.queue_free()
+			_select_borders.clear()
+
 			var btn_tween = create_tween()
 			btn_tween.tween_property(_confirm_button, "modulate:a", 1.0, 0.3).set_ease(Tween.EASE_OUT)
 	)
