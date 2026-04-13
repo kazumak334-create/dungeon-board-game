@@ -297,11 +297,12 @@ func _select_card(idx: int) -> void:
 
 func _confirm_card(idx: int) -> void:
 	_is_animating = true
-	
+
 	var card_name = _choice_pool[idx]
 	var card_view = _card_views[idx]
-	var target_pos = _picked_slots[_current_pick].position + Vector2(30, 43)
-	
+	# スロット位置に直接配置（オフセット不要）
+	var target_pos = _picked_slots[_current_pick].position
+
 	var tween = create_tween()
 	tween.set_parallel(true)
 	tween.tween_property(card_view, "position", target_pos, 0.4).set_ease(Tween.EASE_IN_OUT)
@@ -342,7 +343,8 @@ func _add_to_picked_slot(card_name: String) -> void:
 	var mini_card = CardViewScene.instantiate()
 	_bind_card(mini_card, card_name)
 	mini_card.scale = Vector2(0.27, 0.27)
-	mini_card.position = _picked_slots[slot_idx].position + Vector2(30, 43)
+	# スロット位置に直接配置（オフセット不要）
+	mini_card.position = _picked_slots[slot_idx].position
 	add_child(mini_card)
 	_picked_mini_cards[slot_idx] = mini_card
 
