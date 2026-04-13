@@ -9,6 +9,12 @@ const MapGenerator = preload("res://scripts/MapGenerator.gd")
 var _taskbar: RefCounted = null
 var _node_buttons: Dictionary = {}  # node_id -> Button
 
+# ルートメモ機能
+var _route_memo: Array = []  # [node_id, node_id, ...]
+var _is_drawing_route: bool = false
+var _route_lines: Array = []  # Line2D配列
+var _route_info_panel: PanelContainer = null
+
 # ノード種別色定義
 const NODE_COLORS = {
 	"battle": Color(0.8, 0.3, 0.3),
@@ -33,6 +39,28 @@ const NODE_SYMBOLS = {
 
 func _ready() -> void:
 	_build_ui()
+	# ルートメモ用のマウス入力処理
+	set_process_input(true)
+
+func _input(event: InputEvent) -> void:
+	if event is InputEventMouseButton:
+		if event.button_index == MOUSE_BUTTON_RIGHT:
+			if event.pressed:
+				# 右クリック開始: ルート描画モード
+				_is_drawing_route = true
+				_clear_route()
+			else:
+				# 右クリック終了: ルート確定
+				_is_drawing_route = false
+		elif event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
+			# 左クリック: ルートクリア
+			if not _route_memo.is_empty():
+				_clear_route()
+
+func _process(_delta: float) -> void:
+	if _is_drawing_route:
+		# ドラッグ中: マウス位置のノードをルートに追加
+		_update_route_from_mouse()
 
 func _build_ui() -> void:
 	UIF.add_bg(self)
@@ -315,3 +343,169 @@ func _add_alert_marker(parent_pos: Vector2, alert: int) -> void:
 		marker_label.add_theme_font_size_override("font_size", 16)
 
 	add_child(marker_label)
+
+# ===============================
+# ルートメモ機能
+# ===============================
+
+func _update_route_from_mouse() -> void:
+	"""マウス位置のノードをルートに追加"""
+	var mouse_pos = get_viewport().get_mouse_position()
+	var act_data = _get_current_act_data()
+	var node_positions = _calculate_node_positions(act_data)
+
+	# マウス位置に近いノードを探す
+	for node in act_data.get("nodes", []):
+		var node_id = node.get("id", "")
+		var pos = node_positions.get(node_id, Vector2.ZERO)
+		if pos == Vector2.ZERO:
+			continue
+
+		# ノード範囲内（50x50）にマウスがあるか
+		var node_rect = Rect2(pos, Vector2(50, 50))
+		if node_rect.has_point(mouse_pos):
+			# ルートの最後のノードと異なる場合のみ追加
+			if _route_memo.is_empty() or _route_memo[-1] != node_id:
+				_route_memo.append(node_id)
+				_draw_route()
+				_update_route_info()
+			break
+
+func _clear_route() -> void:
+	"""ルートをクリア"""
+	_route_memo.clear()
+
+	# 描画した線を削除
+	for line in _route_lines:
+		if is_instance_valid(line):
+			line.queue_free()
+	_route_lines.clear()
+
+	# 情報パネルを非表示
+	if _route_info_panel and is_instance_valid(_route_info_panel):
+		_route_info_panel.visible = false
+
+func _draw_route() -> void:
+	"""ルート線を描画"""
+	# 既存の線を削除
+	for line in _route_lines:
+		if is_instance_valid(line):
+			line.queue_free()
+	_route_lines.clear()
+
+	if _route_memo.size() < 2:
+		return
+
+	var act_data = _get_current_act_data()
+	var node_positions = _calculate_node_positions(act_data)
+
+	# ルートの各ノード間に線を引く
+	for i in range(_route_memo.size() - 1):
+		var node_a_id = _route_memo[i]
+		var node_b_id = _route_memo[i + 1]
+		var pos_a = node_positions.get(node_a_id, Vector2.ZERO)
+		var pos_b = node_positions.get(node_b_id, Vector2.ZERO)
+
+		if pos_a == Vector2.ZERO or pos_b == Vector2.ZERO:
+			continue
+
+		var line = Line2D.new()
+		line.add_point(pos_a + Vector2(25, 25))  # ノード中心
+		line.add_point(pos_b + Vector2(25, 25))
+		line.width = 5
+		line.default_color = Color(1.0, 0.9, 0.3, 0.7)  # 黄色半透明
+		add_child(line)
+		_route_lines.append(line)
+
+func _update_route_info() -> void:
+	"""ルート情報パネルを更新"""
+	if _route_memo.is_empty():
+		return
+
+	# 情報パネルがなければ作成
+	if not _route_info_panel:
+		_route_info_panel = PanelContainer.new()
+		_route_info_panel.position = Vector2(get_viewport_rect().size.x - 220, 50)
+		_route_info_panel.size = Vector2(200, 150)
+
+		var style = StyleBoxFlat.new()
+		style.bg_color = Color(0.1, 0.1, 0.1, 0.9)
+		style.set_corner_radius_all(5)
+		style.set_border_width_all(2)
+		style.border_color = Color(1.0, 0.9, 0.3)
+		_route_info_panel.add_theme_stylebox_override("panel", style)
+
+		add_child(_route_info_panel)
+
+	# 既存の子要素を削除
+	for child in _route_info_panel.get_children():
+		child.queue_free()
+
+	# ルート分析
+	var info = _analyze_route()
+
+	# VBoxContainerで情報を縦に並べる
+	var vbox = VBoxContainer.new()
+	_route_info_panel.add_child(vbox)
+
+	var title_label = Label.new()
+	title_label.text = "=== ルート計画 ==="
+	title_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	title_label.add_theme_font_size_override("font_size", 14)
+	title_label.add_theme_color_override("font_color", Color(1.0, 0.9, 0.3))
+	vbox.add_child(title_label)
+
+	var labels = [
+		"総マス数: %d" % info["total"],
+		"最大警戒Lv: %d" % info["max_alert"],
+		"戦闘: %d  エリート: %d" % [info["battle"], info["elite"]],
+		"レスト: %d  ショップ: %d" % [info["rest"], info["shop"]],
+		"イベント: %d  ボス: %d" % [info["event"], info["boss"]],
+	]
+
+	for text in labels:
+		var label = Label.new()
+		label.text = text
+		label.add_theme_font_size_override("font_size", 12)
+		label.add_theme_color_override("font_color", Color(1.0, 1.0, 1.0))
+		vbox.add_child(label)
+
+	_route_info_panel.visible = true
+
+func _analyze_route() -> Dictionary:
+	"""ルートを分析して情報を返す"""
+	var act_data = _get_current_act_data()
+	var current_alert = GameSession.alert_level
+	var max_alert = current_alert
+
+	var counts = {
+		"total": _route_memo.size(),
+		"max_alert": 0,
+		"battle": 0,
+		"elite": 0,
+		"rest": 0,
+		"shop": 0,
+		"event": 0,
+		"boss": 0,
+	}
+
+	# 各ノードをシミュレート
+	for node_id in _route_memo:
+		for node in act_data.get("nodes", []):
+			if node.get("id", "") == node_id:
+				var node_type = node.get("type", "")
+				counts[node_type] = counts.get(node_type, 0) + 1
+
+				# 警戒レベルをシミュレート
+				if node_type == "battle" or node_type == "elite":
+					current_alert += 1
+				elif node_type == "rest":
+					current_alert = max(0, current_alert - 2)
+				elif node_type in ["shop", "event"]:
+					current_alert = max(0, current_alert - 1)
+
+				max_alert = max(max_alert, current_alert)
+				break
+
+	counts["max_alert"] = max_alert
+	return counts
