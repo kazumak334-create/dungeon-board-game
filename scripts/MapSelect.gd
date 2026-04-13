@@ -381,9 +381,25 @@ func _update_route_from_mouse() -> void:
 						last_col = n.get("col", -1)
 						break
 
-				# 左から右（col増加）のみ許可
 				if current_col > last_col:
+					# 左から右: 追加
 					_route_memo.append(node_id)
+					_draw_route()
+					_update_route_info()
+				elif current_col < last_col:
+					# 右から左: そのcolまで巻き戻す
+					var new_route: Array = []
+					for route_node_id in _route_memo:
+						for n in act_data.get("nodes", []):
+							if n.get("id", "") == route_node_id:
+								var route_col = n.get("col", -1)
+								if route_col <= current_col:
+									new_route.append(route_node_id)
+								break
+					# 現在のノードを追加（まだ含まれていない場合）
+					if not new_route.has(node_id):
+						new_route.append(node_id)
+					_route_memo = new_route
 					_draw_route()
 					_update_route_info()
 			break
