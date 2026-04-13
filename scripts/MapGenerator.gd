@@ -21,13 +21,27 @@ static func get_rest_node_depths() -> Array:
 static func get_rest_node_chance() -> float:
 	return ConfigLoader.get_value("map_generation", "rest_node_chance", 0.2)
 
-# Act構造
+# Act構造（新仕様）
 const ACTS_COUNT = 3
-const NODES_PER_ACT = 10
-const START_LANES = 3
-const MAX_LANES = 6  # 各depthの最大ノード数
-const MAX_CONNECTIONS = 2  # 各ノードの最大接続数（1ノードから次の層への接続は最大2本）
-const BOSS_CANDIDATES = 3  # 各Act終端のボス候補数
+const LAYERS_PER_ACT = 10  # 層数: 0-9
+const NODES_PER_LAYER_MIN = 2  # 各層の最小ノード数（層1-8用）
+const NODES_PER_LAYER_MAX = 6  # 各層の最大ノード数（層1-8用）
+const START_NODES_COUNT = 3  # 層0の開始ノード数
+const BOSS_NODES_COUNT = 3  # 層9のボスノード数
+
+# 層ごとのノードタイプ出現率（新仕様）
+const LAYER_NODE_TYPES = {
+	0: {"battle": 100},  # スタート固定
+	1: {"battle": 70, "event": 20, "shop": 10},
+	2: {"battle": 60, "event": 20, "shop": 20},
+	3: {"battle": 50, "event": 25, "shop": 25},
+	4: {"elite": 50, "battle": 30, "event": 20},
+	5: {"battle": 50, "shop": 25, "event": 25},
+	6: {"elite": 40, "battle": 30, "event": 20, "rest": 10},
+	7: {"battle": 40, "elite": 30, "rest": 20, "shop": 10},
+	8: {"elite": 60, "battle": 20, "rest": 20},
+	9: {"boss": 100},  # ボス固定
+}
 
 # 再現性用RNG
 var _rng: RandomNumberGenerator = null
@@ -50,154 +64,86 @@ func generate(seed_value: int, race_theme: String = "slime") -> Dictionary:
 	}
 
 func _generate_act(act_num: int, race_theme: String) -> Dictionary:
-	# depth 0: 3レーン固定スタート
-	# depth 1-8: ランダム1〜3ノード
-	# depth 9: ボス候補（2〜3体）
+	# 新仕様: 10層（0-9）、層0=3スタート、層1-8=2-6ノード、層9=3ボス
 	var nodes: Array = []
 	var node_id_counter: int = 0
+	var layer_nodes: Array = []  # 各層のノードID配列
 
-	# depth 0: 3つの開始ノード（全てbattle固定）
-	var prev_depth_ids: Array = []
-	for lane in range(START_LANES):
-		var nid = "act%d_d0_n%d" % [act_num, node_id_counter]
-		node_id_counter += 1
+	# 層0: スタートノード3個
+	var start_nodes: Array = []
+	for i in range(START_NODES_COUNT):
+		var start_nid = "act%d_L0_n%d" % [act_num, node_id_counter]
 		nodes.append({
-			"id": nid,
-			"depth": 0,
-			"lane": lane,
-			"type": "battle",
+			"id": start_nid,
+			"layer": 0,
+			"lane": i,
+			"type": _pick_node_type(0),
 			"connections": [],
 		})
-		prev_depth_ids.append(nid)
+		start_nodes.append(start_nid)
+		node_id_counter += 1
+	layer_nodes.append(start_nodes)
 
-	# 強制配置トラッキング
-	var has_shop: bool = false
-	var has_event: bool = false
+	# 層1-8: 各層2-6個のノード
+	for layer in range(1, LAYERS_PER_ACT - 1):
+		var node_count = _rng.randi_range(NODES_PER_LAYER_MIN, NODES_PER_LAYER_MAX)
+		var current_layer_nodes: Array = []
 
-	# depth 1〜8: ランダム生成
-	for depth in range(1, NODES_PER_ACT - 1):
-		# ノード数をdepthに応じて調整（序盤は少なめ、中盤は多め）
-		var lane_count: int
-		if depth <= 2:
-			lane_count = _rng.randi_range(2, 4)  # 序盤: 2-4ノード
-		elif depth >= 7:
-			lane_count = _rng.randi_range(2, 4)  # 終盤: 2-4ノード
-		else:
-			lane_count = _rng.randi_range(3, MAX_LANES)  # 中盤: 3-6ノード
-
-		var current_depth_ids: Array = []
-
-		for lane in range(lane_count):
-			# 強制配置ロジック（深さ順に判定: event→shop→rest）
-			var node_type: String
-			if not has_event and depth >= 2 and depth <= 4 and lane == 0:
-				# depth 2-4 に event 1個を強制配置
-				node_type = "event"
-				has_event = true
-			elif not has_shop and depth >= 3 and depth <= 5 and lane == 0:
-				# depth 3-5 に shop 1個を強制配置
-				node_type = "shop"
-				has_shop = true
-			elif depth in get_rest_node_depths() and lane == 0 and _rng.randf() < get_rest_node_chance():
-				# depth 4-6 で確率でrestノード配置
-				node_type = "rest"
-			else:
-				node_type = _weighted_node_type_by_depth(depth)
-
-			var nid = "act%d_d%d_n%d" % [act_num, depth, node_id_counter]
+		for lane in range(node_count):
+			var nid = "act%d_L%d_n%d" % [act_num, layer, node_id_counter]
 			node_id_counter += 1
 
-			# 接続: 隣接列優先で前のdepthノードから最大MAX_CONNECTIONS個に接続
-			var conns: Array = []
-			# 前ノードを距離順にソート（現在のlaneに近い順）
-			var prev_with_distance: Array = []
-			for pid in prev_depth_ids:
-				var prev_node = _find_node(nodes, pid)
-				var prev_lane = prev_node.get("lane", 0)
-				var distance = abs(lane - prev_lane)
-				prev_with_distance.append({"id": pid, "distance": distance})
-			# 距離でソート（近い順）
-			prev_with_distance.sort_custom(func(a, b): return a["distance"] < b["distance"])
-
-			# 最大MAX_CONNECTIONS個の近いノードに接続
-			var connection_count = min(MAX_CONNECTIONS, prev_with_distance.size())
-			for i in range(connection_count):
-				conns.append(prev_with_distance[i]["id"])
-
-			# 孤立防止: 接続がなければ最も近いノードと接続
-			if conns.is_empty() and prev_with_distance.size() > 0:
-				conns.append(prev_with_distance[0]["id"])
+			# 接続生成（交差禁止アルゴリズム）
+			var conns: Array = _generate_connections(layer, lane, node_count, layer_nodes)
 
 			nodes.append({
 				"id": nid,
-				"depth": depth,
+				"layer": layer,
 				"lane": lane,
-				"type": node_type,
+				"type": _pick_node_type(layer),
 				"connections": conns,
 			})
-			current_depth_ids.append(nid)
+			current_layer_nodes.append(nid)
 
-		# 逆方向孤立チェック: 前のdepthの全ノードから次のdepthに行けるか確認
-		for pid in prev_depth_ids:
-			var has_outgoing = false
-			for nid in current_depth_ids:
-				var node = _find_node(nodes, nid)
-				if pid in node.get("connections", []):
-					has_outgoing = true
-					break
-			# 前のノードから行けるノードがなければ、接続数が上限未満のノードに接続追加
-			if not has_outgoing and current_depth_ids.size() > 0:
-				# 接続数が上限未満のノードを探す
-				var added = false
-				for nid in current_depth_ids:
-					var target_node = _find_node(nodes, nid)
-					var current_connections = target_node.get("connections", [])
-					if current_connections.size() < MAX_CONNECTIONS:
-						target_node["connections"].append(pid)
-						added = true
-						break
-				# すべてのノードが上限に達している場合は、最初のノードに追加（孤立回避）
-				if not added:
-					var target_node = _find_node(nodes, current_depth_ids[0])
-					if target_node.has("connections"):
-						target_node["connections"].append(pid)
+		layer_nodes.append(current_layer_nodes)
 
-		prev_depth_ids = current_depth_ids
+	# 層9: ボスノード3個
+	var boss_candidates = _pick_boss_candidates(act_num, race_theme, BOSS_NODES_COUNT)
+	for i in range(BOSS_NODES_COUNT):
+		var boss_nid = "act%d_L9_boss%d" % [act_num, i]
 
-	# 強制配置の未配置分を最終ノードに近い場所に追加（depth 5 を使用）
-	if not has_shop:
-		# 既存ノードのdepth 5 がなければ最後から2番目のdepthに上書き
-		for node in nodes:
-			if node.get("depth", -1) == 5 and node.get("lane", 0) == 0:
-				node["type"] = "shop"
-				has_shop = true
-				break
-	if not has_event:
-		for node in nodes:
-			if node.get("depth", -1) == 3 and node.get("lane", 0) == 0:
-				node["type"] = "event"
-				has_event = true
-				break
+		# 各ボスノードは前層から接続（交差禁止アルゴリズム）
+		var boss_conns: Array = _generate_connections(LAYERS_PER_ACT - 1, i, BOSS_NODES_COUNT, layer_nodes)
 
-	# depth 9 (NODES_PER_ACT - 1): ボス候補
-	var boss_count: int = _rng.randi_range(2, BOSS_CANDIDATES)
-	var boss_candidates: Array = _pick_boss_candidates(act_num, race_theme, boss_count)
-	var boss_nid = "act%d_boss" % act_num
-	nodes.append({
-		"id": boss_nid,
-		"depth": NODES_PER_ACT - 1,
-		"lane": 0,
-		"type": "boss",
-		"boss_candidates": boss_candidates,
-		"connections": prev_depth_ids.duplicate(),
-	})
+		nodes.append({
+			"id": boss_nid,
+			"layer": LAYERS_PER_ACT - 1,
+			"lane": i,
+			"type": "boss",
+			"boss_candidates": [boss_candidates[i]] if i < boss_candidates.size() else [],
+			"connections": boss_conns,
+		})
 
-	print("[MapGenerator] Act%d生成完了: %dノード, ボス候補%d体" % [act_num, nodes.size(), boss_candidates.size()])
+	print("[MapGenerator] Act%d生成完了: %d層, %dノード" % [act_num, LAYERS_PER_ACT, nodes.size()])
 	return {
 		"act_num": act_num,
 		"nodes": nodes,
 		"boss_candidates": boss_candidates,
 	}
+
+# 層ごとのノードタイプを重み付きランダムで選択
+func _pick_node_type(layer: int) -> String:
+	var weights = LAYER_NODE_TYPES.get(layer, {"battle": 100})
+	var total: int = 0
+	for w in weights.values():
+		total += w
+	var roll: int = _rng.randi_range(0, total - 1)
+	var accum: int = 0
+	for type in weights:
+		accum += weights[type]
+		if roll < accum:
+			return type
+	return "battle"
 
 # ノード種別を重み付きランダムで選択
 func _weighted_node_type() -> String:
@@ -251,6 +197,58 @@ func _weighted_node_type_by_depth(depth: int) -> String:
 			return type
 	return "battle"
 
+# 交差禁止接続生成アルゴリズム
+func _generate_connections(layer: int, lane: int, current_layer_count: int, layer_nodes: Array) -> Array:
+	"""
+	交差禁止ルールに従って前層ノードとの接続を生成
+	- 接続数: min = 前層ノード数, max = floor(前層ノード数 * 1.5)
+	- 単調増加インデックス順を維持（交差防止）
+	- 孤立防止: 最低1本は接続
+	"""
+	if layer == 0:
+		return []
+
+	var prev_layer_nodes = layer_nodes[layer - 1]
+	var prev_count = prev_layer_nodes.size()
+
+	# 接続数を計算
+	var min_connections = prev_count
+	var max_connections = int(floor(float(prev_count) * 1.5))
+	var connection_count = _rng.randi_range(min_connections, max_connections)
+
+	# 現在ノードの位置比率（0.0〜1.0）
+	var current_ratio = float(lane) / float(max(1, current_layer_count - 1))
+
+	# 接続候補範囲を計算（交差防止のため範囲を制限）
+	var center_idx = int(current_ratio * float(prev_count - 1))
+	var half_range = int(ceil(float(connection_count) / 2.0))
+
+	var start_idx = max(0, center_idx - half_range)
+	var end_idx = min(prev_count - 1, center_idx + half_range)
+
+	# 接続数が範囲内に収まるように調整
+	while (end_idx - start_idx + 1) < connection_count and start_idx > 0:
+		start_idx -= 1
+	while (end_idx - start_idx + 1) < connection_count and end_idx < prev_count - 1:
+		end_idx += 1
+
+	# 接続を生成（単調増加順）
+	var conns: Array = []
+	var available_indices: Array = []
+	for i in range(start_idx, end_idx + 1):
+		available_indices.append(i)
+
+	# ランダムに選択（接続数分）
+	available_indices.shuffle()
+	for i in range(min(connection_count, available_indices.size())):
+		conns.append(prev_layer_nodes[available_indices[i]])
+
+	# 孤立防止: 接続が0本なら最も近いノードと接続
+	if conns.is_empty() and prev_layer_nodes.size() > 0:
+		conns.append(prev_layer_nodes[center_idx])
+
+	return conns
+
 # ノードIDからノードデータを検索
 func _find_node(nodes: Array, nid: String) -> Dictionary:
 	for node in nodes:
@@ -287,17 +285,17 @@ func _pick_boss_candidates(act_num: int, race_theme: String, count: int) -> Arra
 		candidates.append(pool[i])
 	return candidates
 
-# 接続が有効か検証（depth 0 から boss ノードまでパスが通るか）
+# 接続が有効か検証（layer 0 から boss ノードまでパスが通るか）
 func validate_connectivity(act_data: Dictionary) -> bool:
 	var nodes: Array = act_data.get("nodes", [])
 	if nodes.is_empty():
 		return false
 
-	# BFS: depth 0 ノードからbossまで到達できるか
+	# BFS: layer 0 ノードからbossまで到達できるか
 	# 逆方向（接続先→起点）でリバースグラフを構築
 	var reachable: Dictionary = {}
 	for node in nodes:
-		if node.get("depth", -1) == 0:
+		if node.get("layer", -1) == 0:
 			reachable[node.get("id", "")] = true
 
 	var changed: bool = true
