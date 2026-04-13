@@ -1,5 +1,37 @@
 # CHANGELOG
 
+## 2026-04-13
+
+### DeckPrep バランスパネル実装 + コンポーネント分割
+
+**バランスパネル実装**（d57724a）
+- DeckPrep左サイドバーに突・守・崩のバランス可視化パネル追加
+- 企画書: balance_panel_plan.md（ペルソナ全員ポジティブ評価）
+- 技術設計: balance_panel_architecture.md
+- DeckPrepSidebar.gd: バー3本構築・自動分類（traits/HP/ATK比率）・リアルタイム更新
+- DeckPrep.gd: update_balance_panel()呼び出し追加
+
+**DeckPrepコンポーネント分割リファクタリング**
+- DeckPrepSidebar.gd（新規255行）: 左サイドバー独立化
+- DeckPrepRightPanel.gd（新規38行）: 右パネル独立化
+- DeckPrepBoardSpells.gd（新規600行）: 呪文・手持ち・合成エリア独立化
+- DeckPrep.gd: 157行削減（可読性向上）
+
+**シナジーシステム基盤追加**
+- synergies.json: 毒シナジーデータ
+- SynergyDB.gd: シナジーDB実装
+
+**設計ドキュメント追加**
+- artifact_design_plan.md: アーティファクト設計企画
+- persona_gameplay_review.md: コアループ独自性評価
+- persona_detailed_review.md, core_loop_progression_review.md
+
+**テスト修正**
+- TestDBIntegrity.gd: cost→mana、装備テスト無効化
+- TestDeckPrepLayout.gd: DeckPrepBoardSpells移行に対応
+- SpellSlotSystem.gd: cost→mana修正
+- テスト全パス（2432 passed / 0 failed）
+
 ## 2026-04-12
 
 ### Phase 2 完了宣言
