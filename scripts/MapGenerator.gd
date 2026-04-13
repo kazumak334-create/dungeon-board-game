@@ -21,16 +21,17 @@ static func get_rest_node_depths() -> Array:
 static func get_rest_node_chance() -> float:
 	return ConfigLoader.get_value("map_generation", "rest_node_chance", 0.2)
 
-# Act構造（新仕様）
+# Act構造（新仕様: グリッドベース）
 const ACTS_COUNT = 3
-const LAYERS_PER_ACT = 10  # 層数: 0-9
-const NODES_PER_LAYER_MIN = 2  # 各層の最小ノード数（層1-8用）
-const NODES_PER_LAYER_MAX = 6  # 各層の最大ノード数（層1-8用）
-const START_NODES_COUNT = 3  # 層0の開始ノード数
-const BOSS_NODES_COUNT = 3  # 層9のボスノード数
+const GRID_COLS = 10  # 列数: 0-9
+const GRID_ROWS = 10  # 行数: 0-9
+const MIN_NODES = 2   # 各列の最小ノード数
+const MAX_NODES = 6   # 各列の最大ノード数
+const START_NODES_COUNT = 3  # 列0の開始ノード数
+const BOSS_NODES_COUNT = 3   # 列9のボスノード数
 
-# 層ごとのノードタイプ出現率（新仕様）
-const LAYER_NODE_TYPES = {
+# 列ごとのノードタイプ出現率（グリッドベース）
+const COL_NODE_TYPES = {
 	0: {"battle": 100},  # スタート固定
 	1: {"battle": 70, "event": 20, "shop": 10},
 	2: {"battle": 60, "event": 20, "shop": 20},
@@ -64,63 +65,62 @@ func generate(seed_value: int, race_theme: String = "slime") -> Dictionary:
 	}
 
 func _generate_act(act_num: int, race_theme: String) -> Dictionary:
-	# 新仕様: 10層（0-9）、層0=3スタート、層1-8=2-6ノード、層9=3ボス
+	# グリッドベース生成（Python版準拠）
+	var node_counts = _generate_node_counts()
+	var node_grid = _place_nodes(node_counts)
+	var connections = _generate_all_connections(node_grid)
+
+	# ノードデータ構築
 	var nodes: Array = []
 	var node_id_counter: int = 0
-	var layer_nodes: Array = []  # 各層のノードデータ配列
+	var boss_candidates = _pick_boss_candidates(act_num, race_theme, BOSS_NODES_COUNT)
 
-	# 全層のノードを先に生成（接続は後で）
-	for layer in range(LAYERS_PER_ACT):
-		var node_count: int
-		if layer == 0 or layer == LAYERS_PER_ACT - 1:
-			node_count = START_NODES_COUNT  # 層0と層9は3個固定
-		else:
-			node_count = _rng.randi_range(NODES_PER_LAYER_MIN, NODES_PER_LAYER_MAX)
-
-		var current_layer: Array = []
-		for lane in range(node_count):
-			var nid = "act%d_L%d_n%d" % [act_num, layer, node_id_counter]
-			node_id_counter += 1
-
+	for col in range(GRID_COLS):
+		for row in node_grid[col]:
+			var nid = "act%d_c%d_r%d" % [act_num, col, row]
 			var node_data = {
 				"id": nid,
-				"layer": layer,
-				"lane": lane,
-				"type": _pick_node_type(layer),
+				"col": col,
+				"row": row,
+				"type": _pick_node_type(col),
 				"connections": [],
 			}
 
 			# ボスノードの場合は追加データ
-			if layer == LAYERS_PER_ACT - 1:
-				var boss_candidates = _pick_boss_candidates(act_num, race_theme, BOSS_NODES_COUNT)
-				node_data["boss_candidates"] = [boss_candidates[lane]] if lane < boss_candidates.size() else []
+			if col == GRID_COLS - 1:
+				var boss_idx = node_grid[col].find(row)
+				node_data["boss_candidates"] = [boss_candidates[boss_idx]] if boss_idx < boss_candidates.size() else []
 
 			nodes.append(node_data)
-			current_layer.append(node_data)
+			node_id_counter += 1
 
-		layer_nodes.append(current_layer)
+	# 接続データを設定
+	for col in range(connections.size()):
+		for conn in connections[col]:
+			var row_a = conn[0]
+			var row_b = conn[1]
 
-	# 層間の接続を生成（交差禁止アルゴリズム）
-	for layer in range(1, LAYERS_PER_ACT):
-		var prev_layer = layer_nodes[layer - 1]
-		var curr_layer = layer_nodes[layer]
+			# col+1列のrow_bノードの接続リストに col列のrow_aノードIDを追加
+			var target_id = "act%d_c%d_r%d" % [act_num, col, row_a]
+			var dest_id = "act%d_c%d_r%d" % [act_num, col + 1, row_b]
 
-		# 交差防止のため明示的にlane順でソート
-		prev_layer.sort_custom(func(a, b): return a["lane"] < b["lane"])
-		curr_layer.sort_custom(func(a, b): return a["lane"] < b["lane"])
+			# dest_idのノードを探して接続を追加
+			for node in nodes:
+				if node["id"] == dest_id:
+					if not node["connections"].has(target_id):
+						node["connections"].append(target_id)
+					break
 
-		_generate_layer_connections(prev_layer, curr_layer)
-
-	print("[MapGenerator] Act%d生成完了: %d層, %dノード" % [act_num, LAYERS_PER_ACT, nodes.size()])
+	print("[MapGenerator] Act%d生成完了: %d列, %dノード" % [act_num, GRID_COLS, nodes.size()])
 	return {
 		"act_num": act_num,
 		"nodes": nodes,
-		"boss_candidates": [],  # ボス候補は各ノードに格納済み
+		"boss_candidates": boss_candidates,
 	}
 
 # 層ごとのノードタイプを重み付きランダムで選択
-func _pick_node_type(layer: int) -> String:
-	var weights = LAYER_NODE_TYPES.get(layer, {"battle": 100})
+func _pick_node_type(col: int) -> String:
+	var weights = COL_NODE_TYPES.get(col, {"battle": 100})
 	var total: int = 0
 	for w in weights.values():
 		total += w
@@ -184,49 +184,128 @@ func _weighted_node_type_by_depth(depth: int) -> String:
 			return type
 	return "battle"
 
-# 交差禁止接続生成アルゴリズム（新仕様）
-func _generate_layer_connections(layer_a: Array, layer_b: Array) -> void:
-	"""
-	層Aと層Bの間の接続を生成（交差完全禁止）
-	- layer_aのi番目ノードは layer_bのi番目〜(i+1)番目ノードにのみ接続
-	- 全ノードに最低1本保証（途切れ禁止）
-	- 接続上限 = floor(n * 1.5)
-	"""
-	var n = layer_a.size()
-	var m = layer_b.size()
-	var max_conn = int(floor(float(n) * 1.5))
+# グリッドベース生成関数群（Python版準拠）
 
-	# Step1: 全ノードに最低1本保証
-	for i in range(n):
-		# layer_aのi番目は layer_bの対応インデックスへ
-		var j = int(float(i) / float(n) * float(m))
-		j = clamp(j, 0, m - 1)
+func _generate_node_counts() -> Array:
+	"""各列のノード数を抽選"""
+	var counts = []
+	for col in range(GRID_COLS):
+		if col == 0 or col == GRID_COLS - 1:
+			counts.append(START_NODES_COUNT)  # スタート・ボス固定
+		else:
+			counts.append(_rng.randi_range(MIN_NODES, MAX_NODES))
+	return counts
 
-		if not layer_b[j]["connections"].has(layer_a[i]["id"]):
-			layer_b[j]["connections"].append(layer_a[i]["id"])
+func _place_nodes(counts: Array) -> Array:
+	"""各列のノードをランダムな行に配置（Y座標小さい順ソート済み）"""
+	var nodes = []
+	for col in range(GRID_COLS):
+		var count = counts[col]
+		var rows = range(GRID_ROWS)
+		var rows_arr: Array = []
+		for r in rows:
+			rows_arr.append(r)
 
-	# layer_bの全ノードが少なくとも1本受け取るよう保証
-	for j in range(m):
-		if layer_b[j]["connections"].is_empty():
-			# 最も近いlayer_aノードから接続
-			var best_i = int(float(j) / float(m) * float(n))
-			best_i = clamp(best_i, 0, n - 1)
-			layer_b[j]["connections"].append(layer_a[best_i]["id"])
+		# シャッフル（RNGを使用）
+		for i in range(rows_arr.size() - 1, 0, -1):
+			var j = _rng.randi_range(0, i)
+			var tmp = rows_arr[i]
+			rows_arr[i] = rows_arr[j]
+			rows_arr[j] = tmp
 
-	# Step2: 追加接続（上限まで・交差しない範囲で）
-	var total_connections = 0
-	for j in range(m):
-		total_connections += layer_b[j]["connections"].size()
+		# 先頭count個を選択してソート
+		var selected = rows_arr.slice(0, count)
+		selected.sort()
+		nodes.append(selected)
+	return nodes
 
-	# layer_aのi番目からlayer_bのi+1番目への接続のみ追加可能
-	for i in range(n - 1):
-		if total_connections >= max_conn:
+func _is_crossing(conn1: Array, conn2: Array) -> bool:
+	"""交差判定"""
+	var a1 = conn1[0]
+	var b1 = conn1[1]
+	var a2 = conn2[0]
+	var b2 = conn2[1]
+	return (a1 < a2 and b1 > b2) or (a1 > a2 and b1 < b2)
+
+func _get_valid_connections(rows_a: Array, rows_b: Array, max_conn: int) -> Array:
+	"""交差なし接続生成（途切れ禁止）"""
+	var result = []
+
+	# Step A: rows_aの全ノードに最低1本（最近接へ）
+	for row_a in rows_a:
+		var best = rows_b[0]
+		for r in rows_b:
+			if abs(r - row_a) < abs(best - row_a):
+				best = r
+		var conn = [row_a, best]
+		var ok = true
+		for e in result:
+			if _is_crossing(conn, e):
+				ok = false
+				break
+		if ok and not result.has(conn):
+			result.append(conn)
+
+	# Step B: rows_bの全ノードに最低1本（途切れ禁止）
+	for row_b in rows_b:
+		var already = false
+		for c in result:
+			if c[1] == row_b:
+				already = true
+				break
+		if already:
+			continue
+		var best = rows_a[0]
+		for r in rows_a:
+			if abs(r - row_b) < abs(best - row_b):
+				best = r
+		var conn = [best, row_b]
+		var ok = true
+		for e in result:
+			if _is_crossing(conn, e):
+				ok = false
+				break
+		if ok and not result.has(conn):
+			result.append(conn)
+
+	# Step C: 上限まで追加接続（交差しない候補からランダムに）
+	var candidates = []
+	for a in rows_a:
+		for b in rows_b:
+			candidates.append([a, b])
+
+	# シャッフル（RNGを使用）
+	for i in range(candidates.size() - 1, 0, -1):
+		var j = _rng.randi_range(0, i)
+		var tmp = candidates[i]
+		candidates[i] = candidates[j]
+		candidates[j] = tmp
+
+	for conn in candidates:
+		if result.size() >= max_conn:
 			break
-		var j = clamp(i + 1, 0, m - 1)
+		if result.has(conn):
+			continue
+		var ok = true
+		for e in result:
+			if _is_crossing(conn, e):
+				ok = false
+				break
+		if ok:
+			result.append(conn)
 
-		if not layer_b[j]["connections"].has(layer_a[i]["id"]):
-			layer_b[j]["connections"].append(layer_a[i]["id"])
-			total_connections += 1
+	return result
+
+func _generate_all_connections(nodes: Array) -> Array:
+	"""全列間の接続生成"""
+	var all_connections = []
+	for col in range(GRID_COLS - 1):
+		var rows_a = nodes[col]
+		var rows_b = nodes[col + 1]
+		var max_conn = int(floor(float(rows_a.size()) * 1.5))
+		var conns = _get_valid_connections(rows_a, rows_b, max_conn)
+		all_connections.append(conns)
+	return all_connections
 
 # ノードIDからノードデータを検索
 func _find_node(nodes: Array, nid: String) -> Dictionary:
@@ -264,17 +343,17 @@ func _pick_boss_candidates(act_num: int, race_theme: String, count: int) -> Arra
 		candidates.append(pool[i])
 	return candidates
 
-# 接続が有効か検証（layer 0 から boss ノードまでパスが通るか）
+# 接続が有効か検証（col 0 から boss ノードまでパスが通るか）
 func validate_connectivity(act_data: Dictionary) -> bool:
 	var nodes: Array = act_data.get("nodes", [])
 	if nodes.is_empty():
 		return false
 
-	# BFS: layer 0 ノードからbossまで到達できるか
+	# BFS: col 0 ノードからbossまで到達できるか
 	# 逆方向（接続先→起点）でリバースグラフを構築
 	var reachable: Dictionary = {}
 	for node in nodes:
-		if node.get("layer", -1) == 0:
+		if node.get("col", -1) == 0:
 			reachable[node.get("id", "")] = true
 
 	var changed: bool = true

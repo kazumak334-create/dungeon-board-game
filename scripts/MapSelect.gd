@@ -52,8 +52,8 @@ func _build_ui() -> void:
 	var env_def = CardDB.ENVIRONMENTS.get(GameSession.base_environment, {})
 	var env_display = env_def.get("display", "平原")
 	var title_text = "Act %d - %s" % [GameSession.current_act, env_display]
-	const MARGIN_TOP = 60
-	UIF.add_title(self, title_text, int(MARGIN_TOP / 2))
+	const MARGIN_Y = 60
+	UIF.add_title(self, title_text, int(MARGIN_Y / 2))
 
 	# マップ描画
 	_draw_map()
@@ -76,6 +76,22 @@ func _ensure_map_data() -> void:
 		GameSession.map_data = gen.generate(GameSession.map_seed, GameSession.race_theme)
 		print("[MapSelect] マップ生成完了 seed:%d theme:%s" % [GameSession.map_seed, GameSession.race_theme])
 
+func grid_to_screen(col: int, row: int) -> Vector2:
+	"""グリッド座標を画面座標に変換"""
+	var vp = get_viewport_rect().size
+
+	const GRID_COLS = 10
+	const GRID_ROWS = 10
+	const MARGIN_X = 80.0
+	const MARGIN_Y = 60.0
+	const TITLE_HEIGHT = 50.0
+
+	var usable_w = vp.x - MARGIN_X * 2.0
+	var usable_h = vp.y - MARGIN_Y * 2.0 - TITLE_HEIGHT
+	var x = MARGIN_X + float(col) * (usable_w / float(GRID_COLS - 1))
+	var y = MARGIN_Y + TITLE_HEIGHT + float(row) * (usable_h / float(GRID_ROWS - 1))
+	return Vector2(x, y)
+
 func _get_current_act_data() -> Dictionary:
 	"""現在のActデータを取得"""
 	var acts = GameSession.map_data.get("acts", [])
@@ -84,50 +100,17 @@ func _get_current_act_data() -> Dictionary:
 	return {}
 
 func _calculate_node_positions(act_data: Dictionary) -> Dictionary:
-	"""ノードの座標を計算（画面サイズ基準・交差完全禁止）"""
+	"""ノードの座標を計算（グリッドベース・Python版準拠）"""
 	var positions = {}
 	var nodes = act_data.get("nodes", [])
 	if nodes.is_empty():
 		return positions
 
-	# 画面サイズ取得
-	var vp = get_viewport_rect().size
-
-	# レイアウト定数
-	const LAYER_COUNT = 10
-	const MARGIN_X = 80.0
-	const MARGIN_TOP = 60.0
-	const MARGIN_BOTTOM = 80.0
-
-	# 層間隔とマップ高さを計算
-	var layer_spacing = (vp.x - MARGIN_X * 2.0) / float(LAYER_COUNT - 1)
-	var map_height = vp.y - MARGIN_TOP - MARGIN_BOTTOM
-
-	# layer別にノードをグループ化
-	var layers = {}
+	# 各ノードのグリッド座標を画面座標に変換
 	for node in nodes:
-		var layer = node.get("layer", 0)
-		if not layers.has(layer):
-			layers[layer] = []
-		layers[layer].append(node)
-
-	# 各ノードの座標を計算
-	for layer in layers:
-		var layer_nodes = layers[layer]
-		var node_count = layer_nodes.size()
-
-		for i in range(node_count):
-			var node = layer_nodes[i]
-			var x = MARGIN_X + float(layer) * layer_spacing
-
-			# Y座標計算（node_countが1の場合は中央）
-			var y: float
-			if node_count == 1:
-				y = MARGIN_TOP + map_height / 2.0
-			else:
-				y = MARGIN_TOP + float(i) * (map_height / float(node_count - 1))
-
-			positions[node.get("id", "")] = Vector2(x, y)
+		var col = node.get("col", 0)
+		var row = node.get("row", 0)
+		positions[node.get("id", "")] = grid_to_screen(col, row)
 
 	return positions
 
@@ -236,11 +219,11 @@ func _is_node_completed(node_id: String) -> bool:
 
 func _is_node_reachable(node_id: String) -> bool:
 	"""ノードが到達可能か判定"""
-	# 初回（current_nodeが空）なら layer 0のノードが到達可能
+	# 初回（current_nodeが空）なら col 0のノードが到達可能
 	if GameSession.current_node == "":
 		var act_data = _get_current_act_data()
 		for node in act_data.get("nodes", []):
-			if node.get("id", "") == node_id and node.get("layer", -1) == 0:
+			if node.get("id", "") == node_id and node.get("col", -1) == 0:
 				return true
 		return false
 
