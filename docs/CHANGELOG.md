@@ -32,14 +32,13 @@
 - SpellSlotSystem.gd: cost→mana修正
 - テスト全パス（2432 passed / 0 failed）
 
-**ダンジョンマップ10層化**（72a310a）
-- 7層→10層に変更（層0=3スタート、層1-8=2-6ノード、層9=3ボス）
-- 接続数: min=前層ノード数, max=floor(前層ノード数*1.5)
-- 交差禁止: 単調増加インデックス順で接続生成
-- 孤立防止: 全ノードが前層・次層に最低1本接続
-- タイトル位置: ノード配置後の最小Y座標から動的計算
-- MapGenerator.gd: _generate_connections()新規実装
-- MapSelect.gd: _calculate_title_position()新規実装
+**ダンジョンマップ完全書き換え**（74bc403）
+- 画面サイズ基準の座標計算（viewport基準・固定座標廃止）
+- 交差完全禁止アルゴリズム（i番目→i〜i+1番目のみ接続）
+- タイトルを上余白中央に固定配置
+- 全ノードが画面内に収まるレイアウト
+- MapGenerator.gd: _generate_layer_connections()で層間接続一括生成
+- MapSelect.gd: 動的座標計算・タイトル固定位置化
 
 ## 2026-04-12
 
