@@ -48,16 +48,14 @@ func _build_ui() -> void:
 	if GameSession.base_environment == "" or GameSession.base_environment == "env_none":
 		_randomize_environment()
 
-	# タイトル表示
+	# タイトル表示（タスクバー高さ36px + 余白24px = Y:60）
 	var env_def = CardDB.ENVIRONMENTS.get(GameSession.base_environment, {})
 	var env_display = env_def.get("display", "平原")
 	var title_text = "Act %d - %s" % [GameSession.current_act, env_display]
-	UIF.add_title(self, title_text, 50)
+	UIF.add_title(self, title_text, 60)
 
 	# マップ描画
 	_draw_map()
-
-	UIF.add_back_button(self, "← 素材選択", func(): SceneManager.go_to(SceneManager.MATERIAL_SELECT), 640)
 
 func _randomize_environment() -> void:
 	var env_ids = CardDB.ENVIRONMENTS.keys()

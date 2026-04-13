@@ -97,7 +97,6 @@ func execute(effect_id: String, params: Dictionary, context: Dictionary) -> void
 		"spd_pct_buff":     pass  # SupportSystem._apply_class_skillsで処理
 		"conditional_buff": pass  # SupportSystem._apply_class_skillsで処理
 		"hp_pct_buff":      pass  # BoardManager.place_unitで処理
-		"mana_regen_modify":  pass  # DeckManager.process_deck()で処理
 		"base_damage_reduce": pass  # EventQueue.base_damage処理で処理
 		_:
 			print("[EffectExecutor] 未実装type: %s (effect_id: %s)" % [merged.get("type", "?"), effect_id])

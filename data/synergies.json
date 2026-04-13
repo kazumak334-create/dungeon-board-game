@@ -1,0 +1,10 @@
+{
+	"poison_synergy": {
+		"effects": ["poison_apply", "poison_amplify"],
+		"flash_duration": 1.0
+	},
+	"poison_synergy_all": {
+		"effects": ["poison_apply", "poison_amplify_all"],
+		"flash_duration": 1.0
+	}
+}

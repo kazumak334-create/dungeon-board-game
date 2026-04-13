@@ -8,6 +8,8 @@ extends Control
 const UIF = preload("res://scripts/UIFactory.gd")
 const TaskbarClass = preload("res://scripts/CommonTaskbar.gd")
 const UIColors = preload("res://scripts/ui/UIColors.gd")
+const SidebarClass = preload("res://scripts/DeckPrepSidebar.gd")
+const RightPanelClass = preload("res://scripts/DeckPrepRightPanel.gd")
 
 # 色彩設計（UIColors.gd参照）
 
@@ -15,15 +17,14 @@ var _taskbar: RefCounted = null
 var _PL = null
 var _board = null  # DeckPrepBoard インスタンス
 var _info: Object = null  # DeckPrepInfo インスタンス
+var _sidebar = null  # DeckPrepSidebar インスタンス
+var _right_panel = null  # DeckPrepRightPanel インスタンス
 
 var _tab_container: Control = null
 var _info_container: Control = null  # 右パネル（カード詳細専用）
 
 # 選択状態（_boardと同期）
 var _selected_card_idx: int = -1
-
-# 盤面マナ表示用ラベル
-var _board_mana_label: Label = null
 
 # レイアウト定数
 const SIDEBAR_X = 5         # 左パネル開始X
@@ -47,6 +48,13 @@ func _ready() -> void:
 	_PL = load("res://scripts/PlacementLogic.gd")
 	if GameSession.placement_config.size() == 0 and GameSession.selected_deck.size() > 0:
 		GameSession.placement_config = _PL.generate_default_config(GameSession.selected_deck)
+
+	# サブコンポーネント初期化
+	_sidebar = SidebarClass.new()
+	_sidebar.setup(self)
+	_right_panel = RightPanelClass.new()
+	_right_panel.setup(self)
+
 	var BoardClass = load("res://scripts/DeckPrepBoard.gd")
 	_board = BoardClass.new()
 	_board.main_node = self
@@ -57,8 +65,10 @@ func _ready() -> void:
 		_board.update_highlight()
 	_board.on_cards_populated = func():
 		_update_board_mana()  # タスク#4: 盤面マナ更新
+
 	var InfoClass = load("res://scripts/DeckPrepInfo.gd")
 	_info = InfoClass.new()
+
 	_build_ui()
 
 func _build_ui() -> void:
@@ -69,7 +79,7 @@ func _build_ui() -> void:
 	_taskbar.attach(self, SceneManager.DECK_PREP)
 
 	# 左パネル（ステータス表示のみ）
-	_build_sidebar()
+	_sidebar.build_sidebar()
 
 	# コンテンツコンテナ（中央メイン）
 	_tab_container = Control.new()
@@ -78,7 +88,7 @@ func _build_ui() -> void:
 	add_child(_tab_container)
 
 	# 右パネル（カード詳細専用）
-	_build_info_lane()
+	_info_container = _right_panel.build_info_lane()
 
 	# 冒険ボタン行（下部）
 	_build_adventure_buttons()
@@ -87,134 +97,18 @@ func _build_ui() -> void:
 	_board.tab_container = _tab_container
 	_board.build_placement_tab(_tab_container, _PL)
 
-# ===== 左サイドバー =====
+	# DeckPrepInfoにinfo_containerを渡してセットアップ
+	_info.setup(self, _info_container, INFO_W, _PL)
+	_info.show_empty()
 
-func _build_sidebar() -> void:
-	# サイドバー背景（企画書3節: UIColors.COLOR_SIDE_PANEL使用）
-	var sidebar_panel = UIF.create_panel(
-		Vector2(SIDEBAR_X, SIDEBAR_Y),
-		Vector2(SIDEBAR_W, SIDEBAR_H),
-		UIColors.COLOR_SIDE_PANEL,  # 左右パネルは中央より暗く
-		UIColors.COLOR_BORDER,
-		1,
-		4
-	)
-	add_child(sidebar_panel)
-
-	# ステータス領域
-	_build_status_area()
-
-func _build_status_area() -> void:
-	var cls = CardDB.CLASSES.get(GameSession.class_id, {})
-
-	var total_cost: float = 0.0
-	var unit_count: int = 0
-	var spell_count: int = 0
-	for entry in GameSession.selected_deck:
-		var n = entry.get("name", "") if entry is Dictionary else str(entry)
-		if CardDB.UNITS.has(n):
-			total_cost += CardDB.UNITS[n].get("cost", 0)
-			unit_count += 1
-		elif CardDB.SPELLS.has(n):
-			total_cost += CardDB.SPELLS[n].get("cost", 0)
-			spell_count += 1
-		elif CardDB.STATUS_SPELLS.has(n):
-			total_cost += CardDB.STATUS_SPELLS[n].get("cost", 0)
-			spell_count += 1
-	var deck_size = GameSession.selected_deck.size()
-	var avg_cost = total_cost / max(1, deck_size)
-	var mana_regen = cls.get("mana_regen", 1.0)
-	var cycle_time = total_cost / max(0.1, mana_regen)
-
-	var base_x = SIDEBAR_X + 15
-	var base_y = SIDEBAR_Y + STATUS_AREA_Y
-	var cy: float = base_y
-	var lbl_w = SIDEBAR_W - 30
-
-	var header = Label.new()
-	header.text = "ステータス"
-	header.position = Vector2(base_x, cy)
-	header.add_theme_font_size_override("font_size", 14)
-	header.add_theme_color_override("font_color", UIColors.COLOR_TITLE)
-	add_child(header)
-	cy += 24
-
-	# 項目8: グループ間を区切り線+12px余白で分割
-	# グループ1: クラス基本情報
-	var group1 = [
-		["%s" % cls.get("display", "---"), UIColors.COLOR_TITLE],
-		["HP: 30", UIColors.COLOR_TEXT],
-		["マナ: %.0f / %d" % [cls.get("initial_mana", 3), int(cls.get("mana_max", 10))], Color(0.5, 0.7, 0.9)],
-		["リジェネ: %.1f/s" % mana_regen, Color(0.5, 0.7, 0.9)],
-		["盤面マナ: 0", UIColors.COLOR_SELECTED],  # タスク#4: 盤面総マナ表示
-	]
-	# グループ2: デッキ情報
-	var group2 = [
-		["デッキ: %d枚" % deck_size, UIColors.COLOR_TEXT],
-		["  ユニット: %d枚" % unit_count, Color(0.6, 0.7, 0.6)],
-		["  呪文: %d枚" % spell_count, Color(0.6, 0.6, 0.8)],
-		["平均コスト: %.1f" % avg_cost, UIColors.COLOR_TITLE],
-		["循環: 約%.0f秒/周" % cycle_time, UIColors.COLOR_TITLE],
-	]
-	# グループ3: 所持情報
-	var group3 = [
-		["所持金: %dG" % GameSession.gold, UIF.GOLD_COLOR],
-		["スキルPt: %d" % GameSession.skill_points, Color(0.5, 0.8, 0.9)],
-		["レリック: %d個" % GameSession.relics.size(), Color(0.7, 0.5, 0.8)],
-	]
-
-	for group in [group1, group2, group3]:
-		for item in group:
-			var lbl = Label.new()
-			lbl.text = item[0]
-			lbl.position = Vector2(base_x, cy)
-			lbl.size = Vector2(lbl_w, 18)
-			lbl.add_theme_font_size_override("font_size", 11)
-			lbl.add_theme_color_override("font_color", item[1])
-			add_child(lbl)
-			# タスク#4: 盤面マナラベルを保持
-			if group == group1 and item == group1[-1]:
-				_board_mana_label = lbl
-			cy += 18
-		# グループ間: 区切り線 + 12px余白
-		if group != group3:
-			cy += 4
-			var sep = ColorRect.new()
-			sep.position = Vector2(base_x - 5, cy)
-			sep.size = Vector2(lbl_w + 10, 1)
-			sep.color = Color(0.25, 0.28, 0.35)
-			add_child(sep)
-			cy += 12
-
-	# タスク#4: 盤面マナ初期値を計算
+	# 盤面マナ初期値を計算
 	_update_board_mana()
+
+# ===== サイドバー・右パネルは別ファイルに分離済み =====
 
 func _process(delta: float) -> void:
 	if _board != null:
 		_board.process_drag(delta)
-
-# ===== 右パネル（カード詳細専用） =====
-
-func _build_info_lane() -> void:
-	# 右パネル（企画書4.5節: カード詳細専用、背景=UIColors.COLOR_SIDE_PANEL、枠線=UIColors.COLOR_BORDER）
-	var info_panel = UIF.create_panel(
-		Vector2(INFO_X, INFO_Y),
-		Vector2(INFO_W, INFO_H),
-		UIColors.COLOR_SIDE_PANEL,  # 左右パネルは中央より暗く
-		UIColors.COLOR_BORDER,
-		1,
-		4
-	)
-	add_child(info_panel)
-
-	_info_container = Control.new()
-	_info_container.position = Vector2(INFO_X, INFO_Y)
-	_info_container.size = Vector2(INFO_W, INFO_H)
-	add_child(_info_container)
-
-	# DeckPrepInfoにinfo_containerを渡してセットアップ（カード詳細専用モード）
-	_info.setup(self, _info_container, INFO_W, _PL)
-	_info.show_empty()
 
 func _update_info_lane() -> void:
 	if _info == null:
@@ -227,8 +121,6 @@ func _update_info_lane() -> void:
 
 # タスク#4: 盤面マナ更新
 func _update_board_mana() -> void:
-	if _board_mana_label == null:
-		return
 	var board_mana: int = 0
 	for i in range(GameSession.selected_deck.size()):
 		if i >= GameSession.placement_config.size():
@@ -240,8 +132,9 @@ func _update_board_mana() -> void:
 		var entry = GameSession.selected_deck[i]
 		var card_name = entry.get("name", "") if entry is Dictionary else str(entry)
 		if CardDB.UNITS.has(card_name):
-			board_mana += CardDB.UNITS[card_name].get("cost", 0)
-	_board_mana_label.text = "盤面マナ: %d" % board_mana
+			board_mana += CardDB.UNITS[card_name].get("mana", 0)
+	_sidebar.update_board_mana(board_mana)
+	_sidebar.update_balance_panel(GameSession.placement_config, GameSession.selected_deck)
 
 func _build_adventure_buttons() -> void:
 	# 冒険ボタン「冒険を始める」860×35、フォントサイズ18、青系背景

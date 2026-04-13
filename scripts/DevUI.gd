@@ -138,20 +138,20 @@ func _build_dev_panel() -> void:
 	for i in range(_all_cards.size()):
 		var c = _all_cards[i]
 		if c["type"] == "spell" and c["data"]["target"] in ["self", "single_ally", "all_allies"]:
-			var cost = c["data"]["cost"]
+			var cost = c["data"]["mana"]
 			_add_card_button(i, "%s (%s)" % [c["name"], "X" if cost == -1 else str(cost)], Color(0.5, 0.8, 0.5))
 
 	_add_section_header("── 呪文（弱体・環境） ──")
 	for i in range(_all_cards.size()):
 		var c = _all_cards[i]
 		if c["type"] == "spell" and c["data"]["target"] in ["column", "front_all", "all_enemies", "single_enemy"]:
-			_add_card_button(i, "%s (%d)" % [c["name"], c["data"]["cost"]], Color(1.0, 0.5, 0.5))
+			_add_card_button(i, "%s (%d)" % [c["name"], c["data"]["mana"]], Color(1.0, 0.5, 0.5))
 
 	_add_section_header("── 呪文（干渉） ──")
 	for i in range(_all_cards.size()):
 		var c = _all_cards[i]
 		if c["type"] == "spell" and c["data"]["target"] == "enemy_queue":
-			_add_card_button(i, "%s (%d)" % [c["name"], c["data"]["cost"]], Color(1.0, 0.8, 0.4))
+			_add_card_button(i, "%s (%d)" % [c["name"], c["data"]["mana"]], Color(1.0, 0.8, 0.4))
 
 	_add_section_header("── 異常状態カード ──")
 	for i in range(_all_cards.size()):
@@ -313,7 +313,7 @@ func _refresh_deck_list(force: bool = true) -> void:
 		hbox.custom_minimum_size = Vector2(150, 22)
 		# カード名ラベル
 		var lbl := Label.new()
-		var display: String = "%d. %s (%d)" % [i + 1, card.unit_name, card.cost]
+		var display: String = "%d. %s (%d)" % [i + 1, card.unit_name, card.mana]
 		lbl.text = display
 		lbl.add_theme_font_size_override("font_size", 10)
 		lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -344,7 +344,7 @@ func _refresh_deck_list(force: bool = true) -> void:
 	_deck_container.add_child(discard_lbl)
 	for card in deck_manager.discard:
 		var lbl := Label.new()
-		lbl.text = "  %s (%d)" % [card.unit_name, card.cost]
+		lbl.text = "  %s (%d)" % [card.unit_name, card.mana]
 		lbl.add_theme_font_size_override("font_size", 10)
 		lbl.modulate = Color(0.4, 0.4, 0.35)
 		_deck_container.add_child(lbl)
@@ -427,7 +427,7 @@ func _build_card(index: int) -> Object:
 	if card["type"] == "unit":
 		var d = card["data"]
 		obj.unit_name = card["name"]; obj.max_hp = d["hp"]; obj.current_hp = d["hp"]
-		obj.attack = d["atk"]; obj.attack_interval = d["interval"]; obj.cost = d["cost"]
+		obj.attack = d["atk"]; obj.attack_interval = d["interval"]; obj.mana = d["mana"]
 		obj.assigned_col = d["col"]; obj.race = d["race"]; obj.attack_range = d["range"]
 		obj.support_effect = ""; obj.passive_skill = ""
 		obj.skills = d.get("skills", []).duplicate(true)
@@ -436,12 +436,12 @@ func _build_card(index: int) -> Object:
 		var d = card["data"]
 		obj.unit_name = card["name"]
 		obj.card_type = card["type"]
-		obj.cost = 0
+		obj.mana = 0
 		obj.skills = d.get("skills", []).duplicate(true)
 	else:
 		var d = card["data"]
 		obj.unit_name = card["name"]; obj.card_type = card["type"]
-		obj.spell_id = card["name"]; obj.cost = d["cost"]
+		obj.spell_id = card["name"]; obj.mana = d["mana"]
 		obj.spell_target = d["target"]; obj.spell_effect = d["effect"]
 		obj.is_consumable = (card["type"] == "status_spell")
 		obj.skills = d.get("skills", []).duplicate(true)
@@ -602,7 +602,7 @@ func _on_card_hover(index: int) -> void:
 	var lines: Array = []
 	if card["type"] == "unit":
 		lines.append("[%s] %s" % [d.get("race", ""), card["name"]])
-		lines.append("Cost: %d" % d["cost"])
+		lines.append("Cost: %d" % d["mana"])
 		lines.append("HP: %d / ATK: %d / SPD: %.1fs" % [d["hp"], d["atk"], d["interval"]])
 		lines.append("攻撃範囲: %s" % d.get("range", "1行"))
 		# skills配列からdisplay名で表示
@@ -652,7 +652,7 @@ func _on_card_hover(index: int) -> void:
 			lines.append_array(perm_lines)
 	elif card["type"] == "spell":
 		lines.append("[呪文] %s" % card["name"])
-		lines.append("Cost: %s" % ("X" if d["cost"] == -1 else str(d["cost"])))
+		lines.append("Cost: %s" % ("X" if d["mana"] == -1 else str(d["mana"])))
 		lines.append("")
 		lines.append("■ 効果:")
 		lines.append("  " + d["effect"])
@@ -822,11 +822,9 @@ func _on_class_select(class_id: String) -> void:
 	pdata.class_name_jp = cdef["display"]
 	pdata.initial_mana = cdef["initial_mana"]
 	pdata.mana_max = cdef["mana_max"]
-	pdata.mana_regen = cdef["mana_regen"]
 	pdata.skills = cdef["skills"].duplicate(true)
 	pdata.reset_runtime()
 	board_manager.player_data = pdata
 	deck_manager.mana = pdata.initial_mana
 	deck_manager.MANA_MAX = pdata.mana_max
-	deck_manager.MANA_REGEN = pdata.mana_regen
 	main._add_log("[DEV] クラス変更: %s" % cdef["display"])

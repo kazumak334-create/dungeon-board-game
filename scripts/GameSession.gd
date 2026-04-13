@@ -7,7 +7,6 @@ func get_default_battle_config() -> Dictionary:
 	var time_limit: float = ConfigLoader.get_value("battle_config", "time_limit", 60.0)
 	var player_base_hp: int = ConfigLoader.get_value("battle_config", "player_base_hp", 30)
 	var enemy_base_hp: int = ConfigLoader.get_value("battle_config", "enemy_base_hp", 30)
-	var mana_regen_rate: float = ConfigLoader.get_value("mana_economy", "mana_regen_rate", 1.0)
 
 	return {
 		"time_limit":            time_limit,
@@ -17,7 +16,6 @@ func get_default_battle_config() -> Dictionary:
 		"player_base_hp":        player_base_hp,
 		"enemy_base_hp":         enemy_base_hp,
 		"enemy_check_interval":  1.0,
-		"mana_regen_rate":       mana_regen_rate,
 		"card_play_interval":    1.0,
 		"enemy_atk_scale":       1.0,
 		"enemy_hp_scale":        1.0,

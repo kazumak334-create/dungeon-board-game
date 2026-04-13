@@ -51,7 +51,6 @@ func _build_ui() -> void:
 	var TaskbarClass = load("res://scripts/CommonTaskbar.gd")
 	var taskbar = TaskbarClass.new()
 	taskbar.attach(self, SceneManager.EVENT)
-	taskbar.set_title("イベント")
 
 	# イベントタイトル
 	var title = Label.new()
@@ -84,7 +83,7 @@ func _build_ui() -> void:
 		var label = choice.get("label", "選択肢")
 		var btn = UIF.add_button(self, label, Vector2(440, y_offset), Vector2(400, 50), 16, func(): _on_choice_selected(i))
 		# リスク（HP/Gold消費）がある選択肢は色を変える
-		var cost = choice.get("cost", {})
+		var cost = choice.get("mana", {})
 		if cost.size() > 0:
 			btn.modulate = Color(1.2, 0.9, 0.8)  # 暖色系
 		y_offset += 60
@@ -97,7 +96,7 @@ func _on_choice_selected(choice_index: int) -> void:
 	var choice = choices[choice_index]
 
 	# コスト支払い
-	var cost = choice.get("cost", {})
+	var cost = choice.get("mana", {})
 	if not _pay_cost(cost):
 		return
 
@@ -190,7 +189,6 @@ func _show_results(choice_label: String, results: Array) -> void:
 	var TaskbarClass = load("res://scripts/CommonTaskbar.gd")
 	var taskbar = TaskbarClass.new()
 	taskbar.attach(self, SceneManager.EVENT)
-	taskbar.set_title("イベント結果")
 
 	# 結果パネル
 	var panel = UIF.create_panel(Vector2(340, 120), Vector2(600, 400), Color(0.12, 0.12, 0.18), Color(0.3, 0.3, 0.4))

@@ -45,7 +45,7 @@ static func create_unit_card(card_name: String, unit_data: Dictionary, width: fl
 	header.add_theme_constant_override("separation", 4)
 
 	var cost_lbl = Label.new()
-	cost_lbl.text = "%d💎" % unit_data.get("cost", 0)
+	cost_lbl.text = "%d💎" % unit_data.get("mana", 0)
 	cost_lbl.add_theme_font_size_override("font_size", 11)
 	cost_lbl.add_theme_color_override("font_color", Color(0.4, 0.7, 0.9))
 	header.add_child(cost_lbl)
@@ -176,7 +176,7 @@ static func create_spell_card(card_name: String, spell_data: Dictionary, width: 
 	header.add_theme_constant_override("separation", 4)
 
 	var cost_lbl = Label.new()
-	cost_lbl.text = "%d💎" % spell_data.get("cost", 0)
+	cost_lbl.text = "%d💎" % spell_data.get("mana", 0)
 	cost_lbl.add_theme_font_size_override("font_size", 11)
 	cost_lbl.add_theme_color_override("font_color", Color(0.4, 0.7, 0.9))
 	header.add_child(cost_lbl)

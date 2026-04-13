@@ -299,7 +299,7 @@
 ```json
 "boss_exclusive_units": {
   "猛獣使い": {
-    "hp": 25, "atk": 6, "interval": 1.5, "cost": 3,
+    "hp": 25, "atk": 6, "interval": 1.5, "mana": 3,
     "race": "獣", "range": "1行",
     "skills": [{"trigger": "on_hit", "target": "hit_target", "effect_id": "burn_apply", "params": {"stacks": 2}}],
     "boss_exclusive": true

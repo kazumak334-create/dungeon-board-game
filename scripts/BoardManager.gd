@@ -507,7 +507,7 @@ func _summon_unit_to_random_empty(side: int, unit_id: String) -> void:
 	new_unit.unit_name = unit_id
 	new_unit.max_hp = ud["hp"]; new_unit.current_hp = ud["hp"]
 	new_unit.attack = ud["atk"]; new_unit.attack_interval = ud["interval"]
-	new_unit.cost = ud["cost"]; new_unit.race = ud.get("race", "")
+	new_unit.mana = ud["mana"]; new_unit.race = ud.get("race", "")
 	new_unit.attack_range = ud.get("range", "1行")
 	new_unit.assigned_col = ud.get("col", 0)
 	new_unit.skills = ud.get("skills", []).duplicate(true)

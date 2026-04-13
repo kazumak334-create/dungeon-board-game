@@ -45,7 +45,7 @@ func _test_mana_system(r: RefCounted) -> void:
 	# 呪文回収カードの存在確認
 	r._assert_true(CardDB.SYSTEM_SPELLS.has("呪文回収"), "呪文回収カード存在")
 	var mana_card = CardDB.SYSTEM_SPELLS["呪文回収"]
-	r._assert_eq(mana_card.get("cost", -1), 0, "呪文回収コスト=0")
+	r._assert_eq(mana_card.get("mana", -1), 0, "呪文回収コスト=0")
 
 	# コスト超過スキップのロジック確認（データレベル）
 	r._assert_true(5 > 3, "コスト5 > マナ上限3 → スキップ対象")

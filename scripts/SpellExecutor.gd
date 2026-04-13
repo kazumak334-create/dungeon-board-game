@@ -271,7 +271,7 @@ func _inject_status_card(deck_mgr: Node, card_name: String) -> void:
 	card.unit_name = card_name
 	card.card_type = "status_spell"
 	card.spell_id = card_name
-	card.cost = 0
+	card.mana = 0
 	card.is_consumable = true
 	card.spell_target = "single_ally"
 	match card_name:
@@ -300,10 +300,10 @@ func _remove_status_card(deck_mgr: Node) -> void:
 			return
 
 func _execute_resummon(side: int, spell: Object, bm: Node, deck_mgr: Node) -> void:
-	var x_cost: int = spell.cost  # process_deck側でマナ全額をcostに設定済み
+	var x_cost: int = spell.mana  # process_deck側でマナ全額をcostに設定済み
 	for i in range(deck_mgr.discard.size()):
 		var card = deck_mgr.discard[i]
-		if card.card_type == "unit" and card.cost == x_cost:
+		if card.card_type == "unit" and card.mana == x_cost:
 			deck_mgr.discard.remove_at(i)
 			bm.place_unit(side, card)
 			return
@@ -312,8 +312,8 @@ func _move_lowest_cost_to_front(deck_mgr: Node) -> void:
 	var best_idx: int = -1
 	var best_cost: int = 999
 	for i in range(deck_mgr.deck.size()):
-		if deck_mgr.deck[i].card_type == "unit" and deck_mgr.deck[i].cost < best_cost:
-			best_cost = deck_mgr.deck[i].cost
+		if deck_mgr.deck[i].card_type == "unit" and deck_mgr.deck[i].mana < best_cost:
+			best_cost = deck_mgr.deck[i].mana
 			best_idx = i
 	if best_idx > 0:
 		var card = deck_mgr.deck[best_idx]

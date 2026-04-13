@@ -8,8 +8,7 @@ const CONFIG_PATH: String = "res://config/balance.json"
 const DEFAULT_CONFIG: Dictionary = {
 	"mana_economy": {
 		"initial_mana": 3,
-		"mana_max": 3,
-		"mana_regen_rate": 1.0
+		"mana_max": 3
 	},
 	"battle_config": {
 		"time_limit": 60.0,

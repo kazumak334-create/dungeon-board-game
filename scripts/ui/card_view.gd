@@ -45,7 +45,8 @@ const TRAIT_BADGE_SIZE = 16
 @export var rarity: Rarity = Rarity.COMMON:
 	set(value):
 		rarity = value
-		_update_frame()
+		if is_node_ready():
+			_update_frame()
 
 @export var mana: int = 1:
 	set(value):
@@ -96,7 +97,8 @@ const TRAIT_BADGE_SIZE = 16
 		_update_trait_badges()
 
 func _ready() -> void:
-	_update_frame()
+	# ready時に改めてプロパティを適用（ready前に設定された値を反映）
+	_update_frame()  # rarity, frame_textureを反映
 	_update_text()
 	_apply_kind()
 	_update_trait_badges()
@@ -132,8 +134,17 @@ func _update_frame() -> void:
 
 	# レアリティに応じたフォントを設定
 	if has_node("OverlayRoot/NameLabel"):
-		var font = load(RARITY_FONTS[rarity])
-		$OverlayRoot/NameLabel.add_theme_font_override("font", font)
+		var font_path = RARITY_FONTS[rarity]
+		print("[CardView] レアリティ %s → フォントパス: %s" % [rarity, font_path])
+		if ResourceLoader.exists(font_path):
+			var font = load(font_path)
+			if font:
+				$OverlayRoot/NameLabel.add_theme_font_override("font", font)
+				print("[CardView] フォント適用成功: %s" % font_path)
+			else:
+				push_warning("[CardView] フォント読み込み失敗: %s" % font_path)
+		else:
+			push_warning("[CardView] フォントファイルが存在しません: %s" % font_path)
 
 func _update_trait_badges() -> void:
 	if not has_node("OverlayRoot/TraitBadges"):

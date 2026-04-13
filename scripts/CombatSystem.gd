@@ -184,7 +184,7 @@ func _do_attack(side: int, row: int, col: int, attacker: Object, enemy_side: int
 			{"side": enemy_side}
 		)
 	# v2設計: 攻撃発動時にマナ生成（両陣営）
-	var mana_gain: float = float(attacker.cost) if attacker.cost >= 0 else 0.0
+	var mana_gain: float = float(attacker.mana) if attacker.mana >= 0 else 0.0
 	if side == 0 and bm.deck_manager_ref != null:
 		bm.deck_manager_ref.mana += mana_gain
 		bm.deck_manager_ref.mana = min(bm.deck_manager_ref.mana, bm.deck_manager_ref.MANA_MAX)
@@ -291,7 +291,7 @@ func _trigger_support(side: int, row: int, col: int, unit: Object) -> void:
 			})
 
 	# マナ生成（両陣営）
-	var mana_gain: float = float(unit.cost) if unit.cost >= 0 else 0.0
+	var mana_gain: float = float(unit.mana) if unit.mana >= 0 else 0.0
 	if side == 0 and bm.deck_manager_ref != null:
 		bm.deck_manager_ref.mana += mana_gain
 		bm.deck_manager_ref.mana = min(bm.deck_manager_ref.mana, bm.deck_manager_ref.MANA_MAX)

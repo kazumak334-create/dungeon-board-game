@@ -26,7 +26,7 @@ const ACTS_COUNT = 3
 const NODES_PER_ACT = 10
 const START_LANES = 3
 const MAX_LANES = 6  # 各depthの最大ノード数
-const MAX_CONNECTIONS = 3  # 各ノードの最大接続数
+const MAX_CONNECTIONS = 2  # 各ノードの最大接続数（1ノードから次の層への接続は最大2本）
 const BOSS_CANDIDATES = 3  # 各Act終端のボス候補数
 
 # 再現性用RNG
@@ -102,24 +102,31 @@ func _generate_act(act_num: int, race_theme: String) -> Dictionary:
 				# depth 4-6 で確率でrestノード配置
 				node_type = "rest"
 			else:
-				node_type = _weighted_node_type()
+				node_type = _weighted_node_type_by_depth(depth)
 
 			var nid = "act%d_d%d_n%d" % [act_num, depth, node_id_counter]
 			node_id_counter += 1
 
-			# 接続: 前のdepthノードから最大MAX_CONNECTIONS個に接続
+			# 接続: 隣接列優先で前のdepthノードから最大MAX_CONNECTIONS個に接続
 			var conns: Array = []
-			var available_prev: Array = prev_depth_ids.duplicate()
-			available_prev.shuffle()  # ランダム化
+			# 前ノードを距離順にソート（現在のlaneに近い順）
+			var prev_with_distance: Array = []
+			for pid in prev_depth_ids:
+				var prev_node = _find_node(nodes, pid)
+				var prev_lane = prev_node.get("lane", 0)
+				var distance = abs(lane - prev_lane)
+				prev_with_distance.append({"id": pid, "distance": distance})
+			# 距離でソート（近い順）
+			prev_with_distance.sort_custom(func(a, b): return a["distance"] < b["distance"])
 
-			# 最大MAX_CONNECTIONS個の前ノードに接続
-			var connection_count = min(MAX_CONNECTIONS, available_prev.size())
+			# 最大MAX_CONNECTIONS個の近いノードに接続
+			var connection_count = min(MAX_CONNECTIONS, prev_with_distance.size())
 			for i in range(connection_count):
-				conns.append(available_prev[i])
+				conns.append(prev_with_distance[i]["id"])
 
-			# 孤立防止: 接続がなければ最も近いprev_depth_idsと接続
-			if conns.is_empty() and prev_depth_ids.size() > 0:
-				conns.append(prev_depth_ids[0])
+			# 孤立防止: 接続がなければ最も近いノードと接続
+			if conns.is_empty() and prev_with_distance.size() > 0:
+				conns.append(prev_with_distance[0]["id"])
 
 			nodes.append({
 				"id": nid,
@@ -191,6 +198,44 @@ func _weighted_node_type() -> String:
 	var accum: int = 0
 	for type in node_weights:
 		accum += node_weights[type]
+		if roll < accum:
+			return type
+	return "battle"
+
+# 層ごとのノードタイプ出現率
+func _weighted_node_type_by_depth(depth: int) -> String:
+	var weights: Dictionary
+
+	if depth <= 2:
+		# 層1-2（序盤）: 戦闘70% / イベント20% / ショップ10%
+		weights = {
+			"battle": 70,
+			"event": 20,
+			"shop": 10,
+		}
+	elif depth <= 4:
+		# 層3-4（中盤）: 戦闘50% / イベント25% / ショップ15% / 鍛冶10%
+		weights = {
+			"battle": 50,
+			"event": 25,
+			"shop": 15,
+			"gather": 10,
+		}
+	else:
+		# 層5-6（終盤）: エリート50% / 戦闘30% / イベント20%
+		weights = {
+			"elite": 50,
+			"battle": 30,
+			"event": 20,
+		}
+
+	var total: int = 0
+	for w in weights.values():
+		total += w
+	var roll: int = _rng.randi_range(0, total - 1)
+	var accum: int = 0
+	for type in weights:
+		accum += weights[type]
 		if roll < accum:
 			return type
 	return "battle"

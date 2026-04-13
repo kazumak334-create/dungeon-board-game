@@ -71,7 +71,7 @@ func set_slot(index: int, spell: Object, condition: String) -> void:
 
 	slots[index]["spell"] = spell
 	slots[index]["condition"] = condition
-	slots[index]["mana_cost"] = spell.cost if spell != null else 0
+	slots[index]["mana_cost"] = spell.mana if spell != null else 0
 	slots[index]["enabled"] = spell != null
 	print("[SpellSlot] スロット%d設定: %s (条件:%s, コスト:%d)" % [
 		index,

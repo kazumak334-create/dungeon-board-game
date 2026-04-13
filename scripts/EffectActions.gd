@@ -188,7 +188,7 @@ func do_summon(merged: Dictionary, ctx: Dictionary) -> void:
 				slime.current_hp = 15
 				slime.attack = 1
 				slime.attack_interval = 4.0
-				slime.cost = 1
+				slime.mana = 1
 				slime.assigned_col = 2 - c2 if side == 0 else c2
 				slime.race = "スライム"
 				slime.attack_range = "1行"
@@ -240,7 +240,7 @@ func do_summon_on_death(merged: Dictionary, ctx: Dictionary) -> void:
 			new_unit.unit_name = base_name
 			new_unit.max_hp = ud["hp"]; new_unit.current_hp = ud["hp"]
 			new_unit.attack = ud["atk"]; new_unit.attack_interval = ud["interval"]
-			new_unit.cost = ud["cost"]; new_unit.race = ud.get("race", "")
+			new_unit.mana = ud["mana"]; new_unit.race = ud.get("race", "")
 			new_unit.attack_range = ud.get("range", "1行")
 			new_unit.skills = ud.get("skills", []).duplicate(true)
 			bm._pending_revives.append({"timer": 0.0, "side": side, "row": row, "unit": new_unit, "hp": ud["hp"]})
@@ -697,7 +697,7 @@ func _inject_status_card_internal(deck_mgr: Node, card_name: String, _side: int)
 	card.unit_name = card_name
 	card.card_type = "status_spell"
 	card.spell_id = card_name
-	card.cost = 0
+	card.mana = 0
 	card.is_consumable = true
 	card.persistence = "battle"  # バトル終了後にデッキから除去
 	card.spell_target = "single_ally"

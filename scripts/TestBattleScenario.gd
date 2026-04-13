@@ -20,7 +20,7 @@ func _create_unit(unit_name: String) -> Object:
 	u.unit_name = unit_name
 	u.max_hp = d["hp"]; u.current_hp = d["hp"]
 	u.attack = d["atk"]; u.attack_interval = d["interval"]
-	u.cost = d["cost"]; u.race = d.get("race", "")
+	u.mana = d["mana"]; u.race = d.get("race", "")
 	u.attack_range = d.get("range", "1行")
 	u.skills = d.get("skills", []).duplicate(true)
 	return u

@@ -47,7 +47,7 @@ func _build_default_deck() -> void:
 				var d: Dictionary = CardDB.SPELLS[card_name]
 				var u = _UnitDataScript.new()
 				u.unit_name = card_name; u.card_type = "spell"
-				u.spell_id = card_name; u.cost = d["cost"]
+				u.spell_id = card_name; u.mana = d["mana"]
 				u.spell_target = d["target"]; u.spell_effect = d["effect"]
 				u.skills = d.get("skills", []).duplicate(true)
 				u._deck_index = i
@@ -56,7 +56,7 @@ func _build_default_deck() -> void:
 				var d: Dictionary = CardDB.STATUS_SPELLS[card_name]
 				var u = _UnitDataScript.new()
 				u.unit_name = card_name; u.card_type = "status_spell"
-				u.spell_id = card_name; u.cost = d["cost"]
+				u.spell_id = card_name; u.mana = d["mana"]
 				u.is_consumable = d.get("is_consumable", false)
 				u.persistence = d.get("persistence", "permanent")
 				u.spell_target = d.get("target", ""); u.spell_effect = d.get("effect", "")
@@ -70,7 +70,7 @@ func _build_default_deck() -> void:
 		var d: Dictionary = CardDB.SPELLS[spell_name]
 		var u = _UnitDataScript.new()
 		u.unit_name = spell_name; u.card_type = "spell"
-		u.spell_id = spell_name; u.cost = d["cost"]
+		u.spell_id = spell_name; u.mana = d["mana"]
 		u.spell_target = d["target"]; u.spell_effect = d["effect"]
 		u.skills = d.get("skills", []).duplicate(true)
 		deck.append(u)
@@ -90,7 +90,7 @@ func ensure_shuffle_card() -> void:
 	card.unit_name = "呪文回収"
 	card.card_type = "spell"
 	card.spell_id = "呪文回収"
-	card.cost = 0
+	card.mana = 0
 	card.is_consumable = true
 	card.spell_target = sd["target"]
 	card.spell_effect = sd["effect"]
@@ -117,13 +117,13 @@ func process_deck(delta: float, board: Node) -> void:
 		ensure_shuffle_card()
 	var top = deck[0]
 	# コスト計算（連鎖の触媒によるコスト軽減）
-	var effective_cost: int = top.cost
-	if top.cost == -1:
+	var effective_cost: int = top.mana
+	if top.mana == -1:
 		effective_cost = int(mana)  # コストXカード：マナ全額
 		if effective_cost <= 0:
 			return
 	elif _cost_reduction_remaining > 0:
-		effective_cost = max(0, top.cost - 1)
+		effective_cost = max(0, top.mana - 1)
 	# 錬金術師パッシブ: 異常状態カードコスト軽減
 	if top.card_type == "status_spell" and board != null and board.player_data != null:
 		for sk in board.player_data.skills:
@@ -132,21 +132,21 @@ func process_deck(delta: float, board: Node) -> void:
 				if edef.get("type", "") == "cost_modifier" and edef.get("card_type", "") == top.card_type:
 					var amount = sk.get("params", {}).get("amount", edef.get("amount", -1))
 					effective_cost = max(0, effective_cost + amount)
-					print("[DeckManager] 錬金術師コスト軽減: %s %d→%d" % [top.unit_name, top.cost, effective_cost])
+					print("[DeckManager] 錬金術師コスト軽減: %s %d→%d" % [top.unit_name, top.mana, effective_cost])
 	# マナ上限超過チェック：コスト > マナ上限 → スキップ（捨て札へ）
 	# スキップも詠唱扱い（クールダウン消費）
-	if top.cost > int(MANA_MAX) and top.cost != -1:
+	if top.mana > int(MANA_MAX) and top.mana != -1:
 		deck.remove_at(0)
 		discard.append(top)
 		_check_timer = check_interval  # スキップにもクールダウン適用
-		print("[DeckManager] スキップ: %s (コスト%d > マナ上限%d)" % [top.unit_name, top.cost, int(MANA_MAX)])
+		print("[DeckManager] スキップ: %s (コスト%d > マナ上限%d)" % [top.unit_name, top.mana, int(MANA_MAX)])
 		return
 	if mana < effective_cost:
 		return
 	mana -= effective_cost
 	deck.remove_at(0)
 	_check_timer = check_interval  # 発動後にクールダウン開始
-	if _cost_reduction_remaining > 0 and top.cost != -1:
+	if _cost_reduction_remaining > 0 and top.mana != -1:
 		_cost_reduction_remaining -= 1
 	# カードタイプ別処理
 	emit_signal("card_played", top)
@@ -160,8 +160,8 @@ func process_deck(delta: float, board: Node) -> void:
 			if not top.is_consumable:
 				discard.append(top)
 		else:
-			if top.cost == -1:
-				top.cost = effective_cost
+			if top.mana == -1:
+				top.mana = effective_cost
 			if top.card_type == "status_spell":
 				spell_executor.execute(top, 0, board, self, enemy_ai_ref)
 				# 消滅：捨て札に行かない
@@ -219,7 +219,7 @@ func initialize_mana_from_deck() -> void:
 		var unit_name = unit_info.get("name", "")
 		if CardDB.UNITS.has(unit_name):
 			var unit_data = CardDB.UNITS[unit_name]
-			var cost = unit_data.get("cost", 0)
+			var cost = unit_data.get("mana", 0)
 			if cost >= 0:
 				total_cost += float(cost)
 	MANA_MAX = total_cost

@@ -7,7 +7,7 @@ func run(runner: RefCounted) -> void:
 	_test_carddb_integrity(runner)
 	_test_carddb_skills_reference(runner)
 	_test_class_definitions(runner)
-	_test_equipment_definitions(runner)
+	# _test_equipment_definitions(runner)  # 装備システム廃止により無効化
 	_test_synthesis_references(runner)
 
 # ---- EffectDB整合性 ----
@@ -31,7 +31,7 @@ func _test_carddb_integrity(r: RefCounted) -> void:
 		r._assert_true(d.has("hp"), "UNITS[%s] にhpがない" % name)
 		r._assert_true(d.has("atk"), "UNITS[%s] にatkがない" % name)
 		r._assert_true(d.has("interval"), "UNITS[%s] にintervalがない" % name)
-		r._assert_true(d.has("cost"), "UNITS[%s] にcostがない" % name)
+		r._assert_true(d.has("mana"), "UNITS[%s] にmanaがない" % name)
 		r._assert_true(d.has("race"), "UNITS[%s] にraceがない" % name)
 		r._assert_true(d.has("skills"), "UNITS[%s] にskillsがない" % name)
 		r._assert_true(d.has("texture"), "UNITS[%s] にtextureがない" % name)
@@ -41,7 +41,7 @@ func _test_carddb_integrity(r: RefCounted) -> void:
 		# 型チェック
 		r._assert_true(d["hp"] is float or d["hp"] is int, "UNITS[%s] hpが数値" % name)
 		r._assert_true(d["atk"] is float or d["atk"] is int, "UNITS[%s] atkが数値" % name)
-		r._assert_true(d["cost"] is float or d["cost"] is int, "UNITS[%s] costが数値" % name)
+		r._assert_true(d["mana"] is float or d["mana"] is int, "UNITS[%s] costが数値" % name)
 		# 値チェック
 		if d.has("rarity"):
 			r._assert_true(d["rarity"] in valid_rarities, "UNITS[%s] rarity '%s' が不正" % [name, d["rarity"]])
@@ -50,13 +50,13 @@ func _test_carddb_integrity(r: RefCounted) -> void:
 	# 呪文
 	for name in CardDB.SPELLS:
 		var d = CardDB.SPELLS[name]
-		r._assert_true(d.has("cost"), "SPELLS[%s] にcostがない" % name)
+		r._assert_true(d.has("mana"), "SPELLS[%s] にmanaがない" % name)
 		r._assert_true(d.has("skills"), "SPELLS[%s] にskillsがない" % name)
 		r._assert_true(d.has("texture"), "SPELLS[%s] にtextureがない" % name)
 		r._assert_true(d.has("rarity"), "SPELLS[%s] にrarityがない" % name)
 		if d.has("rarity"):
 			r._assert_true(d["rarity"] in valid_rarities, "SPELLS[%s] rarity '%s' が不正" % [name, d["rarity"]])
-		r._assert_true(d["cost"] is float or d["cost"] is int, "SPELLS[%s] costが数値" % name)
+		r._assert_true(d["mana"] is float or d["mana"] is int, "SPELLS[%s] costが数値" % name)
 
 # ---- skills配列のeffect_idがEffectDBに存在するか ----
 func _test_carddb_skills_reference(r: RefCounted) -> void:

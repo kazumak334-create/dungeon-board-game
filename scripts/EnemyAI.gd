@@ -49,7 +49,7 @@ func _build_enemy_deck() -> void:
 		u.unit_name = entry["name"]
 		u.max_hp = d["hp"]; u.current_hp = d["hp"]
 		u.attack = d["atk"]; u.attack_interval = d["interval"]
-		u.cost = d["cost"]; u.assigned_col = entry["col"]
+		u.mana = d["mana"]; u.assigned_col = entry["col"]
 		u.race = d["race"]; u.attack_range = d["range"]
 		u.support_effect = ""; u.passive_skill = ""
 		u.skills = d.get("skills", []).duplicate(true)
@@ -127,7 +127,7 @@ func _build_boss_deck() -> void:
 		u.current_hp = u.max_hp
 		u.attack = d["atk"] + atk_bonus
 		u.attack_interval = d["interval"]
-		u.cost = d["cost"]; u.assigned_col = entry["col"]
+		u.mana = d["mana"]; u.assigned_col = entry["col"]
 		u.race = d["race"]; u.attack_range = d["range"]
 		u.support_effect = ""; u.passive_skill = ""
 		u.skills = d.get("skills", []).duplicate(true)
@@ -146,7 +146,7 @@ func ensure_shuffle_card() -> void:
 	card.unit_name = "呪文回収"
 	card.card_type = "spell"
 	card.spell_id = "呪文回収"
-	card.cost = 0
+	card.mana = 0
 	card.is_consumable = true
 	card.spell_target = sd["target"]
 	card.spell_effect = sd["effect"]
@@ -158,8 +158,8 @@ func initialize_mana_from_deck() -> void:
 	# TODO: 敵側もinitial_unitsを使うように変更（現状は暫定でenemy_deckから）
 	var total_cost: float = 0.0
 	for card in enemy_deck:
-		if card.card_type == "unit" and card.cost >= 0:
-			total_cost += float(card.cost)
+		if card.card_type == "unit" and card.mana >= 0:
+			total_cost += float(card.mana)
 	MANA_MAX = total_cost
 	mana = 0.0
 	print("[EnemyAI] マナ上限初期化: %.1f（ユニット総コスト・暫定）" % MANA_MAX)
@@ -228,16 +228,16 @@ func process_ai(delta: float, board: Node) -> void:
 		return
 	# マナ上限超過チェック：コスト > マナ上限 → スキップ（捨て札へ）
 	# スキップも詠唱扱い（クールダウン消費）
-	if next_card.cost > int(MANA_MAX) and next_card.cost != -1:
+	if next_card.mana > int(MANA_MAX) and next_card.mana != -1:
 		enemy_deck.remove_at(0)
 		enemy_discard.append(next_card)
 		_check_timer = check_interval  # スキップにもクールダウン適用
 		_pick_next_card()
 		return
-	if mana < next_card.cost:
+	if mana < next_card.mana:
 		return  # マナが足りるまで先頭で待機
 
-	mana -= next_card.cost
+	mana -= next_card.mana
 	enemy_deck.remove_at(0)
 	_check_timer = check_interval  # 発動後にクールダウン開始
 	if next_card.card_type == "unit":

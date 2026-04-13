@@ -4,7 +4,6 @@ extends RefCounted
 
 const UIF = preload("res://scripts/UIFactory.gd")
 const SpellsClass = preload("res://scripts/DeckPrepBoardSpells.gd")
-const SynergyDBClass = preload("res://scripts/SynergyDB.gd")
 
 # レイアウト定数
 const BOARD_X = 20
@@ -420,6 +419,315 @@ func _create_bar_chip(card_name: String, count: int, w: float, h: float,
 
 # ---- ⑧⑨ 呪文デッキ（敵盤面位置）+ 手持ちカード（盤面直下全幅）----
 
+func _build_spell_artifact_split() -> float:
+	var board_start_x = float(BOARD_X)
+	var ally_board_w = float(ROW_LABEL_W) + 3.0 * float(CELL_W + CELL_GAP)
+
+	# タスク#7: 呪文デッキを右端に寄せて余白を最小化
+	const SPELL_DECK_W = 427.0
+	var container_w = tab_container.size.x if tab_container else 860.0
+	var spell_deck_x = container_w - SPELL_DECK_W - 5.0  # 右端から5px余白
+	var spell_deck_y = float(CELLS_START_Y) - 20.0  # ラベル込みで上端揃え
+
+	# 呪文デッキ背景パネル（項目3: 存在感強化）
+	var spell_bg = Panel.new()
+	spell_bg.position = Vector2(spell_deck_x, spell_deck_y)
+	spell_bg.size = Vector2(SPELL_DECK_W, 3.0 * float(CELL_H + CELL_GAP) + 20.0)
+	spell_bg.set_meta("hand_spell_area", true)
+	var spell_bg_style = StyleBoxFlat.new()
+	spell_bg_style.bg_color = Color(0.13, 0.13, 0.2)  # MaterialSelect COLOR_PANEL準拠
+	spell_bg_style.border_color = Color(0.4, 0.45, 0.6)  # 強調色
+	spell_bg_style.set_border_width_all(2)
+	spell_bg.add_theme_stylebox_override("panel", spell_bg_style)
+	tab_container.add_child(spell_bg)
+
+	# 呪文デッキラベル（項目3: 大きく表示、タスク#5: 総マナ追加）
+	_spell_deck_label = Label.new()
+	_spell_deck_label.text = "呪文デッキ  総マナ: 0"  # タスク#5: 総マナ表示
+	_spell_deck_label.position = Vector2(spell_deck_x + 10.0, spell_deck_y + 4.0)
+	_spell_deck_label.add_theme_font_size_override("font_size", 11)  # タスク#5: 企画書通り11に戻す
+	_spell_deck_label.add_theme_color_override("font_color", Color(0.6, 0.65, 0.85))
+	_spell_deck_label.set_meta("hand_spell_area", true)
+	tab_container.add_child(_spell_deck_label)
+
+	# 呪文カード描画（縦長配置）
+	var spell_cards = _build_spell_cards_list()
+	var spell_count = spell_cards.size()
+	var card_start_y = spell_deck_y + 28.0  # ラベル下から
+
+	# 縦並びバー形式（横幅はパネルに合わせる）
+	var bar_w = SPELL_DECK_W - 20.0  # 左右余白10pxずつ
+	for i in range(spell_count):
+		var sy = card_start_y + float(i) * float(SPELL_BAR_H + SPELL_BAR_GAP)
+		var bar = _create_bar_chip(spell_cards[i][1], spell_cards[i][2], bar_w, float(SPELL_BAR_H), spell_cards[i][0], spell_cards[i][3])
+		bar.position = Vector2(spell_deck_x + 10.0, sy)
+		bar.set_meta("hand_spell_area", true)
+		tab_container.add_child(bar)
+
+	# 項目2: 手持ちカードを2エリアに分離（ユニット・呪文）
+	var hand_cards = _build_hand_cards_list()
+
+	# ユニット・呪文に分離
+	var unit_cards: Array = []
+	var spell_hand_cards: Array = []
+	for hc in hand_cards:
+		var card_name = hc[1]
+		if CardDB.UNITS.has(card_name):
+			unit_cards.append(hc)
+		elif CardDB.SPELLS.has(card_name) or CardDB.STATUS_SPELLS.has(card_name):
+			spell_hand_cards.append(hc)
+		else:
+			# 種別不明は一旦ユニット扱い
+			unit_cards.append(hc)
+
+	# ユニットエリア（左側）
+	var unit_lbl = Label.new()
+	unit_lbl.text = "ユニット"
+	unit_lbl.position = Vector2(HAND_AREA_UNIT_X, HAND_AREA_Y - 14.0)
+	unit_lbl.add_theme_font_size_override("font_size", 11)
+	unit_lbl.add_theme_color_override("font_color", Color(0.6, 0.7, 0.6))  # 緑系
+	unit_lbl.set_meta("hand_spell_area", true)
+	tab_container.add_child(unit_lbl)
+
+	var unit_container = _build_hand_card_container(unit_cards, HAND_AREA_UNIT_X, HAND_AREA_Y)
+	unit_container.set_meta("hand_spell_area", true)
+	tab_container.add_child(unit_container)
+
+	# 呪文エリア（右側）
+	var spell_hand_lbl = Label.new()
+	spell_hand_lbl.text = "呪文"
+	spell_hand_lbl.position = Vector2(HAND_AREA_SPELL_X, HAND_AREA_Y - 14.0)
+	spell_hand_lbl.add_theme_font_size_override("font_size", 11)
+	spell_hand_lbl.add_theme_color_override("font_color", Color(0.6, 0.65, 0.85))  # 青系
+	spell_hand_lbl.set_meta("hand_spell_area", true)
+	tab_container.add_child(spell_hand_lbl)
+
+	var spell_hand_container = _build_hand_card_container(spell_hand_cards, HAND_AREA_SPELL_X, HAND_AREA_Y)
+	spell_hand_container.set_meta("hand_spell_area", true)
+	tab_container.add_child(spell_hand_container)
+
+	# 手持ちカード下境界線（HAND_AREA_H使用）
+	var hand_border = ColorRect.new()
+	hand_border.position = Vector2(HAND_AREA_UNIT_X, HAND_AREA_Y + HAND_AREA_H)
+	hand_border.size = Vector2(ally_board_w - float(BOARD_X), 1.0)
+	hand_border.color = Color(0.3, 0.35, 0.45, 0.7)
+	hand_border.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	tab_container.add_child(hand_border)
+
+	return HAND_AREA_Y + HAND_AREA_H
+
+# ---- ⑥ 合成可能エリア（盤面直下・中央）+ ⑦ Yes/No確認省略トグル ----
+
+func _build_synthesis_area(start_y: float) -> void:
+	var board_area_w = float(ROW_LABEL_W) + 3.0 * float(CELL_W + CELL_GAP) + float(CENTER_GAP) + 3.0 * float(CELL_W + CELL_GAP)
+	var board_start_x = float(BOARD_X)
+
+	# ⑦ Yes/No省略トグル（合成エリア右上角）
+	var toggle = CheckBox.new()
+	toggle.text = "確認省略"
+	toggle.button_pressed = false
+	toggle.position = Vector2(board_start_x + board_area_w - 90.0, start_y)
+	toggle.size = Vector2(90.0, 20.0)
+	toggle.add_theme_font_size_override("font_size", 10)
+	toggle.toggled.connect(func(on: bool): _skip_synth_confirm = on)
+	tab_container.add_child(toggle)
+
+	# 合成ヘッダーラベル
+	var header = Label.new()
+	header.text = "合成可能"
+	header.position = Vector2(board_start_x, start_y)
+	header.add_theme_font_size_override("font_size", 11)
+	header.add_theme_color_override("font_color", Color(0.7, 0.75, 0.5))
+	tab_container.add_child(header)
+
+	# 合成可能なカードのみタイル形式で横並び（素材不足は非表示）
+	var card_counts: Dictionary = {}
+	for entry in GameSession.selected_deck:
+		var n = entry.get("name", "") if entry is Dictionary else str(entry)
+		card_counts[n] = card_counts.get(n, 0) + 1
+
+	var craftable: Array = []
+	for recipe in CardDB.SYNTHESIS:
+		var base = recipe.get("base", "")
+		var card = recipe.get("card", "")
+		var result_name = recipe.get("result", "")
+		var needed: Dictionary = {}
+		needed[base] = needed.get(base, 0) + 1
+		needed[card] = needed.get(card, 0) + 1
+		var can_craft = true
+		for n in needed:
+			if card_counts.get(n, 0) < needed[n]:
+				can_craft = false
+				break
+		if can_craft:
+			craftable.append({"base": base, "card": card, "result": result_name})
+
+	var tile_area_y = start_y + 20.0
+	var tile_w = 56.0  # 縦横比5:7維持
+	var tile_h = tile_w * 7.0 / 5.0
+	var tile_gap = 6.0
+	var x_cur = board_start_x
+
+	for craft in craftable:
+		if x_cur + tile_w > board_start_x + board_area_w:
+			break
+		var tile = _create_synthesis_tile(craft["result"], craft["base"], craft["card"], tile_w, tile_h)
+		tile.position = Vector2(x_cur, tile_area_y)
+		tab_container.add_child(tile)
+		x_cur += tile_w + tile_gap
+
+# 合成タイル生成（⑥用）
+var _skip_synth_confirm: bool = false
+
+func _create_synthesis_tile(result_name: String, base_name: String, mat_name: String, w: float, h: float) -> Control:
+	var card_color = get_card_color(result_name)
+	var panel = Panel.new()
+	panel.custom_minimum_size = Vector2(w, h)
+	var style = StyleBoxFlat.new()
+	style.bg_color = card_color.darkened(0.4)
+	style.border_color = card_color
+	style.set_border_width_all(1)
+	style.set_corner_radius_all(3)
+	panel.add_theme_stylebox_override("panel", style)
+
+	var header_h = minf(14.0, h * 0.35)
+	var header = ColorRect.new()
+	header.position = Vector2(0, 0)
+	header.size = Vector2(w, header_h)
+	header.color = card_color
+	header.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	panel.add_child(header)
+
+	var cost_lbl = Label.new()
+	cost_lbl.text = str(get_card_cost(result_name))
+	cost_lbl.position = Vector2(2, 0)
+	cost_lbl.size = Vector2(w - 4, header_h)
+	cost_lbl.add_theme_font_size_override("font_size", 8)
+	cost_lbl.add_theme_color_override("font_color", Color(1, 1, 0.7))
+	cost_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	panel.add_child(cost_lbl)
+
+	var name_lbl = Label.new()
+	name_lbl.text = result_name
+	name_lbl.position = Vector2(2, header_h + 1)
+	name_lbl.size = Vector2(w - 4, h - header_h - 1)
+	name_lbl.add_theme_font_size_override("font_size", 8)
+	name_lbl.add_theme_color_override("font_color", Color(1, 1, 1))
+	name_lbl.clip_text = true
+	name_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	panel.add_child(name_lbl)
+
+	# ホバー: 素材情報ポップアップ
+	panel.mouse_entered.connect(func():
+		if main_node != null:
+			_show_synth_hover_popup(result_name, base_name, mat_name, panel.global_position + Vector2(w / 2.0, -90.0))
+	)
+	panel.mouse_exited.connect(func(): _hide_synth_hover_popup())
+
+	# クリック: 合成確認 or 即合成
+	panel.gui_input.connect(func(event: InputEvent):
+		if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
+			if _skip_synth_confirm:
+				print("[DeckPrepBoard] 合成: [%s] + [%s] → [%s]" % [base_name, mat_name, result_name])
+			else:
+				_show_synth_confirm(result_name, base_name, mat_name)
+	)
+	return panel
+
+var _synth_hover_popup: Control = null
+
+func _show_synth_hover_popup(result_name: String, base_name: String, mat_name: String, pos: Vector2) -> void:
+	_hide_synth_hover_popup()
+	if main_node == null:
+		return
+	var popup = PanelContainer.new()
+	popup.z_index = 200
+	var style = StyleBoxFlat.new()
+	style.bg_color = Color(0.08, 0.08, 0.14, 0.97)
+	style.border_color = Color(0.4, 0.4, 0.6)
+	style.set_border_width_all(1)
+	style.set_corner_radius_all(4)
+	popup.add_theme_stylebox_override("panel", style)
+	popup.custom_minimum_size = Vector2(160, 60)
+	var vbox = VBoxContainer.new()
+	vbox.add_theme_constant_override("separation", 3)
+	popup.add_child(vbox)
+	var res_lbl = Label.new()
+	res_lbl.text = "▶ %s" % result_name
+	res_lbl.add_theme_font_size_override("font_size", 11)
+	res_lbl.add_theme_color_override("font_color", Color(0.9, 0.9, 0.5))
+	vbox.add_child(res_lbl)
+	var mat_lbl = Label.new()
+	mat_lbl.text = "[%s] + [%s]" % [base_name, mat_name]
+	mat_lbl.add_theme_font_size_override("font_size", 9)
+	mat_lbl.add_theme_color_override("font_color", Color(0.6, 0.6, 0.6))
+	vbox.add_child(mat_lbl)
+	var synth_hint = Label.new()
+	synth_hint.text = "クリックで合成"
+	synth_hint.add_theme_font_size_override("font_size", 9)
+	synth_hint.add_theme_color_override("font_color", Color(0.5, 0.8, 0.6))
+	vbox.add_child(synth_hint)
+	popup.position = pos
+	main_node.add_child(popup)
+	_synth_hover_popup = popup
+
+func _hide_synth_hover_popup() -> void:
+	if _synth_hover_popup != null:
+		_synth_hover_popup.queue_free()
+		_synth_hover_popup = null
+
+func _show_synth_confirm(result_name: String, base_name: String, mat_name: String) -> void:
+	if main_node == null:
+		return
+	var existing = main_node.find_child("SynthConfirmBoardDialog", false, false)
+	if existing:
+		existing.queue_free()
+	var dialog = Panel.new()
+	dialog.name = "SynthConfirmBoardDialog"
+	dialog.z_index = 300
+	dialog.size = Vector2(240, 110)
+	dialog.position = Vector2((main_node.size.x - 240) / 2.0, (main_node.size.y - 110) / 2.0)
+	var dstyle = StyleBoxFlat.new()
+	dstyle.bg_color = Color(0.1, 0.1, 0.18, 0.97)
+	dstyle.border_color = Color(0.5, 0.5, 0.7)
+	dstyle.set_border_width_all(2)
+	dstyle.set_corner_radius_all(6)
+	dialog.add_theme_stylebox_override("panel", dstyle)
+	main_node.add_child(dialog)
+	var vbox = VBoxContainer.new()
+	vbox.add_theme_constant_override("separation", 8)
+	vbox.position = Vector2(10, 10)
+	vbox.size = Vector2(220, 90)
+	dialog.add_child(vbox)
+	var msg = Label.new()
+	msg.text = "%s を合成しますか？" % result_name
+	msg.autowrap_mode = TextServer.AUTOWRAP_WORD
+	msg.add_theme_font_size_override("font_size", 13)
+	msg.add_theme_color_override("font_color", Color(0.9, 0.9, 0.6))
+	vbox.add_child(msg)
+	var sub = Label.new()
+	sub.text = "[%s] + [%s]" % [base_name, mat_name]
+	sub.add_theme_font_size_override("font_size", 10)
+	sub.add_theme_color_override("font_color", Color(0.5, 0.5, 0.5))
+	sub.clip_text = true
+	vbox.add_child(sub)
+	var btn_hbox = HBoxContainer.new()
+	btn_hbox.add_theme_constant_override("separation", 12)
+	vbox.add_child(btn_hbox)
+	var yes_btn = Button.new()
+	yes_btn.text = "合成する"
+	yes_btn.add_theme_font_size_override("font_size", 12)
+	yes_btn.pressed.connect(func():
+		print("[DeckPrepBoard] 合成実行: [%s] + [%s] → [%s]" % [base_name, mat_name, result_name])
+		dialog.queue_free()
+	)
+	btn_hbox.add_child(yes_btn)
+	var no_btn = Button.new()
+	no_btn.text = "キャンセル"
+	no_btn.add_theme_font_size_override("font_size", 12)
+	no_btn.pressed.connect(func(): dialog.queue_free())
+	btn_hbox.add_child(no_btn)
+
 func _create_empty_slot_panel(w: float, h: float, border_color: Color) -> Control:
 	var p = Panel.new()
 	p.custom_minimum_size = Vector2(w, h)
@@ -533,6 +841,149 @@ func _build_cell_cards_map() -> Dictionary:
 	return result
 
 # 呪文スロット用カードリスト（col=-1 かつ row=0 のカードを集約して返す）
+func _build_spell_cards_list() -> Array:
+	var raw: Array = []
+	for i in range(GameSession.selected_deck.size()):
+		var entry = GameSession.selected_deck[i]
+		var config = GameSession.placement_config[i] if i < GameSession.placement_config.size() else {}
+		var col = config.get("col", -1)
+		var row = config.get("row", 0)
+		# v2設計: col=-1 かつ row=0 が呪文デッキ
+		if col >= 0 or row != 0:
+			continue
+		var card_name = entry.get("name", "???") if entry is Dictionary else str(entry)
+		# カード種別フィルター: 呪文のみ許可
+		if not (CardDB.SPELLS.has(card_name) or CardDB.STATUS_SPELLS.has(card_name)):
+			continue
+		raw.append({"idx": i, "name": card_name})
+	return _group_cards_by_name(raw)
+
+# 手持ちカード用カードリスト（col=-1 かつ row=1 のカードを集約して返す）
+func _build_hand_cards_list() -> Array:
+	var raw: Array = []
+	for i in range(GameSession.selected_deck.size()):
+		var entry = GameSession.selected_deck[i]
+		var config = GameSession.placement_config[i] if i < GameSession.placement_config.size() else {}
+		var col = config.get("col", -1)
+		var row = config.get("row", 0)
+		# v2設計: col=-1 かつ row=1 が手持ちカード（ユニット・呪文両対応）
+		if col >= 0 or row != 1:
+			continue
+		var card_name = entry.get("name", "???") if entry is Dictionary else str(entry)
+		raw.append({"idx": i, "name": card_name})
+	return _group_cards_by_name(raw)
+
+func _group_cards_by_name(cards: Array) -> Array:
+	var groups: Dictionary = {}
+	var order: Array = []
+	for card in cards:
+		if not groups.has(card["name"]):
+			groups[card["name"]] = {"count": 0, "idx_first": card["idx"], "indices": []}
+			order.append(card["name"])
+		groups[card["name"]]["count"] += 1
+		groups[card["name"]]["indices"].append(card["idx"])
+	var out: Array = []
+	for gname in order:
+		var g = groups[gname]
+		out.append([g["idx_first"], gname, g["count"], g["indices"]])
+	return out
+
+# 手持ちカード新UI: 縦長カード形式（重なり配置）
+func _build_hand_card_container(hand_cards: Array, start_x: float, start_y: float) -> Control:
+	const CARD_W = 90.0
+	const CARD_H = 130.0
+	const OVERLAP_W = 22.0  # 左側1/4重なり
+
+	var container = Control.new()
+	container.position = Vector2(start_x, start_y)
+
+	# 空配列対応: 最小サイズは0
+	if hand_cards.size() == 0:
+		var empty_label = Label.new()
+		empty_label.text = "カードなし"
+		empty_label.position = Vector2(10.0, 10.0)
+		empty_label.add_theme_font_size_override("font_size", 10)
+		empty_label.add_theme_color_override("font_color", Color(0.4, 0.4, 0.5, 0.7))
+		container.add_child(empty_label)
+		container.custom_minimum_size = Vector2(100.0, CARD_H)
+		return container
+
+	var CardSlotScript = load("res://scripts/CardSlot.gd")
+
+	for i in range(hand_cards.size()):
+		var hc = hand_cards[i]
+		var idx = hc[0]
+		var card_name = hc[1]
+		var count = hc[2]
+		var indices = hc[3]
+
+		var slot = Control.new()
+		slot.set_script(CardSlotScript)
+		slot.position = Vector2(float(i) * (CARD_W - OVERLAP_W), 0.0)
+		slot.z_index = i  # 左端が背面、右端が前面
+
+		var card_color = get_card_color(card_name)
+		var card_cost = get_card_cost(card_name)
+
+		container.add_child(slot)
+		slot.setup(card_name, card_cost, count, indices, card_color)
+
+		# クリック時のコールバック設定
+		slot.on_card_clicked = func(clicked_idx: int, event: InputEvent):
+			_on_chip_input_from_slot(event, clicked_idx, indices, slot)
+
+		# ホバー時のz_index保持用
+		var original_z = i
+		slot.card_hovered.connect(func(_s): slot.z_index = 100)
+		slot.card_unhovered.connect(func(_s): slot.z_index = original_z)
+
+	var container_w = CARD_W + float(max(0, hand_cards.size() - 1)) * (CARD_W - OVERLAP_W)
+	container.custom_minimum_size = Vector2(container_w, CARD_H)
+	return container
+
+func _on_chip_input_from_slot(event: InputEvent, idx: int, all_indices: Array, slot: Control) -> void:
+	# 既存のドラッグロジックに接続
+	if not (event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed):
+		return
+	_selected_card_idx = idx
+	_drag_group_indices = [idx]
+	if on_card_selected.is_valid(): on_card_selected.call(idx)
+	if on_card_pinned.is_valid(): on_card_pinned.call(idx)
+	start_drag_group(idx, [idx], slot, event.global_position)
+
+func _on_chip_input(event: InputEvent, idx: int, all_indices: Array, chip: Control) -> void:
+	if not (event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed):
+		return
+	chip.accept_event()
+	# グループドラッグ廃止: 常に1枚のみドラッグ
+	_selected_card_idx = idx
+	_drag_group_indices = [idx]
+	if on_card_selected.is_valid(): on_card_selected.call(idx)
+	# ピン留め通知（ドラッグ開始前に通知してDeckPrep.gdがピン留め状態を管理）
+	if on_card_pinned.is_valid(): on_card_pinned.call(idx)
+	start_drag_group(idx, [idx], chip, event.global_position)
+
+# タスク#5: 呪文デッキマナ更新
+func _update_spell_deck_mana() -> void:
+	if _spell_deck_label == null:
+		return
+	var spell_mana: int = 0
+	for i in range(GameSession.selected_deck.size()):
+		if i >= GameSession.placement_config.size():
+			continue
+		var config = GameSession.placement_config[i]
+		var row = config.get("row", 0)
+		var col = config.get("col", -1)
+		if row != 0 or col != -1:  # row=0, col=-1が呪文デッキ
+			continue
+		var entry = GameSession.selected_deck[i]
+		var card_name = entry.get("name", "") if entry is Dictionary else str(entry)
+		if CardDB.SPELLS.has(card_name):
+			spell_mana += CardDB.SPELLS[card_name].get("cost", 0)
+		elif CardDB.STATUS_SPELLS.has(card_name):
+			spell_mana += CardDB.STATUS_SPELLS[card_name].get("cost", 0)
+	_spell_deck_label.text = "呪文デッキ  総マナ: %d" % spell_mana
+
 func get_card_color(card_name: String) -> Color:
 	if CardDB.UNITS.has(card_name):
 		return RACE_COLORS.get(CardDB.UNITS[card_name].get("race", ""), DEFAULT_COLOR)
@@ -540,11 +991,11 @@ func get_card_color(card_name: String) -> Color:
 
 func get_card_cost(card_name: String) -> int:
 	if CardDB.UNITS.has(card_name):
-		return CardDB.UNITS[card_name].get("mana", 0)
+		return CardDB.UNITS[card_name].get("cost", 0)
 	if CardDB.SPELLS.has(card_name):
-		return CardDB.SPELLS[card_name].get("mana", 0)
+		return CardDB.SPELLS[card_name].get("cost", 0)
 	if CardDB.STATUS_SPELLS.has(card_name):
-		return CardDB.STATUS_SPELLS[card_name].get("mana", 0)
+		return CardDB.STATUS_SPELLS[card_name].get("cost", 0)
 	return 0
 
 # ---- ドラッグ&ドロップ ----
@@ -808,9 +1259,6 @@ func try_drop_card(idx: int, new_side: int, new_row: int, new_col: int) -> void:
 	populate_cards()
 	select_card(idx)
 
-	# シナジーチェック
-	_check_and_flash_synergies(idx)
-
 func select_row(side: int, row_idx: int) -> void:
 	var group = _PL.get_row_group(side, row_idx, GameSession.placement_config)
 	apply_group_selection(group)
@@ -979,128 +1427,3 @@ func _hide_drop_hints() -> void:
 				overlay.queue_free()
 		_hint_overlays.clear()
 	)
-
-# シナジーチェックとフラッシュ
-func _check_and_flash_synergies(card_idx: int) -> void:
-	if card_idx < 0 or card_idx >= GameSession.selected_deck.size():
-		return
-
-	# 新しく配置されたカードのデータを取得
-	var new_card_entry = GameSession.selected_deck[card_idx]
-	var new_card_name = new_card_entry.get("name", "") if new_card_entry is Dictionary else str(new_card_entry)
-
-	# カードデータベースから詳細情報を取得
-	var new_card_data: Dictionary = {}
-	if CardDB.UNITS.has(new_card_name):
-		new_card_data = CardDB.UNITS[new_card_name].duplicate(true)
-	elif CardDB.SPELLS.has(new_card_name):
-		new_card_data = CardDB.SPELLS[new_card_name].duplicate(true)
-	else:
-		return
-
-	# 既に配置されているカードのリストを作成（盤面上のカードのみ）
-	var placed_cards: Array = []
-	for i in range(GameSession.selected_deck.size()):
-		if i == card_idx:
-			continue
-		var config = GameSession.placement_config[i] if i < GameSession.placement_config.size() else {}
-		var col = config.get("col", -1)
-		# col=-1は呪文スロット → シナジー対象外
-		if col < 0:
-			continue
-
-		var entry = GameSession.selected_deck[i]
-		var card_name = entry.get("name", "") if entry is Dictionary else str(entry)
-		var card_data: Dictionary = {}
-		if CardDB.UNITS.has(card_name):
-			card_data = CardDB.UNITS[card_name].duplicate(true)
-		elif CardDB.SPELLS.has(card_name):
-			card_data = CardDB.SPELLS[card_name].duplicate(true)
-
-		if card_data.size() > 0:
-			placed_cards.append(card_data)
-
-	# SynergyDBでシナジーチェック
-	var synergy_db = SynergyDBClass.new()
-	var synergies = synergy_db.check_synergies(new_card_data, placed_cards)
-
-	# シナジーが見つかった場合、影響を受けるカードをフラッシュ
-	for synergy in synergies:
-		var affected_indices = synergy.get("affected_card_indices", [])
-		var flash_duration = synergy.get("flash_duration", 1.0)
-
-		# placed_cardsのインデックスを実際のカードインデックスに変換
-		var real_card_idx = 0
-		for i in range(GameSession.selected_deck.size()):
-			if i == card_idx:
-				continue
-			var config = GameSession.placement_config[i] if i < GameSession.placement_config.size() else {}
-			var col = config.get("col", -1)
-			if col < 0:
-				continue
-
-			if real_card_idx in affected_indices:
-				flash_border(i, flash_duration)
-			real_card_idx += 1
-
-# カードの枠線をフラッシュアニメーション
-func flash_border(card_idx: int, duration: float) -> void:
-	if card_idx < 0 or card_idx >= GameSession.placement_config.size():
-		return
-
-	var config = GameSession.placement_config[card_idx]
-	var row = config.get("row", -1)
-	var col = config.get("col", -1)
-
-	if row < 0 or row >= 3 or col < 0 or col >= 3:
-		return
-
-	# セルコンテナを取得
-	var vbox = _cell_card_containers[0][row][col]
-	if vbox == null or vbox.get_child_count() == 0:
-		return
-
-	# セル内のカードパネルを取得
-	var content = vbox.get_child(0)
-	if content == null or content.get_child_count() == 0:
-		return
-
-	# 最初のタイルパネルを取得（1セル1枚なので最初の子）
-	var panel = content.get_child(0)
-	if panel == null or not panel is Panel:
-		return
-
-	# 現在のスタイルを取得
-	var style = panel.get_theme_stylebox("panel")
-	if style == null or not style is StyleBoxFlat:
-		return
-
-	# 元の枠線色を保存
-	var original_border_color = style.border_color
-
-	# フラッシュアニメーション（白→元の色）
-	var tween = main_node.create_tween()
-	tween.tween_method(func(progress: float):
-		var flash_color = original_border_color.lerp(Color(1.0, 1.0, 0.8), 1.0 - progress)
-		style.border_color = flash_color
-		style.set_border_width_all(3)
-	, 0.0, 1.0, duration).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
-
-	# アニメーション終了後に枠線を元に戻す
-	tween.finished.connect(func():
-		style.border_color = original_border_color
-		style.set_border_width_all(1)
-	)
-
-# カードチップ入力処理（クリック・ドラッグ開始）
-func _on_chip_input(event: InputEvent, idx: int, all_indices: Array, chip: Control) -> void:
-	if not (event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed):
-		return
-	chip.accept_event()
-	_selected_card_idx = idx
-	_drag_group_indices = [idx]
-	if on_card_selected.is_valid():
-		on_card_selected.call(idx)
-	if on_card_pinned.is_valid():
-		on_card_pinned.call(idx)
-	start_drag_group(idx, [idx], chip, event.global_position)

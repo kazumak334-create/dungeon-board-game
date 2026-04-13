@@ -34,7 +34,7 @@ func _test_set_clear_slot() -> void:
 	var UD = load("res://scripts/UnitData.gd")
 	var spell = UD.new()
 	spell.unit_name = "テスト呪文"
-	spell.cost = 5
+	spell.mana = 5
 	spell.card_type = "spell"
 
 	# set_slot

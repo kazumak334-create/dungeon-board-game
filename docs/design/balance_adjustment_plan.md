@@ -48,7 +48,7 @@
 
 3. **データ修正**
    - data/cards.json の該当フィールド変更
-   - cost/effect/rarity フィールド
+   - mana/effect/rarity フィールド
 
 4. **検証**
    - バトル実行テスト（各レアリティ1種以上使用）

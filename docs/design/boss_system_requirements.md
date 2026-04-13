@@ -119,7 +119,7 @@ boss_decksセクションの直後に追加:
     "hp": 25,
     "atk": 6,
     "interval": 1.5,
-    "cost": 3,
+    "mana": 3,
     "race": "獣",
     "range": "1行",
     "skills": [
@@ -136,7 +136,7 @@ boss_decksセクションの直後に追加:
     "hp": 60,
     "atk": 1,
     "interval": 5,
-    "cost": 4,
+    "mana": 4,
     "race": "スライム",
     "range": "1行",
     "skills": [
@@ -153,7 +153,7 @@ boss_decksセクションの直後に追加:
     "hp": 45,
     "atk": 4,
     "interval": 3,
-    "cost": 4,
+    "mana": 4,
     "race": "スライム",
     "range": "1行",
     "skills": [
@@ -170,7 +170,7 @@ boss_decksセクションの直後に追加:
     "hp": 20,
     "atk": 3,
     "interval": 3,
-    "cost": 3,
+    "mana": 3,
     "race": "アンデッド",
     "range": "上下含む3行",
     "skills": [
@@ -187,7 +187,7 @@ boss_decksセクションの直後に追加:
     "hp": 50,
     "atk": 5,
     "interval": 3,
-    "cost": 4,
+    "mana": 4,
     "race": "アンデッド",
     "range": "上下含む3行",
     "skills": [

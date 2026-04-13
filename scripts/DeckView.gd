@@ -99,7 +99,7 @@ func _build_card_cell(card_name: String, x: int, y: int) -> void:
 
 	# コスト
 	var cost_lbl = Label.new()
-	cost_lbl.text = "コスト:%d" % data.get("cost", 0)
+	cost_lbl.text = "コスト:%d" % data.get("mana", 0)
 	cost_lbl.position = Vector2(4, 26)
 	cost_lbl.size = Vector2(CARD_W - 8, 18)
 	cost_lbl.add_theme_font_size_override("font_size", 10)

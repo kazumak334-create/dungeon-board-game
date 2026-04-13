@@ -140,30 +140,5 @@ func _build_info_section(vis: Dictionary) -> void:
 		x += 60
 
 func _build_button_section(vis: Dictionary) -> void:
-	# アイコン順序: デッキ → 持ち物 → スキル → 設定
-	var buttons = []
-	if vis.get("deck", false):
-		buttons.append({"id": "deck", "label": "デッキ", "scene": SceneManager.DECK_VIEW})
-	if vis.get("inventory", false):
-		buttons.append({"id": "inventory", "label": "持物", "scene": SceneManager.INVENTORY})
-	if vis.get("skill", false):
-		buttons.append({"id": "skill", "label": "スキル", "scene": SceneManager.SKILL_TREE})
-	if vis.get("settings", false):
-		buttons.append({"id": "settings", "label": "設定", "scene": SceneManager.SETTINGS})
-
-	# 右端から配置
-	var total_w = buttons.size() * BUTTON_SIZE + (buttons.size() - 1) * BUTTON_GAP
-	var start_x = 1280 - total_w - 10
-	for i in range(buttons.size()):
-		var btn_data = buttons[i]
-		var btn = Button.new()
-		btn.text = btn_data["label"]
-		btn.position = Vector2(start_x + i * (BUTTON_SIZE + BUTTON_GAP) - 5, 4)
-		btn.size = Vector2(BUTTON_SIZE + 10, 28)
-		btn.add_theme_font_size_override("font_size", 10)
-		btn.z_index = 102
-		var scene_id = btn_data["scene"]
-		btn.pressed.connect(func():
-			GameSession.last_scene = _scene_name
-			SceneManager.go_to(scene_id))
-		_parent.add_child(btn)
+	# 画面遷移ボタン廃止（装備・素材システム廃止、ゲームフロー統制のため）
+	pass

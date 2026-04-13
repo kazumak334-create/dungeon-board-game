@@ -184,24 +184,34 @@ func _generate_choices() -> Array:
 func _show_choices(cards: Array) -> void:
 	_choice_pool = cards
 	_selected_idx = -1
-	
+
+	const CARD_Y_ORIGINAL = 130
+	const CARD_Y_OFFSET = 30
+	var positions: Array = [
+		Vector2(155, CARD_Y_ORIGINAL),
+		Vector2(530, CARD_Y_ORIGINAL),
+		Vector2(905, CARD_Y_ORIGINAL)
+	]
+
 	for i in range(3):
 		if i < cards.size():
 			_bind_card(_card_views[i], cards[i])
+			# 状態を完全にリセット
+			_card_views[i].scale = Vector2(1.0, 1.0)
 			_card_views[i].modulate = Color(1, 1, 1, 0)
-			_card_views[i].position.y += 30
-			
+			_card_views[i].position = positions[i] + Vector2(0, CARD_Y_OFFSET)
+
 			var tween = create_tween()
 			tween.set_parallel(true)
 			tween.tween_property(_card_views[i], "modulate:a", 1.0, 0.3).set_ease(Tween.EASE_OUT)
-			tween.tween_property(_card_views[i], "position:y", _card_views[i].position.y - 30, 0.3).set_ease(Tween.EASE_OUT)
-		
+			tween.tween_property(_card_views[i], "position", positions[i], 0.3).set_ease(Tween.EASE_OUT)
+
 		_select_borders[i].color = Color.TRANSPARENT
 
 func _bind_card(view: CardView, card_name: String) -> void:
 	var data = CardDB.UNITS.get(card_name, {})
 	view.card_name = card_name
-	view.mana = data.get("cost", 0)
+	view.mana = data.get("mana", 0)
 	view.hp = data.get("hp", 0)
 	view.atk = data.get("atk", 0)
 	view.spd = int(data.get("interval", 1.0))
@@ -227,7 +237,12 @@ func _bind_card(view: CardView, card_name: String) -> void:
 
 	# 特性バッジ設定
 	if data.has("traits"):
-		view.traits = data.get("traits", [])
+		var traits_data = data.get("traits", [])
+		if traits_data is Array:
+			# Array[String]への型変換
+			var typed_traits: Array[String] = []
+			typed_traits.assign(traits_data)
+			view.traits = typed_traits
 
 	var tex_path = "res://assets/cards/units/%s.png" % card_name.to_lower().replace(" ", "_")
 	if ResourceLoader.exists(tex_path):

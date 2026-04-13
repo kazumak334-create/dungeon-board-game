@@ -142,7 +142,6 @@ func _ready() -> void:
 	player_data.class_name_jp = class_def["display"]
 	player_data.initial_mana = class_def["initial_mana"]
 	player_data.mana_max = class_def["mana_max"]
-	player_data.mana_regen = class_def["mana_regen"]
 	player_data.skills = class_def["skills"].duplicate(true)
 	# DeckManager に反映（マナ上限3固定）
 	deck_manager.mana = 0.0
@@ -197,7 +196,7 @@ func _build_synthesis_registry() -> void:
 		u.unit_name = recipe["result"]
 		u.max_hp = r["hp"]; u.current_hp = r["hp"]
 		u.attack = r["atk"]; u.attack_interval = r["interval"]
-		u.cost = r["cost"]; u.assigned_col = r["col"]
+		u.mana = r["mana"]; u.assigned_col = r["col"]
 		u.race = r.get("race", "スライム")
 		u.attack_range = r.get("range", "1行")
 		u.support_effect = ""; u.passive_skill = ""
@@ -295,7 +294,7 @@ func _place_initial_units() -> void:
 		unit.current_hp = unit_data["hp"]
 		unit.attack = unit_data["atk"]
 		unit.attack_interval = unit_data["interval"]
-		unit.cost = unit_data["cost"]
+		unit.mana = unit_data["mana"]
 		unit.race = unit_data["race"]
 		unit.attack_range = unit_data["range"]
 		unit.skills = unit_data.get("skills", []).duplicate(true)
@@ -350,7 +349,7 @@ func _place_enemy_initial_units() -> void:
 			board_manager.place_unit(1, unit, {"row": row, "col": col})
 			print("[Main] 敵初期配置: %s → (%d, %d)" % [unit.unit_name, row, col])
 			placed_count += 1
-			total_cost += float(unit.cost)
+			total_cost += float(unit.mana)
 		else:
 			print("[Main] 敵初期配置失敗: %s（盤面が満杯）" % unit.unit_name)
 			remaining_cards.append(unit)
@@ -636,7 +635,7 @@ func _on_unit_died(side: int, row: int, col: int, died_unit: Object) -> void:
 
 	# 敵ユニット撃破時: cost × 5G を累積（reward_multiplierで倍率調整可能）
 	if side == 1 and died_unit != null:
-		var unit_cost: int = died_unit.cost if "cost" in died_unit else 1
+		var unit_cost: int = died_unit.mana if "cost" in died_unit else 1
 		var reward_mult: float = GameSession.battle_config.get("reward_multiplier", 1.0)
 		var gold_gained: int = max(1, int(unit_cost * 5 * reward_mult))
 		GameSession.current_battle_gold += gold_gained
@@ -738,14 +737,8 @@ func _apply_equipment_effects(pdata: RefCounted) -> void:
 	if pdata == null:
 		return
 	board_manager.player_artifacts.clear()
-	var total_mana_regen_pct: float = 0.0
 	for eq in pdata.equipment:
 		board_manager.player_artifacts.append({"name": eq.get("display", ""), "skills": eq.get("skills", []).duplicate(true)})
-		for skill in eq.get("skills", []):
-			var eid: String = skill.get("effect_id", "")
-			if eid == "mana_regen_boost":
-				total_mana_regen_pct += skill.get("params", {}).get("pct", 0.2)
-	# MANA_REGEN削除: v2設計でユニット生成マナに変更
 	print("[Main] 装備効果適用: player_artifacts=%d件" % [board_manager.player_artifacts.size()])
 
 func _apply_relic_effects_battle_start() -> void:

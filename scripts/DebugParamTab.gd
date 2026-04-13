@@ -19,7 +19,6 @@ func _build_ui() -> void:
 	_add_section_label(vbox, "マナ経済")
 	_add_slider(vbox, "mana_economy", "initial_mana", "初期マナ", 1, 10, 1)
 	_add_slider(vbox, "mana_economy", "mana_max", "マナ上限", 1, 20, 1)
-	_add_slider(vbox, "mana_economy", "mana_regen_rate", "マナ回復倍率", 0.1, 5.0, 0.1)
 	
 	# 時間制限
 	_add_section_label(vbox, "時間制限")

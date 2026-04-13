@@ -32,7 +32,6 @@ func _test_battle_config_default(r: RefCounted) -> void:
 	var required_keys: Array = [
 		"time_limit", "time_up_result", "win_condition", "lose_condition",
 		"player_base_hp", "enemy_base_hp", "enemy_check_interval",
-		"mana_regen_rate", "card_play_interval", "enemy_atk_scale",
 		"enemy_hp_scale", "reward_multiplier", "skill_points_reward",
 		"initial_units", "summon_race_filter", "placement_restriction",
 		"mana_max_override"

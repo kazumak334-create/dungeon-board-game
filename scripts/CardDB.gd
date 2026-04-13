@@ -23,6 +23,8 @@ var BOSS_DECKS: Dictionary = {}
 var BOSS_EXCLUSIVE_UNITS: Dictionary = {}
 var TRAITS: Dictionary = {}  # 特性（カード固有、アーティファクト付与、低確率生成時付与）
 var PLAYER_SKILLS: Dictionary = {}  # プレイヤースキル（スキルツリーで解放）
+var EQUIPMENT: Dictionary = {}  # 装備（デバッグ・将来機能用）
+var MATERIALS: Array = []  # 素材（合成・盤面素材用）
 
 func _ready() -> void:
 	var file = FileAccess.open("res://data/cards.json", FileAccess.READ)
@@ -54,6 +56,8 @@ func _ready() -> void:
 	EVENTS = data.get("events", {})
 	BOSS_DECKS = data.get("boss_decks", {})
 	BOSS_EXCLUSIVE_UNITS = data.get("boss_exclusive_units", {})
+	EQUIPMENT = data.get("equipment", {})
+	MATERIALS = data.get("materials", [])
 
 	# ボス専用ユニットをUNITSにマージ（プレイヤー入手不可フラグ付き）
 	for unit_name in BOSS_EXCLUSIVE_UNITS:

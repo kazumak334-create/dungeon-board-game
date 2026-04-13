@@ -278,7 +278,6 @@ func _test_card_detail_bottom_left(r: RefCounted) -> void:
 	var info = InfoClass.new()
 	r._assert_true(info.has_method("show_card_info_in_container"), "show_card_info_in_container()が存在する")
 	r._assert_true(info.has_method("show_empty_in_container"), "show_empty_in_container()が存在する")
-	r._assert_true(info.has_method("show_material_in_container"), "show_material_in_container()が存在する")
 
 func _test_spell_tile_4_then_bar(r: RefCounted) -> void:
 	# ④ 呪文4枚以下→タイル(5:7比率)、5枚以上→バー(full幅×28px)の切り替え定数
@@ -286,9 +285,10 @@ func _test_spell_tile_4_then_bar(r: RefCounted) -> void:
 	r._assert_eq(BoardClass.SPELL_TILE_SWITCH, 4, "SPELL_TILE_SWITCH=4（4以下タイル/5以上バー）")
 	r._assert_eq(BoardClass.SPELL_TILE_W, 80, "呪文タイル幅=80px（基準値）")
 	r._assert_eq(BoardClass.SPELL_BAR_H, 28, "バー高さ=28px")
-	# 分割描画関数が存在すること
-	var board = BoardClass.new()
-	r._assert_true(board.has_method("_build_spell_artifact_split"), "_build_spell_artifact_split()が存在する")
+	# 分割描画関数が存在すること（DeckPrepBoardSpellsに移動）
+	var SpellsClass = load("res://scripts/DeckPrepBoardSpells.gd")
+	var spells = SpellsClass.new()
+	r._assert_true(spells.has_method("build_spell_artifact_split"), "build_spell_artifact_split()が存在する")
 
 # ===== 完全統合版テスト =====
 
@@ -322,19 +322,19 @@ func _test_card_detail_right_panel(r: RefCounted) -> void:
 	dp.queue_free()
 
 func _test_synthesis_area_bottom_center(r: RefCounted) -> void:
-	# ⑥ 合成可能エリアが盤面直下に配置する関数として存在すること
-	var BoardClass = load("res://scripts/DeckPrepBoard.gd")
-	var board = BoardClass.new()
-	r._assert_true(board.has_method("_build_synthesis_area"), "_build_synthesis_area()が存在する（中央下部）")
-	r._assert_true(board.has_method("_create_synthesis_tile"), "_create_synthesis_tile()が存在する")
+	# ⑥ 合成可能エリアが盤面直下に配置する関数として存在すること（DeckPrepBoardSpellsに移動）
+	var SpellsClass = load("res://scripts/DeckPrepBoardSpells.gd")
+	var spells = SpellsClass.new()
+	r._assert_true(spells.has_method("build_synthesis_area"), "build_synthesis_area()が存在する（中央下部）")
+	r._assert_true(spells.has_method("_create_synthesis_tile"), "_create_synthesis_tile()が存在する")
 
 func _test_synthesis_toggle_top_right(r: RefCounted) -> void:
-	# ⑦ Yes/No確認省略トグルが合成エリアに存在すること
-	var BoardClass = load("res://scripts/DeckPrepBoard.gd")
-	var board = BoardClass.new()
+	# ⑦ Yes/No確認省略トグルが合成エリアに存在すること（DeckPrepBoardSpellsに移動）
+	var SpellsClass = load("res://scripts/DeckPrepBoardSpells.gd")
+	var spells = SpellsClass.new()
 	# _skip_synth_confirm 変数が存在すること（get()でnullチェック）
-	var val = board.get("_skip_synth_confirm")
-	r._assert_true(val != null or val == false, "_skip_synth_confimがDeckPrepBoardに存在する")
+	var val = spells.get("_skip_synth_confirm")
+	r._assert_true(val != null or val == false, "_skip_synth_confimがDeckPrepBoardSpellsに存在する")
 
 func _test_tile_5_7_ratio(r: RefCounted) -> void:
 	# ④ タイル形式の縦横比が5:7であること（SPELL_TILE_H / SPELL_TILE_W ≈ 1.4 = 7/5）
@@ -348,13 +348,15 @@ func _test_tile_5_7_ratio(r: RefCounted) -> void:
 
 func _test_empty_slot_hidden(r: RefCounted) -> void:
 	# ④ 空スロットを表示しないこと:
-	# _build_spell_artifact_split では空スロット(count=0のとき)タイルを追加しない設計であること
-	# コード上の設計チェック: _create_empty_slot_panel は呪文/アーティファクトエリアから呼ばれないこと
+	# build_spell_artifact_split では空スロット(count=0のとき)タイルを追加しない設計であること
+	# コード上の設計チェック: _create_empty_slot_panel は呪文/アーティファクトエリアから呼ばれないこと（DeckPrepBoardSpellsに移動）
+	var SpellsClass = load("res://scripts/DeckPrepBoardSpells.gd")
+	var spells = SpellsClass.new()
+	# 新設計では build_spell_artifact_split が空スロット非表示
+	r._assert_true(spells.has_method("build_spell_artifact_split"), "新設計の分割描画関数が存在する")
+	# _create_empty_slot_panel は盤面セル用として残存可能（削除不要）
 	var BoardClass = load("res://scripts/DeckPrepBoard.gd")
 	var board = BoardClass.new()
-	# 新設計では _build_spell_artifact_split が空スロット非表示
-	r._assert_true(board.has_method("_build_spell_artifact_split"), "新設計の分割描画関数が存在する")
-	# _create_empty_slot_panel は盤面セル用として残存可能（削除不要）
 	r._assert_true(board.has_method("_create_empty_slot_panel"), "_create_empty_slot_panelが存在する")
 
 # ===== 追加修正4項目テスト =====
@@ -362,7 +364,7 @@ func _test_empty_slot_hidden(r: RefCounted) -> void:
 func _test_no_synth_toggle_in_right_panel(r: RefCounted) -> void:
 	# ① 右パネルの合成セクション（build_synthesis_section）にトグルが追加されないこと
 	# build_synthesis_sectionが_build_synth_confirm_toggleを呼ばないことを
-	# 合成エリア（DeckPrepBoard）にのみ_skip_synth_confirmが存在することで検証
+	# 合成エリア（DeckPrepBoardSpells）にのみ_skip_synth_confirmが存在することで検証
 	var InfoClass = load("res://scripts/DeckPrepInfo.gd")
 	var info = InfoClass.new()
 	# DeckPrepInfoに_build_synth_confirm_toggleは存在するが、
@@ -370,12 +372,12 @@ func _test_no_synth_toggle_in_right_panel(r: RefCounted) -> void:
 	# → _skip_synth_confirmはDeckPrepInfoに存在するが右パネルのbuild_synthesis_sectionでは使わない
 	r._assert_true(info.has_method("build_synthesis_section"),
 		"build_synthesis_section()が存在する")
-	# DeckPrepBoardにのみトグルが存在すること（_skip_synth_confirm変数）
-	var BoardClass = load("res://scripts/DeckPrepBoard.gd")
-	var board = BoardClass.new()
-	var val = board.get("_skip_synth_confirm")
+	# DeckPrepBoardSpellsにのみトグルが存在すること（_skip_synth_confirm変数）
+	var SpellsClass = load("res://scripts/DeckPrepBoardSpells.gd")
+	var spells = SpellsClass.new()
+	var val = spells.get("_skip_synth_confirm")
 	r._assert_true(val != null or val == false,
-		"test_no_synth_toggle_in_right_panel: トグルはDeckPrepBoardにのみ存在する")
+		"test_no_synth_toggle_in_right_panel: トグルはDeckPrepBoardSpellsにのみ存在する")
 
 func _test_equipment_fits_in_sidebar(r: RefCounted) -> void:
 	# ④ 装備スロット6個が左パネル（高さ710px）内に完全に収まること

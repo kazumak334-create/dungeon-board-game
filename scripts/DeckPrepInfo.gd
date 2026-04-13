@@ -239,7 +239,7 @@ func show_card_info_in_container(container: Control, card_idx: int) -> void:
 	if CardDB.UNITS.has(card_name):
 		var d = CardDB.UNITS[card_name]
 		for stat_pair in [
-			["マナ", str(d.get("cost", 0))],
+			["マナ", str(d.get("mana", 0))],
 			["HP", str(d.get("hp", 0))],
 			["ATK", str(d.get("atk", 0))],
 			["SPD", "%.1fs" % d.get("interval", 0)],
@@ -257,7 +257,7 @@ func show_card_info_in_container(container: Control, card_idx: int) -> void:
 	elif CardDB.SPELLS.has(card_name):
 		var d = CardDB.SPELLS[card_name]
 		var row = Label.new()
-		row.text = "[呪文] C:%d" % d.get("cost", 0)
+		row.text = "[呪文] C:%d" % d.get("mana", 0)
 		row.position = Vector2(4, y)
 		row.size = Vector2(_detail_w - 8, 14)
 		row.add_theme_font_size_override("font_size", 9)
@@ -268,7 +268,7 @@ func show_card_info_in_container(container: Control, card_idx: int) -> void:
 	elif CardDB.STATUS_SPELLS.has(card_name):
 		var d = CardDB.STATUS_SPELLS[card_name]
 		var row = Label.new()
-		row.text = "[異常] C:%d" % d.get("cost", 0)
+		row.text = "[異常] C:%d" % d.get("mana", 0)
 		row.position = Vector2(4, y)
 		row.size = Vector2(_detail_w - 8, 14)
 		row.add_theme_font_size_override("font_size", 9)
@@ -745,7 +745,7 @@ func create_mini_card_icon(card_name: String, size: Vector2 = Vector2(MINI_CARD_
 		bot_lbl.text = "HP%d" % d.get("hp", 0)
 	elif CardDB.SPELLS.has(card_name):
 		var d = CardDB.SPELLS[card_name]
-		bot_lbl.text = "C:%d" % d.get("cost", 0)
+		bot_lbl.text = "C:%d" % d.get("mana", 0)
 	else:
 		bot_lbl.text = "???"
 	bot_lbl.position = Vector2(2, size.y - 13)
@@ -789,21 +789,21 @@ func create_card_hover_popup(card_name: String) -> Control:
 		stats_lbl.add_theme_color_override("font_color", UIF.TEXT_COLOR)
 		vbox.add_child(stats_lbl)
 		var cost_lbl = Label.new()
-		cost_lbl.text = "マナ:%d  %s" % [d.get("cost", 0), d.get("race", "")]
+		cost_lbl.text = "マナ:%d  %s" % [d.get("mana", 0), d.get("race", "")]
 		cost_lbl.add_theme_font_size_override("font_size", 10)
 		cost_lbl.add_theme_color_override("font_color", Color(0.5, 0.7, 0.9))
 		vbox.add_child(cost_lbl)
 	elif CardDB.SPELLS.has(card_name):
 		var d = CardDB.SPELLS[card_name]
 		var cost_lbl = Label.new()
-		cost_lbl.text = "[呪文] マナ:%d" % d.get("cost", 0)
+		cost_lbl.text = "[呪文] マナ:%d" % d.get("mana", 0)
 		cost_lbl.add_theme_font_size_override("font_size", 10)
 		cost_lbl.add_theme_color_override("font_color", SPELL_COLOR)
 		vbox.add_child(cost_lbl)
 	elif CardDB.STATUS_SPELLS.has(card_name):
 		var d = CardDB.STATUS_SPELLS[card_name]
 		var cost_lbl = Label.new()
-		cost_lbl.text = "[異常状態] マナ:%d" % d.get("cost", 0)
+		cost_lbl.text = "[異常状態] マナ:%d" % d.get("mana", 0)
 		cost_lbl.add_theme_font_size_override("font_size", 10)
 		cost_lbl.add_theme_color_override("font_color", UIF.DEMERIT_COLOR)
 		vbox.add_child(cost_lbl)
@@ -930,7 +930,7 @@ func _build_card_frame_header(card_name: String, d: Dictionary, y: float) -> flo
 	card_frame.add_child(race_lbl)
 
 	# マナ（種族右隣・小）
-	var mana_val = d.get("cost", 0)
+	var mana_val = d.get("mana", 0)
 	var mana_lbl = Label.new()
 	mana_lbl.text = "M%d" % mana_val
 	mana_lbl.position = Vector2(44, cy + 2)

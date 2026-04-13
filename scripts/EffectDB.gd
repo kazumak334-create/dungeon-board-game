@@ -125,7 +125,6 @@ const EFFECTS: Dictionary = {
 	"tile_grave":        {"type": "tile_effect", "trigger": "on_tick", "tick_interval": 3.0, "display": "墓地", "unit_label": "墓地", "summon_unit": "スケルトン", "color": [0.2, 0.15, 0.1, 0.3], "texture": "", "anim": "", "sfx": ""},
 
 	# ---- アーティファクト用永久効果 ----
-	"mana_regen_boost":    {"type": "mana_regen_modify", "pct": 0.2, "display": "マナ加速", "texture": "", "anim": "", "sfx": ""},
 	"base_damage_reduce":  {"type": "base_damage_reduce", "pct": 0.1, "display": "本体守護", "texture": "", "anim": "", "sfx": ""},
 
 	# ---- アーティファクト用召喚（random_empty_ally） ----

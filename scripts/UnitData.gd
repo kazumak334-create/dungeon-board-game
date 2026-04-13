@@ -7,7 +7,7 @@ var max_hp: int = 10
 var current_hp: int = 10
 var attack: int = 2
 var attack_interval: float = 1.5
-var cost: int = 2
+var mana: int = 2
 var assigned_col: int = 0
 var race: String = ""
 var attack_range: String = "1行"
@@ -87,7 +87,7 @@ func clone() -> RefCounted:
 	d.current_hp = max_hp
 	d.attack = attack
 	d.attack_interval = attack_interval
-	d.cost = cost
+	d.mana = mana
 	d.assigned_col = assigned_col
 	d.race = race
 	d.attack_range = attack_range
