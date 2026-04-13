@@ -7,6 +7,7 @@ const UIColors = preload("res://scripts/ui/UIColors.gd")
 
 var _main_node: Control = null
 var _board_mana_label: Label = null
+var _mana_generation_label: Label = null
 
 # バランスパネル用変数
 var _balance_bars: Dictionary = {}  # {"thrust": ColorRect, "guard": ColorRect, "break": ColorRect}
@@ -88,12 +89,24 @@ func _build_status_area() -> void:
 	_main_node.add_child(header)
 	cy += 24
 
+	# 盤面ユニットの総mana計算
+	var board_unit_mana = 0
+	for i in range(GameSession.selected_deck.size()):
+		var cfg = GameSession.placement_config[i] if i < GameSession.placement_config.size() else {}
+		var col = cfg.get("col", -1)
+		if col >= 0:  # 盤面配置
+			var entry = GameSession.selected_deck[i]
+			var card_name = entry.get("name", "") if entry is Dictionary else str(entry)
+			if CardDB.UNITS.has(card_name):
+				board_unit_mana += CardDB.UNITS[card_name].get("mana", 0)
+
 	# グループ1: クラス基本情報
 	var group1 = [
 		["%s" % cls.get("display", "---"), UIColors.COLOR_TITLE],
 		["HP: 30", UIColors.COLOR_TEXT],
 		["マナ: %.0f / %d" % [cls.get("initial_mana", 3), int(cls.get("mana_max", 10))], Color(0.5, 0.7, 0.9)],
 		["盤面マナ: 0", UIColors.COLOR_SELECTED],
+		["マナ生成力: %d" % board_unit_mana, Color(0.6, 0.8, 0.5)],
 	]
 	# グループ2: デッキ情報
 	var group2 = [
@@ -118,9 +131,12 @@ func _build_status_area() -> void:
 			lbl.add_theme_font_size_override("font_size", 11)
 			lbl.add_theme_color_override("font_color", item[1])
 			_main_node.add_child(lbl)
-			# 盤面マナラベルを保持
-			if group == group1 and item == group1[-1]:
-				_board_mana_label = lbl
+			# 盤面マナラベルとマナ生成力ラベルを保持
+			if group == group1:
+				if item == group1[-2]:  # "盤面マナ: 0"
+					_board_mana_label = lbl
+				elif item == group1[-1]:  # "マナ生成力: X"
+					_mana_generation_label = lbl
 			cy += 18
 		# グループ間: 区切り線 + 12px余白
 		if group != group3:
@@ -136,6 +152,8 @@ func update_board_mana(board_mana: int) -> void:
 	if _board_mana_label == null:
 		return
 	_board_mana_label.text = "盤面マナ: %d" % board_mana
+	if _mana_generation_label != null:
+		_mana_generation_label.text = "マナ生成力: %d" % board_mana
 
 func _build_balance_panel() -> void:
 	var base_x = SIDEBAR_X + 15
