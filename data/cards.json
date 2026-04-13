@@ -1720,7 +1720,6 @@
 			"col": 1,
 			"mana": 2,
 			"hp": 20,
-			"interval": 1.5,
 			"race": "獣",
 			"range": "近接",
 			"sfx": "",
@@ -1728,7 +1727,8 @@
 			"texture": "",
 			"roles": [
 				"攻撃"
-			]
+			],
+			"spd": 0.667
 		},
 		"キングスライム": {
 			"anim": "",
@@ -1737,7 +1737,6 @@
 			"col": 2,
 			"mana": 10,
 			"hp": 100,
-			"interval": 6,
 			"race": "スライム",
 			"range": "近接",
 			"sfx": "",
@@ -1745,7 +1744,8 @@
 			"texture": "",
 			"roles": [
 				"攻撃"
-			]
+			],
+			"spd": 0.167
 		},
 		"クリスタルスライム": {
 			"anim": "",
@@ -1754,7 +1754,6 @@
 			"col": 2,
 			"mana": 4,
 			"hp": 10,
-			"interval": 2,
 			"race": "スライム",
 			"range": "近接",
 			"sfx": "",
@@ -1762,7 +1761,8 @@
 			"texture": "",
 			"roles": [
 				"攻撃"
-			]
+			],
+			"spd": 0.5
 		},
 		"グール": {
 			"anim": "",
@@ -1771,7 +1771,6 @@
 			"col": 1,
 			"mana": 2,
 			"hp": 25,
-			"interval": 2,
 			"race": "アンデッド",
 			"range": "近接",
 			"sfx": "",
@@ -1788,7 +1787,8 @@
 			"texture": "",
 			"roles": [
 				"攻撃"
-			]
+			],
+			"spd": 0.5
 		},
 		"ゴブリン": {
 			"anim": "",
@@ -1797,7 +1797,6 @@
 			"col": 0,
 			"mana": 1,
 			"hp": 15,
-			"interval": 1,
 			"race": "獣",
 			"range": "近接",
 			"sfx": "",
@@ -1805,7 +1804,8 @@
 			"texture": "",
 			"roles": [
 				"攻撃"
-			]
+			],
+			"spd": 1.0
 		},
 		"スケルトン": {
 			"anim": "",
@@ -1814,7 +1814,6 @@
 			"col": 0,
 			"mana": 2,
 			"hp": 20,
-			"interval": 3,
 			"race": "アンデッド",
 			"range": "1行",
 			"sfx": "",
@@ -1832,7 +1831,8 @@
 			"texture": "",
 			"roles": [
 				"壁"
-			]
+			],
+			"spd": 0.333
 		},
 		"スライム": {
 			"anim": "",
@@ -1841,12 +1841,12 @@
 			"col": 1,
 			"mana": 1,
 			"hp": 15,
-			"interval": 4,
 			"race": "スライム",
 			"range": "1行",
 			"sfx": "",
 			"skills": [],
-			"texture": ""
+			"texture": "",
+			"spd": 0.25
 		},
 		"ゼリーフィッシュ": {
 			"anim": "",
@@ -1855,12 +1855,12 @@
 			"col": 2,
 			"mana": 3,
 			"hp": 10,
-			"interval": 5,
 			"race": "スライム",
 			"range": "1行",
 			"sfx": "",
 			"skills": [],
-			"texture": ""
+			"texture": "",
+			"spd": 0.2
 		},
 		"タイガー": {
 			"anim": "",
@@ -1869,7 +1869,6 @@
 			"col": 2,
 			"mana": 3,
 			"hp": 25,
-			"interval": 2,
 			"race": "獣",
 			"range": "下含む2行",
 			"sfx": "",
@@ -1884,7 +1883,8 @@
 					"trigger": "on_hit"
 				}
 			],
-			"texture": ""
+			"texture": "",
+			"spd": 0.5
 		},
 		"バンシー": {
 			"anim": "",
@@ -1893,7 +1893,6 @@
 			"col": 2,
 			"mana": 2,
 			"hp": 10,
-			"interval": 2,
 			"race": "アンデッド",
 			"range": "上下含む3行",
 			"sfx": "",
@@ -1907,7 +1906,8 @@
 					"trigger": "on_hit"
 				}
 			],
-			"texture": ""
+			"texture": "",
+			"spd": 0.5
 		},
 		"パラライズスライム": {
 			"anim": "",
@@ -1916,7 +1916,6 @@
 			"col": 0,
 			"mana": 3,
 			"hp": 25,
-			"interval": 3,
 			"race": "スライム",
 			"range": "1行",
 			"sfx": "",
@@ -1930,7 +1929,8 @@
 					"trigger": "on_hit"
 				}
 			],
-			"texture": ""
+			"texture": "",
+			"spd": 0.333
 		},
 		"ヒートスライム": {
 			"anim": "",
@@ -1939,7 +1939,6 @@
 			"col": 0,
 			"mana": 3,
 			"hp": 25,
-			"interval": 3.8,
 			"race": "スライム",
 			"range": "1行",
 			"sfx": "",
@@ -1953,7 +1952,8 @@
 					"trigger": "on_hit"
 				}
 			],
-			"texture": ""
+			"texture": "",
+			"spd": 0.263
 		},
 		"ファットスライム": {
 			"anim": "",
@@ -1962,12 +1962,12 @@
 			"col": 0,
 			"mana": 3,
 			"hp": 50,
-			"interval": 6,
 			"race": "スライム",
 			"range": "1行",
 			"sfx": "",
 			"skills": [],
-			"texture": ""
+			"texture": "",
+			"spd": 0.167
 		},
 		"フロストスライム": {
 			"anim": "",
@@ -1976,7 +1976,6 @@
 			"col": 0,
 			"mana": 3,
 			"hp": 25,
-			"interval": 3.8,
 			"race": "スライム",
 			"range": "1行",
 			"sfx": "",
@@ -1990,7 +1989,8 @@
 					"trigger": "on_hit"
 				}
 			],
-			"texture": ""
+			"texture": "",
+			"spd": 0.263
 		},
 		"ブラッドスライム": {
 			"anim": "",
@@ -1999,12 +1999,12 @@
 			"col": 0,
 			"mana": 4,
 			"hp": 25,
-			"interval": 3.8,
 			"race": "スライム",
 			"range": "1行",
 			"sfx": "",
 			"skills": [],
-			"texture": ""
+			"texture": "",
+			"spd": 0.263
 		},
 		"ポイズンスライム": {
 			"anim": "",
@@ -2013,7 +2013,6 @@
 			"col": 0,
 			"mana": 3,
 			"hp": 25,
-			"interval": 3,
 			"race": "スライム",
 			"range": "1行",
 			"sfx": "",
@@ -2027,7 +2026,8 @@
 					"trigger": "on_hit"
 				}
 			],
-			"texture": ""
+			"texture": "",
+			"spd": 0.333
 		},
 		"マッドスライム": {
 			"anim": "",
@@ -2036,12 +2036,12 @@
 			"col": 1,
 			"mana": 3,
 			"hp": 40,
-			"interval": 3.8,
 			"race": "スライム",
 			"range": "1行",
 			"sfx": "",
 			"skills": [],
-			"texture": ""
+			"texture": "",
+			"spd": 0.263
 		},
 		"ラージスライム": {
 			"anim": "",
@@ -2050,12 +2050,12 @@
 			"col": 1,
 			"mana": 2,
 			"hp": 25,
-			"interval": 3.8,
 			"race": "スライム",
 			"range": "1行",
 			"sfx": "",
 			"skills": [],
-			"texture": ""
+			"texture": "",
+			"spd": 0.263
 		},
 		"リッチ": {
 			"anim": "",
@@ -2064,7 +2064,6 @@
 			"col": 2,
 			"mana": 3,
 			"hp": 15,
-			"interval": 3,
 			"race": "アンデッド",
 			"range": "上下含む3行",
 			"sfx": "",
@@ -2078,7 +2077,8 @@
 					"trigger": "on_hit"
 				}
 			],
-			"texture": ""
+			"texture": "",
+			"spd": 0.333
 		},
 		"ワイルドホーク": {
 			"anim": "",
@@ -2087,12 +2087,12 @@
 			"col": 2,
 			"mana": 2,
 			"hp": 15,
-			"interval": 1.5,
 			"race": "獣",
 			"range": "1行",
 			"sfx": "",
 			"skills": [],
-			"texture": ""
+			"texture": "",
+			"spd": 0.667
 		},
 		"ヴリコラカス": {
 			"anim": "",
@@ -2101,7 +2101,6 @@
 			"col": 1,
 			"mana": 3,
 			"hp": 30,
-			"interval": 2,
 			"race": "アンデッド",
 			"range": "1行",
 			"sfx": "",
@@ -2113,7 +2112,8 @@
 					"trigger": "on_hit"
 				}
 			],
-			"texture": ""
+			"texture": "",
+			"spd": 0.5
 		},
 		"レヴナント": {
 			"anim": "",
@@ -2122,7 +2122,6 @@
 			"col": 1,
 			"mana": 3,
 			"hp": 30,
-			"interval": 3,
 			"race": "アンデッド",
 			"range": "1行",
 			"sfx": "",
@@ -2136,7 +2135,8 @@
 					}
 				}
 			],
-			"texture": ""
+			"texture": "",
+			"spd": 0.333
 		},
 		"ワイト": {
 			"anim": "",
@@ -2145,7 +2145,6 @@
 			"col": 1,
 			"mana": 3,
 			"hp": 35,
-			"interval": 3,
 			"race": "アンデッド",
 			"range": "1行",
 			"sfx": "",
@@ -2159,7 +2158,8 @@
 					}
 				}
 			],
-			"texture": ""
+			"texture": "",
+			"spd": 0.333
 		},
 		"シャドウ": {
 			"anim": "",
@@ -2168,12 +2168,12 @@
 			"col": 1,
 			"mana": 2,
 			"hp": 15,
-			"interval": 1,
 			"race": "アンデッド",
 			"range": "1行",
 			"sfx": "",
 			"skills": [],
-			"texture": ""
+			"texture": "",
+			"spd": 1.0
 		},
 		"デュラハン": {
 			"anim": "",
@@ -2182,12 +2182,12 @@
 			"col": 1,
 			"mana": 4,
 			"hp": 40,
-			"interval": 3,
 			"race": "アンデッド",
 			"range": "上下含む3行",
 			"sfx": "",
 			"skills": [],
-			"texture": ""
+			"texture": "",
+			"spd": 0.333
 		},
 		"デスナイト": {
 			"anim": "",
@@ -2196,7 +2196,6 @@
 			"col": 0,
 			"mana": 0,
 			"hp": 80,
-			"interval": 3,
 			"race": "アンデッド",
 			"range": "上下含む3行",
 			"sfx": "",
@@ -2218,7 +2217,8 @@
 					}
 				}
 			],
-			"texture": ""
+			"texture": "",
+			"spd": 0.333
 		},
 		"コカトリス": {
 			"anim": "",
@@ -2227,7 +2227,6 @@
 			"col": 1,
 			"mana": 2,
 			"hp": 18,
-			"interval": 2,
 			"race": "獣",
 			"range": "上含む2行",
 			"sfx": "",
@@ -2241,7 +2240,8 @@
 					}
 				}
 			],
-			"texture": ""
+			"texture": "",
+			"spd": 0.5
 		},
 		"ケットシー": {
 			"anim": "",
@@ -2250,12 +2250,12 @@
 			"col": 1,
 			"mana": 2,
 			"hp": 12,
-			"interval": 1,
 			"race": "獣",
 			"range": "1行",
 			"sfx": "",
 			"skills": [],
-			"texture": ""
+			"texture": "",
+			"spd": 1.0
 		},
 		"マンティコア": {
 			"anim": "",
@@ -2264,7 +2264,6 @@
 			"col": 1,
 			"mana": 3,
 			"hp": 30,
-			"interval": 2,
 			"race": "獣",
 			"range": "下含む2行",
 			"sfx": "",
@@ -2278,7 +2277,8 @@
 					}
 				}
 			],
-			"texture": ""
+			"texture": "",
+			"spd": 0.5
 		},
 		"キリン": {
 			"anim": "",
@@ -2287,12 +2287,12 @@
 			"col": 2,
 			"mana": 3,
 			"hp": 35,
-			"interval": 3,
 			"race": "獣",
 			"range": "1行",
 			"sfx": "",
 			"skills": [],
-			"texture": ""
+			"texture": "",
+			"spd": 0.333
 		},
 		"ビャッコ": {
 			"anim": "",
@@ -2301,12 +2301,12 @@
 			"col": 1,
 			"mana": 3,
 			"hp": 25,
-			"interval": 1.5,
 			"race": "獣",
 			"range": "上下含む3行",
 			"sfx": "",
 			"skills": [],
-			"texture": ""
+			"texture": "",
+			"spd": 0.667
 		},
 		"グリフォン": {
 			"anim": "",
@@ -2315,12 +2315,12 @@
 			"col": 1,
 			"mana": 4,
 			"hp": 40,
-			"interval": 2,
 			"race": "獣",
 			"range": "上下含む3行",
 			"sfx": "",
 			"skills": [],
-			"texture": ""
+			"texture": "",
+			"spd": 0.5
 		},
 		"フェンリル": {
 			"anim": "",
@@ -2329,7 +2329,6 @@
 			"col": 0,
 			"mana": 0,
 			"hp": 70,
-			"interval": 1.5,
 			"race": "獣",
 			"range": "上下含む3行",
 			"sfx": "",
@@ -2343,7 +2342,8 @@
 					}
 				}
 			],
-			"texture": ""
+			"texture": "",
+			"spd": 0.667
 		},
 		"ソウルイーター": {
 			"anim": "",
@@ -2352,7 +2352,6 @@
 			"col": 0,
 			"mana": 4,
 			"hp": 20,
-			"interval": 1.8,
 			"race": "アンデッド",
 			"range": "1行",
 			"sfx": "",
@@ -2366,7 +2365,8 @@
 					}
 				}
 			],
-			"texture": ""
+			"texture": "",
+			"spd": 0.556
 		},
 		"リッチキング": {
 			"anim": "",
@@ -2375,7 +2375,6 @@
 			"col": 2,
 			"mana": 5,
 			"hp": 30,
-			"interval": 3.5,
 			"race": "アンデッド",
 			"range": "上下含む3行",
 			"sfx": "",
@@ -2389,7 +2388,8 @@
 					}
 				}
 			],
-			"texture": ""
+			"texture": "",
+			"spd": 0.286
 		},
 		"ストームホーク": {
 			"anim": "",
@@ -2398,7 +2398,6 @@
 			"col": 0,
 			"mana": 4,
 			"hp": 18,
-			"interval": 1.2,
 			"race": "獣",
 			"range": "1行",
 			"sfx": "",
@@ -2413,7 +2412,8 @@
 					}
 				}
 			],
-			"texture": ""
+			"texture": "",
+			"spd": 0.833
 		},
 		"フェンリスウルフ": {
 			"anim": "",
@@ -2422,7 +2422,6 @@
 			"col": 0,
 			"mana": 5,
 			"hp": 25,
-			"interval": 1,
 			"race": "獣",
 			"range": "1行",
 			"sfx": "",
@@ -2436,7 +2435,8 @@
 					}
 				}
 			],
-			"texture": ""
+			"texture": "",
+			"spd": 1.0
 		},
 		"ゾンビの手": {
 			"anim": "",
@@ -2445,12 +2445,12 @@
 			"col": 1,
 			"mana": 1,
 			"hp": 8,
-			"interval": 3,
 			"race": "アンデッド",
 			"range": "1行",
 			"sfx": "",
 			"skills": [],
-			"texture": ""
+			"texture": "",
+			"spd": 0.333
 		},
 		"Granob": {
 			"anim": "",
@@ -2459,7 +2459,6 @@
 			"col": 1,
 			"mana": 5,
 			"hp": 80,
-			"interval": 3,
 			"race": "スライム",
 			"range": "1行",
 			"sfx": "",
@@ -2485,7 +2484,8 @@
 			"texture": "",
 			"roles": [
 				"壁"
-			]
+			],
+			"spd": 0.333
 		},
 		"Amoeba": {
 			"anim": "",
@@ -2494,7 +2494,6 @@
 			"col": 1,
 			"mana": 3,
 			"hp": 40,
-			"interval": 2,
 			"race": "スライム",
 			"range": "1行",
 			"sfx": "",
@@ -2520,7 +2519,8 @@
 			"texture": "",
 			"roles": [
 				"サポート"
-			]
+			],
+			"spd": 0.5
 		},
 		"Barbzel": {
 			"anim": "",
@@ -2529,7 +2529,6 @@
 			"col": 1,
 			"mana": 3,
 			"hp": 40,
-			"interval": 1,
 			"race": "スライム",
 			"range": "1行",
 			"sfx": "",
@@ -2555,7 +2554,8 @@
 			"roles": [
 				"攻撃",
 				"サポート"
-			]
+			],
+			"spd": 1.0
 		},
 		"Jelfix": {
 			"anim": "",
@@ -2564,7 +2564,6 @@
 			"col": 1,
 			"mana": 1,
 			"hp": 40,
-			"interval": 1,
 			"race": "スライム",
 			"range": "1行",
 			"sfx": "",
@@ -2590,7 +2589,8 @@
 			"texture": "",
 			"roles": [
 				"サポート"
-			]
+			],
+			"spd": 1.0
 		},
 		"Mudblob": {
 			"anim": "",
@@ -2599,7 +2599,6 @@
 			"col": 1,
 			"mana": 3,
 			"hp": 40,
-			"interval": 2,
 			"race": "スライム",
 			"range": "1行",
 			"sfx": "",
@@ -2626,7 +2625,8 @@
 			"texture": "",
 			"roles": [
 				"サポート"
-			]
+			],
+			"spd": 0.5
 		},
 		"Venpool": {
 			"anim": "",
@@ -2635,7 +2635,6 @@
 			"col": 1,
 			"mana": 3,
 			"hp": 20,
-			"interval": 4,
 			"race": "スライム",
 			"range": "1行",
 			"sfx": "",
@@ -2660,7 +2659,8 @@
 			"texture": "",
 			"roles": [
 				"サポート"
-			]
+			],
+			"spd": 0.25
 		},
 		"Plagzel": {
 			"anim": "",
@@ -2669,7 +2669,6 @@
 			"col": 1,
 			"mana": 1,
 			"hp": 40,
-			"interval": 1,
 			"race": "スライム",
 			"range": "1行",
 			"sfx": "",
@@ -2695,7 +2694,8 @@
 			"texture": "",
 			"roles": [
 				"サポート"
-			]
+			],
+			"spd": 1.0
 		},
 		"Sparkblob": {
 			"anim": "",
@@ -2704,7 +2704,6 @@
 			"col": 1,
 			"mana": 1,
 			"hp": 20,
-			"interval": 0.5,
 			"race": "スライム",
 			"range": "1行",
 			"sfx": "",
@@ -2722,7 +2721,8 @@
 			"texture": "",
 			"roles": [
 				"攻撃"
-			]
+			],
+			"spd": 2.0
 		},
 		"Crystel": {
 			"anim": "",
@@ -2731,7 +2731,6 @@
 			"col": 1,
 			"mana": 1,
 			"hp": 40,
-			"interval": 2,
 			"race": "スライム",
 			"range": "1行",
 			"sfx": "",
@@ -2757,7 +2756,8 @@
 			"texture": "",
 			"roles": [
 				"攻撃"
-			]
+			],
+			"spd": 0.5
 		},
 		"Voidblob": {
 			"anim": "",
@@ -2766,7 +2766,6 @@
 			"col": 1,
 			"mana": 3,
 			"hp": 60,
-			"interval": 2,
 			"race": "スライム",
 			"range": "1行",
 			"sfx": "",
@@ -2803,7 +2802,8 @@
 			],
 			"traits": [
 				"mana_drain"
-			]
+			],
+			"spd": 0.5
 		},
 		"Glitzel": {
 			"anim": "",
@@ -2812,7 +2812,6 @@
 			"col": 1,
 			"mana": 3,
 			"hp": 40,
-			"interval": 3,
 			"race": "スライム",
 			"range": "1行",
 			"sfx": "",
@@ -2829,7 +2828,8 @@
 			"texture": "",
 			"roles": [
 				"サポート"
-			]
+			],
+			"spd": 0.333
 		},
 		"Silenzel": {
 			"anim": "",
@@ -2838,7 +2838,6 @@
 			"col": 1,
 			"mana": 3,
 			"hp": 40,
-			"interval": 3,
 			"race": "スライム",
 			"range": "1行",
 			"sfx": "",
@@ -2855,7 +2854,8 @@
 			"texture": "",
 			"roles": [
 				"サポート"
-			]
+			],
+			"spd": 0.333
 		},
 		"Fangos": {
 			"anim": "",
@@ -2864,7 +2864,6 @@
 			"col": 1,
 			"mana": 1,
 			"hp": 20,
-			"interval": 0.5,
 			"race": "獣",
 			"range": "1行",
 			"sfx": "",
@@ -2891,7 +2890,8 @@
 			"roles": [
 				"攻撃",
 				"サポート"
-			]
+			],
+			"spd": 2.0
 		},
 		"Piercor": {
 			"anim": "",
@@ -2900,7 +2900,6 @@
 			"col": 1,
 			"mana": 1,
 			"hp": 20,
-			"interval": 1,
 			"race": "獣",
 			"range": "1行",
 			"sfx": "",
@@ -2918,7 +2917,8 @@
 			],
 			"traits": [
 				"pierce"
-			]
+			],
+			"spd": 1.0
 		},
 		"Hawkis": {
 			"anim": "",
@@ -2927,7 +2927,6 @@
 			"col": 1,
 			"mana": 0,
 			"hp": 30,
-			"interval": 1.5,
 			"race": "獣",
 			"range": "1行",
 			"sfx": "",
@@ -2948,7 +2947,8 @@
 			],
 			"traits": [
 				"flying"
-			]
+			],
+			"spd": 0.667
 		},
 		"Stalkor": {
 			"anim": "",
@@ -2957,7 +2957,6 @@
 			"col": 1,
 			"mana": 0,
 			"hp": 25,
-			"interval": 1.5,
 			"race": "獣",
 			"range": "1行",
 			"sfx": "",
@@ -2975,7 +2974,8 @@
 			"texture": "",
 			"roles": [
 				"攻撃"
-			]
+			],
+			"spd": 0.667
 		},
 		"Venomaw": {
 			"anim": "",
@@ -2984,7 +2984,6 @@
 			"col": 1,
 			"mana": 0,
 			"hp": 20,
-			"interval": 1,
 			"race": "獣",
 			"range": "1行",
 			"sfx": "",
@@ -3011,7 +3010,8 @@
 			"texture": "",
 			"roles": [
 				"攻撃"
-			]
+			],
+			"spd": 1.0
 		},
 		"Voidclaw": {
 			"anim": "",
@@ -3020,7 +3020,6 @@
 			"col": 1,
 			"mana": 0,
 			"hp": 25,
-			"interval": 1.5,
 			"race": "獣",
 			"range": "1行",
 			"sfx": "",
@@ -3045,7 +3044,8 @@
 			"roles": [
 				"攻撃",
 				"サポート"
-			]
+			],
+			"spd": 0.667
 		},
 		"Thornbeast": {
 			"anim": "",
@@ -3054,7 +3054,6 @@
 			"col": 1,
 			"mana": 1,
 			"hp": 40,
-			"interval": 1.5,
 			"race": "獣",
 			"range": "1行",
 			"sfx": "",
@@ -3079,7 +3078,8 @@
 			"texture": "",
 			"roles": [
 				"攻撃"
-			]
+			],
+			"spd": 0.667
 		},
 		"Rageveil": {
 			"anim": "",
@@ -3088,7 +3088,6 @@
 			"col": 1,
 			"mana": 1,
 			"hp": 50,
-			"interval": 1.5,
 			"race": "獣",
 			"range": "1行",
 			"sfx": "",
@@ -3110,7 +3109,8 @@
 			],
 			"traits": [
 				"indomitable"
-			]
+			],
+			"spd": 0.667
 		},
 		"Wolfpack": {
 			"anim": "",
@@ -3119,7 +3119,6 @@
 			"col": 1,
 			"mana": 0,
 			"hp": 15,
-			"interval": 1,
 			"race": "獣",
 			"range": "1行",
 			"sfx": "",
@@ -3149,7 +3148,8 @@
 			],
 			"traits": [
 				"swarm"
-			]
+			],
+			"spd": 1.0
 		},
 		"ホブゴブリン": {
 			"anim": "",
@@ -3158,12 +3158,12 @@
 			"col": 0,
 			"mana": 1,
 			"hp": 10,
-			"interval": 2,
 			"race": "獣",
 			"range": "1行",
 			"sfx": "",
 			"skills": [],
-			"texture": ""
+			"texture": "",
+			"spd": 0.5
 		}
 	},
 	"boss_decks": {
@@ -3442,7 +3442,6 @@
 		"猛獣使い": {
 			"hp": 25,
 			"atk": 6,
-			"interval": 1.5,
 			"mana": 3,
 			"race": "獣",
 			"range": "1行",
@@ -3461,12 +3460,12 @@
 					}
 				}
 			],
-			"boss_exclusive": true
+			"boss_exclusive": true,
+			"spd": 0.667
 		},
 		"母スライム核": {
 			"hp": 60,
 			"atk": 1,
-			"interval": 5,
 			"mana": 4,
 			"race": "スライム",
 			"range": "1行",
@@ -3486,12 +3485,12 @@
 					}
 				}
 			],
-			"boss_exclusive": true
+			"boss_exclusive": true,
+			"spd": 0.2
 		},
 		"融合スライム": {
 			"hp": 45,
 			"atk": 4,
-			"interval": 3,
 			"mana": 4,
 			"race": "スライム",
 			"range": "1行",
@@ -3510,12 +3509,12 @@
 					}
 				}
 			],
-			"boss_exclusive": true
+			"boss_exclusive": true,
+			"spd": 0.333
 		},
 		"屍術師": {
 			"hp": 20,
 			"atk": 3,
-			"interval": 3,
 			"mana": 3,
 			"race": "アンデッド",
 			"range": "上下含む3行",
@@ -3534,12 +3533,12 @@
 					}
 				}
 			],
-			"boss_exclusive": true
+			"boss_exclusive": true,
+			"spd": 0.333
 		},
 		"死骸の王座": {
 			"hp": 50,
 			"atk": 5,
-			"interval": 3,
 			"mana": 4,
 			"race": "アンデッド",
 			"range": "上下含む3行",
@@ -3558,7 +3557,8 @@
 					}
 				}
 			],
-			"boss_exclusive": true
+			"boss_exclusive": true,
+			"spd": 0.333
 		}
 	},
 	"bosses": {

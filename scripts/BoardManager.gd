@@ -139,8 +139,8 @@ func place_unit(side: int, unit_data: Object, config_entry: Dictionary = {}) -> 
 							placed.current_hp += bonus
 							print("[BoardManager] 死霊術師HP補正: %s max_hp+%d" % [placed.unit_name, bonus])
 		board[side][row][col] = placed
-		attack_timers[side][row][col] = placed.attack_interval
-		support_timers[side][row][col] = placed.attack_interval
+		attack_timers[side][row][col] = placed.get_attack_interval()
+		support_timers[side][row][col] = placed.get_attack_interval()
 		emit_signal("unit_placed", side, row, col, placed)
 		on_board_changed()
 		if col == 1 and event_queue != null:
@@ -219,10 +219,10 @@ func _execute_synthesis(side: int, row: int, col: int, existing: Object, result_
 	synthesized.paralysis_turns = max(0, existing.paralysis_turns - 10)
 	synthesized.poison_stacks = max(0, existing.poison_stacks - 10)
 	# 攻撃タイマー継続
-	synthesized.attack_interval = result_data.attack_interval
-	var timer_ratio: float = attack_timers[side][row][col] / max(0.01, existing.attack_interval)
-	attack_timers[side][row][col] = synthesized.attack_interval * timer_ratio
-	support_timers[side][row][col] = synthesized.attack_interval * timer_ratio
+	synthesized.get_attack_interval() = result_data.get_attack_interval()
+	var timer_ratio: float = attack_timers[side][row][col] / max(0.01, existing.get_attack_interval())
+	attack_timers[side][row][col] = synthesized.get_attack_interval() * timer_ratio
+	support_timers[side][row][col] = synthesized.get_attack_interval() * timer_ratio
 	# 盤面に配置
 	board[side][row][col] = synthesized
 	_init_skill_timers(synthesized)
@@ -333,8 +333,8 @@ func remove_unit(side: int, row: int, col: int) -> void:
 				var hp_percent = effect.get("hp_percent", 50)
 				var revive_hp = max(1, int(unit.max_hp * hp_percent / 100.0))
 				unit.current_hp = revive_hp
-				attack_timers[side][row][col] = unit.attack_interval
-				support_timers[side][row][col] = unit.attack_interval
+				attack_timers[side][row][col] = unit.get_attack_interval()
+				support_timers[side][row][col] = unit.get_attack_interval()
 				relic_revive_used = true
 				print("[BoardManager] レリック効果: %s → %s 復活 (HP %d/%d)" % [relic.get("display", ""), unit.unit_name, revive_hp, unit.max_hp])
 				emit_signal("unit_revived", side, row, col)
@@ -344,8 +344,8 @@ func remove_unit(side: int, row: int, col: int) -> void:
 	if unit != null and unit._support_revive and not unit._support_revive_used:
 		unit._support_revive_used = true
 		unit.current_hp = 1
-		attack_timers[side][row][col] = unit.attack_interval
-		support_timers[side][row][col] = unit.attack_interval
+		attack_timers[side][row][col] = unit.get_attack_interval()
+		support_timers[side][row][col] = unit.get_attack_interval()
 		emit_signal("unit_revived", side, row, col)
 		return
 	# 盤面効果 on_leave チェック
@@ -382,7 +382,7 @@ func _try_promote(side: int, row: int, col: int) -> void:
 	# 盤面効果: 移動元 on_leave
 	tile_system.check_tile_on_leave(side, row, 1, mid_unit)
 	board[side][row][front_col] = mid_unit
-	attack_timers[side][row][front_col] = mid_unit.attack_interval
+	attack_timers[side][row][front_col] = mid_unit.get_attack_interval()
 	board[side][row][1] = null
 	attack_timers[side][row][1] = 0.0
 	# 盤面効果: 移動先 on_enter
@@ -442,8 +442,8 @@ func _fire_hp_threshold_skill(side: int, row: int, col: int, unit: Object, entry
 		var back_col: int = 0 if side == 0 else 2
 		if col != back_col and board[side][row][back_col] == null:
 			board[side][row][back_col] = unit
-			attack_timers[side][row][back_col] = unit.attack_interval
-			support_timers[side][row][back_col] = unit.attack_interval
+			attack_timers[side][row][back_col] = unit.get_attack_interval()
+			support_timers[side][row][back_col] = unit.get_attack_interval()
 			board[side][row][col] = null
 			attack_timers[side][row][col] = 0.0
 			support_timers[side][row][col] = 0.0
@@ -458,8 +458,8 @@ func _fire_hp_threshold_skill(side: int, row: int, col: int, unit: Object, entry
 		var front_col: int = 2 if side == 0 else 0
 		if col != front_col and board[side][row][front_col] == null:
 			board[side][row][front_col] = unit
-			attack_timers[side][row][front_col] = unit.attack_interval
-			support_timers[side][row][front_col] = unit.attack_interval
+			attack_timers[side][row][front_col] = unit.get_attack_interval()
+			support_timers[side][row][front_col] = unit.get_attack_interval()
 			board[side][row][col] = null
 			attack_timers[side][row][col] = 0.0
 			support_timers[side][row][col] = 0.0
@@ -469,7 +469,7 @@ func _fire_hp_threshold_skill(side: int, row: int, col: int, unit: Object, entry
 	elif "2倍" in entry:
 		unit._temp_atk_bonus = unit.attack  # ATK2倍 = 現ATK分を加算
 		unit._temp_atk_timer = 10.0
-		unit._temp_spd_bonus = unit.attack_interval * 0.5  # 攻撃間隔半減
+		unit._temp_spd_bonus = unit.get_attack_interval() * 0.5  # 攻撃間隔半減
 		unit._temp_spd_timer = 10.0
 		skill_triggered.emit(side, row, col, "ATK/SPD2倍")
 
@@ -506,13 +506,13 @@ func _summon_unit_to_random_empty(side: int, unit_id: String) -> void:
 	var new_unit = UDS.new()
 	new_unit.unit_name = unit_id
 	new_unit.max_hp = ud["hp"]; new_unit.current_hp = ud["hp"]
-	new_unit.attack = ud["atk"]; new_unit.attack_interval = ud["interval"]
+	new_unit.attack = ud["atk"]; new_unit.spd = ud.get("spd", 1.0)
 	new_unit.mana = ud["mana"]; new_unit.race = ud.get("race", "")
 	new_unit.attack_range = ud.get("range", "1行")
 	new_unit.assigned_col = ud.get("col", 0)
 	new_unit.skills = ud.get("skills", []).duplicate(true)
 	board[side][pos[0]][pos[1]] = new_unit
-	attack_timers[side][pos[0]][pos[1]] = new_unit.attack_interval
+	attack_timers[side][pos[0]][pos[1]] = new_unit.get_attack_interval()
 	emit_signal("unit_placed", side, pos[0], pos[1], new_unit)
 	on_board_changed()
 	_init_skill_timers(new_unit)

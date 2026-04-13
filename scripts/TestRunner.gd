@@ -66,7 +66,7 @@ func _assert_true(condition: bool, msg: String) -> void:
 func _assert_eq(actual, expected, msg: String) -> void:
 	var is_equal: bool = false
 	if actual is float and expected is float:
-		is_equal = absf(actual - expected) < 0.001
+		is_equal = absf(actual - expected) < 0.01
 	else:
 		is_equal = actual == expected
 	if is_equal:

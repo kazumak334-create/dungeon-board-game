@@ -19,7 +19,7 @@ func _create_unit(unit_name: String) -> Object:
 	var u = UDS.new()
 	u.unit_name = unit_name
 	u.max_hp = d["hp"]; u.current_hp = d["hp"]
-	u.attack = d["atk"]; u.attack_interval = d["interval"]
+	u.attack = d["atk"]; u.spd = d["spd"]
 	u.mana = d["mana"]; u.race = d.get("race", "")
 	u.attack_range = d.get("range", "1行")
 	u.skills = d.get("skills", []).duplicate(true)
@@ -35,7 +35,7 @@ func _test_unit_placement(r: RefCounted) -> void:
 	# スケルトン弱体化確認
 	var sk = _create_unit("スケルトン")
 	r._assert_eq(sk.attack, 2, "スケルトンATK=2（弱体化後）")
-	r._assert_eq(sk.attack_interval, 3.0, "スケルトンSPD=3.0s（弱体化後）")
+	r._assert_eq(sk.get_attack_interval(), 3.0, "スケルトンSPD=3.0s（弱体化後）")
 
 # ---- ダメージ計算テスト ----
 func _test_damage_calculation(r: RefCounted) -> void:

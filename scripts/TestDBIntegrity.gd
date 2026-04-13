@@ -30,7 +30,7 @@ func _test_carddb_integrity(r: RefCounted) -> void:
 		var d = CardDB.UNITS[name]
 		r._assert_true(d.has("hp"), "UNITS[%s] にhpがない" % name)
 		r._assert_true(d.has("atk"), "UNITS[%s] にatkがない" % name)
-		r._assert_true(d.has("interval"), "UNITS[%s] にintervalがない" % name)
+		r._assert_true(d.has("spd"), "UNITS[%s] にspdがない" % name)
 		r._assert_true(d.has("mana"), "UNITS[%s] にmanaがない" % name)
 		r._assert_true(d.has("race"), "UNITS[%s] にraceがない" % name)
 		r._assert_true(d.has("skills"), "UNITS[%s] にskillsがない" % name)

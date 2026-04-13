@@ -6,7 +6,7 @@ var unit_name: String = "Unknown"
 var max_hp: int = 10
 var current_hp: int = 10
 var attack: int = 2
-var attack_interval: float = 1.5
+var spd: float = 1.0
 var mana: int = 2
 var assigned_col: int = 0
 var race: String = ""
@@ -73,6 +73,13 @@ var _temp_spd_timer: float = 0.0    # 一時SPDバフ残り時間
 var _hp_threshold_triggered: Dictionary = {}  # {entry: true} 発動済みフラグ
 var _invincible_timer: float = 0.0            # 結晶化：無敵残り時間
 
+# SPD → attack_interval 変換（互換性レイヤー）
+func get_attack_interval() -> float:
+	var effective_spd = spd + _interval_bonus  # _interval_bonusはSPDボーナスとして扱う
+	if effective_spd <= 0:
+		return 999.0  # SPD0以下の場合は攻撃不可
+	return 1.0 / effective_spd
+
 func is_alive() -> bool:
 	return current_hp > 0
 
@@ -86,7 +93,7 @@ func clone() -> RefCounted:
 	d.max_hp = max_hp
 	d.current_hp = max_hp
 	d.attack = attack
-	d.attack_interval = attack_interval
+	d.spd = spd
 	d.mana = mana
 	d.assigned_col = assigned_col
 	d.race = race
