@@ -583,7 +583,7 @@
 		"アースクエイク": {
 			"anim": "",
 			"rarity": "legend",
-			"mana": 6,
+			"mana": 28,
 			"effect": "全体30ダメージ＋全マスをヒビ床に",
 			"sfx": "",
 			"skills": [
@@ -610,7 +610,7 @@
 		"全体再生": {
 			"anim": "",
 			"rarity": "epic",
-			"mana": 4,
+			"mana": 18,
 			"effect": "全味方にリジェネ+1",
 			"sfx": "",
 			"skills": [
@@ -629,7 +629,7 @@
 		"反転の波": {
 			"anim": "",
 			"rarity": "rare",
-			"mana": 3,
+			"mana": 12,
 			"effect": "敵前列と後列を入れ替え",
 			"sfx": "",
 			"skills": [
@@ -646,7 +646,7 @@
 		"弱体の呪詛": {
 			"anim": "",
 			"rarity": "uncommon",
-			"mana": 3,
+			"mana": 9,
 			"effect": "敵全体ATK低下",
 			"sfx": "",
 			"skills": [
@@ -666,7 +666,7 @@
 		"強化の儀式": {
 			"anim": "",
 			"rarity": "rare",
-			"mana": 3,
+			"mana": 12,
 			"effect": "対象1体ATK+5・HP+10",
 			"sfx": "",
 			"skills": [
@@ -686,7 +686,7 @@
 		"戦場の鼓動": {
 			"anim": "",
 			"rarity": "uncommon",
-			"mana": 2,
+			"mana": 8,
 			"effect": "全味方SPD+50%(5s)",
 			"sfx": "",
 			"skills": [
@@ -706,7 +706,7 @@
 		"押し込み": {
 			"anim": "",
 			"rarity": "uncommon",
-			"mana": 2,
+			"mana": 8,
 			"effect": "敵前列1体を後列に移動",
 			"sfx": "",
 			"skills": [
@@ -723,7 +723,7 @@
 		"泥の鎧": {
 			"anim": "",
 			"rarity": "common",
-			"mana": 1,
+			"mana": 4,
 			"effect": "対象1体に鎧付与",
 			"sfx": "",
 			"skills": [
@@ -742,7 +742,7 @@
 		"混沌の手": {
 			"anim": "",
 			"rarity": "uncommon",
-			"mana": 2,
+			"mana": 8,
 			"effect": "敵1体をランダム行に移動",
 			"sfx": "",
 			"skills": [
@@ -759,7 +759,7 @@
 		"烈風斬": {
 			"anim": "",
 			"rarity": "rare",
-			"mana": 3,
+			"mana": 12,
 			"effect": "敵全体に中ダメージ",
 			"sfx": "",
 			"skills": [
@@ -778,7 +778,7 @@
 		"生命の雫": {
 			"anim": "",
 			"rarity": "common",
-			"mana": 2,
+			"mana": 5,
 			"effect": "対象1体HP15%回復",
 			"sfx": "",
 			"skills": [
@@ -797,7 +797,7 @@
 		"盤面凍結": {
 			"anim": "",
 			"rarity": "epic",
-			"mana": 4,
+			"mana": 18,
 			"effect": "敵全体を8s間凍結",
 			"sfx": "",
 			"skills": [
@@ -817,7 +817,7 @@
 		"盤面強化": {
 			"anim": "",
 			"rarity": "common",
-			"mana": 3,
+			"mana": 5,
 			"effect": "全味方HP+10・ATK+2",
 			"sfx": "",
 			"skills": [
@@ -837,7 +837,7 @@
 		"結晶化": {
 			"anim": "",
 			"rarity": "rare",
-			"mana": 3,
+			"mana": 12,
 			"effect": "対象1体に呪文無効(1回)",
 			"sfx": "",
 			"skills": [
@@ -854,7 +854,7 @@
 		"血の契約": {
 			"anim": "",
 			"rarity": "uncommon",
-			"mana": 2,
+			"mana": 8,
 			"effect": "対象1体にHP30%代償+吸血付与",
 			"sfx": "",
 			"skills": [
@@ -881,7 +881,7 @@
 		"連鎖の触媒": {
 			"anim": "",
 			"rarity": "uncommon",
-			"mana": 2,
+			"mana": 8,
 			"effect": "次の3枚コスト-1",
 			"sfx": "",
 			"skills": [
@@ -901,7 +901,7 @@
 		"配置崩し": {
 			"anim": "",
 			"rarity": "uncommon",
-			"mana": 2,
+			"mana": 8,
 			"effect": "敵の次の召喚列をランダム化",
 			"sfx": "",
 			"skills": [
@@ -918,7 +918,7 @@
 		"火球": {
 			"anim": "",
 			"rarity": "common",
-			"mana": 2,
+			"mana": 5,
 			"effect": "敵単体に15ダメージ",
 			"sfx": "",
 			"skills": [
@@ -937,7 +937,7 @@
 		"雷撃": {
 			"anim": "",
 			"rarity": "uncommon",
-			"mana": 3,
+			"mana": 9,
 			"effect": "敵単体に25ダメージ",
 			"sfx": "",
 			"skills": [
@@ -956,7 +956,7 @@
 		"業火の槍": {
 			"anim": "",
 			"rarity": "rare",
-			"mana": 4,
+			"mana": 14,
 			"effect": "敵単体に40ダメージ",
 			"sfx": "",
 			"skills": [
@@ -975,7 +975,7 @@
 		"前列斬撃": {
 			"anim": "",
 			"rarity": "common",
-			"mana": 2,
+			"mana": 5,
 			"effect": "敵前列全体に10ダメージ",
 			"sfx": "",
 			"skills": [
@@ -994,7 +994,7 @@
 		"後列狙撃": {
 			"anim": "",
 			"rarity": "uncommon",
-			"mana": 3,
+			"mana": 9,
 			"effect": "敵後列全体に12ダメージ",
 			"sfx": "",
 			"skills": [
@@ -1013,7 +1013,7 @@
 		"列砲撃": {
 			"anim": "",
 			"rarity": "rare",
-			"mana": 3,
+			"mana": 12,
 			"effect": "敵1列全体に15ダメージ",
 			"sfx": "",
 			"skills": [
@@ -1032,7 +1032,7 @@
 		"毒霧": {
 			"anim": "",
 			"rarity": "uncommon",
-			"mana": 2,
+			"mana": 8,
 			"effect": "敵前列全体に毒+2",
 			"sfx": "",
 			"skills": [
@@ -1051,7 +1051,7 @@
 		"炎の渦": {
 			"anim": "",
 			"rarity": "uncommon",
-			"mana": 2,
+			"mana": 8,
 			"effect": "敵前列全体に火傷+2",
 			"sfx": "",
 			"skills": [
@@ -1070,7 +1070,7 @@
 		"氷結": {
 			"anim": "",
 			"rarity": "uncommon",
-			"mana": 2,
+			"mana": 8,
 			"effect": "敵単体に凍結+3",
 			"sfx": "",
 			"skills": [
@@ -1089,7 +1089,7 @@
 		"力の祝福": {
 			"anim": "",
 			"rarity": "common",
-			"mana": 1,
+			"mana": 4,
 			"effect": "味方単体にATK+3",
 			"sfx": "",
 			"skills": [
@@ -1108,7 +1108,7 @@
 		"守りの祝福": {
 			"anim": "",
 			"rarity": "common",
-			"mana": 1,
+			"mana": 4,
 			"effect": "味方単体にHP+15",
 			"sfx": "",
 			"skills": [
@@ -1127,7 +1127,7 @@
 		"マナの泉": {
 			"anim": "",
 			"rarity": "rare",
-			"mana": 0,
+			"mana": 11,
 			"effect": "マナ+2（次ターン）",
 			"sfx": "",
 			"skills": [
@@ -1146,7 +1146,7 @@
 		"魔力増幅": {
 			"anim": "",
 			"rarity": "uncommon",
-			"mana": 1,
+			"mana": 7,
 			"effect": "マナ+1（即時）",
 			"sfx": "",
 			"skills": [
@@ -1165,7 +1165,7 @@
 		"全体浄化": {
 			"anim": "",
 			"rarity": "rare",
-			"mana": 3,
+			"mana": 12,
 			"effect": "味方全体の状態異常解除",
 			"sfx": "",
 			"skills": [
@@ -1182,7 +1182,7 @@
 		"弱体化": {
 			"anim": "",
 			"rarity": "common",
-			"mana": 1,
+			"mana": 4,
 			"effect": "敵単体ATK-2",
 			"sfx": "",
 			"skills": [
