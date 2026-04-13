@@ -48,15 +48,15 @@ func _build_ui() -> void:
 	if GameSession.base_environment == "" or GameSession.base_environment == "env_none":
 		_randomize_environment()
 
-	# マップ描画（タイトル位置計算のため先に実行）
-	_draw_map()
-
-	# タイトル表示（ノード配置後に動的計算）
+	# タイトル表示（上余白の中央に固定）
 	var env_def = CardDB.ENVIRONMENTS.get(GameSession.base_environment, {})
 	var env_display = env_def.get("display", "平原")
 	var title_text = "Act %d - %s" % [GameSession.current_act, env_display]
-	var title_y = _calculate_title_position()
-	UIF.add_title(self, title_text, title_y)
+	const MARGIN_TOP = 60
+	UIF.add_title(self, title_text, int(MARGIN_TOP / 2))
+
+	# マップ描画
+	_draw_map()
 
 func _randomize_environment() -> void:
 	var env_ids = CardDB.ENVIRONMENTS.keys()
@@ -84,56 +84,52 @@ func _get_current_act_data() -> Dictionary:
 	return {}
 
 func _calculate_node_positions(act_data: Dictionary) -> Dictionary:
-	"""ノードの座標を計算（新仕様: 10層固定グリッド）"""
+	"""ノードの座標を計算（画面サイズ基準・交差完全禁止）"""
 	var positions = {}
 	var nodes = act_data.get("nodes", [])
+	if nodes.is_empty():
+		return positions
 
-	# 定数定義
-	const MAP_START_X = 100
-	const MAP_START_Y = 150
-	const LAYER_SPACING_X = 140
-	const NODE_SPACING_Y = 80
+	# 画面サイズ取得
+	var vp = get_viewport_rect().size
 
-	# layer別にノード数をカウント
-	var layer_node_counts = {}
+	# レイアウト定数
+	const LAYER_COUNT = 10
+	const MARGIN_X = 80.0
+	const MARGIN_TOP = 60.0
+	const MARGIN_BOTTOM = 80.0
+
+	# 層間隔とマップ高さを計算
+	var layer_spacing = (vp.x - MARGIN_X * 2.0) / float(LAYER_COUNT - 1)
+	var map_height = vp.y - MARGIN_TOP - MARGIN_BOTTOM
+
+	# layer別にノードをグループ化
+	var layers = {}
 	for node in nodes:
-		var layer = node.get("layer", node.get("depth", 0))  # 後方互換
-		if not layer_node_counts.has(layer):
-			layer_node_counts[layer] = 0
-		layer_node_counts[layer] += 1
+		var layer = node.get("layer", 0)
+		if not layers.has(layer):
+			layers[layer] = []
+		layers[layer].append(node)
 
-	for node in nodes:
-		var layer = node.get("layer", node.get("depth", 0))  # 後方互換
-		var lane = node.get("lane", 0)
-		var node_count = layer_node_counts.get(layer, 1)
+	# 各ノードの座標を計算
+	for layer in layers:
+		var layer_nodes = layers[layer]
+		var node_count = layer_nodes.size()
 
-		# 中央配置のためのオフセット（ノード数に応じて調整）
-		var center_offset = -(node_count - 1) * NODE_SPACING_Y / 2.0
+		for i in range(node_count):
+			var node = layer_nodes[i]
+			var x = MARGIN_X + float(layer) * layer_spacing
 
-		var x = MAP_START_X + layer * LAYER_SPACING_X
-		var y = MAP_START_Y + lane * NODE_SPACING_Y + center_offset
-		positions[node.get("id", "")] = Vector2(x, y)
+			# Y座標計算（node_countが1の場合は中央）
+			var y: float
+			if node_count == 1:
+				y = MARGIN_TOP + map_height / 2.0
+			else:
+				y = MARGIN_TOP + float(i) * (map_height / float(node_count - 1))
+
+			positions[node.get("id", "")] = Vector2(x, y)
 
 	return positions
-
-func _calculate_title_position() -> int:
-	"""ノード配置の最小Y座標からタイトル位置を計算"""
-	var act_data = _get_current_act_data()
-	if act_data.is_empty():
-		return 100  # デフォルト位置
-
-	var node_positions = _calculate_node_positions(act_data)
-	if node_positions.is_empty():
-		return 100
-
-	# 最小Y座標を取得
-	var min_y = 99999
-	for pos in node_positions.values():
-		if pos.y < min_y:
-			min_y = pos.y
-
-	# 最小Y座標 - 50px
-	return int(min_y - 50)
 
 func _draw_map() -> void:
 	"""マップ全体を描画"""
