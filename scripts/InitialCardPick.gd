@@ -362,14 +362,19 @@ func _on_confirm_pressed() -> void:
 	var deck: Array = []
 	for card_name in _picked_cards:
 		var data = CardDB.UNITS.get(card_name, {})
-		deck.append({"name": card_name, "col": data.get("col", 1)})
-	
+		deck.append({"name": card_name})
+
 	var cls = CardDB.CLASSES.get(GameSession.class_id, {})
 	var initial = cls.get("initial_deck", [])
 	for name in initial:
-		if CardDB.SPELLS.has(name) or CardDB.STATUS_SPELLS.has(name) or CardDB.SYSTEM_SPELLS.has(name):
-			deck.append({"name": name, "col": -1})
-	
+		deck.append({"name": name})
+
 	GameSession.selected_deck = deck
+
+	# placement_config生成
+	var PL = load("res://scripts/PlacementLogic.gd")
+	GameSession.placement_config = PL.generate_default_config(deck)
+
 	print("[InitialCardPick] GameSession.selected_deck=%s" % GameSession.selected_deck)
+	print("[InitialCardPick] GameSession.placement_config=%s" % GameSession.placement_config)
 	SceneManager.go_to(SceneManager.MAP_SELECT)

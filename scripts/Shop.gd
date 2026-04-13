@@ -225,10 +225,13 @@ func _on_buy_pressed(index: int) -> void:
 	# デッキに追加
 	var t = item.get("type", "")
 	var id = item.get("id", "")
-	if t == "unit":
-		GameSession.selected_deck.append({"name": id, "col": 1})
-	elif t == "spell":
-		GameSession.selected_deck.append({"name": id, "col": -1})
+	if t == "unit" or t == "spell":
+		GameSession.selected_deck.append({"name": id})
+		# placement_config生成
+		var PL = load("res://scripts/PlacementLogic.gd")
+		var new_config = PL.generate_default_config([{"name": id}])
+		if new_config.size() > 0:
+			GameSession.placement_config.append(new_config[0])
 	# 素材購入は廃止（装備・素材システム廃止により削除）
 
 	_update_ui()

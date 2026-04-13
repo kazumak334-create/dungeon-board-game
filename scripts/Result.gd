@@ -442,15 +442,13 @@ func _on_card_selected(idx: int) -> void:
 		print("[Result] レリック獲得: %s" % card_name)
 	else:
 		# カード（ユニット・呪文）をデッキに追加
-		var col = data.get("col", 1) if card_type == "unit" else -1
-		GameSession.selected_deck.append({"name": card_name, "col": col})
+		GameSession.selected_deck.append({"name": card_name})
 
-		# placement_config生成（ユニットのみ）
-		if card_type == "unit":
-			var PL = load("res://scripts/PlacementLogic.gd")
-			var new_config = PL.generate_default_config([{"name": card_name, "col": col}])
-			if new_config.size() > 0:
-				GameSession.placement_config.append(new_config[0])
+		# placement_config生成（ユニット・呪文共通）
+		var PL = load("res://scripts/PlacementLogic.gd")
+		var new_config = PL.generate_default_config([{"name": card_name}])
+		if new_config.size() > 0:
+			GameSession.placement_config.append(new_config[0])
 
 		print("[Result] カード選択: %s" % card_name)
 
