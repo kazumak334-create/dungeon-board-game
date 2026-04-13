@@ -681,7 +681,7 @@ func try_drop_at_mouse(_tc: Control) -> void:
 	var mouse = main_node.get_viewport().get_mouse_position()
 	var local = mouse - _tc.global_position
 
-	# タスク#6: 自陣盤面のドロップ判定（列のみ判定、行は自動で下から詰める）
+	# 自陣盤面のドロップ判定（行・列を正確に判定）
 	var ally_board_left = float(BOARD_X) + float(ROW_LABEL_W)
 	var ally_board_w = 3.0 * float(CELL_W + CELL_GAP)
 	var board_top = float(CELLS_START_Y)
@@ -689,11 +689,12 @@ func try_drop_at_mouse(_tc: Control) -> void:
 
 	if local.x >= ally_board_left and local.x < ally_board_left + ally_board_w and \
 	   local.y >= board_top and local.y < board_top + board_h:
-		# 列を判定（どの列にドロップしたか）
+		# 列と行を判定
 		var ci = int((local.x - ally_board_left) / float(CELL_W + CELL_GAP))
-		if ci >= 0 and ci < 3:
-			# タスク#6: 行は自動決定（-1を渡して下から詰める）
-			try_drop_card(_drag_source_idx, 0, -1, ci)
+		var ri = int((local.y - board_top) / float(CELL_H + CELL_GAP))
+		if ci >= 0 and ci < 3 and ri >= 0 and ri < 3:
+			# 正確な行・列を渡す
+			try_drop_card(_drag_source_idx, 0, ri, ci)
 			return
 
 	# 呪文デッキエリアのドロップ判定（row=0, col=-1）

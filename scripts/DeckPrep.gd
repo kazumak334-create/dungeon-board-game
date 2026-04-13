@@ -46,8 +46,23 @@ const INFO_H = 675          # 右パネル高さ
 
 func _ready() -> void:
 	_PL = load("res://scripts/PlacementLogic.gd")
-	if GameSession.placement_config.size() == 0 and GameSession.selected_deck.size() > 0:
+
+	# placement_configとselected_deckのサイズ整合性チェック
+	var deck_size = GameSession.selected_deck.size()
+	var config_size = GameSession.placement_config.size()
+
+	if config_size == 0 and deck_size > 0:
+		# 空の場合は全て生成
 		GameSession.placement_config = _PL.generate_default_config(GameSession.selected_deck)
+	elif config_size < deck_size:
+		# 不足分を補完
+		print("[DeckPrep] placement_config不足検出: deck=%d, config=%d → 補完実行" % [deck_size, config_size])
+		var missing_cards: Array = []
+		for i in range(config_size, deck_size):
+			missing_cards.append(GameSession.selected_deck[i])
+		var new_configs = _PL.generate_default_config(missing_cards)
+		for cfg in new_configs:
+			GameSession.placement_config.append(cfg)
 
 	# サブコンポーネント初期化
 	_sidebar = SidebarClass.new()
