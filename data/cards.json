@@ -914,6 +914,289 @@
 			],
 			"target": "enemy_queue",
 			"texture": ""
+		},
+		"火球": {
+			"anim": "",
+			"rarity": "common",
+			"mana": 2,
+			"effect": "敵単体に15ダメージ",
+			"sfx": "",
+			"skills": [
+				{
+					"effect_id": "single_enemy_damage",
+					"params": {
+						"damage": 15
+					},
+					"target": "enemy_single",
+					"trigger": "on_play"
+				}
+			],
+			"target": "enemy_single",
+			"texture": ""
+		},
+		"雷撃": {
+			"anim": "",
+			"rarity": "uncommon",
+			"mana": 3,
+			"effect": "敵単体に25ダメージ",
+			"sfx": "",
+			"skills": [
+				{
+					"effect_id": "single_enemy_damage",
+					"params": {
+						"damage": 25
+					},
+					"target": "enemy_single",
+					"trigger": "on_play"
+				}
+			],
+			"target": "enemy_single",
+			"texture": ""
+		},
+		"業火の槍": {
+			"anim": "",
+			"rarity": "rare",
+			"mana": 4,
+			"effect": "敵単体に40ダメージ",
+			"sfx": "",
+			"skills": [
+				{
+					"effect_id": "single_enemy_damage",
+					"params": {
+						"damage": 40
+					},
+					"target": "enemy_single",
+					"trigger": "on_play"
+				}
+			],
+			"target": "enemy_single",
+			"texture": ""
+		},
+		"前列斬撃": {
+			"anim": "",
+			"rarity": "common",
+			"mana": 2,
+			"effect": "敵前列全体に10ダメージ",
+			"sfx": "",
+			"skills": [
+				{
+					"effect_id": "front_enemy_damage",
+					"params": {
+						"damage": 10
+					},
+					"target": "enemy_front",
+					"trigger": "on_play"
+				}
+			],
+			"target": "enemy_front",
+			"texture": ""
+		},
+		"後列狙撃": {
+			"anim": "",
+			"rarity": "uncommon",
+			"mana": 3,
+			"effect": "敵後列全体に12ダメージ",
+			"sfx": "",
+			"skills": [
+				{
+					"effect_id": "back_enemy_damage",
+					"params": {
+						"damage": 12
+					},
+					"target": "enemy_back",
+					"trigger": "on_play"
+				}
+			],
+			"target": "enemy_back",
+			"texture": ""
+		},
+		"列砲撃": {
+			"anim": "",
+			"rarity": "rare",
+			"mana": 3,
+			"effect": "敵1列全体に15ダメージ",
+			"sfx": "",
+			"skills": [
+				{
+					"effect_id": "column_damage",
+					"params": {
+						"damage": 15
+					},
+					"target": "enemy_column",
+					"trigger": "on_play"
+				}
+			],
+			"target": "enemy_column",
+			"texture": ""
+		},
+		"毒霧": {
+			"anim": "",
+			"rarity": "uncommon",
+			"mana": 2,
+			"effect": "敵前列全体に毒+2",
+			"sfx": "",
+			"skills": [
+				{
+					"effect_id": "poison_apply",
+					"params": {
+						"stacks": 2
+					},
+					"target": "enemy_front",
+					"trigger": "on_play"
+				}
+			],
+			"target": "enemy_front",
+			"texture": ""
+		},
+		"炎の渦": {
+			"anim": "",
+			"rarity": "uncommon",
+			"mana": 2,
+			"effect": "敵前列全体に火傷+2",
+			"sfx": "",
+			"skills": [
+				{
+					"effect_id": "burn_apply",
+					"params": {
+						"stacks": 2
+					},
+					"target": "enemy_front",
+					"trigger": "on_play"
+				}
+			],
+			"target": "enemy_front",
+			"texture": ""
+		},
+		"氷結": {
+			"anim": "",
+			"rarity": "uncommon",
+			"mana": 2,
+			"effect": "敵単体に凍結+3",
+			"sfx": "",
+			"skills": [
+				{
+					"effect_id": "freeze_apply",
+					"params": {
+						"stacks": 3
+					},
+					"target": "enemy_single",
+					"trigger": "on_play"
+				}
+			],
+			"target": "enemy_single",
+			"texture": ""
+		},
+		"力の祝福": {
+			"anim": "",
+			"rarity": "common",
+			"mana": 1,
+			"effect": "味方単体にATK+3",
+			"sfx": "",
+			"skills": [
+				{
+					"effect_id": "atk_buff",
+					"params": {
+						"amount": 3
+					},
+					"target": "ally_single",
+					"trigger": "on_play"
+				}
+			],
+			"target": "ally_single",
+			"texture": ""
+		},
+		"守りの祝福": {
+			"anim": "",
+			"rarity": "common",
+			"mana": 1,
+			"effect": "味方単体にHP+15",
+			"sfx": "",
+			"skills": [
+				{
+					"effect_id": "hp_buff",
+					"params": {
+						"amount": 15
+					},
+					"target": "ally_single",
+					"trigger": "on_play"
+				}
+			],
+			"target": "ally_single",
+			"texture": ""
+		},
+		"マナの泉": {
+			"anim": "",
+			"rarity": "rare",
+			"mana": 0,
+			"effect": "マナ+2（次ターン）",
+			"sfx": "",
+			"skills": [
+				{
+					"effect_id": "mana_gain_next_turn",
+					"params": {
+						"amount": 2
+					},
+					"target": "self",
+					"trigger": "on_play"
+				}
+			],
+			"target": "self",
+			"texture": ""
+		},
+		"魔力増幅": {
+			"anim": "",
+			"rarity": "uncommon",
+			"mana": 1,
+			"effect": "マナ+1（即時）",
+			"sfx": "",
+			"skills": [
+				{
+					"effect_id": "mana_gain",
+					"params": {
+						"amount": 1
+					},
+					"target": "self",
+					"trigger": "on_play"
+				}
+			],
+			"target": "self",
+			"texture": ""
+		},
+		"全体浄化": {
+			"anim": "",
+			"rarity": "rare",
+			"mana": 3,
+			"effect": "味方全体の状態異常解除",
+			"sfx": "",
+			"skills": [
+				{
+					"effect_id": "cleanse_all",
+					"params": {},
+					"target": "all_allies",
+					"trigger": "on_play"
+				}
+			],
+			"target": "all_allies",
+			"texture": ""
+		},
+		"弱体化": {
+			"anim": "",
+			"rarity": "common",
+			"mana": 1,
+			"effect": "敵単体ATK-2",
+			"sfx": "",
+			"skills": [
+				{
+					"effect_id": "atk_debuff",
+					"params": {
+						"amount": 2
+					},
+					"target": "enemy_single",
+					"trigger": "on_play"
+				}
+			],
+			"target": "enemy_single",
+			"texture": ""
 		}
 	},
 	"status_spells": {

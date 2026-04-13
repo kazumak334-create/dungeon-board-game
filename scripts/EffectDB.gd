@@ -19,10 +19,14 @@ const EFFECTS: Dictionary = {
 	"paralysis_apply":  {"type": "debuff_apply", "status": "paralysis", "stacks": 1, "display": "麻痺付与", "texture": "", "anim": "", "sfx": ""},
 
 	# ---- ダメージ ----
-	"direct_damage":    {"type": "damage",        "factor": 1.0,                                "display": "直接ダメージ", "texture": "", "anim": "", "sfx": ""},
-	"chain_damage":     {"type": "damage",        "target": "adjacent_rows", "factor": 0.5,    "display": "連鎖ダメージ", "texture": "", "anim": "", "sfx": ""},
-	"big_damage":       {"type": "damage",        "target": "enemy_max_hp",  "factor": 3.0,    "display": "単体大ダメージ", "texture": "", "anim": "", "sfx": ""},
-	"hp_cost":          {"type": "self_damage",   "factor": 0.30, "min_hp": 1,                 "display": "HP代償", "texture": "", "anim": "", "sfx": ""},
+	"direct_damage":       {"type": "damage",             "factor": 1.0,                                "display": "直接ダメージ", "texture": "", "anim": "", "sfx": ""},
+	"chain_damage":        {"type": "damage",             "target": "adjacent_rows", "factor": 0.5,    "display": "連鎖ダメージ", "texture": "", "anim": "", "sfx": ""},
+	"big_damage":          {"type": "damage",             "target": "enemy_max_hp",  "factor": 3.0,    "display": "単体大ダメージ", "texture": "", "anim": "", "sfx": ""},
+	"single_enemy_damage": {"type": "single_enemy_damage", "damage": 15,                                "display": "単体ダメージ", "texture": "", "anim": "", "sfx": ""},
+	"front_enemy_damage":  {"type": "front_enemy_damage",  "damage": 10,                                "display": "前列ダメージ", "texture": "", "anim": "", "sfx": ""},
+	"back_enemy_damage":   {"type": "back_enemy_damage",   "damage": 12,                                "display": "後列ダメージ", "texture": "", "anim": "", "sfx": ""},
+	"column_damage":       {"type": "column_damage",       "damage": 15,                                "display": "列ダメージ", "texture": "", "anim": "", "sfx": ""},
+	"hp_cost":             {"type": "self_damage",         "factor": 0.30, "min_hp": 1,                 "display": "HP代償", "texture": "", "anim": "", "sfx": ""},
 
 	# ---- 回復 ----
 	"heal_pct":         {"type": "heal",          "factor": 0.15,                               "display": "HP回復", "texture": "", "anim": "", "sfx": ""},
@@ -35,9 +39,11 @@ const EFFECTS: Dictionary = {
 	"summon_low_cost":  {"type": "summon_low_cost",                                             "display": "急召", "texture": "", "anim": "", "sfx": ""},
 
 	# ---- デッキ操作 ----
-	"deck_add_self":    {"type": "deck_add",      "unit_id": "self", "count": 1,               "display": "デッキ追加", "texture": "", "anim": "", "sfx": ""},
-	"draw_cards":       {"type": "draw",          "count": 2,                                   "display": "ドロー", "texture": "", "anim": "", "sfx": ""},
-	"mana_boost":       {"type": "mana_add",      "amount": 3,                                  "display": "マナ回復", "texture": "", "anim": "", "sfx": ""},
+	"deck_add_self":       {"type": "deck_add",         "unit_id": "self", "count": 1,               "display": "デッキ追加", "texture": "", "anim": "", "sfx": ""},
+	"draw_cards":          {"type": "draw",             "count": 2,                                   "display": "ドロー", "texture": "", "anim": "", "sfx": ""},
+	"mana_boost":          {"type": "mana_add",         "amount": 3,                                  "display": "マナ回復", "texture": "", "anim": "", "sfx": ""},
+	"mana_gain":           {"type": "mana_add",         "amount": 1,                                  "display": "マナ獲得", "texture": "", "anim": "", "sfx": ""},
+	"mana_gain_next_turn": {"type": "mana_add_next_turn", "amount": 2,                               "display": "次ターンマナ", "texture": "", "anim": "", "sfx": ""},
 
 	# ---- バフ奪取 ----
 	"steal_buffs":      {"type": "steal_buffs",   "factor": 1.5,                               "display": "バフ奪取", "texture": "", "anim": "", "sfx": ""},
@@ -69,9 +75,12 @@ const EFFECTS: Dictionary = {
 	# ---- 呪文専用 ----
 	"inject_status_card":  {"type": "inject_status",      "card_id": "",                        "display": "異常カード注入", "texture": "", "anim": "", "sfx": ""},
 	"cost_reduction":      {"type": "cost_reduce",        "count": 3, "amount": 1,             "display": "コスト軽減", "texture": "", "anim": "", "sfx": ""},
+	"cleanse_all":         {"type": "cleanse_all",                                              "display": "全体浄化", "texture": "", "anim": "", "sfx": ""},
 	"spd_buff_all":        {"type": "temp_buff_all",      "buff": "spd", "factor": 0.5, "duration": 5.0, "display": "全体SPDバフ", "texture": "", "anim": "", "sfx": ""},
 	"atk_hp_boost":        {"type": "stat_boost",         "atk": 5, "hp": 10,                  "display": "個体強化", "texture": "", "anim": "", "sfx": ""},
 	"all_stat_boost":      {"type": "stat_boost",         "atk": 2, "hp": 10,                  "display": "全体強化", "texture": "", "anim": "", "sfx": ""},
+	"atk_buff":            {"type": "stat_boost",         "atk": 3,                            "display": "ATK上昇", "texture": "", "anim": "", "sfx": ""},
+	"hp_buff":             {"type": "stat_boost",         "hp": 15,                            "display": "HP上昇", "texture": "", "anim": "", "sfx": ""},
 	"remove_status_card":  {"type": "deck_remove_status",                                       "display": "異常カード除去", "texture": "", "anim": "", "sfx": ""},
 	"front_status_both":   {"type": "front_status",       "status": "", "stacks": 2, "both_sides": true, "display": "前列状態付与", "texture": "", "anim": "", "sfx": ""},
 	"front_damage_status": {"type": "front_damage_status","damage": 10, "status": "paralysis", "stacks": 2, "display": "前列ダメージ+状態", "texture": "", "anim": "", "sfx": ""},
