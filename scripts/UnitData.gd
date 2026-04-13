@@ -74,11 +74,12 @@ var _hp_threshold_triggered: Dictionary = {}  # {entry: true} 発動済みフラ
 var _invincible_timer: float = 0.0            # 結晶化：無敵残り時間
 
 # SPD → attack_interval 変換（互換性レイヤー）
+# SPD = 10秒あたりの攻撃回数（SPD 10 = 1秒間隔、SPD 5 = 2秒間隔）
 func get_attack_interval() -> float:
 	var effective_spd = spd + _interval_bonus  # _interval_bonusはSPDボーナスとして扱う
 	if effective_spd <= 0:
 		return 999.0  # SPD0以下の場合は攻撃不可
-	return 1.0 / effective_spd
+	return 10.0 / effective_spd
 
 func is_alive() -> bool:
 	return current_hp > 0

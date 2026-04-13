@@ -153,7 +153,7 @@ func _update_board_mana() -> void:
 			var spd = unit_data.get("spd", 1)
 			board_mana += mana
 			if spd > 0:
-				mana_generation_rate += float(mana) / float(spd)
+				mana_generation_rate += float(mana) * float(spd) / 10.0
 	_sidebar.update_board_mana(board_mana, mana_generation_rate)
 	_sidebar.update_balance_panel(GameSession.placement_config, GameSession.selected_deck)
 

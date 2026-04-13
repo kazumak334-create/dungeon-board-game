@@ -104,7 +104,7 @@ func _build_status_area() -> void:
 				var spd = unit_data.get("spd", 1)
 				board_unit_mana += mana
 				if spd > 0:
-					mana_generation_rate += float(mana) / float(spd)
+					mana_generation_rate += float(mana) * float(spd) / 10.0
 
 	# グループ1: クラス基本情報
 	var group1 = [

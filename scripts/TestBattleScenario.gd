@@ -35,7 +35,7 @@ func _test_unit_placement(r: RefCounted) -> void:
 	# スケルトン弱体化確認
 	var sk = _create_unit("スケルトン")
 	r._assert_eq(sk.attack, 2, "スケルトンATK=2（弱体化後）")
-	r._assert_eq(sk.get_attack_interval(), 3.0, "スケルトンSPD=3.0s（弱体化後）")
+	r._assert_eq(sk.get_attack_interval(), 3.33, "スケルトンSPD=3→間隔3.33s")
 
 # ---- ダメージ計算テスト ----
 func _test_damage_calculation(r: RefCounted) -> void:
