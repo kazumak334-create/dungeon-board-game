@@ -122,6 +122,7 @@ func _update_info_lane() -> void:
 # タスク#4: 盤面マナ更新
 func _update_board_mana() -> void:
 	var board_mana: int = 0
+	var mana_generation_rate: float = 0.0
 	for i in range(GameSession.selected_deck.size()):
 		if i >= GameSession.placement_config.size():
 			continue
@@ -132,8 +133,13 @@ func _update_board_mana() -> void:
 		var entry = GameSession.selected_deck[i]
 		var card_name = entry.get("name", "") if entry is Dictionary else str(entry)
 		if CardDB.UNITS.has(card_name):
-			board_mana += CardDB.UNITS[card_name].get("mana", 0)
-	_sidebar.update_board_mana(board_mana)
+			var unit_data = CardDB.UNITS[card_name]
+			var mana = unit_data.get("mana", 0)
+			var spd = unit_data.get("spd", 1)
+			board_mana += mana
+			if spd > 0:
+				mana_generation_rate += float(mana) / float(spd)
+	_sidebar.update_board_mana(board_mana, mana_generation_rate)
 	_sidebar.update_balance_panel(GameSession.placement_config, GameSession.selected_deck)
 
 func _build_adventure_buttons() -> void:
