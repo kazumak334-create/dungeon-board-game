@@ -364,11 +364,28 @@ func _update_route_from_mouse() -> void:
 		# ノード範囲内（50x50）にマウスがあるか
 		var node_rect = Rect2(pos, Vector2(50, 50))
 		if node_rect.has_point(mouse_pos):
-			# ルートの最後のノードと異なる場合のみ追加
-			if _route_memo.is_empty() or _route_memo[-1] != node_id:
+			# ルートの最後のノードと異なり、かつ左から右への移動のみ許可
+			if _route_memo.is_empty():
+				# 最初のノードは無条件で追加
 				_route_memo.append(node_id)
 				_draw_route()
 				_update_route_info()
+			elif _route_memo[-1] != node_id:
+				# 最後のノードのcol取得
+				var last_node_id = _route_memo[-1]
+				var last_col = -1
+				var current_col = node.get("col", -1)
+
+				for n in act_data.get("nodes", []):
+					if n.get("id", "") == last_node_id:
+						last_col = n.get("col", -1)
+						break
+
+				# 左から右（col増加）のみ許可
+				if current_col > last_col:
+					_route_memo.append(node_id)
+					_draw_route()
+					_update_route_info()
 			break
 
 func _clear_route() -> void:
