@@ -266,37 +266,38 @@ Act1: 初期エリア、比較的明るめ
 ### 概要
 ゲーム全体の可読性と雰囲気を決定。日本語対応必須。
 
-### ✅ 実装済みフォント
+### ✅ カード用フォント（実装済み）
 既に以下のフォントが `res://assets/fonts/` に配置済み：
 
-1. **PixelMplus10-Regular.ttf** - ドット絵風日本語フォント
-   - 用途: メインフォント（UI・本文）
+1. **PixelMplus10-Regular.ttf** - カード用フォント
+   - 用途: **カードのテキスト表示専用**
    - 特徴: ドット絵風、日本語対応、可読性高い
    - ライセンス: M+ FONTS派生（商用可）
 
-2. **trajan.ttf** - 英語タイトルフォント
+2. **trajan.ttf** - タイトル用
    - 用途: タイトルロゴ、英語表記
    - 特徴: 古代ローマ風、威厳
 
-### 技術仕様
-- **形式**: TTF
-- **保存先**: `res://assets/fonts/`
-- **Godot設定**: FontFileリソースとして読み込み
+### ⚙️ その他UI要素のフォント
+カード以外の**UI全般（メニュー/ボタン/ダメージ数値等）**は：
+
+→ **Godot標準フォント使用**
+
+理由:
+- カード用フォントはカード表示に特化
+- その他のUI要素は標準で十分
+- ファイルサイズ削減
 
 ### Godot設定例
 ```gdscript
-# フォント読み込み
-var main_font = load("res://assets/fonts/PixelMplus10-Regular.ttf")
-var title_font = load("res://assets/fonts/trajan.ttf")
+# カード用
+var card_font = load("res://assets/fonts/PixelMplus10-Regular.ttf")
+card_label.add_theme_font_override("font", card_font)
 
-# Label設定
-label.add_theme_font_override("font", main_font)
-label.add_theme_font_size_override("font_size", 14)
+# その他UI（標準フォント使用）
+menu_label.add_theme_font_size_override("font_size", 14)
+# font_overrideは指定しない = Godot標準を使用
 ```
-
-### 追加が必要な場合
-- ダメージ数値専用フォント（より太字・視認性重視）を追加するかは検討中
-- 現状はPixelMplus10で代用可能
 
 ---
 
