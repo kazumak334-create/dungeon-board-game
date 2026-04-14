@@ -81,31 +81,31 @@ func _set_filter(filter: String) -> void:
 
 func _get_filtered_items() -> Array:
 	var result: Array = []
-	for relic_id in GameSession.relics:
-		var relic_data = _get_relic_data(relic_id)
-		if relic_data.is_empty():
+	for artifact_id in GameSession.artifacts:
+		var artifact_data = _get_artifact_data(artifact_id)
+		if artifact_data.is_empty():
 			continue
-		var rarity = relic_data.get("rarity", "common")
+		var rarity = artifact_data.get("rarity", "common")
 		match _selected_filter:
 			"all":
-				result.append({"type": "relic", "data": relic_data})
+				result.append({"type": "artifact", "data": artifact_data})
 			"common":
 				if rarity == "common":
-					result.append({"type": "relic", "data": relic_data})
+					result.append({"type": "artifact", "data": artifact_data})
 			"uncommon":
 				if rarity == "uncommon":
-					result.append({"type": "relic", "data": relic_data})
+					result.append({"type": "artifact", "data": artifact_data})
 			"rare":
 				if rarity == "rare":
-					result.append({"type": "relic", "data": relic_data})
+					result.append({"type": "artifact", "data": artifact_data})
 			"boss":
 				if rarity == "boss":
-					result.append({"type": "relic", "data": relic_data})
+					result.append({"type": "artifact", "data": artifact_data})
 	return result
 
-func _get_relic_data(relic_id: String) -> Dictionary:
-	if CardDB.RELICS.has(relic_id):
-		return CardDB.RELICS[relic_id]
+func _get_artifact_data(artifact_id: String) -> Dictionary:
+	if CardDB.ARTIFACTS.has(artifact_id):
+		return CardDB.ARTIFACTS[artifact_id]
 	return {}
 
 
@@ -154,7 +154,7 @@ func _build_item_cell(item: Dictionary, x: int, y: int) -> void:
 	icon_bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	panel.add_child(icon_bg)
 
-	# レリック名表示
+	# アーティファクト名表示
 	var name_lbl = Label.new()
 	name_lbl.text = item["data"].get("display", "???")
 	name_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -165,10 +165,10 @@ func _build_item_cell(item: Dictionary, x: int, y: int) -> void:
 	name_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	panel.add_child(name_lbl)
 
-	var relic_ref = item["data"]
+	var artifact_ref = item["data"]
 	panel.gui_input.connect(func(event: InputEvent):
 		if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
-			_selected_material = relic_ref
+			_selected_material = artifact_ref
 	)
 
 func _build_empty_cell(x: int, y: int) -> void:

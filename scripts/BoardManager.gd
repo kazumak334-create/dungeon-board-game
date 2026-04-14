@@ -23,7 +23,7 @@ var tile_system: RefCounted = null  # TileSystem（盤面効果処理）
 var tick_system: RefCounted = null  # TickSystem（毎秒Tick処理）
 var combat_system: RefCounted = null  # CombatSystem（攻撃ループ・ダメージ計算）
 var support_system: RefCounted = null  # SupportSystem（サポート効果再計算）
-var relic_revive_used: bool = false  # レリック revive_first の発動済みフラグ（バトルごとにリセット）
+var artifact_revive_used: bool = false  # アーティファクト revive_first の発動済みフラグ（バトルごとにリセット）
 
 signal unit_placed(side: int, row: int, col: int, unit: Object)
 signal unit_died(side: int, row: int, col: int, unit: Object)
@@ -322,21 +322,21 @@ func remove_unit(side: int, row: int, col: int) -> void:
 						"board_manager": self, "deck_manager": deck_manager_ref, "enemy_ai": enemy_ai_ref,
 						"event_queue": event_queue
 					})
-	# レリック効果: revive_first（最初の死亡ユニット1体復活）
-	if unit != null and not relic_revive_used and side == 0:  # プレイヤー側のみ
-		for relic_id in GameSession.relics:
-			if not CardDB.RELICS.has(relic_id):
+	# アーティファクト効果: revive_first（最初の死亡ユニット1体復活）
+	if unit != null and not artifact_revive_used and side == 0:  # プレイヤー側のみ
+		for artifact_id in GameSession.artifacts:
+			if not CardDB.ARTIFACTS.has(artifact_id):
 				continue
-			var relic = CardDB.RELICS[relic_id]
-			var effect = relic.get("effect", {})
+			var artifact = CardDB.ARTIFACTS[artifact_id]
+			var effect = artifact.get("effect", {})
 			if effect.get("type", "") == "revive_first":
 				var hp_percent = effect.get("hp_percent", 50)
 				var revive_hp = max(1, int(unit.max_hp * hp_percent / 100.0))
 				unit.current_hp = revive_hp
 				attack_timers[side][row][col] = unit.get_attack_interval()
 				support_timers[side][row][col] = unit.get_attack_interval()
-				relic_revive_used = true
-				print("[BoardManager] レリック効果: %s → %s 復活 (HP %d/%d)" % [relic.get("display", ""), unit.unit_name, revive_hp, unit.max_hp])
+				artifact_revive_used = true
+				print("[BoardManager] アーティファクト効果: %s → %s 復活 (HP %d/%d)" % [artifact.get("display", ""), unit.unit_name, revive_hp, unit.max_hp])
 				emit_signal("unit_revived", side, row, col)
 				return
 

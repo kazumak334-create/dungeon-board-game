@@ -71,7 +71,7 @@
 
 **Phase 3 完了宣言**
 - 主要タスク（#1-7, #12, #18, #21-26）全て完了
-- MVP（マップ/ショップ/イベント/ボス/警戒/レリック/ドロップ）実装完了
+- MVP（マップ/ショップ/イベント/ボス/警戒/アーティファクト/ドロップ）実装完了
 
 **タスク整理**
 - #14（エリート戦）廃止 → 警戒システムに統合済み
@@ -82,7 +82,7 @@
 **Phase 4 開始**
 - balance_adjustment_plan.md作成（Sprint A-I、9スプリント）
 - ユニット以外の全バランス調整要素を体系化
-  - 呪文/レリック/マナ経済/敵デッキ/警戒システム/報酬/ノード確率/イベント/ボス/スキルツリー
+  - 呪文/アーティファクト/マナ経済/敵デッキ/警戒システム/報酬/ノード確率/イベント/ボス/スキルツリー
 
 ### Phase 3 ボスシステムAct1完成（#6）
 
@@ -201,14 +201,14 @@
 - event_system_proposal.md: イベントシステム基本設計
 - event_worldview_candidates.md: 世界観イベント9個の詳細設計
   - Act 1-3各3個、違和感のみで真実は明かさない
-  - 報酬通常並み（Gold 60-100、レリック）
+  - 報酬通常並み（Gold 60-100、アーティファクト）
 
 **データ構造**
 - cards.json: eventsセクション追加（世界観イベント3個実装）
   - memory_fragment（記憶の断片）
   - atlas_terminal_alpha（ATLAS端末α）
   - gray_stain（灰色の染み）
-- 特殊レリック2個追加: subject_card（実験体の札）、memory_key（記憶の鍵）
+- 特殊アーティファクト2個追加: subject_card（実験体の札）、memory_key（記憶の鍵）
 - CardDB.gd: EVENTS読み込み
 - GameSession.gd: current_event_id, visited_events追加
 
@@ -216,20 +216,20 @@
 - Event.gd: 全面実装
   - ランダムイベント選択（Act別、訪問済み除外）
   - テキスト+選択肢表示
-  - 結果適用（gold, hp, relic, alert_level, sp, flavor）
+  - 結果適用（gold, hp, artifact, alert_level, sp, flavor）
   - 結果表示画面
 
 **世界観イベント追加（Act 2-3）**
 - Act 2: 動かない何か、音声ログ、グリッチ現象β
 - Act 3: ATLAS端末Ω、白衣の人物、見たことのない扉
-- 特殊レリック4個追加: ATLAS破片α/β/Ω、グリッチコア
+- 特殊アーティファクト4個追加: ATLAS破片α/β/Ω、グリッチコア
 - **合計9個の世界観イベント実装完了**
 
 **TODO**
-- レリック選択UI（relic_choice）
+- アーティファクト選択UI（artifact_choice）
 - カード選択UI（card_choice）
 - 本体HPシステム連携（hp result type）
-- 特殊レリック効果実装（ATLAS破片β、グリッチコア）
+- 特殊アーティファクト効果実装（ATLAS破片β、グリッチコア）
 
 ## 2026-04-11
 
@@ -249,7 +249,7 @@
 - 第2戦: 敵デッキ再構築、全マス埋め配置
 
 **ボス報酬**
-- Result.gd: ボス戦の場合レリック確定3択
+- Result.gd: ボス戦の場合アーティファクト確定3択
 - レアリティ重み付き（Uncommon優遇）
 
 **TODO（バランス調整用）**
@@ -257,17 +257,17 @@
 - ボス専用ユニット定義（boss_exclusive: true）
 - バフ値の調整（現在は0）
 
-### Phase 3 #7: レリックシステム実装完了
+### Phase 3 #7: アーティファクトシステム実装完了
 
 **データ構造**
-- cards.json: relicsセクション追加（Common 5種、Uncommon 3種）
-- CardDB.gd/GameSession.gd: RELICS/relics実装済み
+- cards.json: artifactsセクション追加（Common 5種、Uncommon 3種）
+- CardDB.gd/GameSession.gd: ARTIFACTS/artifacts実装済み
 
-**レリック管理UI**
-- Inventory.gd: レリック一覧表示（レアリティ別タブ）
-- DeckPrep.gd: レリックカウント表示
+**アーティファクト管理UI**
+- Inventory.gd: アーティファクト一覧表示（レアリティ別タブ）
+- DeckPrep.gd: アーティファクトカウント表示
 
-**レリック効果実装（7種）**
+**アーティファクト効果実装（7種）**
 - Main.gd: battle_start_mana（マナ追加）、battle_start_tiles（タイル配置）、stat_buff（ユニットバフ）実装
 - Result.gd: gold_bonus（Gold報酬増加）、reward_choices（報酬選択肢増加）実装
 - BoardManager.gd: revive_first（最初の死亡ユニット復活）実装
@@ -296,27 +296,27 @@
 - 全6タスク完了
 - 画面遷移ループ、バトル制限、スキルツリー実装済み
 
-### 装備・素材システム廃止 → レリックシステム導入
+### 装備・素材システム廃止 → アーティファクトシステム導入
 
 **設計変更**
 - 装備システム全廃（装備スロット・合成ツリー削除）
 - 素材システム全廃（素材採集・合成削除）
-- レリック（StS風パッシブアイテム）導入
-- レリック企画案作成: docs/design/relic_system_proposal.md
+- アーティファクト（StS風パッシブアイテム）導入
+- アーティファクト企画案作成: docs/design/artifact_system_proposal.md
 
 **ドキュメント更新**
-- roadmap.md: 装備・素材タスク7件廃止、レリックタスク2件追加
-- deckprep.md: 素材表示→レリック表示に変更
+- roadmap.md: 装備・素材タスク7件廃止、アーティファクトタスク2件追加
+- deckprep.md: 素材表示→アーティファクト表示に変更
 - GAME_DESIGN.md: 装備・素材廃止を明記済み
 
 **実装コード修正**
-- GameSession.gd: materials → relics
-- CardDB.gd: MATERIALS/EQUIPMENT削除、RELICS追加
-- DeckPrep.gd: 素材カウント→レリックカウント
-- Inventory.gd: 素材タブ→レリックレアリティタブ
+- GameSession.gd: materials → artifacts
+- CardDB.gd: MATERIALS/EQUIPMENT削除、ARTIFACTS追加
+- DeckPrep.gd: 素材カウント→アーティファクトカウント
+- Inventory.gd: 素材タブ→アーティファクトレアリティタブ
 - Result.gd, Shop.gd, MapSelect.gd: materials参照削除
 - MaterialSelect.gd, Gather.gd: 削除（画面廃止）
-- TestSession.gd: materialsテスト→relicsに変更
+- TestSession.gd: materialsテスト→artifactsに変更
 
 ### Phase 3 タスク#18完了: DeckPrep UX改善
 

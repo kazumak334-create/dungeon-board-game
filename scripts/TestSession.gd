@@ -1,5 +1,5 @@
 # TestSession.gd
-# セッション/画面遷移テスト（GameSession, relics, base_deck, scene_manager）
+# セッション/画面遷移テスト（GameSession, artifacts, base_deck, scene_manager）
 extends RefCounted
 
 func run(runner: RefCounted) -> void:
@@ -27,7 +27,7 @@ func _test_game_session(r: RefCounted) -> void:
 	GameSession.dev_mode = true
 	GameSession.gold = 999
 	GameSession.skill_points = 5
-	GameSession.relics = ["test_relic"]
+	GameSession.artifacts = ["test_artifact"]
 	GameSession.selected_deck = [{"name": "test"}]
 	GameSession.selected_material = {"id": "test"}
 	GameSession.reset()
@@ -35,7 +35,7 @@ func _test_game_session(r: RefCounted) -> void:
 	r._assert_eq(GameSession.dev_mode, false, "reset: dev_mode=false")
 	r._assert_eq(GameSession.gold, 0, "reset: gold=0")
 	r._assert_eq(GameSession.skill_points, 0, "reset: skill_points=0")
-	r._assert_eq(GameSession.relics.size(), 0, "reset: relics空")
+	r._assert_eq(GameSession.artifacts.size(), 0, "reset: artifacts空")
 	r._assert_eq(GameSession.selected_deck.size(), 0, "reset: selected_deck空")
 	r._assert_eq(GameSession.selected_material.size(), 0, "reset: selected_material空")
 
@@ -207,7 +207,7 @@ func _test_result_reward_panel_fields(r: RefCounted) -> void:
 	r._assert_true("current_battle_gold" in GameSession, "reward_panel: current_battle_goldフィールド存在")
 	r._assert_true("gold" in GameSession, "reward_panel: goldフィールド存在")
 	r._assert_true("skill_points" in GameSession, "reward_panel: skill_pointsフィールド存在")
-	r._assert_true("relics" in GameSession, "reward_panel: relicsフィールド存在")
+	r._assert_true("artifacts" in GameSession, "reward_panel: artifactsフィールド存在")
 	r._assert_true(GameSession.last_result.has("win"), "reward_panel: last_result.win存在")
 
 # テスト: カード3択生成（重みテーブルと重複なし）

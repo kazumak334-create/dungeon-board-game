@@ -124,7 +124,7 @@ func _build_status_area() -> void:
 	var group3 = [
 		["所持金: %dG" % GameSession.gold, UIF.GOLD_COLOR],
 		["スキルPt: %d" % GameSession.skill_points, Color(0.5, 0.8, 0.9)],
-		["レリック: %d個" % GameSession.relics.size(), Color(0.7, 0.5, 0.8)],
+		["アーティファクト: %d個" % GameSession.artifacts.size(), Color(0.7, 0.5, 0.8)],
 	]
 
 	for group in [group1, group2, group3]:

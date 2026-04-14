@@ -67,19 +67,19 @@ func _generate_rewards() -> void:
 	_reward_gold = 100
 	_reward_sp = 3  # Phase 2: スキルツリー報酬（3SP固定）
 
-	# レリック効果: gold_bonus
+	# アーティファクト効果: gold_bonus
 	var gold_bonus_total: float = 0.0
-	for relic_id in GameSession.relics:
-		if not CardDB.RELICS.has(relic_id):
+	for artifact_id in GameSession.artifacts:
+		if not CardDB.ARTIFACTS.has(artifact_id):
 			continue
-		var relic = CardDB.RELICS[relic_id]
-		var effect = relic.get("effect", {})
+		var artifact = CardDB.ARTIFACTS[artifact_id]
+		var effect = artifact.get("effect", {})
 		if effect.get("type", "") == "gold_bonus":
 			gold_bonus_total += effect.get("value", 0.0)
 	if gold_bonus_total > 0.0:
 		var bonus_amount = int(_reward_gold * gold_bonus_total)
 		_reward_gold += bonus_amount
-		print("[Result] レリック gold_bonus: +%d%% → +%dG (合計: %dG)" % [int(gold_bonus_total * 100), bonus_amount, _reward_gold])
+		print("[Result] アーティファクト gold_bonus: +%d%% → +%dG (合計: %dG)" % [int(gold_bonus_total * 100), bonus_amount, _reward_gold])
 	GameSession.gold += _reward_gold
 	GameSession.skill_points += _reward_sp
 	# 素材報酬は廃止（装備・素材システム廃止により削除）
@@ -87,9 +87,9 @@ func _generate_rewards() -> void:
 	GameSession.current_battle_gold = 0
 
 func _generate_card_choices() -> void:
-	# ボス戦: レリック確定3択
+	# ボス戦: アーティファクト確定3択
 	if GameSession.battle_type == "boss":
-		_generate_boss_relic_choices()
+		_generate_boss_artifact_choices()
 		return
 
 	# run_depthに応じた重みテーブル選択（エリート混入時はステージ+1）
@@ -97,7 +97,7 @@ func _generate_card_choices() -> void:
 	var effective = RewardTableClass.effective_stage(GameSession.run_depth, GameSession.elite_injected_in_battle)
 	print("[Result] run_depth=%d elite=%s stage=%d" % [GameSession.run_depth, GameSession.elite_injected_in_battle, effective])
 
-	# 全ユニット+呪文からレアリティ付きプールを構築（レリックは除外）
+	# 全ユニット+呪文からレアリティ付きプールを構築（アーティファクトは除外）
 	var pool: Array = []
 	for name in CardDB.UNITS:
 		var d = CardDB.UNITS[name]
@@ -108,7 +108,7 @@ func _generate_card_choices() -> void:
 		var rarity = d.get("rarity", "common")
 		pool.append({"name": name, "data": d, "type": "spell", "rarity": rarity})
 
-	# レリック効果: reward_choices
+	# アーティファクト効果: reward_choices
 	var choice_count = 3  # 基本選択肢数
 
 	# エリート混入時: 選択肢+1
@@ -116,15 +116,15 @@ func _generate_card_choices() -> void:
 		choice_count += 1
 		print("[Result] エリート混入戦: 報酬選択肢+1 → %d枚" % choice_count)
 
-	for relic_id in GameSession.relics:
-		if not CardDB.RELICS.has(relic_id):
+	for artifact_id in GameSession.artifacts:
+		if not CardDB.ARTIFACTS.has(artifact_id):
 			continue
-		var relic = CardDB.RELICS[relic_id]
-		var effect = relic.get("effect", {})
+		var artifact = CardDB.ARTIFACTS[artifact_id]
+		var effect = artifact.get("effect", {})
 		if effect.get("type", "") == "reward_choices":
 			choice_count += effect.get("value", 0)
 	if choice_count > 3:
-		print("[Result] レリック reward_choices: 選択肢 %d 枚" % choice_count)
+		print("[Result] アーティファクト reward_choices: 選択肢 %d 枚" % choice_count)
 
 	# 重み付きランダム選択
 	_card_choices = []
@@ -149,31 +149,31 @@ func _weighted_pick(pool: Array, weights: Dictionary, exclude: Array) -> Diction
 		return {}
 	return weighted[randi() % weighted.size()]
 
-func _generate_boss_relic_choices() -> void:
-	# ボス戦: レリック確定3択
-	var relic_pool: Array = []
-	for relic_id in CardDB.RELICS:
-		var relic = CardDB.RELICS[relic_id]
-		relic_pool.append({"name": relic_id, "data": relic, "type": "relic", "rarity": relic.get("rarity", "common")})
+func _generate_boss_artifact_choices() -> void:
+	# ボス戦: アーティファクト確定3択
+	var artifact_pool: Array = []
+	for artifact_id in CardDB.ARTIFACTS:
+		var artifact = CardDB.ARTIFACTS[artifact_id]
+		artifact_pool.append({"name": artifact_id, "data": artifact, "type": "artifact", "rarity": artifact.get("rarity", "common")})
 
 	# レアリティ重み（ボス報酬は高レアリティ優遇）
 	var boss_weights = {
 		"common": 2,
 		"uncommon": 5,
 		"rare": 3,
-		"boss": 0,  # ボスレリックはボス報酬からは出ない
-		"event": 0  # イベントレリックも出ない
+		"boss": 0,  # ボスアーティファクトはボス報酬からは出ない
+		"event": 0  # イベントアーティファクトも出ない
 	}
 
 	_card_choices = []
 	var used_names: Array = []
 	for _i in range(3):
-		var relic = _weighted_pick(relic_pool, boss_weights, used_names)
-		if relic.size() > 0:
-			_card_choices.append(relic)
-			used_names.append(relic["name"])
+		var artifact = _weighted_pick(artifact_pool, boss_weights, used_names)
+		if artifact.size() > 0:
+			_card_choices.append(artifact)
+			used_names.append(artifact["name"])
 
-	print("[Result] ボス報酬: レリック3択生成完了")
+	print("[Result] ボス報酬: アーティファクト3択生成完了")
 
 func _build_ui() -> void:
 	UIF.add_bg(self)
@@ -373,9 +373,9 @@ func _create_card_panel(idx: int, card: Dictionary) -> PanelContainer:
 		effect_label.add_theme_font_size_override("font_size", 11)
 		effect_label.add_theme_color_override("font_color", Color(0.7, 0.7, 0.7))
 		vbox.add_child(effect_label)
-	elif card_type == "relic":
+	elif card_type == "artifact":
 		var type_label = Label.new()
-		type_label.text = "[レリック]"
+		type_label.text = "[アーティファクト]"
 		type_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		type_label.add_theme_font_size_override("font_size", 14)
 		type_label.add_theme_color_override("font_color", Color(0.7, 0.5, 0.8))
@@ -436,10 +436,10 @@ func _on_card_selected(idx: int) -> void:
 	var data = card["data"]
 	var card_type = card.get("type", "unit")
 
-	if card_type == "relic":
-		# レリックをGameSession.relicsに追加
-		GameSession.relics.append(card_name)
-		print("[Result] レリック獲得: %s" % card_name)
+	if card_type == "artifact":
+		# アーティファクトをGameSession.artifactsに追加
+		GameSession.artifacts.append(card_name)
+		print("[Result] アーティファクト獲得: %s" % card_name)
 	else:
 		# カード（ユニット・呪文）をデッキに追加
 		GameSession.selected_deck.append({"name": card_name})

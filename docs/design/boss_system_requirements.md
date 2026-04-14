@@ -269,7 +269,7 @@ func _ready() -> void:
     ENEMY_POOLS = data.get("enemy_pools", {})
     ELITE_POOLS = data.get("elite_pools", {})
     BASE_DECK = data.get("base_deck", [])
-    RELICS = data.get("relics", {})
+    ARTIFACTS = data.get("artifacts", {})
     ENVIRONMENTS = data.get("environments", {})
     BOSSES = data.get("bosses", {})
     EVENTS = data.get("events", {})

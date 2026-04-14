@@ -17,7 +17,7 @@
   - → 2ジャンル以上を掛け合わせ、新規性を強調する構造が主流
 
 - **動詞命令形でプレイヤーを引き込む**
-  - 「Craft a unique deck, encounter bizarre creatures, discover relics of immense power, and Slay the Spire!」
+  - 「Craft a unique deck, encounter bizarre creatures, discover artifacts of immense power, and Slay the Spire!」
   - 「Prepare your backpack!」「Buy rare and legendary items and organize them」
   - → 短い命令文 → 箇条書き展開 → 具体的な行動イメージを与える
 

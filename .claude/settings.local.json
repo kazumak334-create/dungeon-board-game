@@ -128,7 +128,8 @@
       "Bash(python -m json.tool data/traits.json)",
       "Bash(du -h assets/data/*.json)",
       "Bash(wc -l data/*.json)",
-      "Bash(du -h data/*.json)"
+      "Bash(du -h data/*.json)",
+      "Bash(\"C:/Program Files/Godot/Godot_v4.4-stable_win64.exe\" --headless --script scripts/TestDBIntegrity.gd)"
     ]
   },
   "enableAllProjectMcpServers": true,

@@ -26,7 +26,7 @@
 
 選択肢:
 A) 開ける → Gold 80-120
-B) 慎重に開ける → Gold 40-60 + レリック1個
+B) 慎重に開ける → Gold 40-60 + アーティファクト1個
 C) 無視する → 何も起こらない
 ```
 
@@ -37,7 +37,7 @@ C) 無視する → 何も起こらない
 怪しげな商人が取引を持ちかけてきた。
 
 選択肢:
-A) HP10を支払う → レリック1個（確定Uncommon以上）
+A) HP10を支払う → アーティファクト1個（確定Uncommon以上）
 B) Gold100を支払う → カード3枚から1枚選択（確定Rare）
 C) 断る → 何も起こらない
 ```
@@ -90,7 +90,7 @@ B) 立ち去る → 何も起こらない
           "label": "慎重に開ける",
           "results": [
             {"type": "gold", "value": [40, 60]},
-            {"type": "relic", "count": 1, "rarity_weights": {"common": 5, "uncommon": 3, "rare": 1}}
+            {"type": "artifact", "count": 1, "rarity_weights": {"common": 5, "uncommon": 3, "rare": 1}}
           ]
         },
         {
@@ -108,7 +108,7 @@ B) 立ち去る → 何も起こらない
           "label": "HP10を支払う",
           "cost": {"type": "hp", "value": 10},
           "results": [
-            {"type": "relic", "count": 1, "rarity_weights": {"uncommon": 5, "rare": 3}}
+            {"type": "artifact", "count": 1, "rarity_weights": {"uncommon": 5, "rare": 3}}
           ]
         },
         {
@@ -168,7 +168,7 @@ var current_event_id: String = ""  # 現在表示中のイベントID
 |------|------|---------|
 | gold | Gold増減 | 50, [80, 120]（範囲） |
 | hp | 本体HP増減 | -10, 15 |
-| relic | レリック獲得 | count + rarity_weights |
+| artifact | アーティファクト獲得 | count + rarity_weights |
 | card_choice | カード選択 | count + rarity |
 | alert_level | 警戒レベル増減 | -1, 2 |
 | remove_card | カード削除選択 | count: 1 |
@@ -220,7 +220,7 @@ var current_event_id: String = ""  # 現在表示中のイベントID
 ```
 結果:
 + Gold 95
-+ レリック「鉄の護符」獲得
++ アーティファクト「鉄の護符」獲得
 
 [マップへ戻る]
 ```

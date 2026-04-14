@@ -3638,7 +3638,7 @@
 			"texture": ""
 		}
 	},
-	"relics": {
+	"artifacts": {
 		"iron_talisman": {
 			"display": "鉄の護符",
 			"rarity": "common",
@@ -3809,8 +3809,8 @@
 					"label": "持ち去る",
 					"results": [
 						{
-							"type": "relic",
-							"relic_id": "subject_card"
+							"type": "artifact",
+							"artifact_id": "subject_card"
 						},
 						{
 							"type": "gold",
@@ -3850,7 +3850,7 @@
 							"value": 80
 						},
 						{
-							"type": "relic_choice",
+							"type": "artifact_choice",
 							"count": 1,
 							"rarity_weights": {
 								"common": 5,
@@ -3922,7 +3922,7 @@
 					"label": "パーツを回収する",
 					"results": [
 						{
-							"type": "relic_choice",
+							"type": "artifact_choice",
 							"count": 1,
 							"rarity_weights": {
 								"uncommon": 5,
@@ -3983,8 +3983,8 @@
 					"label": "ログを持ち帰る",
 					"results": [
 						{
-							"type": "relic",
-							"relic_id": "memory_key"
+							"type": "artifact",
+							"artifact_id": "memory_key"
 						},
 						{
 							"type": "sp",
@@ -4031,8 +4031,8 @@
 							"value": -2
 						},
 						{
-							"type": "relic",
-							"relic_id": "glitch_core"
+							"type": "artifact",
+							"artifact_id": "glitch_core"
 						}
 					]
 				}
@@ -4053,7 +4053,7 @@
 							"value": -10
 						},
 						{
-							"type": "relic_choice",
+							"type": "artifact_choice",
 							"count": 2,
 							"rarity_weights": {
 								"uncommon": 5,
@@ -4118,8 +4118,8 @@
 					"label": "所持品を調べる",
 					"results": [
 						{
-							"type": "relic",
-							"relic_id": "atlas_omega"
+							"type": "artifact",
+							"artifact_id": "atlas_omega"
 						},
 						{
 							"type": "gold",
@@ -4157,7 +4157,7 @@
 					"label": "扉を調べる",
 					"results": [
 						{
-							"type": "relic_choice",
+							"type": "artifact_choice",
 							"count": 1,
 							"rarity_weights": {
 								"rare": 10

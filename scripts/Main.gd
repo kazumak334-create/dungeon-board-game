@@ -147,8 +147,8 @@ func _ready() -> void:
 	deck_manager.mana = 0.0
 	deck_manager.MANA_MAX = 3.0
 
-	# レリック効果適用（バトル開始時）
-	_apply_relic_effects_battle_start()
+	# アーティファクト効果適用（バトル開始時）
+	_apply_artifact_effects_battle_start()
 	# MANA_REGEN削除: v2設計でユニット生成マナに変更
 	# BoardManager に設定
 	board_manager.player_data = player_data
@@ -228,8 +228,8 @@ func _build_mode_select() -> void:
 		GameSession.battle_log.clear()
 		seed(GameSession.battle_seed)
 		game_started = true
-		# レリック効果フラグ初期化
-		board_manager.relic_revive_used = false
+		# アーティファクト効果フラグ初期化
+		board_manager.artifact_revive_used = false
 		# 警戒システム: エリート混入フラグリセット
 		GameSession.elite_injected_in_battle = false
 		_apply_battle_config()
@@ -244,8 +244,8 @@ func _build_mode_select() -> void:
 		deck_manager.initialize_mana_from_deck()
 		enemy_ai.initialize_mana_from_deck()
 		_apply_environment()
-		# レリック効果適用（ユニット配置後）
-		_apply_relic_effects_on_units()
+		# アーティファクト効果適用（ユニット配置後）
+		_apply_artifact_effects_on_units()
 		_add_log("=== バトル開始 (seed: %d) ===" % GameSession.battle_seed)
 
 func _apply_battle_config() -> void:
@@ -741,29 +741,29 @@ func _apply_equipment_effects(pdata: RefCounted) -> void:
 		board_manager.player_artifacts.append({"name": eq.get("display", ""), "skills": eq.get("skills", []).duplicate(true)})
 	print("[Main] 装備効果適用: player_artifacts=%d件" % [board_manager.player_artifacts.size()])
 
-func _apply_relic_effects_battle_start() -> void:
-	# バトル開始時に適用可能なレリック効果
+func _apply_artifact_effects_battle_start() -> void:
+	# バトル開始時に適用可能なアーティファクト効果
 	# NOTE: stat_buff, timed_buffはユニット配置後に別関数で適用
-	for relic_id in GameSession.relics:
-		if not CardDB.RELICS.has(relic_id):
+	for artifact_id in GameSession.artifacts:
+		if not CardDB.ARTIFACTS.has(artifact_id):
 			continue
-		var relic = CardDB.RELICS[relic_id]
-		var effect = relic.get("effect", {})
+		var artifact = CardDB.ARTIFACTS[artifact_id]
+		var effect = artifact.get("effect", {})
 		var effect_type = effect.get("type", "")
 
 		match effect_type:
 			"battle_start_mana":
 				var mana_value = effect.get("value", 0)
 				deck_manager.mana += mana_value
-				print("[Main] レリック効果: %s → マナ+%d (現在: %.1f)" % [relic.get("display", ""), mana_value, deck_manager.mana])
+				print("[Main] アーティファクト効果: %s → マナ+%d (現在: %.1f)" % [artifact.get("display", ""), mana_value, deck_manager.mana])
 
 			"battle_start_tiles":
 				var tile_type = effect.get("tile_type", "")
 				var positions = effect.get("positions", "")
 				var level = effect.get("level", 1)
-				_apply_battle_start_tiles(relic.get("display", ""), tile_type, positions, level)
+				_apply_battle_start_tiles(artifact.get("display", ""), tile_type, positions, level)
 
-func _apply_battle_start_tiles(relic_name: String, tile_type: String, positions: String, level: int) -> void:
+func _apply_battle_start_tiles(artifact_name: String, tile_type: String, positions: String, level: int) -> void:
 	# tile_typeからeffect_idへのマッピング
 	var tile_map = {
 		"棘": "tile_thorn",
@@ -773,7 +773,7 @@ func _apply_battle_start_tiles(relic_name: String, tile_type: String, positions:
 	}
 	var effect_id = tile_map.get(tile_type, "")
 	if effect_id == "":
-		print("[Main] レリック効果: %s → 不明なタイルタイプ: %s" % [relic_name, tile_type])
+		print("[Main] アーティファクト効果: %s → 不明なタイルタイプ: %s" % [artifact_name, tile_type])
 		return
 
 	# positionsから配置座標リストを生成
@@ -792,7 +792,7 @@ func _apply_battle_start_tiles(relic_name: String, tile_type: String, positions:
 		"enemy_back_row":
 			coords = [[1, 2, 0], [1, 2, 1], [1, 2, 2]]
 		_:
-			print("[Main] レリック効果: %s → 未対応のpositions: %s" % [relic_name, positions])
+			print("[Main] アーティファクト効果: %s → 未対応のpositions: %s" % [artifact_name, positions])
 			return
 
 	# タイル配置
@@ -802,15 +802,15 @@ func _apply_battle_start_tiles(relic_name: String, tile_type: String, positions:
 		var col = coord[2]
 		board_manager.tile_system.set_tile_effect(side, row, col, effect_id, -1.0)
 
-	print("[Main] レリック効果: %s → %s を %s に配置" % [relic_name, tile_type, positions])
+	print("[Main] アーティファクト効果: %s → %s を %s に配置" % [artifact_name, tile_type, positions])
 
-func _apply_relic_effects_on_units() -> void:
-	# ユニット配置後に適用するレリック効果（stat_buff, timed_buff）
-	for relic_id in GameSession.relics:
-		if not CardDB.RELICS.has(relic_id):
+func _apply_artifact_effects_on_units() -> void:
+	# ユニット配置後に適用するアーティファクト効果（stat_buff, timed_buff）
+	for artifact_id in GameSession.artifacts:
+		if not CardDB.ARTIFACTS.has(artifact_id):
 			continue
-		var relic = CardDB.RELICS[relic_id]
-		var effect = relic.get("effect", {})
+		var artifact = CardDB.ARTIFACTS[artifact_id]
+		var effect = artifact.get("effect", {})
 		var effect_type = effect.get("type", "")
 
 		match effect_type:
@@ -818,16 +818,16 @@ func _apply_relic_effects_on_units() -> void:
 				var target = effect.get("target", "")
 				var stat = effect.get("stat", "")
 				var value = effect.get("value", 0)
-				_apply_stat_buff_to_units(relic.get("display", ""), target, stat, value)
+				_apply_stat_buff_to_units(artifact.get("display", ""), target, stat, value)
 
 			"timed_buff":
 				var target = effect.get("target", "")
 				var stat = effect.get("stat", "")
 				var value = effect.get("value", 0)
 				var duration = effect.get("duration", 0)
-				_apply_timed_buff_to_units(relic.get("display", ""), target, stat, value, duration)
+				_apply_timed_buff_to_units(artifact.get("display", ""), target, stat, value, duration)
 
-func _apply_stat_buff_to_units(relic_name: String, target: String, stat: String, value: int) -> void:
+func _apply_stat_buff_to_units(artifact_name: String, target: String, stat: String, value: int) -> void:
 	var count = 0
 	for side in range(2):
 		for row in range(3):
@@ -866,12 +866,12 @@ func _apply_stat_buff_to_units(relic_name: String, target: String, stat: String,
 				count += 1
 
 	if count > 0:
-		print("[Main] レリック効果: %s → %d体のユニットに %s+%d" % [relic_name, count, stat.to_upper(), value])
+		print("[Main] アーティファクト効果: %s → %d体のユニットに %s+%d" % [artifact_name, count, stat.to_upper(), value])
 
-func _apply_timed_buff_to_units(relic_name: String, target: String, stat: String, value: int, duration: float) -> void:
+func _apply_timed_buff_to_units(artifact_name: String, target: String, stat: String, value: int, duration: float) -> void:
 	# 時間制限バフ（hourglassなど）
 	# TODO: 実装予定（バフシステムと統合が必要）
-	print("[Main] レリック効果: %s → timed_buff実装予定（target=%s, stat=%s, value=%d, duration=%.1fs）" % [relic_name, target, stat, value, duration])
+	print("[Main] アーティファクト効果: %s → timed_buff実装予定（target=%s, stat=%s, value=%d, duration=%.1fs）" % [artifact_name, target, stat, value, duration])
 
 func _on_spell_cast(side: int, spell_name: String) -> void:
 	var side_name: String = "自陣" if side == 0 else "敵陣"

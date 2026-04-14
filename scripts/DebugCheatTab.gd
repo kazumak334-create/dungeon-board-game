@@ -94,16 +94,16 @@ func _build_ui() -> void:
 	_add_button(vbox, "次バトルスキップ", _on_skip_next_battle)
 	_add_button(vbox, "ボス戦強制開始", _on_force_boss_battle)
 	
-	# カード・レリック追加（未実装・レイアウトのみ）
-	_add_section_label(vbox, "カード・レリック追加（未実装）")
+	# カード・アーティファクト追加（未実装・レイアウトのみ）
+	_add_section_label(vbox, "カード・アーティファクト追加（未実装）")
 	var card_hbox = HBoxContainer.new()
 	vbox.add_child(card_hbox)
 	var card_input = LineEdit.new()
-	card_input.placeholder_text = "カード名/レリック名"
+	card_input.placeholder_text = "カード名/アーティファクト名"
 	card_input.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	card_hbox.add_child(card_input)
 	_add_button(card_hbox, "カードを追加", func(): print("[チート] カード追加（未実装）"))
-	_add_button(card_hbox, "レリックを追加", func(): print("[チート] レリック追加（未実装）"))
+	_add_button(card_hbox, "アーティファクトを追加", func(): print("[チート] アーティファクト追加（未実装）"))
 	
 	# ユニット操作（バトル中のみ・未実装）
 	_add_section_label(vbox, "ユニット操作（バトル中のみ・未実装）")

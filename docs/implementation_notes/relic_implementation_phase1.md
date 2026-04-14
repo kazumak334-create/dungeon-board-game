@@ -1,4 +1,4 @@
-# レリックシステム実装 Phase 1完了
+# アーティファクトシステム実装 Phase 1完了
 
 作成日: 2026-04-11
 ステータス: Phase 1完了（データ構造・UI）
@@ -8,23 +8,23 @@
 ## 完了した実装
 
 ### 1. データ構造
-- **cards.json**: relicsセクション追加
+- **cards.json**: artifactsセクション追加
   - Common 5種: 鉄の護符、狂戦士の角笛、魔石の欠片、時の砂時計、黄金のコイン
   - Uncommon 3種: 不死鳥の羽、棘の種、幸運のお守り
 
-- **CardDB.gd**: RELICS読み込み（既に実装済み）
-- **GameSession.gd**: relics配列（既に実装済み）
+- **CardDB.gd**: ARTIFACTS読み込み（既に実装済み）
+- **GameSession.gd**: artifacts配列（既に実装済み）
 
 ### 2. バトル報酬UI
 - **Result.gd修正**:
-  - _generate_card_choices(): レリックをプールに追加
-  - _create_card_panel(): レリック表示UI追加
-  - _on_card_selected(): レリック獲得処理追加
+  - _generate_card_choices(): アーティファクトをプールに追加
+  - _create_card_panel(): アーティファクト表示UI追加
+  - _on_card_selected(): アーティファクト獲得処理追加
 
-### 3. レリック管理UI
-- **Inventory.gd**: レリック一覧表示（既に実装済み）
+### 3. アーティファクト管理UI
+- **Inventory.gd**: アーティファクト一覧表示（既に実装済み）
   - レアリティ別タブ（Common/Uncommon/Rare/Boss）
-  - 所持レリック表示
+  - 所持アーティファクト表示
 
 ---
 
@@ -48,11 +48,11 @@
 
 ## 実装ファイル
 
-- `data/cards.json` - レリックデータ
+- `data/cards.json` - アーティファクトデータ
 - `scripts/Result.gd` - バトル報酬UI
-- `scripts/Inventory.gd` - レリック一覧
-- `scripts/GameSession.gd` - relics配列
-- `scripts/CardDB.gd` - RELICS読み込み
+- `scripts/Inventory.gd` - アーティファクト一覧
+- `scripts/GameSession.gd` - artifacts配列
+- `scripts/CardDB.gd` - ARTIFACTS読み込み
 
 ---
 

@@ -43,7 +43,7 @@ var placement_config: Array = []  # デッキインデックス→{col_priority,
 var initial_units: Array = []  # 9個の要素 [{name, row, col}, ...] or null
 # v2設計: 呪文3スロット設定
 var spell_slots: Array = []  # 3個の要素 [{spell_name, condition}, ...] or null
-var relics: Array = []  # 所持レリック（バトル報酬・ショップ・イベントで取得）
+var artifacts: Array = []  # 所持アーティファクト（バトル報酬・ショップ・イベントで取得）
 var gold: int = 0          # 通貨
 var skill_points: int = 0  # スキルポイント
 var unlocked_skills: Array = []  # 解放済みスキルID配列
@@ -90,7 +90,7 @@ func reset() -> void:
 	placement_config = []
 	initial_units = []
 	spell_slots = []
-	relics = []
+	artifacts = []
 	gold = 0
 	skill_points = 0
 	unlocked_skills = []

@@ -21,7 +21,7 @@ def main():
             interval = unit_data["interval"]
             if interval > 0:
                 spd = 1.0 / interval
-                unit_data["spd"] = round(spd, 3)  # 小数点3桁で丸める
+                unit_data["spd"] = round(spd, 5)  # 小数点5桁で丸める
                 del unit_data["interval"]
                 converted_count += 1
                 print(f"{unit_name}: interval={interval:.2f} → SPD={spd:.3f}")

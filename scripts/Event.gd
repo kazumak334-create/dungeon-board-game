@@ -146,17 +146,17 @@ func _apply_results(results: Array) -> void:
 				# TODO: 本体HPシステムが実装されたら対応
 				print("[Event] HP %+d（未実装）" % value)
 
-			"relic":
-				var relic_id = result.get("relic_id", "")
-				if relic_id != "":
-					GameSession.relics.append(relic_id)
-					print("[Event] レリック獲得: %s" % relic_id)
+			"artifact":
+				var artifact_id = result.get("artifact_id", "")
+				if artifact_id != "":
+					GameSession.artifacts.append(artifact_id)
+					print("[Event] アーティファクト獲得: %s" % artifact_id)
 
-			"relic_choice":
-				# TODO: レリック選択UI実装
+			"artifact_choice":
+				# TODO: アーティファクト選択UI実装
 				var count = result.get("count", 1)
 				var weights = result.get("rarity_weights", {})
-				print("[Event] レリック選択: %d個（未実装）" % count)
+				print("[Event] アーティファクト選択: %d個（未実装）" % count)
 
 			"card_choice":
 				# TODO: カード選択UI実装
@@ -243,11 +243,11 @@ func _build_result_text(results: Array) -> String:
 				else:
 					lines.append("- HP %d" % abs(value))
 
-			"relic":
-				var relic_id = result.get("relic_id", "")
-				if CardDB.RELICS.has(relic_id):
-					var relic_name = CardDB.RELICS[relic_id].get("display", relic_id)
-					lines.append("+ レリック「%s」獲得" % relic_name)
+			"artifact":
+				var artifact_id = result.get("artifact_id", "")
+				if CardDB.ARTIFACTS.has(artifact_id):
+					var artifact_name = CardDB.ARTIFACTS[artifact_id].get("display", artifact_id)
+					lines.append("+ アーティファクト「%s」獲得" % artifact_name)
 
 			"alert_level":
 				var value = result.get("value", 0)

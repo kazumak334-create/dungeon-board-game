@@ -98,7 +98,7 @@ func _on_dump_game_session() -> void:
 	print("  current_act: ", GameSession.current_act)
 	print("  battle_type: ", GameSession.battle_type)
 	print("  selected_deck.size(): ", GameSession.selected_deck.size())
-	print("  relics.size(): ", GameSession.relics.size())
+	print("  artifacts.size(): ", GameSession.artifacts.size())
 	print("  Godモード: invincible=%s, infinite_mana=%s, infinite_time=%s, auto_win=%s" % [
 		GameSession.god_mode_invincible,
 		GameSession.god_mode_infinite_mana,
@@ -112,7 +112,7 @@ func _on_dump_card_db() -> void:
 	print("  loaded: ", CardDB._loaded)
 	print("  units.size(): ", CardDB.units.size())
 	print("  spells.size(): ", CardDB.spells.size())
-	print("  relics.size(): ", CardDB.relics.size())
+	print("  artifacts.size(): ", CardDB.artifacts.size())
 	print("  bosses.size(): ", CardDB.bosses.size())
 	print("=================================")
 
