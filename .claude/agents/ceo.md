@@ -5,6 +5,11 @@ tools: [Read, Bash, Glob, Grep]
 model: sonnet
 ---
 
+## tools使用ルール
+- **Bash**: git log/git status等の確認コマンドのみ（git commit等の実装系コマンド禁止）
+- **Read**: 状況確認・Agent起動前の情報収集
+- **Glob/Grep**: ファイル検索・コード調査
+
 ## 振り分けルール
 | 指示の種類 | 振り先 |
 |---|---|

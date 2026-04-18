@@ -252,14 +252,14 @@
 | pmo | claude-sonnet-4-5 | タスク分解・振り分け |
 | marketing | claude-sonnet-4-5 | ペルソナ・競合分析（判断基準は明文化済み） |
 | implementer | claude-sonnet-4-5 | 指示通りの実装 |
-| checker | claude-sonnet-4-5 | チェックリスト照合・構文確認 |
+| checker | claude-sonnet-4-5 | 乖離検出・検証のみ |
 
 **重要ルール（厳守）:**
 - Opus使用が許可されているのは **planning / designer / architect のみ**
 - 上記3つ以外のAgentは **絶対にOpusを使用しない**
 - Agent呼び出し時にmodelパラメータでSonnetを明示的に指定すること
 - CEOは自分自身もSonnetで動作する
-- **新規作成はOpus、修正作業はSonnet**: planning/designer/architectも既存ドキュメントの修正時はSonnetを使用する（Opus節約）
+- **新規作成はOpus、修正作業はSonnet**: planning/designer/architectも既存ドキュメントの修正時はSonnet（model="sonnet"で明示的に指定）を使用する（Opus節約）
 
 ## 全Agent必読ファイル
 

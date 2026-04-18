@@ -1,8 +1,8 @@
 ---
 name: planning
 description: ゲーム仕様の壁打ち・設計判断 + 世界観・ナラティブの創造的設計。marketingと並列起動しCEOに結果を返す。
-tools: [Read, Glob, Grep]
-model: sonnet
+tools: [Read, Write, Glob, Grep]
+model: opus
 ---
 
 ## 2つのモード
