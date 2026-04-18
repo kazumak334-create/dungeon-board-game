@@ -958,6 +958,11 @@ func start_rest_screen() -> void:
 	rest_manager.initialize(GameSession, board_manager)
 	add_child(rest_manager)
 
+func _on_rest_screen_closed() -> void:
+	print("[Main] RestScreen終了、次Wave開始")
+	if wave_manager:
+		wave_manager.resume_from_rest()
+
 # Phase 4 #0a: WaveManagerシグナルハンドラ
 func _on_wave_started(big: int, small: int, scale: float) -> void:
 	_add_log("=== Wave %d-%d 開始（敵強化×%.1f）===" % [big, small, scale])
@@ -967,8 +972,8 @@ func _on_wave_ended(big: int, small: int, victory: bool) -> void:
 	_add_log("=== Wave %d-%d %s ===" % [big, small, result_text])
 
 func _on_rest_screen_requested() -> void:
-	print("[Main] RestScreen呼び出し（Phase 4 未実装）")
-	# TODO: RestScreenManager呼び出し（rest_screen_requirements.md準拠）
+	print("[Main] RestScreen呼び出し")
+	start_rest_screen()
 
 func _on_big_wave_completed(next_act: int) -> void:
 	print("[Main] BW完了、次Act %d へ（Phase 4 未実装）" % next_act)

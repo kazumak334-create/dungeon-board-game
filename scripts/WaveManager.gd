@@ -91,6 +91,10 @@ func on_wave_clear() -> void:
 	wave_cleared.emit(_current_big, _current_small)
 	_advance_to_next_wave()
 
+func on_wave_victory() -> void:
+	# Main.gd互換のためのエイリアス
+	on_wave_clear()
+
 func _advance_to_next_wave() -> void:
 	if _current_small == BOSS_WAVE_PHASE2:
 		# ボス第二形態突破 → BW完了
