@@ -42,8 +42,15 @@
 - 復帰ボタン生成・クリック処理（gold減算、selected_deck追加、wave_dead_units削除）
 - RestScreenManager.gd統合（build_hand_area拡張、復帰完了シグナル連携）
 
-**残作業（Phase 5）**
-- Phase 5: 右パネルUI、画面遷移統合
+**Phase 5完了: 右パネルUI・遷移統合**
+- 右パネル状態別表示（未選択時/カード選択時/ショップホバー時）
+- 手持ちカードホバーで詳細表示（CardDB参照、ステータス・効果・特性）
+- デッキバリデーション（3×3配置必須、未完成時エラー表示3秒）
+- 次へ進むボタン（バリデーション→Main._on_rest_screen_closed()経由で遷移）
+- スキップボタン（バリデーション省略、即座に遷移）
+- RestScreenManager.gd拡張（230行→480行）
+
+**RestScreen Phase 3-5完了: 全機能実装済み**
 
 **備考**
 - roadmap.md Phase 4 #0bステータス更新（未着手→進行中）
