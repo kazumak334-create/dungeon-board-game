@@ -10,14 +10,23 @@ signal rest_screen_requested()
 signal wave_all_cleared()
 
 # 定数
-const SMALL_WAVES_PER_BIG_WAVE: int = 7
-const BOSS_WAVE: int = 8
+const SMALL_WAVES_PER_BIG_WAVE: int = 6
+const BOSS_WAVE_PHASE1: int = 7
+const BOSS_WAVE_PHASE2: int = 8
+const TOTAL_WAVES_PER_BW: int = 8
 const TOTAL_BIG_WAVES: int = 3
 
 # Wave強化係数テーブル
 const WAVE_SCALING_TABLE: Array = [
-	0.6, 0.8, 1.0, 1.3, 1.6, 2.0, 2.5, 3.0
+	0.6, 0.8, 1.0, 1.3, 1.6, 2.0, 3.0, 3.5
 ]
+
+# WaveState列挙型
+enum WaveState {
+	SMALL_WAVE,
+	BOSS_PHASE1,
+	BOSS_PHASE2
+}
 
 # 外部参照
 var board_manager: Node = null
@@ -28,6 +37,7 @@ var deck_manager: Node = null
 var _is_running: bool = false
 var _current_big: int = 1
 var _current_small: int = 1
+var state: WaveState = WaveState.SMALL_WAVE
 
 func _init() -> void:
 	print("[WaveManager] 初期化完了")
@@ -46,6 +56,13 @@ func start_wave_mode(big_wave: int = 1, small_wave: int = 1) -> void:
 
 func _start_wave(big: int, small: int) -> void:
 	print("[WaveManager] Wave開始: BW%d-SW%d" % [big, small])
+	# WaveState更新
+	if small == BOSS_WAVE_PHASE1:
+		state = WaveState.BOSS_PHASE1
+	elif small == BOSS_WAVE_PHASE2:
+		state = WaveState.BOSS_PHASE2
+	else:
+		state = WaveState.SMALL_WAVE
 	if small > 1:
 		_restore_board_from_snapshot()
 	_build_enemy_for_wave(big, small)
@@ -65,7 +82,7 @@ func _start_wave(big: int, small: int) -> void:
 func on_wave_clear() -> void:
 	print("[WaveManager] Wave突破: BW%d-SW%d" % [_current_big, _current_small])
 	_save_board_snapshot()
-	if _current_small < SMALL_WAVES_PER_BIG_WAVE + 1:
+	if _current_small < BOSS_WAVE_PHASE2:
 		if deck_manager != null:
 			GameSession.wave_mana_carryover = deck_manager.mana
 			print("[WaveManager] マナ保存: %.1f" % GameSession.wave_mana_carryover)
@@ -75,7 +92,8 @@ func on_wave_clear() -> void:
 	_advance_to_next_wave()
 
 func _advance_to_next_wave() -> void:
-	if _current_small == BOSS_WAVE:
+	if _current_small == BOSS_WAVE_PHASE2:
+		# ボス第二形態突破 → BW完了
 		if _current_big >= TOTAL_BIG_WAVES:
 			print("[WaveManager] 全Wave突破")
 			_is_running = false
@@ -85,6 +103,7 @@ func _advance_to_next_wave() -> void:
 			print("[WaveManager] BW%d突破 → 休憩画面へ" % _current_big)
 			_current_big += 1
 			_current_small = 1
+			state = WaveState.SMALL_WAVE
 			GameSession.wave_mana_carryover = 0.0
 			GameSession.wave_board_snapshot = {}
 			rest_screen_requested.emit()
@@ -115,9 +134,9 @@ func _build_enemy_for_wave(big: int, small: int) -> void:
 	if enemy_ai == null:
 		print("[WaveManager] WARNING: enemy_ai未設定")
 		return
-	if small == BOSS_WAVE:
+	if small == BOSS_WAVE_PHASE1 or small == BOSS_WAVE_PHASE2:
 		GameSession.battle_type = "boss"
-		print("[WaveManager] ボスWave構築: boss_id=%s" % GameSession.boss_id)
+		print("[WaveManager] ボスWave構築: boss_id=%s (Phase %d)" % [GameSession.boss_id, 1 if small == BOSS_WAVE_PHASE1 else 2])
 	else:
 		GameSession.battle_type = "normal"
 		print("[WaveManager] 通常Wave構築: BW%d-SW%d" % [big, small])
@@ -161,7 +180,11 @@ func _restore_board_from_snapshot() -> void:
 		var unit = UnitDataScript.new()
 		_deserialize_unit(unit, data)
 		board_manager.board[player_side][r][c] = unit
+		# on_summon再発動防止: tile_system.check_tile_on_enter/attack_timers設定/on_board_changed呼び出し
+		board_manager.tile_system.check_tile_on_enter(player_side, r, c, unit)
+		board_manager.attack_timers[player_side][r][c] = unit.get_attack_interval()
 	print("[WaveManager] 盤面復元: %d体" % snapshot.size())
+	board_manager.on_board_changed()
 
 func _serialize_unit(unit: Object) -> Dictionary:
 	return {

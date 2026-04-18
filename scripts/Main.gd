@@ -22,6 +22,7 @@ var board_manager: Node
 var deck_manager: Node
 var enemy_ai: Node
 var spell_slot_system: RefCounted = null  # v2設計: 呪文3スロットシステム
+var wave_manager: Node = null  # Phase 4 #0a: Wave進行管理
 
 var base_hp: Array = [30, 30]
 var row_breached: Array = [
@@ -110,6 +111,17 @@ func _ready() -> void:
 	enemy_ai = Node.new()
 	enemy_ai.set_script(EnemyAIScript)
 	add_child(enemy_ai)
+
+	# Phase 4 #0a: WaveManager初期化
+	var WaveManagerScript = load("res://scripts/WaveManager.gd")
+	wave_manager = Node.new()
+	wave_manager.set_script(WaveManagerScript)
+	add_child(wave_manager)
+	wave_manager.setup(board_manager, deck_manager, enemy_ai, self)
+	wave_manager.wave_started.connect(_on_wave_started)
+	wave_manager.wave_ended.connect(_on_wave_ended)
+	wave_manager.rest_screen_requested.connect(_on_rest_screen_requested)
+	wave_manager.big_wave_completed.connect(_on_big_wave_completed)
 
 	# SpellExecutor 初期化・注入
 	var spell_executor = SpellExecutorScript.new()
@@ -585,6 +597,12 @@ func _check_game_over() -> void:
 		GameSession.last_result = {"win": false, "player_hp_remaining": base_hp[0], "turns": 0, "battle_gold": GameSession.current_battle_gold}
 		_transition_to_result_timer()
 	elif base_hp[1] <= 0 or enemy_all_dead:
+		# Phase 4 #0a: WaveManager経由の勝利処理（通常モード）
+		if wave_manager != null and wave_manager.state == wave_manager.WaveState.COMBAT:
+			wave_manager.on_wave_victory()
+			return
+
+		# 既存ロジック（ツールモード・dev_mode用フォールバック）
 		# ボス連戦判定: 第1戦勝利 & 警戒Lv4以上
 		if GameSession.battle_type == "boss" and GameSession.boss_phase == 1 and GameSession.alert_level >= 4:
 			_start_boss_phase2()
@@ -939,3 +957,19 @@ func start_rest_screen() -> void:
 	var rest_manager = preload("res://scripts/RestScreenManager.gd").new()
 	rest_manager.initialize(GameSession, board_manager)
 	add_child(rest_manager)
+
+# Phase 4 #0a: WaveManagerシグナルハンドラ
+func _on_wave_started(big: int, small: int, scale: float) -> void:
+	_add_log("=== Wave %d-%d 開始（敵強化×%.1f）===" % [big, small, scale])
+
+func _on_wave_ended(big: int, small: int, victory: bool) -> void:
+	var result_text: String = "勝利" if victory else "敗北"
+	_add_log("=== Wave %d-%d %s ===" % [big, small, result_text])
+
+func _on_rest_screen_requested() -> void:
+	print("[Main] RestScreen呼び出し（Phase 4 未実装）")
+	# TODO: RestScreenManager呼び出し（rest_screen_requirements.md準拠）
+
+func _on_big_wave_completed(next_act: int) -> void:
+	print("[Main] BW完了、次Act %d へ（Phase 4 未実装）" % next_act)
+	# TODO: 次Act直行（MapSelect経由なし）

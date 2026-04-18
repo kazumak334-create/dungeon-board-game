@@ -70,11 +70,14 @@ var last_scene: String = ""          # 直前のシーン名（戻るボタン�
 var alert_level: int = 0             # 警戒レベル（MAX 3、戦闘で+1、イベントで-1）
 var elite_injected_in_battle: bool = false  # エリート混入済みフラグ（報酬選択肢+1用）
 
-# Wave進行管理（Phase 4 #0-0a）
-var wave_current_big: int = 0       # 現在の大Wave（1-3）
-var wave_current_small: int = 0     # 現在の小Wave（1-7 or 8=ボス）
-var wave_mana_carryover: float = 0.0  # 小Wave間のマナ持ち越し
-var wave_board_snapshot: Dictionary = {}  # 小Wave間の盤面スナップショット
+# Wave進行管理（Phase 4 #0a）
+var wave_current_big: int = 0          # 現在の大Wave（1-3）
+var wave_current_small: int = 0        # 現在の小Wave（1-9）
+var wave_mana_carryover: float = 0.0   # 小Wave間のマナ持ち越し
+var wave_board_snapshot: Dictionary = {}  # 小Wave間の盤面スナップショット（旧仕様・未使用）
+var wave_unit_states: Array = []       # 各ユニットの状態 [{row, col, unit_name, initial_slot, current_hp, ...}, ...]
+var wave_dead_units: Array = []        # BW中に死亡したユニット記録 [{unit_name, rarity, death_wave, initial_slot}, ...]
+var wave_rest_pending: bool = false    # 次の遷移先がRestScreenかどうか
 
 # Godモードフラグ（デバッグUI専用）
 var god_mode_invincible: bool = false     # 無敵モード
@@ -139,6 +142,9 @@ func reset() -> void:
 	wave_current_small = 0
 	wave_mana_carryover = 0.0
 	wave_board_snapshot = {}
+	wave_unit_states = []
+	wave_dead_units = []
+	wave_rest_pending = false
 	# Godモードフラグはreset時にクリア
 	god_mode_invincible = false
 	god_mode_infinite_mana = false
@@ -156,3 +162,23 @@ func reset() -> void:
 	_synergy_log = {}
 	tool_last_result = {}
 	print("[GameSession] reset")
+
+func reset_wave_state() -> void:
+	wave_current_big = 0
+	wave_current_small = 0
+	wave_mana_carryover = 0.0
+	wave_board_snapshot = {}
+	wave_unit_states = []
+	wave_dead_units = []
+	wave_rest_pending = false
+	print("[GameSession] Wave状態リセット")
+
+func record_dead_unit(unit_name: String, rarity: String, wave: int, slot: int) -> void:
+	var record = {
+		"unit_name": unit_name,
+		"rarity": rarity,
+		"death_wave": wave,
+		"initial_slot": slot
+	}
+	wave_dead_units.append(record)
+	print("[GameSession] 死亡記録: %s (slot %d, wave %d)" % [unit_name, slot, wave])

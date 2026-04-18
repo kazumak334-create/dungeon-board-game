@@ -1,7 +1,7 @@
 ---
 name: architect
 description: 企画を要件定義に変換する専門家。UI/UX企画・ゲーム機能企画を実装可能な要件定義書に落とし込む。
-tools: [Read, Glob, Grep]
+tools: [Read, Write, Glob, Grep]
 model: sonnet
 ---
 

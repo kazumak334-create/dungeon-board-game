@@ -305,6 +305,9 @@ func remove_unit(side: int, row: int, col: int) -> void:
 	var unit = board[side][row][col]
 	if unit == null:
 		return  # 既に削除済み（EventQueue の二重処理対策）
+	# 死亡ユニット記録（Phase 4 #0a）
+	var initial_slot: int = row * 3 + col
+	GameSession.record_dead_unit(unit.unit_name, initial_slot)
 	# 撃破時スキル（on_death）処理
 	if unit != null:
 		for skill in unit.skills:

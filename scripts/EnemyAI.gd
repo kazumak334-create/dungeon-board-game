@@ -287,3 +287,12 @@ func apply_wave_scaling(unit: Object, scaling: float) -> void:
 	unit.atk = int(round(original_atk * scaling))
 	print("[EnemyAI] Wave強化: %s HP %d→%d ATK %d→%d (x%.1f)" %
 		[unit.unit_name, original_max_hp, unit.max_hp, original_atk, unit.atk, scaling])
+
+# Phase 4 #0a: WaveManagerからのスケール適用（enemy_deck全体に適用）
+func apply_wave_scale(hp_scale: float, atk_scale: float) -> void:
+	print("[EnemyAI] apply_wave_scale: HP×%.2f ATK×%.2f (deck size: %d)" % [hp_scale, atk_scale, enemy_deck.size()])
+	for u in enemy_deck:
+		u.max_hp = int(float(u.max_hp) * hp_scale)
+		u.current_hp = u.max_hp
+		u.attack = int(float(u.attack) * atk_scale)
+		# SPDは変更しない（論点1 確定仕様）
