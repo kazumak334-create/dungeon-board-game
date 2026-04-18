@@ -1,5 +1,20 @@
 
 # CHANGELOG
+## 2026-04-19
+
+### CheckAgent検証：自軍ユニット前進アニメーション（Phase 5 #0f step 2-2）
+
+**検証結果**
+- ✅ `_on_battle_victory()` 内に `await _animate_player_advance()` 呼び出し追加（L995）
+- ✅ `_animate_player_advance()` 関数実装（L1022-1034）
+  - Tweenによる右方向30px前進
+  - parallel()で全ユニット同時実行
+  - await tween.finishedで完了待機
+- ✅ 実装プロンプトとの完全一致を確認
+
+**備考**
+- コミット: 未コミット
+
 ## 2026-04-18
 
 ### 警戒レベルシステム仕様変更（Phase 3 #27）
