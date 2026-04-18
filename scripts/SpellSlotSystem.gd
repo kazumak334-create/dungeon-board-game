@@ -301,3 +301,16 @@ func _build_activation_log(spell_name: String, condition: String, display_name: 
 		pass
 
 	return "%s！%s発動%s" % [display_name, spell_name, context]
+
+func discard_slot(index: int) -> bool:
+	"""指定スロットの呪文を捨て札に移動（右クリック破棄機能）"""
+	if index < 0 or index >= 3:
+		return false
+	if slots[index]["spell"] == null:
+		return false
+
+	var spell = slots[index]["spell"]
+	deck_manager.discard.append(spell)
+	print("[SpellSlot] スロット%d破棄: %s" % [index, spell.unit_name])
+	clear_slot(index)
+	return true

@@ -42,7 +42,7 @@ func _process_pending_revives() -> void:
 				if bm.board[s][r][c] == null:
 					u.current_hp = rev["hp"]
 					bm.board[s][r][c] = u
-					bm.attack_timers[s][r][c] = u.attack_interval
+					bm.attack_timers[s][r][c] = u.get_attack_interval()
 					bm.emit_signal("unit_revived", s, r, c)
 					bm.on_board_changed()
 					# 復活時も盤面効果を発動（棘ダメージ等）
@@ -60,7 +60,12 @@ func _apply_regen() -> void:
 			for c in range(3):
 				var u = bm.board[s][r][c]
 				if u != null and u._regen > 0.0:
-					bm.event_queue.push(1, null, u, "heal", float(roundi(u._regen)),
+					var heal_amt: float = u._regen
+					# curse_heal_reduce: 呪いスタック数に応じて回復量減少（1スタック=5%減少）
+					if u.curse_stacks > 0:
+						var reduction: float = min(0.9, u.curse_stacks * 0.05)
+						heal_amt *= (1.0 - reduction)
+					bm.event_queue.push(1, null, u, "heal", float(roundi(heal_amt)),
 						{"src_side": s, "src_row": r, "src_col": c})
 
 func _apply_regen_buff() -> void:
@@ -70,14 +75,15 @@ func _apply_regen_buff() -> void:
 				var u = bm.board[s][r][c]
 				if u == null:
 					continue
-				if u._regen_stacks > 0:
-					var heal: int = max(1, u.max_hp * 5 * u._regen_stacks / 100)
+				if u.regen_stacks > 0:
+					var heal: int = max(1, u.max_hp * 5 * u.regen_stacks / 100)
+					# curse_heal_reduce: 呪いスタック数に応じて回復量減少（1スタック=5%減少）
+					if u.curse_stacks > 0:
+						var reduction: float = min(0.9, u.curse_stacks * 0.05)
+						heal = max(1, int(float(heal) * (1.0 - reduction)))
 					bm.event_queue.push(1, null, u, "heal", float(heal),
 						{"src_side": s, "src_row": r, "src_col": c})
-					u._regen_stacks -= 1
-				if u.lifesteal_stacks > 0:
-					u.lifesteal_stacks -= 1
-					u._has_lifesteal = u.lifesteal_stacks > 0
+					u.regen_stacks -= 1
 
 func init_skill_timers(unit: Object) -> void:
 	unit._skill_timers.clear()
@@ -296,9 +302,8 @@ func _fire_timed_skill(side: int, row: int, col: int, unit: Object, entry: Strin
 					var buff_count: int = 0
 					if target._atk_bonus > 0: buff_count += 1
 					if target._interval_bonus > 0.0: buff_count += 1
-					if target.lifesteal_stacks > 0: buff_count += 1
 					if target._has_penetrate: buff_count += 1
-					if target._regen_stacks > 0: buff_count += 1
+					if target.regen_stacks > 0: buff_count += 1
 					if target._damage_reduction > 0: buff_count += 1
 					if buff_count > best_buff_count:
 						best_buff_count = buff_count
@@ -352,7 +357,7 @@ func _process_status_ticks() -> void:
 					bm.event_queue.push(2, null, u, "poison_damage",
 						float(u.poison_stacks),
 						{"enemy_side": s, "row": r, "col": c, "unit_name": u.unit_name})
-				for status_pair in [["frozen_turns", "凍結"], ["burn_turns", "火傷"], ["paralysis_turns", "麻痺"]]:
+				for status_pair in [["frozen_turns", "凍結"], ["burn_turns", "火傷"]]:
 					var val: int = u.get(status_pair[0])
 					if val > 0:
 						u.set(status_pair[0], val - 1)

@@ -19,6 +19,7 @@ var _mana_gauge_label: Label = null       # マナ数値ラベル
 var _pause_button: Button = null          # 一時停止ボタン
 var _speed_buttons: Array = []            # 速度ボタン配列（ハイライト用）
 var _env_label: Label = null              # 環境表示ラベル
+var _spell_slot_panels: Array = []        # 呪文スロット表示パネル（3つ）
 
 func setup(p_main: Node) -> void:
 	main = p_main
@@ -202,6 +203,9 @@ func build_ui() -> void:
 	# ---- 次カードパネル+キューUI+マナバー ----
 	_queue.build()
 
+	# ---- 呪文スロットUI ----
+	_build_spell_slots()
+
 	# ---- ログ（デフォルト非表示・Lキーでトグル） ----
 	_log_bg = ColorRect.new()
 	_log_bg.position = Vector2(1020, main.BOARD_TOP - 10)
@@ -349,6 +353,7 @@ func update_ui() -> void:
 	update_base_hp()
 	_update_mana()
 	_queue.update()
+	update_spell_slots()
 
 func _update_cells() -> void:
 	for side in range(2):
@@ -409,11 +414,10 @@ func render_cell(side: int, r: int, c: int) -> void:
 
 		# バフ表示（アイコンのみ・情報密度削減）
 		var buff_icons: Array = []
-		if unit._atk_bonus > 0:        buff_icons.append("⚔")
-		if unit._interval_bonus > 0.0:  buff_icons.append("⏩")
+		if unit.power_stacks > 0:       buff_icons.append("💪")
+		if unit.boots_stacks > 0:       buff_icons.append("👢")
 		if unit._damage_reduction > 0:  buff_icons.append("🛡")
-		if unit.lifesteal_stacks > 0:   buff_icons.append("💉")
-		if unit._regen_stacks > 0:      buff_icons.append("💚")
+		if unit.regen_stacks > 0:       buff_icons.append("💚")
 		if unit._invincible_timer > 0.0: buff_icons.append("✨")
 		var buff_line = "".join(buff_icons) if buff_icons.size() > 0 else ""
 
@@ -421,8 +425,9 @@ func render_cell(side: int, r: int, c: int) -> void:
 		var debuff_icons: Array = []
 		if unit.burn_turns > 0:         debuff_icons.append("🔥")
 		if unit.frozen_turns > 0:       debuff_icons.append("❄")
-		if unit.paralysis_turns > 0:    debuff_icons.append("⚡")
 		if unit.poison_stacks > 0:      debuff_icons.append("☠")
+		if unit.curse_stacks > 0:       debuff_icons.append("🌀")
+		if unit.brand_stacks > 0:       debuff_icons.append("🎯")
 		var debuff_line = "".join(debuff_icons) if debuff_icons.size() > 0 else ""
 
 		# セル内表示：ユニット名 + バフ/デバフアイコンのみ
@@ -588,3 +593,69 @@ func _refresh_equipment_ui() -> void:
 
 func update_battle_timer(remaining: float, delta: float = 0.016) -> void:
 	_overlay.update_battle_timer(remaining, delta)
+
+func _build_spell_slots() -> void:
+	"""呪文スロット表示UI（3つ横並び・右クリックで破棄）"""
+	var slot_w: float = 90.0
+	var slot_h: float = 130.0
+	var slot_gap: float = 10.0
+	var base_x: float = main.CENTER_X - main.GAP / 2.0 - 3 * main.CELL_W + 10
+	var base_y: float = main.BOARD_TOP + 3 * main.CELL_H + 260
+
+	var title := Label.new()
+	title.text = "呪文スロット（右クリックで破棄）"
+	title.position = Vector2(base_x, base_y - 18)
+	title.add_theme_font_size_override("font_size", 11)
+	title.add_theme_color_override("font_color", Color(0.6, 0.7, 0.8))
+	main.add_child(title)
+
+	_spell_slot_panels.clear()
+	for i in range(3):
+		var slot_x = base_x + i * (slot_w + slot_gap)
+		var panel = ColorRect.new()
+		panel.position = Vector2(slot_x, base_y)
+		panel.size = Vector2(slot_w, slot_h)
+		panel.color = Color(0.08, 0.10, 0.14, 0.8)
+		panel.gui_input.connect(_on_spell_slot_input.bind(i))
+		main.add_child(panel)
+
+		var label = Label.new()
+		label.position = Vector2(slot_x + 5, base_y + 5)
+		label.size = Vector2(slot_w - 10, slot_h - 10)
+		label.add_theme_font_size_override("font_size", 10)
+		label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		label.add_theme_color_override("font_color", Color(0.7, 0.7, 0.7))
+		main.add_child(label)
+
+		_spell_slot_panels.append({"panel": panel, "label": label})
+
+func _on_spell_slot_input(event: InputEvent, slot_index: int) -> void:
+	"""呪文スロット右クリック検知"""
+	if event is InputEventMouseButton:
+		if event.button_index == MOUSE_BUTTON_RIGHT and event.pressed:
+			if main.spell_slot_system != null:
+				var success = main.spell_slot_system.discard_slot(slot_index)
+				if success:
+					update_spell_slots()
+
+func update_spell_slots() -> void:
+	"""呪文スロット表示更新"""
+	if main.spell_slot_system == null:
+		return
+	var slots = main.spell_slot_system.slots
+	for i in range(3):
+		if i >= _spell_slot_panels.size():
+			break
+		var panel_dict = _spell_slot_panels[i]
+		var label: Label = panel_dict["label"]
+		var panel: ColorRect = panel_dict["panel"]
+		if slots[i]["spell"] != null:
+			var spell = slots[i]["spell"]
+			var condition_display = main.spell_slot_system.get_condition_display_name(slots[i]["condition"])
+			label.text = "%s\n[%s]\nコスト: %d" % [spell.unit_name, condition_display, slots[i]["mana_cost"]]
+			panel.color = Color(0.12, 0.15, 0.22)
+		else:
+			label.text = "空き"
+			panel.color = Color(0.08, 0.10, 0.14, 0.8)

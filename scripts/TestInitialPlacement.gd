@@ -26,7 +26,7 @@ func _test_mana_from_initial_units() -> void:
 	# マナ上限がinitial_unitsから計算されることを確認
 	GameSession.initial_units.clear()
 	GameSession.initial_units.append({"name": "スライム", "row": 0, "col": 0})  # cost=1
-	GameSession.initial_units.append({"name": "ゴブリン", "row": 0, "col": 1})  # cost=1
+	GameSession.initial_units.append({"name": "Fangos", "row": 0, "col": 1})  # cost=1
 	GameSession.initial_units.append({"name": "ウルフ", "row": 0, "col": 2})    # cost=2
 	for i in range(6):
 		GameSession.initial_units.append(null)

@@ -203,6 +203,16 @@ func _build_footer() -> void:
 	dev_button.pressed.connect(_on_dev_mode_pressed)
 	add_child(dev_button)
 
+	# TEST RestScreenボタン
+	var test_rest_button = Button.new()
+	test_rest_button.text = "TEST RestScreen"
+	test_rest_button.position = Vector2(870, 685)
+	test_rest_button.size = Vector2(190, 30)
+	test_rest_button.modulate = Color(1, 1, 1, 0.4)
+	test_rest_button.add_theme_font_size_override("font_size", 12)
+	test_rest_button.pressed.connect(_on_test_rest_pressed)
+	add_child(test_rest_button)
+
 # ===== クラスカード生成 =====
 
 func _create_class_card(class_id: String, cls: Dictionary) -> PanelContainer:
@@ -336,6 +346,10 @@ func _on_dev_mode_pressed() -> void:
 	GameSession.class_id = _selected_class_id
 	GameSession.dev_mode = true
 	SceneManager.go_to(SceneManager.BATTLE)
+
+func _on_test_rest_pressed() -> void:
+	# RestScreenMockに直接遷移
+	get_tree().change_scene_to_file("res://scenes/RestScreenMock.tscn")
 
 # ===== アニメーション =====
 

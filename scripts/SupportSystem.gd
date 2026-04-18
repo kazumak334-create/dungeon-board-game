@@ -25,13 +25,12 @@ func apply_support_effects() -> void:
 					u._back_target_rear = false
 					u._back_no_on_hit = false
 					u._damage_reduction = 0
-					u._has_lifesteal = u.lifesteal_stacks > 0
 					u._has_penetrate = false
 					u._has_impact = false
 					u._has_big_penetrate = false
 					u._is_flying = false
 					u._auto_promote = false
-					# _regen_stacks はリセットしない（スタック+時間減少方式）
+					# regen_stacks はリセットしない（スタック+時間減少方式）
 					u._support_revive = false
 	# skills配列のtrigger=="always"を処理（新方式）
 	# サポート効果は前列以外でのみ発動（原則）
@@ -99,16 +98,11 @@ func apply_support_effects() -> void:
 				var u = bm.board[s][r][c]
 				if u == null:
 					continue
-				# パッシブスキル文字列に吸血があれば常時スタック維持
-				if "吸血" in u.passive_skill and u.lifesteal_stacks < 5:
-					u.lifesteal_stacks = 5
-				u._has_lifesteal = u.lifesteal_stacks > 0
 				# 貫通はスキル（ON/OFF）のためスタック処理なし
 				# バフ奪取で得た永続ボーナスを加算
 				u._atk_bonus += u._stolen_atk
 				u._interval_bonus += u._stolen_spd
-				if u._stolen_lifesteal: u.lifesteal_stacks = max(u.lifesteal_stacks, 5)
-				# _regen_stacksはスタック+時間減少方式のため_stolen_regenは直接加算済み
+				# regen_stacksはスタック+時間減少方式のため_stolen_regenは直接加算済み
 				u._damage_reduction += u._stolen_armor
 				u._atk_bonus = min(u._atk_bonus, 10)  # ATKバフ重複上限+10
 
@@ -163,9 +157,6 @@ func _process_unit_support(side: int, row: int, col: int, unit: Object) -> void:
 		elif "障壁付与" in entry:
 			for t in targets:
 				t._damage_reduction += 1
-		elif "吸血付与" in entry:
-			for t in targets:
-				t.lifesteal_stacks = max(t.lifesteal_stacks, 5)
 		elif "貫通付与" in entry:
 			for t in targets:
 				t._has_penetrate = true  # スキル方式（ON/OFF）
@@ -261,8 +252,9 @@ func _apply_class_skills(side: int, pdata: RefCounted) -> void:
 			for r in range(3):
 				var u = bm.board[side][r][front_col]
 				if u != null:
-					u._interval_bonus += u.attack_interval * pct
-					print("[SupportSystem] クラススキル spd_pct_buff: %s +%.2f" % [u.unit_name, u.attack_interval * pct])
+					var interval_bonus = u.get_attack_interval() * pct
+					u._interval_bonus += interval_bonus
+					print("[SupportSystem] クラススキル spd_pct_buff: %s +%.2f" % [u.unit_name, interval_bonus])
 		# バーサーカー: HP50%以下で全ATK+3
 		elif etype == "conditional_buff":
 			var threshold = skill.get("params", {}).get("threshold", edef.get("threshold", 0.5))

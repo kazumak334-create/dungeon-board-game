@@ -70,7 +70,7 @@ const CLASS_SKILL_POOLS = {
 			{"id": "bers_t6_c", "name": "究極：血の契約II", "desc": "血の契約上位版", "card": "血の契約"},
 			{"id": "bers_t6_d", "name": "究極：狂戦士の魂", "desc": "全ユニットバーサーク", "card": "ゴブリン"},
 			{"id": "bers_t6_e", "name": "究極：獣の森", "desc": "自陣全マスに獣の森", "card": "ワイルドホーク"},
-			{"id": "bers_t6_f", "name": "究極：牙の嵐", "desc": "全獣系に貫通+吸血", "card": "ファングタイガー"},
+			{"id": "bers_t6_f", "name": "究極：牙の嵐", "desc": "全獣系に貫通", "card": "ファングタイガー"},
 		],
 	},
 	"alchemist": {
@@ -107,7 +107,6 @@ const CLASS_SKILL_POOLS = {
 		6: [
 			{"id": "necro_t6_a", "name": "究極：死霊王降臨", "desc": "ブラッドキング追加", "card": "リッチ"},
 			{"id": "necro_t6_b", "name": "究極：不死の軍団", "desc": "全ユニット再起×2", "card": "スケルトン"},
-			{"id": "necro_t6_c", "name": "究極：吸血の宴", "desc": "全ユニット吸血20", "card": "ヴリコラカス"},
 			{"id": "necro_t6_d", "name": "究極：呪いの地", "desc": "敵陣全マスに呪い", "card": "ゴースト"},
 			{"id": "necro_t6_e", "name": "究極：魂の収穫", "desc": "撃破時SP+1", "card": "リッチ"},
 			{"id": "necro_t6_f", "name": "究極：永劫回帰", "desc": "全ユニット死亡時デッキに戻る", "card": "ゾンビ"},

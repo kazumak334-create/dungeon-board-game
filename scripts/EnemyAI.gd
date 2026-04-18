@@ -48,7 +48,7 @@ func _build_enemy_deck() -> void:
 		var u = _UnitDataScript.new()
 		u.unit_name = entry["name"]
 		u.max_hp = d["hp"]; u.current_hp = d["hp"]
-		u.attack = d["atk"]; u.attack_interval = d["interval"]
+		u.attack = d["atk"]; u.spd = d["spd"]
 		u.mana = d["mana"]; u.assigned_col = entry["col"]
 		u.race = d["race"]; u.attack_range = d["range"]
 		u.support_effect = ""; u.passive_skill = ""
@@ -126,7 +126,7 @@ func _build_boss_deck() -> void:
 		u.max_hp = d["hp"] + hp_bonus
 		u.current_hp = u.max_hp
 		u.attack = d["atk"] + atk_bonus
-		u.attack_interval = d["interval"]
+		u.spd = d["spd"]
 		u.mana = d["mana"]; u.assigned_col = entry["col"]
 		u.race = d["race"]; u.attack_range = d["range"]
 		u.support_effect = ""; u.passive_skill = ""
@@ -274,3 +274,16 @@ func _try_spell_synthesis(side: int, spell: Object, board_mgr: Node) -> bool:
 				board_mgr.board[side][pick["row"]][pick["col"]], entry["result"])
 			return true
 	return false
+
+# Wave進行管理: 敵強化係数適用（Phase 4 #0-0a）
+func apply_wave_scaling(unit: Object, scaling: float) -> void:
+	if unit == null or scaling <= 0.0:
+		return
+	# HP・ATKのみに係数適用（SPDは固定）
+	var original_max_hp: int = unit.max_hp
+	var original_atk: int = unit.atk
+	unit.max_hp = int(round(original_max_hp * scaling))
+	unit.current_hp = int(round(unit.current_hp * scaling))
+	unit.atk = int(round(original_atk * scaling))
+	print("[EnemyAI] Wave強化: %s HP %d→%d ATK %d→%d (x%.1f)" %
+		[unit.unit_name, original_max_hp, unit.max_hp, original_atk, unit.atk, scaling])

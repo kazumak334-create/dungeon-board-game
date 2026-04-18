@@ -198,28 +198,24 @@ func _execute_synthesis(side: int, row: int, col: int, existing: Object, result_
 	# バフ継続
 	synthesized._atk_bonus = existing._atk_bonus
 	synthesized._interval_bonus = existing._interval_bonus
-	synthesized._has_lifesteal = existing._has_lifesteal
 	synthesized._has_penetrate = existing._has_penetrate
-	synthesized._regen_stacks = existing._regen_stacks
+	synthesized.regen_stacks = existing.regen_stacks
 	synthesized._temp_atk_bonus = existing._temp_atk_bonus
 	synthesized._temp_atk_timer = existing._temp_atk_timer
 	synthesized._temp_spd_bonus = existing._temp_spd_bonus
 	synthesized._temp_spd_timer = existing._temp_spd_timer
-	synthesized.lifesteal_stacks = existing.lifesteal_stacks
 	synthesized._kill_atk_bonus = existing._kill_atk_bonus
 	synthesized._stolen_atk = existing._stolen_atk
 	synthesized._stolen_spd = existing._stolen_spd
-	synthesized._stolen_lifesteal = existing._stolen_lifesteal
 	synthesized._stolen_penetrate = existing._stolen_penetrate
 	synthesized._stolen_regen = existing._stolen_regen
 	synthesized._stolen_armor = existing._stolen_armor
 	# デバフ10スタック解除
 	synthesized.burn_turns = max(0, existing.burn_turns - 10)
 	synthesized.frozen_turns = max(0, existing.frozen_turns - 10)
-	synthesized.paralysis_turns = max(0, existing.paralysis_turns - 10)
 	synthesized.poison_stacks = max(0, existing.poison_stacks - 10)
 	# 攻撃タイマー継続
-	synthesized.get_attack_interval() = result_data.get_attack_interval()
+	# synthesized.spdは既にclone()で継承済み
 	var timer_ratio: float = attack_timers[side][row][col] / max(0.01, existing.get_attack_interval())
 	attack_timers[side][row][col] = synthesized.get_attack_interval() * timer_ratio
 	support_timers[side][row][col] = synthesized.get_attack_interval() * timer_ratio
@@ -517,3 +513,50 @@ func _summon_unit_to_random_empty(side: int, unit_id: String) -> void:
 	on_board_changed()
 	_init_skill_timers(new_unit)
 	print("[BoardManager] 盤面効果召喚: %s → side=%d row=%d col=%d" % [unit_id, side, pos[0], pos[1]])
+
+# RestScreen用メソッド（Phase 4 #20）
+var is_rest_mode: bool = false
+
+func enable_rest_mode() -> void:
+	is_rest_mode = true
+	# バトル用イベント無効化
+	if _status_timer:
+		_status_timer.stop()
+	print("[BoardManager] RestMode有効化")
+
+func on_rest_drop(card_data: Object, row: int, col: int) -> bool:
+	# 配置可能チェック（自陣のみ）
+	if row < 0 or row >= 3 or col < 0 or col >= 3:
+		print("[BoardManager] RestDrop失敗: 範囲外 row=%d col=%d" % [row, col])
+		return false
+
+	# 既に配置済みの場合は上書き
+	var side: int = 0  # 自陣
+	if board[side][row][col] != null:
+		print("[BoardManager] RestDrop: 既存ユニット上書き row=%d col=%d" % [row, col])
+
+	# GameSession.initial_unitsを更新
+	var session = get_node_or_null("/root/GameSession")
+	if not session:
+		print("[BoardManager] RestDrop失敗: GameSession未取得")
+		return false
+
+	# 9マス配列のインデックス計算
+	var index: int = row * 3 + col
+	if index < 0 or index >= 9:
+		print("[BoardManager] RestDrop失敗: インデックス異常 index=%d" % index)
+		return false
+
+	# initial_units配列を初期化（未作成の場合）
+	if session.initial_units.size() < 9:
+		session.initial_units.resize(9)
+
+	# 配置情報を記録
+	session.initial_units[index] = {
+		"name": card_data.unit_name,
+		"row": row,
+		"col": col
+	}
+
+	print("[BoardManager] RestDrop成功: %s → row=%d col=%d" % [card_data.unit_name, row, col])
+	return true

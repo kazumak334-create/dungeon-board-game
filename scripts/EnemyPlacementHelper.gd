@@ -55,7 +55,7 @@ func _create_unit_from_pool_entry(entry: Dictionary) -> Object:
 	u.max_hp = d["hp"]
 	u.current_hp = d["hp"]
 	u.attack = d["atk"]
-	u.attack_interval = d["interval"]
+	u.spd = d["spd"]
 	u.mana = d["mana"]
 	u.assigned_col = entry.get("col", randi() % 3)  # ランダム列
 	u.race = d.get("race", "")

@@ -1,0 +1,64 @@
+================================================================================
+全カードリスト (72体)
+================================================================================
+
+【アンデッド】
+--------------------------------------------------------------------------------
+No. 1 [C] カースシード       (Curseed        ) HP: 25 ATK: 1 SPD:1.0 マナ:1
+No. 2 [C] ヘクススポーン      (Hexspawn       ) HP: 50 ATK: 1 SPD:2.0 マナ:2
+No. 3 [U] カーシール        (Curseal        ) HP: 30 ATK: 1 SPD:3.0 マナ:3
+No. 4 [U] グリムハウル       (Grimhowl       ) HP: 20 ATK: 1 SPD:2.0 マナ:2
+No. 5 [U] ヘクスヴァート      (Hexvert        ) HP: 10 ATK: 1 SPD:3.0 マナ:1
+No. 6 [U] マレアンプ        (Maleamp        ) HP: 20 ATK: 1 SPD:2.0 マナ:2
+No. 7 [R] グレイヴシフト      (Gravshift      ) HP: 30 ATK: 2 SPD:2.0 マナ:2
+No. 8 [R] ソウルスティール     (Soulsteal      ) HP: 25 ATK: 2 SPD:2.0 マナ:2
+No. 9 [R] バンシー         (Banshee        ) HP: 10 ATK: 1 SPD:5.0 マナ:2
+No.10 [R] ベインウォール      (Banewall       ) HP: 60 ATK: 2 SPD:5.0 マナ:3
+No.11 [R] レイスダンス       (Wraithdance    ) HP: 20 ATK: 1 SPD:3.0 マナ:2
+No.12 [R] ワイト          (Wight          ) HP: 35 ATK: 4 SPD:3.0 マナ:3
+No.13 [E] デュラハン        (Dullahan       ) HP: 40 ATK: 7 SPD:3.0 マナ:4
+No.14 [E] トレイトベイン      (Traitbane      ) HP: 50 ATK: 5 SPD:2.0 マナ:2
+No.15 [L] ドゥームカース      (Doomcurse      ) HP: 60 ATK: 8 SPD:3.0 マナ:2
+No.16 [L] リッチ          (Lich           ) HP: 15 ATK: 2 SPD:3.0 マナ:3
+No.17 [L] リッチキング       (LichKing       ) HP: 30 ATK: 3 SPD:3.0 マナ:5
+No.18 [G] デスナイト        (デスナイト          ) HP: 80 ATK:15 SPD:3.0 マナ:0
+
+
+【スライム】
+--------------------------------------------------------------------------------
+No.19 [C] Amoeba       (Amoeba         ) HP: 40 ATK: 2 SPD:5.0 マナ:3
+No.20 [C] Jelfix       (Jelfix         ) HP: 40 ATK: 0 SPD:10.0 マナ:1
+No.21 [C] スライム         (Slime          ) HP: 15 ATK: 1 SPD:2.0 マナ:1
+No.22 [U] Barbzel      (Barbzel        ) HP: 40 ATK: 5 SPD:10.0 マナ:3
+No.23 [U] Mudblob      (Mudblob        ) HP: 40 ATK: 2 SPD:5.0 マナ:3
+No.24 [U] Plagzel      (Plagzel        ) HP: 40 ATK: 0 SPD:10.0 マナ:1
+No.25 [U] Sparkblob    (Sparkblob      ) HP: 20 ATK:10 SPD:20.0 マナ:1
+No.26 [R] Crystel      (Crystel        ) HP: 40 ATK: 2 SPD:5.0 マナ:1
+No.27 [R] Glitzel      (Glitzel        ) HP: 40 ATK: 1 SPD:3.0 マナ:3
+No.28 [R] Granob       (Granob         ) HP: 80 ATK: 1 SPD:3.0 マナ:5
+No.29 [R] Venpool      (Venpool        ) HP: 20 ATK: 2 SPD:2.0 マナ:3
+No.30 [E] Silenzel     (Silenzel       ) HP: 40 ATK: 1 SPD:3.0 マナ:3
+No.31 [E] Voidblob     (Voidblob       ) HP: 60 ATK: 0 SPD:5.0 マナ:3
+No.32 [L] キングスライム      (Kinglob        ) HP:100 ATK:10 SPD:2.0 マナ:10
+
+
+【獣】
+--------------------------------------------------------------------------------
+No.33 [C] Fangos       (Fangos         ) HP: 20 ATK: 4 SPD:20.0 マナ:1
+No.34 [C] Hawkis       (Hawkis         ) HP: 30 ATK: 2 SPD:7.0 マナ:0
+No.35 [C] Piercor      (Piercor        ) HP: 20 ATK: 3 SPD:10.0 マナ:1
+No.36 [C] Wolfpack     (Wolfpack       ) HP: 15 ATK: 1 SPD:10.0 マナ:0
+No.37 [U] Stalkor      (Stalkor        ) HP: 25 ATK: 2 SPD:7.0 マナ:0
+No.38 [U] Thornbeast   (Thornbeast     ) HP: 40 ATK: 3 SPD:7.0 マナ:1
+No.39 [U] Venomaw      (Venomaw        ) HP: 20 ATK: 3 SPD:10.0 マナ:0
+No.40 [U] Voidclaw     (Voidclaw       ) HP: 25 ATK: 3 SPD:7.0 マナ:0
+No.41 [U] ウルフ          (Wolf           ) HP: 20 ATK: 5 SPD:7.0 マナ:2
+No.42 [U] ケットシー        (CaitSith       ) HP: 12 ATK: 2 SPD:10.0 マナ:2
+No.43 [U] ワイルドホーク      (WildHawk       ) HP: 15 ATK: 2 SPD:7.0 マナ:2
+No.44 [R] Rageveil     (Rageveil       ) HP: 50 ATK: 3 SPD:7.0 マナ:1
+No.45 [R] マンティコア       (Manticore      ) HP: 30 ATK: 7 SPD:5.0 マナ:3
+No.46 [G] フェンリル        (Fenrir         ) HP: 70 ATK:18 SPD:7.0 マナ:0
+
+================================================================================
+合計: 46体
+================================================================================

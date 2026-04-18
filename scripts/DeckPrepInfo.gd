@@ -238,11 +238,12 @@ func show_card_info_in_container(container: Control, card_idx: int) -> void:
 	# ステータス
 	if CardDB.UNITS.has(card_name):
 		var d = CardDB.UNITS[card_name]
+		var _UnitDataScript = load("res://scripts/UnitData.gd")
 		for stat_pair in [
 			["マナ", str(d.get("mana", 0))],
 			["HP", str(d.get("hp", 0))],
 			["ATK", str(d.get("atk", 0))],
-			["SPD", "%.1fs" % d.get("interval", 0)],
+			["SPD", "%.1fs" % (_UnitDataScript.SPD_SCALE / d.get("spd", 1.0))],
 			["種族", d.get("race", "")],
 		]:
 			var row = Label.new()
@@ -783,8 +784,9 @@ func create_card_hover_popup(card_name: String) -> Control:
 
 	if CardDB.UNITS.has(card_name):
 		var d = CardDB.UNITS[card_name]
+		var _UnitDataScript = load("res://scripts/UnitData.gd")
 		var stats_lbl = Label.new()
-		stats_lbl.text = "HP:%d ATK:%d SPD:%.1f" % [d.get("hp", 0), d.get("atk", 0), d.get("interval", 0)]
+		stats_lbl.text = "HP:%d ATK:%d SPD:%.1f" % [d.get("hp", 0), d.get("atk", 0), _UnitDataScript.SPD_SCALE / d.get("spd", 1.0)]
 		stats_lbl.add_theme_font_size_override("font_size", 10)
 		stats_lbl.add_theme_color_override("font_color", UIF.TEXT_COLOR)
 		vbox.add_child(stats_lbl)
@@ -998,10 +1000,11 @@ func _build_card_frame_header(card_name: String, d: Dictionary, y: float) -> flo
 		stats_hbox.size = Vector2(frame_w - 8, stat_h)
 		stats_hbox.add_theme_constant_override("separation", 4)
 		card_frame.add_child(stats_hbox)
+		var _UnitDataScript = load("res://scripts/UnitData.gd")
 		for stat_data in [
 			["HP", str(d.get("hp", 0))],
 			["ATK", str(d.get("atk", 0))],
-			["SPD", "%.1fs" % d.get("interval", 0)],
+			["SPD", "%.1fs" % (_UnitDataScript.SPD_SCALE / d.get("spd", 1.0))],
 		]:
 			var sl = Label.new()
 			sl.text = "%s%s" % [stat_data[0], stat_data[1]]

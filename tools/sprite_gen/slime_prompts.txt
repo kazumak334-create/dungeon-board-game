@@ -1,0 +1,226 @@
+# スライム系ユニット スプライト生成プロンプト（14体）
+# Gemini Imagen 3 用
+
+共通指示:
+- 48x48ピクセルアート、16-bit JRPG スタイル
+- 斜め見下ろし視点（3/4トップダウン）
+- 中央配置、暗紺色の無地背景
+- SF horror aesthetic、バイオデジタル実験体
+- 輪郭線明瞭、タクティカルRPGユニット用
+
+================================================================================
+[1/14] Slime (基本スライム)
+================================================================================
+
+Create a 48x48 pixel art sprite:
+
+gelatinous slime, translucent body, liquid core, floating data fragments,
+cyan/turquoise palette, simple design, basic form, minimal details,
+glitch particles, faint circuit lines, data-ghost appearance
+
+- View: top-down 3/4 perspective, centered on sprite
+- Background: solid dark navy blue (#0a1628)
+- Style: 16-bit JRPG tactical RPG unit
+- Details: clean pixel outline, game sprite format
+
+================================================================================
+[2/14] Amoeba
+================================================================================
+
+Create a 48x48 pixel art sprite:
+
+gelatinous slime, translucent body, liquid core, floating data fragments,
+pale cyan, shapeless palette, healing glow, simple design, basic form,
+minimal details, glitch particles, faint circuit lines, data-ghost appearance
+
+- View: top-down 3/4 perspective, centered on sprite
+- Background: solid dark navy blue (#0a1628)
+- Style: 16-bit JRPG tactical RPG unit
+- Details: clean pixel outline, game sprite format
+
+================================================================================
+[3/14] Jelfix
+================================================================================
+
+Create a 48x48 pixel art sprite:
+
+gelatinous slime, translucent body, liquid core, floating data fragments,
+toxic aura, simple design, basic form, minimal details, glitch particles,
+faint circuit lines, data-ghost appearance
+
+- View: top-down 3/4 perspective, centered on sprite
+- Background: solid dark navy blue (#0a1628)
+- Style: 16-bit JRPG tactical RPG unit
+- Details: clean pixel outline, game sprite format
+
+================================================================================
+[4/14] Barbzel
+================================================================================
+
+Create a 48x48 pixel art sprite:
+
+gelatinous slime, translucent body, liquid core, floating data fragments,
+armored, moderate complexity, distinct features, glitch particles,
+faint circuit lines, data-ghost appearance
+
+- View: top-down 3/4 perspective, centered on sprite
+- Background: solid dark navy blue (#0a1628)
+- Style: 16-bit JRPG tactical RPG unit
+- Details: clean pixel outline, game sprite format
+
+================================================================================
+[5/14] Mudblob
+================================================================================
+
+Create a 48x48 pixel art sprite:
+
+gelatinous slime, translucent body, liquid core, floating data fragments,
+toxic aura, moderate complexity, distinct features, glitch particles,
+faint circuit lines, data-ghost appearance
+
+- View: top-down 3/4 perspective, centered on sprite
+- Background: solid dark navy blue (#0a1628)
+- Style: 16-bit JRPG tactical RPG unit
+- Details: clean pixel outline, game sprite format
+
+================================================================================
+[6/14] Plagzel
+================================================================================
+
+Create a 48x48 pixel art sprite:
+
+gelatinous slime, translucent body, liquid core, floating data fragments,
+toxic aura, moderate complexity, distinct features, glitch particles,
+faint circuit lines, data-ghost appearance
+
+- View: top-down 3/4 perspective, centered on sprite
+- Background: solid dark navy blue (#0a1628)
+- Style: 16-bit JRPG tactical RPG unit
+- Details: clean pixel outline, game sprite format
+
+================================================================================
+[7/14] Sparkblob
+================================================================================
+
+Create a 48x48 pixel art sprite:
+
+gelatinous slime, translucent body, liquid core, floating data fragments,
+moderate complexity, distinct features, glitch particles, faint circuit lines,
+data-ghost appearance
+
+- View: top-down 3/4 perspective, centered on sprite
+- Background: solid dark navy blue (#0a1628)
+- Style: 16-bit JRPG tactical RPG unit
+- Details: clean pixel outline, game sprite format
+
+================================================================================
+[8/14] Crystel
+================================================================================
+
+Create a 48x48 pixel art sprite:
+
+gelatinous slime, translucent body, liquid core, floating data fragments,
+armored, detailed appearance, unique characteristics, striking visual,
+glitch particles, faint circuit lines, data-ghost appearance
+
+- View: top-down 3/4 perspective, centered on sprite
+- Background: solid dark navy blue (#0a1628)
+- Style: 16-bit JRPG tactical RPG unit
+- Details: clean pixel outline, game sprite format
+
+================================================================================
+[9/14] Glitzel
+================================================================================
+
+Create a 48x48 pixel art sprite:
+
+gelatinous slime, translucent body, liquid core, floating data fragments,
+detailed appearance, unique characteristics, striking visual, glitch particles,
+faint circuit lines, data-ghost appearance
+
+- View: top-down 3/4 perspective, centered on sprite
+- Background: solid dark navy blue (#0a1628)
+- Style: 16-bit JRPG tactical RPG unit
+- Details: clean pixel outline, game sprite format
+
+================================================================================
+[10/14] Granob
+================================================================================
+
+Create a 48x48 pixel art sprite:
+
+gelatinous slime, translucent body, liquid core, floating data fragments,
+detailed appearance, unique characteristics, striking visual, glitch particles,
+faint circuit lines, data-ghost appearance
+
+- View: top-down 3/4 perspective, centered on sprite
+- Background: solid dark navy blue (#0a1628)
+- Style: 16-bit JRPG tactical RPG unit
+- Details: clean pixel outline, game sprite format
+
+================================================================================
+[11/14] Venpool
+================================================================================
+
+Create a 48x48 pixel art sprite:
+
+gelatinous slime, translucent body, liquid core, floating data fragments,
+toxic aura, detailed appearance, unique characteristics, striking visual,
+glitch particles, faint circuit lines, data-ghost appearance
+
+- View: top-down 3/4 perspective, centered on sprite
+- Background: solid dark navy blue (#0a1628)
+- Style: 16-bit JRPG tactical RPG unit
+- Details: clean pixel outline, game sprite format
+
+================================================================================
+[12/14] Silenzel (Epic)
+================================================================================
+
+Create a 48x48 pixel art sprite:
+
+gelatinous slime, translucent body, liquid core, floating data fragments,
+healing glow, elaborate design, powerful aura, commanding presence,
+glitch particles, faint circuit lines, data-ghost appearance
+
+- View: top-down 3/4 perspective, centered on sprite
+- Background: solid dark navy blue (#0a1628)
+- Style: 16-bit JRPG tactical RPG unit
+- Details: clean pixel outline, game sprite format, EPIC RARITY
+
+================================================================================
+[13/14] Voidblob (Epic)
+================================================================================
+
+Create a 48x48 pixel art sprite:
+
+gelatinous slime, translucent body, liquid core, floating data fragments,
+elaborate design, powerful aura, commanding presence, glitch particles,
+faint circuit lines, data-ghost appearance
+
+- View: top-down 3/4 perspective, centered on sprite
+- Background: solid dark navy blue (#0a1628)
+- Style: 16-bit JRPG tactical RPG unit
+- Details: clean pixel outline, game sprite format, EPIC RARITY
+
+================================================================================
+[14/14] Kinglob (Legend)
+================================================================================
+
+Create a 48x48 pixel art sprite:
+
+gelatinous slime, translucent body, liquid core, floating data fragments,
+regal, crowned, legendary appearance, overwhelming presence, intricate details,
+mythical aura, glitch particles, faint circuit lines, data-ghost appearance
+
+- View: top-down 3/4 perspective, centered on sprite
+- Background: solid dark navy blue (#0a1628)
+- Style: 16-bit JRPG tactical RPG unit
+- Details: clean pixel outline, game sprite format, LEGENDARY RARITY
+
+================================================================================
+生成完了後:
+1. 48x48にリサイズ（Nearest Neighbor）
+2. ファイル名: slime.png, amoeba.png, jelfix.png ... kinglob.png
+3. 保存先: assets/sprites/units/
+================================================================================

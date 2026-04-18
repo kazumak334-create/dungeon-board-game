@@ -289,31 +289,25 @@ func _on_node_clicked(node_id: String, node_type: String) -> void:
 	# ノード種別に応じてシーン遷移
 	match node_type:
 		"battle":
-			GameSession.alert_level += 1
+			GameSession.alert_level = min(3, GameSession.alert_level + 1)
 			GameSession.battle_type = "normal"
 			SceneManager.go_to(SceneManager.DECK_PREP)
 		"elite":
-			GameSession.alert_level += 1
+			GameSession.alert_level = min(3, GameSession.alert_level + 1)
 			GameSession.battle_type = "elite"
 			SceneManager.go_to(SceneManager.DECK_PREP)
 		"boss":
 			GameSession.battle_type = "boss"
 			SceneManager.go_to(SceneManager.DECK_PREP)
 		"rest":
-			GameSession.alert_level = max(0, GameSession.alert_level - 2)
-			print("[MapSelect] レスト: 警戒レベル -2 → %d" % GameSession.alert_level)
 			SceneManager.go_to(SceneManager.MAP_SELECT)
 		"shop":
-			GameSession.alert_level = max(0, GameSession.alert_level - 1)
-			print("[MapSelect] ショップ: 警戒レベル -1 → %d" % GameSession.alert_level)
 			SceneManager.go_to("shop")
 		"event":
 			GameSession.alert_level = max(0, GameSession.alert_level - 1)
 			print("[MapSelect] イベント: 警戒レベル -1 → %d" % GameSession.alert_level)
 			SceneManager.go_to("event")
 		"gather":
-			GameSession.alert_level = max(0, GameSession.alert_level - 1)
-			print("[MapSelect] 素材採集: 警戒レベル -1 → %d" % GameSession.alert_level)
 			# 素材採集ノードは廃止（装備・素材システム廃止により削除）
 			print("[MapSelect] gatherノードは廃止されました")
 			SceneManager.go_to(SceneManager.MAP_SELECT)

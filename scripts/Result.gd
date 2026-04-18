@@ -341,10 +341,11 @@ func _create_card_panel(idx: int, card: Dictionary) -> PanelContainer:
 	# ステータス
 	var data = card["data"]
 	var card_type = card.get("type", "unit")
+	var _UnitDataScript = load("res://scripts/UnitData.gd")
 
 	if card_type == "unit":
 		var stats = "マナ:%d  HP:%d  ATK:%d  SPD:%.1fs" % [
-			data.get("mana", 0), data.get("hp", 0), data.get("atk", 0), data.get("interval", 0)]
+			data.get("mana", 0), data.get("hp", 0), data.get("atk", 0), _UnitDataScript.SPD_SCALE / data.get("spd", 1.0)]
 		var stats_label = Label.new()
 		stats_label.text = stats
 		stats_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER

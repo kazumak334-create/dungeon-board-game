@@ -219,6 +219,11 @@
 - `docs/roadmap.md`：Phase別タスク一覧（最新状態を維持すること）
 - `docs/CHANGELOG.md`：実装履歴
 - `card_database.md`：カードデータ
+- `docs/design/design_principles.md`：設計判断基準（カード設計・レビュー時必読）
+- `docs/design/glossary.md`：用語定義（盤面構造・トリガー・効果種類）
+- `docs/design/terminology_inconsistencies.md`：用語統一状況（同義語・未定義項目）
+- `docs/design/pve_wave_pending_issues.md`：PvEウェーブシステム残論点（未確定仕様・11項目）
+- `docs/design/pve_wave_compatibility_check.md`：継続ウェーブ型転換による既存設計整合性チェック（現行実装報告）
 - `CLAUDE.md`：このファイル（常に最優先）
 
 ---
@@ -260,6 +265,8 @@
 
 - docs/GAME_DESIGN.md（設計・最優先）
 - docs/game_philosophy.md（ゲーム哲学・判断基準）
+- docs/design/design_principles.md（設計判断基準・3点チェック）
+- docs/design/glossary.md（用語定義・盤面構造）
 - docs/meta/agents.md（Agent定義）
 - docs/meta/rejection_patterns.md（差し戻しパターン）
 

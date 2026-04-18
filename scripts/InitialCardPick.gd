@@ -146,7 +146,7 @@ func _init_card_pool() -> void:
 				if rarity == "common" or rarity == "uncommon":
 					_same_race_pool.append(card_name)
 	
-	print("[InitialCardPick] initial_deck_counts=%s" % _initial_deck_counts)
+	print("[InitialCardPick] initial_deck_counts=%s" % [_initial_deck_counts])
 	print("[InitialCardPick] same_race_pool size=%d" % _same_race_pool.size())
 
 func _generate_choices() -> Array:
@@ -179,7 +179,7 @@ func _generate_choices() -> Array:
 		if not choices.has(card_name):
 			choices.append(card_name)
 	
-	print("[InitialCardPick] _generate_choices() -> %s" % choices)
+	print("[InitialCardPick] _generate_choices() -> %s" % [choices])
 	return choices
 func _show_choices(cards: Array) -> void:
 	_choice_pool = cards
@@ -210,11 +210,12 @@ func _show_choices(cards: Array) -> void:
 
 func _bind_card(view: CardView, card_name: String) -> void:
 	var data = CardDB.UNITS.get(card_name, {})
+	var _UnitDataScript = load("res://scripts/UnitData.gd")
 	view.card_name = card_name
 	view.mana = data.get("mana", 0)
 	view.hp = data.get("hp", 0)
 	view.atk = data.get("atk", 0)
-	view.spd = int(data.get("interval", 1.0))
+	view.spd = int(_UnitDataScript.SPD_SCALE / data.get("spd", 1.0))
 	view.card_kind = CardView.CardKind.UNIT
 
 	# レアリティ設定
@@ -357,7 +358,7 @@ func _update_progress() -> void:
 	_pick_label.text = "PICK %d / 6" % (_current_pick + 1)
 
 func _on_confirm_pressed() -> void:
-	print("[InitialCardPick] _on_confirm_pressed() picked_cards=%s" % _picked_cards)
+	print("[InitialCardPick] _on_confirm_pressed() picked_cards=%s" % [_picked_cards])
 	
 	var deck: Array = []
 
@@ -379,6 +380,6 @@ func _on_confirm_pressed() -> void:
 	var PL = load("res://scripts/PlacementLogic.gd")
 	GameSession.placement_config = PL.generate_default_config(deck)
 
-	print("[InitialCardPick] GameSession.selected_deck=%s" % GameSession.selected_deck)
-	print("[InitialCardPick] GameSession.placement_config=%s" % GameSession.placement_config)
+	print("[InitialCardPick] GameSession.selected_deck=%s" % [GameSession.selected_deck])
+	print("[InitialCardPick] GameSession.placement_config=%s" % [GameSession.placement_config])
 	SceneManager.go_to(SceneManager.MAP_SELECT)

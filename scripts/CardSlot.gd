@@ -107,7 +107,13 @@ func _build_card_ui() -> void:
 	text_area.mouse_filter = Control.MOUSE_FILTER_IGNORE  # タスク#8: 子ノードをクリック透過
 
 	var name_lbl = Label.new()
-	name_lbl.text = card_name
+	# en_nameを使用（未設定の場合はcard_nameをそのまま表示）
+	var display_name = card_name
+	if CardDB.UNITS.has(card_name):
+		display_name = CardDB.UNITS[card_name].get("en_name", card_name)
+	elif CardDB.SPELLS.has(card_name):
+		display_name = CardDB.SPELLS[card_name].get("en_name", card_name)
+	name_lbl.text = display_name
 	name_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	name_lbl.add_theme_font_size_override("font_size", 11)
 	name_lbl.add_theme_color_override("font_color", Color(0.9, 0.85, 0.6))

@@ -21,3 +21,4 @@ config/balance.json
 # OS
 .DS_Store
 Thumbs.db
+tools/sprite_gen/.env

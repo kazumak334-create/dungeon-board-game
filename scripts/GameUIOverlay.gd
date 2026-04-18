@@ -417,7 +417,7 @@ func on_cell_hover(side: int, r: int, c: int) -> void:
 	var target_jp: Dictionary = {"self": "自身", "front_one": "前方1体", "same_row": "同段", "same_row_beast": "同段の獣", "same_col_ally": "同深度の味方", "adjacent_beast": "隣接の獣", "all_allies": "味方全体", "all_enemies": "敵全体", "hit_target": "攻撃対象", "enemy_most_buffs": "バフ最多の敵", "ally_undead_lowest": "最低HPアンデッド", "enemy_max_hp": "最大HP敵", "self_deck": "自デッキ", "front_enemy": "前列の敵", "adjacent_enemy": "隣接の敵", "enemy": "敵"}
 	var lines: Array = []
 	lines.append("[%s] %s" % [unit.race, unit.unit_name])
-	lines.append("Cost: %d / HP: %d/%d / ATK: %d / SPD: %.1fs" % [unit.cost, unit.current_hp, unit.max_hp, unit.attack, unit.attack_interval])
+	lines.append("Cost: %d / HP: %d/%d / ATK: %d / SPD: %.1fs" % [unit.mana, unit.current_hp, unit.max_hp, unit.attack, unit.get_attack_interval()])
 	var support_lines: Array = []
 	var active_lines: Array = []
 	for skill in unit.skills:
@@ -449,11 +449,9 @@ func on_cell_hover(side: int, r: int, c: int) -> void:
 	if unit._atk_bonus > 0:        buffs_h.append("ATK+%d" % unit._atk_bonus)
 	if unit._interval_bonus > 0.0:  buffs_h.append("SPD+")
 	if unit._damage_reduction > 0:  buffs_h.append("鎧%d" % unit._damage_reduction)
-	if unit.lifesteal_stacks > 0:   buffs_h.append("吸血%d" % unit.lifesteal_stacks)
-	if unit._regen_stacks > 0:      buffs_h.append("再生%d" % unit._regen_stacks)
+	if unit.regen_stacks > 0:      buffs_h.append("再生%d" % unit.regen_stacks)
 	if unit.burn_turns > 0:         buffs_h.append("火傷%d" % unit.burn_turns)
 	if unit.frozen_turns > 0:       buffs_h.append("凍結%d" % unit.frozen_turns)
-	if unit.paralysis_turns > 0:    buffs_h.append("麻痺%d" % unit.paralysis_turns)
 	if unit.poison_stacks > 0:      buffs_h.append("毒%d" % unit.poison_stacks)
 	if unit._invincible_timer > 0.0: buffs_h.append("無敵")
 	if buffs_h.size() > 0:

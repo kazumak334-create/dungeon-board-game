@@ -59,6 +59,10 @@ const VISIBILITY = {
 		"deck": true, "inventory": true, "skill": true, "settings": false,
 		"gold": false, "sp": false, "act": false, "race": false
 	},
+	"tool": {
+		"deck": false, "inventory": false, "skill": false, "settings": false,
+		"gold": false, "sp": false, "act": false, "race": false
+	},
 }
 
 var _parent: Node = null

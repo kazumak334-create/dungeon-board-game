@@ -25,17 +25,15 @@ func process_combat(delta: float, base_hp: Array) -> void:
 			var unit = bm.board[side][row][front_col]
 			if unit == null:
 				continue
-			# 麻痺中は攻撃不能
-			if unit.paralysis_turns > 0:
-				continue
 			bm.attack_timers[side][row][front_col] -= delta
 			if bm.attack_timers[side][row][front_col] <= 0.0:
 				# 凍結中は攻撃速度低下（逓減・最大50%）: reduction = 0.5 * stacks / (stacks + 2)
+				var base_interval: float = unit.get_attack_interval()
 				var freeze_penalty: float = 0.0
 				if unit.frozen_turns > 0:
 					var freeze_reduction: float = 0.5 * float(unit.frozen_turns) / float(unit.frozen_turns + 2)
-					freeze_penalty = unit.attack_interval * freeze_reduction
-				var eff_interval: float = max(0.3, unit.attack_interval - unit._interval_bonus - unit._temp_spd_bonus + freeze_penalty)
+					freeze_penalty = base_interval * freeze_reduction
+				var eff_interval: float = max(0.3, base_interval - unit._interval_bonus - unit._temp_spd_bonus + freeze_penalty)
 				bm.attack_timers[side][row][front_col] = eff_interval
 				_do_attack(side, row, front_col, unit, enemy_side, base_hp)
 
@@ -49,15 +47,14 @@ func process_combat(delta: float, base_hp: Array) -> void:
 			var unit = bm.board[side][row][back_col]
 			if unit == null or not unit._can_attack_from_back:
 				continue
-			if unit.paralysis_turns > 0:
-				continue
 			bm.attack_timers[side][row][back_col] -= delta
 			if bm.attack_timers[side][row][back_col] <= 0.0:
+				var base_interval: float = unit.get_attack_interval()
 				var freeze_penalty: float = 0.0
 				if unit.frozen_turns > 0:
 					var freeze_reduction: float = 0.5 * float(unit.frozen_turns) / float(unit.frozen_turns + 2)
-					freeze_penalty = unit.attack_interval * freeze_reduction
-				var eff_interval: float = max(0.3, unit.attack_interval - unit._interval_bonus - unit._temp_spd_bonus + freeze_penalty)
+					freeze_penalty = base_interval * freeze_reduction
+				var eff_interval: float = max(0.3, base_interval - unit._interval_bonus - unit._temp_spd_bonus + freeze_penalty)
 				bm.attack_timers[side][row][back_col] = eff_interval
 				var back_atk: int = max(1, int(unit.attack * unit._back_atk_factor) + unit._atk_bonus)
 				_do_attack(side, row, back_col, unit, enemy_side, base_hp, back_atk, unit._back_target_rear, unit._back_no_on_hit)
@@ -66,15 +63,14 @@ func process_combat(delta: float, base_hp: Array) -> void:
 			var unit = bm.board[side][row][mid_col]
 			if unit == null or not unit._can_attack_from_mid:
 				continue
-			if unit.paralysis_turns > 0:
-				continue
 			bm.attack_timers[side][row][mid_col] -= delta
 			if bm.attack_timers[side][row][mid_col] <= 0.0:
+				var base_interval: float = unit.get_attack_interval()
 				var freeze_penalty: float = 0.0
 				if unit.frozen_turns > 0:
 					var freeze_reduction: float = 0.5 * float(unit.frozen_turns) / float(unit.frozen_turns + 2)
-					freeze_penalty = unit.attack_interval * freeze_reduction
-				var eff_interval: float = max(0.3, unit.attack_interval - unit._interval_bonus - unit._temp_spd_bonus + freeze_penalty)
+					freeze_penalty = base_interval * freeze_reduction
+				var eff_interval: float = max(0.3, base_interval - unit._interval_bonus - unit._temp_spd_bonus + freeze_penalty)
 				bm.attack_timers[side][row][mid_col] = eff_interval
 				var mid_atk: int = max(1, int(unit.attack * unit._back_atk_factor) + unit._atk_bonus)
 				_do_attack(side, row, mid_col, unit, enemy_side, base_hp, mid_atk, unit._back_target_rear, unit._back_no_on_hit)
@@ -88,21 +84,52 @@ func process_combat(delta: float, base_hp: Array) -> void:
 
 func _do_attack(side: int, row: int, col: int, attacker: Object, enemy_side: int, base_hp: Array, atk_override: int = -1, target_rear: bool = false, skip_on_hit: bool = false) -> void:
 	var effective_atk: int = atk_override if atk_override >= 0 else attacker.attack + attacker._atk_bonus + attacker._temp_atk_bonus
+	# powerバフ: スタック×1%ATK上昇
+	if attacker.power_stacks > 0:
+		var power_bonus: int = max(1, int(float(effective_atk) * attacker.power_stacks * 0.01))
+		effective_atk += power_bonus
 	# 火傷中はATK低下（逓減・最大80%）: reduction = 0.8 * stacks / (stacks + 2)
 	if attacker.burn_turns > 0:
 		var burn_reduction: float = 0.8 * float(attacker.burn_turns) / float(attacker.burn_turns + 2)
 		effective_atk = max(1, int(float(effective_atk) * (1.0 - burn_reduction)))
-	# クリティカル（初撃ATK×2）
+	# クリティカル（初撃ATK×2 or senseバフでランダム判定）
 	var is_critical: bool = false
+	var crit_chance: float = 0.0
 	if attacker._first_attack and "クリティカル" in attacker.passive_skill:
-		effective_atk *= 2
-		attacker._first_attack = false
 		is_critical = true
+		attacker._first_attack = false
+	elif attacker.sense_stacks > 0:
+		crit_chance = min(1.0, attacker.sense_stacks * 0.01)
+		if randf() <= crit_chance:
+			is_critical = true
+	if is_critical:
+		effective_atk *= 2
+	# damage_accumulate: 蓄積ダメージを追加ダメージとして反映
+	for skill in attacker.skills:
+		if skill.get("effect_id", "") == "damage_accumulate" and attacker._accumulated_damage > 0:
+			effective_atk += attacker._accumulated_damage
+			attacker._accumulated_damage = 0
+			break
 	var target_rows: Array = _get_target_rows(row, attacker.attack_range)
 	var hit_any: bool = false
+	# extended_range: 攻撃範囲拡張（最大4マス先まで）
+	var has_extended_range: bool = false
+	var extended_range_value: int = 4
+	for skill in attacker.skills:
+		if skill.get("effect_id", "") == "extended_range":
+			has_extended_range = true
+			extended_range_value = skill.get("params", {}).get("range", 4)
+			break
 	for target_row in target_rows:
 		# ターゲット選択：最後列優先 or 最前列優先
 		var target_col: int = _get_rearmost_col(enemy_side, target_row) if target_rear else get_frontmost_col(enemy_side, target_row)
+		# extended_range: 最前列から順番にスキャン
+		if target_col == -1 and has_extended_range:
+			var scan_order: Array = [2, 1, 0] if enemy_side == 0 else [0, 1, 2]
+			for scan_col in scan_order:
+				if bm.board[enemy_side][target_row][scan_col] != null:
+					target_col = scan_col
+					break
 		if target_col != -1:
 			hit_any = true
 			var target = bm.board[enemy_side][target_row][target_col]
@@ -125,6 +152,12 @@ func _do_attack(side: int, row: int, col: int, attacker: Object, enemy_side: int
 				var _tile_curse_def = _EDB.EFFECTS.get(_te_curse["effect_id"], {})
 				if _tile_curse_def.has("damage_mult"):
 					actual_damage = int(float(actual_damage) * _tile_curse_def["damage_mult"])
+			# full_hp_defense: HP100%時に被ダメージ減少
+			for skill in target.skills:
+				if skill.get("effect_id", "") == "full_hp_defense" and target.current_hp >= target.max_hp:
+					var reduction: float = skill.get("params", {}).get("reduction", 0.5)
+					actual_damage = int(float(actual_damage) * (1.0 - reduction))
+					break
 			if actual_damage > 0:
 				# ダメージイベントをキューに積む
 				bm.event_queue.push(
@@ -132,15 +165,6 @@ func _do_attack(side: int, row: int, col: int, attacker: Object, enemy_side: int
 					attacker, target, "damage", float(actual_damage),
 					{"enemy_side": enemy_side, "row": target_row, "col": target_col}
 				)
-				# 吸血バフ：ダメージの(3%×スタック)をHP回復
-				if attacker.lifesteal_stacks > 0:
-					var heal_pct: float = 0.03 * attacker.lifesteal_stacks
-					var heal: int = max(1, int(actual_damage * heal_pct))
-					bm.event_queue.push(
-						4,
-						target, attacker, "heal", float(heal),
-						{"src_side": side, "src_row": row, "src_col": col, "skill_name": "吸血"}
-					)
 				# 衝撃/貫通/大貫通スキルによるダメージ波及
 				var pen_depth: int = 0
 				var pen_factors: Array = []
@@ -185,12 +209,28 @@ func _do_attack(side: int, row: int, col: int, attacker: Object, enemy_side: int
 		)
 	# v2設計: 攻撃発動時にマナ生成（両陣営）
 	var mana_gain: float = float(attacker.mana) if attacker.mana >= 0 else 0.0
+	# springバフ: スタック×1%マナ生成上昇
+	if attacker.spring_stacks > 0:
+		var spring_bonus: float = mana_gain * attacker.spring_stacks * 0.01
+		mana_gain += spring_bonus
 	if side == 0 and bm.deck_manager_ref != null:
 		bm.deck_manager_ref.mana += mana_gain
 		bm.deck_manager_ref.mana = min(bm.deck_manager_ref.mana, bm.deck_manager_ref.MANA_MAX)
 	elif side == 1 and bm.enemy_ai_ref != null:
 		bm.enemy_ai_ref.mana += mana_gain
 		bm.enemy_ai_ref.mana = min(bm.enemy_ai_ref.mana, bm.enemy_ai_ref.MANA_MAX)
+	# on_attack トリガー処理（self_damage_attack等）
+	if bm.effect_executor != null:
+		for skill in attacker.skills:
+			if skill.get("trigger", "") == "on_attack":
+				var _mp: Dictionary = skill.get("params", {}).duplicate()
+				if skill.has("target"): _mp["target"] = skill["target"]
+				bm.effect_executor.execute(skill["effect_id"], _mp, {
+					"trigger": "on_attack", "side": side, "row": row, "col": col,
+					"source": attacker, "target": null, "damage": 0,
+					"board_manager": bm, "deck_manager": bm.deck_manager_ref, "enemy_ai": bm.enemy_ai_ref,
+					"event_queue": bm.event_queue
+				})
 
 func _push_on_hit_effects(side: int, row: int, col: int, attacker: Object, target: Object,
 		enemy_side: int, target_row: int, target_col: int, damage: int) -> void:
@@ -234,27 +274,29 @@ func _process_support_effects(delta: float) -> void:
 		for row in range(3):
 			# 中列
 			var mid_unit = bm.board[side][row][mid_col]
-			if mid_unit != null and mid_unit.paralysis_turns <= 0:
+			if mid_unit != null:
 				bm.support_timers[side][row][mid_col] -= delta
 				if bm.support_timers[side][row][mid_col] <= 0.0:
+					var base_interval: float = mid_unit.get_attack_interval()
 					var freeze_penalty: float = 0.0
 					if mid_unit.frozen_turns > 0:
 						var freeze_reduction: float = 0.5 * float(mid_unit.frozen_turns) / float(mid_unit.frozen_turns + 2)
-						freeze_penalty = mid_unit.attack_interval * freeze_reduction
-					var eff_interval: float = max(0.3, mid_unit.attack_interval - mid_unit._interval_bonus - mid_unit._temp_spd_bonus + freeze_penalty)
+						freeze_penalty = base_interval * freeze_reduction
+					var eff_interval: float = max(0.3, base_interval - mid_unit._interval_bonus - mid_unit._temp_spd_bonus + freeze_penalty)
 					bm.support_timers[side][row][mid_col] = eff_interval
 					_trigger_support(side, row, mid_col, mid_unit)
 
 			# 後列
 			var back_unit = bm.board[side][row][back_col]
-			if back_unit != null and back_unit.paralysis_turns <= 0:
+			if back_unit != null:
 				bm.support_timers[side][row][back_col] -= delta
 				if bm.support_timers[side][row][back_col] <= 0.0:
+					var base_interval: float = back_unit.get_attack_interval()
 					var freeze_penalty: float = 0.0
 					if back_unit.frozen_turns > 0:
 						var freeze_reduction: float = 0.5 * float(back_unit.frozen_turns) / float(back_unit.frozen_turns + 2)
-						freeze_penalty = back_unit.attack_interval * freeze_reduction
-					var eff_interval: float = max(0.3, back_unit.attack_interval - back_unit._interval_bonus - back_unit._temp_spd_bonus + freeze_penalty)
+						freeze_penalty = base_interval * freeze_reduction
+					var eff_interval: float = max(0.3, base_interval - back_unit._interval_bonus - back_unit._temp_spd_bonus + freeze_penalty)
 					bm.support_timers[side][row][back_col] = eff_interval
 					_trigger_support(side, row, back_col, back_unit)
 
@@ -317,7 +359,7 @@ func _process_auto_promote() -> void:
 				# 移動実行
 				bm.tile_system.check_tile_on_leave(side, row, col, unit)
 				bm.board[side][row][next_col] = unit
-				bm.attack_timers[side][row][next_col] = unit.attack_interval
+				bm.attack_timers[side][row][next_col] = unit.get_attack_interval()
 				bm.board[side][row][col] = null
 				bm.attack_timers[side][row][col] = 0.0
 				bm.tile_system.check_tile_on_enter(side, row, next_col, unit)
@@ -365,10 +407,6 @@ func steal_buffs(stealer: Object, victim: Object, multiplier: float) -> void:
 	# SPDボーナス奪取
 	if victim._interval_bonus > 0.0:
 		stealer._stolen_spd += victim._interval_bonus * multiplier
-	# 吸血奪取（スタック移動）
-	if victim.lifesteal_stacks > 0:
-		stealer.lifesteal_stacks += int(victim.lifesteal_stacks * multiplier)
-		victim.lifesteal_stacks = 0
 	# 貫通奪取（スキルフラグ移動）
 	if victim._has_penetrate:
 		stealer._has_penetrate = true
@@ -380,9 +418,9 @@ func steal_buffs(stealer: Object, victim: Object, multiplier: float) -> void:
 		stealer._has_big_penetrate = true
 		victim._has_big_penetrate = false
 	# リジェネ奪取（スタック直接移動）
-	if victim._regen_stacks > 0:
-		stealer._regen_stacks += int(victim._regen_stacks * multiplier)
-		victim._regen_stacks = 0
+	if victim.regen_stacks > 0:
+		stealer.regen_stacks += int(victim.regen_stacks * multiplier)
+		victim.regen_stacks = 0
 	# 鎧奪取
 	if victim._damage_reduction > 0:
 		stealer._stolen_armor += int(victim._damage_reduction * multiplier)
@@ -436,17 +474,17 @@ func process_debuff_spread(killer: Object, victim: Object, victim_side: int, vic
 		if victim.poison_stacks > 0:
 			bm.event_queue.push(4, killer, adj, "status_apply", 0.0,
 				{"status": "毒", "stacks": max(1, victim.poison_stacks / 2),
-				 "side": victim_side, "row": r2, "col": c2,
-				 "src_side": k_side, "src_row": k_row, "src_col": k_col, "skill_name": "デバフ波及"})
+					"side": victim_side, "row": r2, "col": c2,
+					"src_side": k_side, "src_row": k_row, "src_col": k_col, "skill_name": "デバフ波及"})
 		if victim.frozen_turns > 0:
 			bm.event_queue.push(4, killer, adj, "status_apply", 0.0,
 				{"status": "凍結", "stacks": max(1, victim.frozen_turns / 2),
-				 "side": victim_side, "row": r2, "col": c2,
-				 "src_side": k_side, "src_row": k_row, "src_col": k_col, "skill_name": "デバフ波及"})
+					"side": victim_side, "row": r2, "col": c2,
+					"src_side": k_side, "src_row": k_row, "src_col": k_col, "skill_name": "デバフ波及"})
 		if victim.burn_turns > 0:
 			bm.event_queue.push(4, killer, adj, "status_apply", 0.0,
 				{"status": "火傷", "stacks": max(1, victim.burn_turns / 2),
-				 "side": victim_side, "row": r2, "col": c2,
-				 "src_side": k_side, "src_row": k_row, "src_col": k_col, "skill_name": "デバフ波及"})
+					"side": victim_side, "row": r2, "col": c2,
+					"src_side": k_side, "src_row": k_row, "src_col": k_col, "skill_name": "デバフ波及"})
 	if k_side >= 0:
 		bm.skill_triggered.emit(k_side, k_row, k_col, "デバフ波及")

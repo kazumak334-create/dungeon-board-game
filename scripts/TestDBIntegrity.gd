@@ -56,7 +56,8 @@ func _test_carddb_integrity(r: RefCounted) -> void:
 		r._assert_true(d.has("rarity"), "SPELLS[%s] にrarityがない" % name)
 		if d.has("rarity"):
 			r._assert_true(d["rarity"] in valid_rarities, "SPELLS[%s] rarity '%s' が不正" % [name, d["rarity"]])
-		r._assert_true(d["mana"] is float or d["mana"] is int, "SPELLS[%s] costが数値" % name)
+		# manaは数値または"X"（変数コスト）を許可
+		r._assert_true(d["mana"] is float or d["mana"] is int or d["mana"] == "X", "SPELLS[%s] costが数値またはX" % name)
 
 # ---- skills配列のeffect_idがEffectDBに存在するか ----
 func _test_carddb_skills_reference(r: RefCounted) -> void:

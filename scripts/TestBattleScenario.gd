@@ -65,10 +65,6 @@ func _test_buff_application(r: RefCounted) -> void:
 	u._atk_bonus = 3
 	var effective_atk: int = u.attack + u._atk_bonus
 	r._assert_eq(effective_atk, 6, "ゴブリンATK3+バフ3=6")
-	# 吸血スタック→回復率
-	u.lifesteal_stacks = 5
-	var heal_pct: float = 0.03 * u.lifesteal_stacks
-	r._assert_eq(heal_pct, 0.15, "吸血5スタック: 回復率15%")
 	# ATKバフ上限10
 	u._atk_bonus = 12
 	u._atk_bonus = min(u._atk_bonus, 10)
@@ -79,7 +75,6 @@ func _test_debuff_tick(r: RefCounted) -> void:
 	var u = _create_unit("スライム")
 	u.frozen_turns = 3
 	u.burn_turns = 2
-	u.paralysis_turns = 1
 	u.poison_stacks = 4
 	# 凍結: 毎秒-1
 	u.frozen_turns -= 1
@@ -88,8 +83,6 @@ func _test_debuff_tick(r: RefCounted) -> void:
 	u.burn_turns -= 1
 	r._assert_eq(u.burn_turns, 1, "火傷Tick: 2→1")
 	# 麻痺: 毎秒-1
-	u.paralysis_turns -= 1
-	r._assert_eq(u.paralysis_turns, 0, "麻痺Tick: 1→0")
 	# 毒: 永続（減少しない）
 	r._assert_eq(u.poison_stacks, 4, "毒: 永続4スタック")
 	# 毒ダメージ: スタック数=ダメージ/秒
@@ -122,7 +115,7 @@ func _test_artifact_exclusion(r: RefCounted) -> void:
 # ---- Promoteテスト ----
 func _test_promote(r: RefCounted) -> void:
 	var u = _create_unit("ウルフ")
-	r._assert_true(u.attack_interval > 0, "ウルフSPD>0（promoteでタイマーリセットに使用）")
+	r._assert_true(u.get_attack_interval() > 0, "ウルフSPD>0（promoteでタイマーリセットに使用）")
 	# promote後もHP保持
 	var original_hp: int = u.current_hp
 	u.current_hp -= 5  # ダメージを受けた状態
@@ -159,14 +152,7 @@ func _test_display_logic_consistency(r: RefCounted) -> void:
 	u._atk_bonus = 0
 	u._temp_atk_bonus = 0
 	r._assert_eq(u.attack + u._atk_bonus, 5, "リセット後ATK=基礎値5")
-	# 吸血: lifesteal_stacksが回復計算と表示で一致
-	u.lifesteal_stacks = 8
-	var heal_pct: float = 0.03 * u.lifesteal_stacks
-	r._assert_eq(heal_pct, 0.24, "吸血8スタック: 回復率24%")
-	r._assert_true(u.lifesteal_stacks > 0, "吸血スタック>0→表示あり")
 	# リセット
-	u.lifesteal_stacks = 0
-	r._assert_true(u.lifesteal_stacks == 0, "吸血0→表示なし")
 	# 鎧: _damage_reductionが軽減計算と表示で一致
 	u._damage_reduction = 3
 	var armor_pct: float = min(1.0, u._damage_reduction * 0.1)

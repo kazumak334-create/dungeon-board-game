@@ -22,8 +22,8 @@ func _test_mana_max_initialization() -> void:
 	# テスト用の初期配置を設定
 	GameSession.initial_units = [
 		{"name": "スライム", "row": 0, "col": 0},  # cost 1
-		{"name": "ゴブリン", "row": 0, "col": 1},  # cost 1
-		{"name": "スケルトン", "row": 0, "col": 2}, # cost 2
+		{"name": "Fangos", "row": 0, "col": 1},  # cost 1
+		{"name": "ウルフ", "row": 0, "col": 2}, # cost 2
 		null, null, null, null, null, null
 	]
 

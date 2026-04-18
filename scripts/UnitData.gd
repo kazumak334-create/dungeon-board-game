@@ -2,6 +2,11 @@
 class_name UnitData
 extends RefCounted
 
+# SPD変換スケール（バランス調整用定数）
+# SPD = SPD_SCALE秒あたりの攻撃回数
+# 例: SPD_SCALE=10, SPD=10 → 1秒間隔、SPD=5 → 2秒間隔
+const SPD_SCALE: float = 10.0
+
 var unit_name: String = "Unknown"
 var max_hp: int = 10
 var current_hp: int = 10
@@ -39,12 +44,13 @@ var _back_no_on_hit: bool = false        # 命中時スキルを発動しない
 var _is_flying: bool = false             # 飛行スキル：盤面効果を受けない
 var _auto_promote: bool = false          # 自動前進：前マスが空いたら自動移動
 var _damage_reduction: int = 0  # 鎧バフ：被ダメージ-N
-var _has_lifesteal: bool = false  # 吸血（後方互換：スタック>0ならtrue）
 var _has_penetrate: bool = false  # 貫通：後ろ1マス100%
 var _has_impact: bool = false     # 衝撃：後ろ1マス50%
 var _has_big_penetrate: bool = false  # 大貫通：後ろ1マス100% + 後ろ2マス50%
-var lifesteal_stacks: int = 0    # 吸血スタック：回復率3%/スタック、2秒ごと-1
-var _regen_stacks: int = 0       # リジェネバフ：2秒ごとにHP5%×スタック数回復（重複可）
+var _has_sturdy: bool = false  # 頑丈：被ダメージ-1
+var _has_overflow_curse: bool = false  # 溢れる呪：5秒ごとに盤面全ユニットに呪い+1
+var _has_mana_flare: bool = false  # マナフレア：初期デッキにマナフレア呪文を追加
+var _has_unyielding: bool = false  # 不撓不屈：味方死亡時にHP25%回復・ATK・SPD10%上昇
 # パッシブスキル状態（永続・cloneには引き継がない）
 var _has_revived: bool = false
 var _support_revive: bool = false    # サポート効果由来の再起（毎フレーム再計算）
@@ -54,15 +60,22 @@ var _kill_atk_bonus: int = 0    # ATK累積：撃破時の累積ボーナス（�
 # バフ奪取で得た永続ボーナス（サポート再計算でリセットされない）
 var _stolen_atk: int = 0
 var _stolen_spd: float = 0.0
-var _stolen_lifesteal: bool = false
 var _stolen_penetrate: bool = false
 var _stolen_regen: int = 0
 var _stolen_armor: int = 0
 # 状態異常（Timerノードで1秒ごとに管理・cloneには引き継がない）
 var poison_stacks:    int = 0  # 毒: 毎秒スタック数分ダメージ（線形）
-var frozen_turns:     int = 0  # 凍結: 攻撃速度低下（逓減・最大80%）
-var burn_turns:       int = 0  # 火傷: ATK低下（逓減・最大80%）
-var paralysis_turns:  int = 0  # 麻痺: 行動不能
+var frozen_turns:     int = 0  # 凍結: スタック×1%SPD低下・10スタックごとに0.5秒停止
+var burn_turns:       int = 0  # 火傷: スタック×1%ATK低下
+var curse_stacks:     int = 0  # 呪い: 新規デバフ（効果は後で実装）
+var brand_stacks:     int = 0  # 烙印: 付与のたびに2秒間全攻撃が集中・1秒-1
+# バフ（cloneには引き継がない）
+var boots_stacks:     int = 0  # ブーツ: スタック×1%SPD上昇
+var sense_stacks:     int = 0  # センス: スタック×1%クリティカル率上昇
+var power_stacks:     int = 0  # パワー: スタック×1%ATK上昇
+var spring_stacks:    int = 0  # 泉: スタック×1%マナ生成上昇
+var regen_stacks:     int = 0  # リジェネ: 2秒ごとにHP5%×スタック数回復（重複可）
+var thorn_stacks:     int = 0  # 棘: 棘爆発の対象（スタック数分ダメージ）
 # 時間経過スキル（cloneには引き継がない）
 var _skill_timers: Dictionary = {}  # {entry文字列: 残り秒数}
 var _temp_atk_bonus: int = 0        # 一時ATKバフ（時間経過スキル用）
@@ -72,14 +85,24 @@ var _temp_spd_timer: float = 0.0    # 一時SPDバフ残り時間
 # HP閾値スキル（cloneには引き継がない）
 var _hp_threshold_triggered: Dictionary = {}  # {entry: true} 発動済みフラグ
 var _invincible_timer: float = 0.0            # 結晶化：無敵残り時間
+# ダメージ蓄積（cloneには引き継がない）
+var _accumulated_damage: int = 0              # ダメージ蓄積：攻撃時に追加ダメージとして反映
 
 # SPD → attack_interval 変換（互換性レイヤー）
 # SPD = 10秒あたりの攻撃回数（SPD 10 = 1秒間隔、SPD 5 = 2秒間隔）
 func get_attack_interval() -> float:
 	var effective_spd = spd + _interval_bonus  # _interval_bonusはSPDボーナスとして扱う
+	# bootsバフ: スタック×1%SPD上昇
+	if boots_stacks > 0:
+		var boots_bonus: float = spd * boots_stacks * 0.01
+		effective_spd += boots_bonus
+	# 凍結デバフ: スタック×1%SPD低下
+	if frozen_turns > 0:
+		var freeze_penalty: float = spd * frozen_turns * 0.01
+		effective_spd -= freeze_penalty
 	if effective_spd <= 0:
 		return 999.0  # SPD0以下の場合は攻撃不可
-	return 10.0 / effective_spd
+	return SPD_SCALE / effective_spd
 
 func is_alive() -> bool:
 	return current_hp > 0

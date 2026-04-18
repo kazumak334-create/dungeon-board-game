@@ -111,8 +111,14 @@ func _update_text() -> void:
 	if not has_node("OverlayRoot/ManaLabel"):
 		return
 	$OverlayRoot/ManaLabel.text = str(mana)
+
+	# card_nameがユニットIDの場合はen_nameを使用
+	var display_name = card_name
+	if CardDB.UNITS.has(card_name):
+		display_name = CardDB.UNITS[card_name].get("en_name", card_name)
+
 	# ビットマップフォントは大文字のみ対応のため必ずto_upper()を通す
-	$OverlayRoot/NameLabel.text = card_name.to_upper()
+	$OverlayRoot/NameLabel.text = display_name.to_upper()
 	$OverlayRoot/StatRow/HpLabel.text = str(hp)
 	$OverlayRoot/StatRow/AtkLabel.text = str(atk)
 	$OverlayRoot/StatRow/SpdLabel.text = str(spd)
@@ -132,19 +138,31 @@ func _update_frame() -> void:
 		# レアリティに応じたフレームを自動設定
 		$FrameTexture.texture = load(FRAME_TEXTURES[rarity])
 
-	# レアリティに応じたフォントを設定
-	if has_node("OverlayRoot/NameLabel"):
-		var font_path = RARITY_FONTS[rarity]
-		print("[CardView] レアリティ %s → フォントパス: %s" % [rarity, font_path])
-		if ResourceLoader.exists(font_path):
-			var font = load(font_path)
-			if font:
-				$OverlayRoot/NameLabel.add_theme_font_override("font", font)
-				print("[CardView] フォント適用成功: %s" % font_path)
-			else:
-				push_warning("[CardView] フォント読み込み失敗: %s" % font_path)
+	# レアリティに応じたフォントを全ラベルに設定
+	var font_path = RARITY_FONTS[rarity]
+	print("[CardView] レアリティ %s → フォントパス: %s" % [rarity, font_path])
+	if ResourceLoader.exists(font_path):
+		var font = load(font_path)
+		if font:
+			# 全ラベルにレアリティに応じたフォントを適用
+			var label_paths = [
+				"OverlayRoot/NameLabel",
+				"OverlayRoot/ManaLabel",
+				"OverlayRoot/StatRow/HpLabel",
+				"OverlayRoot/StatRow/AtkLabel",
+				"OverlayRoot/StatRow/SpdLabel"
+			]
+			for label_path in label_paths:
+				if has_node(label_path):
+					var label = get_node(label_path)
+					label.add_theme_font_override("font", font)
+					# ビットマップフォントの元の色を表示するため、font_colorオーバーライドを削除
+					label.remove_theme_color_override("font_color")
+			print("[CardView] フォント適用成功: %s" % font_path)
 		else:
-			push_warning("[CardView] フォントファイルが存在しません: %s" % font_path)
+			push_warning("[CardView] フォント読み込み失敗: %s" % font_path)
+	else:
+		push_warning("[CardView] フォントファイルが存在しません: %s" % font_path)
 
 func _update_trait_badges() -> void:
 	if not has_node("OverlayRoot/TraitBadges"):

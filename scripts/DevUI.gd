@@ -427,7 +427,7 @@ func _build_card(index: int) -> Object:
 	if card["type"] == "unit":
 		var d = card["data"]
 		obj.unit_name = card["name"]; obj.max_hp = d["hp"]; obj.current_hp = d["hp"]
-		obj.attack = d["atk"]; obj.attack_interval = d["interval"]; obj.mana = d["mana"]
+		obj.attack = d["atk"]; obj.spd = d["spd"]; obj.mana = d["mana"]
 		obj.assigned_col = d["col"]; obj.race = d["race"]; obj.attack_range = d["range"]
 		obj.support_effect = ""; obj.passive_skill = ""
 		obj.skills = d.get("skills", []).duplicate(true)
@@ -571,7 +571,7 @@ func _manual_place(card: Object, side: int, row: int, col: int) -> void:
 				return
 			var placed = card.clone()
 			board_manager.board[side][row][col] = placed
-			board_manager.attack_timers[side][row][col] = placed.attack_interval
+			board_manager.attack_timers[side][row][col] = placed.get_attack_interval()
 			board_manager._init_skill_timers(placed)
 			board_manager._push_summon_effects(side, row, col, placed)
 			board_manager._check_tile_on_enter(side, row, col, placed)
@@ -600,10 +600,11 @@ func _on_card_hover(index: int) -> void:
 	var card = _all_cards[index]
 	var d = card["data"]
 	var lines: Array = []
+	var _UnitDataScript = load("res://scripts/UnitData.gd")
 	if card["type"] == "unit":
 		lines.append("[%s] %s" % [d.get("race", ""), card["name"]])
 		lines.append("Cost: %d" % d["mana"])
-		lines.append("HP: %d / ATK: %d / SPD: %.1fs" % [d["hp"], d["atk"], d["interval"]])
+		lines.append("HP: %d / ATK: %d / SPD: %.1fs" % [d["hp"], d["atk"], _UnitDataScript.SPD_SCALE / d["spd"]])
 		lines.append("攻撃範囲: %s" % d.get("range", "1行"))
 		# skills配列からdisplay名で表示
 		var _EDB = load("res://scripts/EffectDB.gd")
@@ -732,7 +733,6 @@ func _on_clear_debuffs() -> void:
 				var u = board_manager.board[s][r][c]
 				if u != null:
 					u.burn_turns = 0; u.frozen_turns = 0
-					u.paralysis_turns = 0; u.poison_stacks = 0
 	main._add_log("[DEV] デバフ解除")
 	main._mark_all_cells_dirty()
 

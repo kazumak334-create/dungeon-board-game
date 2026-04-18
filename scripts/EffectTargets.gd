@@ -179,8 +179,7 @@ func resolve(merged: Dictionary, context: Dictionary, ally_side: bool) -> Array:
 						var cnt: int = 0
 						if u._atk_bonus > 0: cnt += 1
 						if u._interval_bonus > 0.0: cnt += 1
-						if u.lifesteal_stacks > 0: cnt += 1
-						if u._regen_stacks > 0: cnt += 1
+						if u.regen_stacks > 0: cnt += 1
 						if u._damage_reduction > 0: cnt += 1
 						if cnt > best_count:
 							best_count = cnt

@@ -18,6 +18,8 @@ const DECK_VIEW      = "deck_view"
 const INVENTORY      = "inventory"
 const SKILL_TREE     = "skill_tree"
 const SETTINGS       = "settings"
+const DECK_TEST_TOOL = "deck_test_tool"
+const REST_SCREEN    = "rest_screen"  # Wave間休憩画面（Phase 4 #0-0a）
 
 # シーン登録
 var _scenes: Dictionary = {
@@ -36,6 +38,8 @@ var _scenes: Dictionary = {
 	"inventory": "res://scenes/Inventory.tscn",
 	"skill_tree": "res://scenes/SkillTree.tscn",
 	"settings": "res://scenes/Settings.tscn",
+	"deck_test_tool": "res://scenes/tools/DeckTestTool.tscn",
+	"rest_screen": "res://scenes/RestScreen.tscn",  # Wave間休憩画面
 }
 
 func go_to(scene_name: String) -> void:

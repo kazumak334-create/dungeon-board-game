@@ -1,0 +1,5415 @@
+{
+	"classes": {
+		"alchemist": {
+			"anim": "",
+			"description": "スライムを操り合成で巨大化させる錬金術師",
+			"display": "錬金術師",
+			"initial_deck": [
+				"スライム",
+				"スライム",
+				"スライム",
+				"マッドスライム",
+				"マッドスライム",
+				"ブラッドスライム",
+				"生命の雫",
+				"盤面強化"
+			],
+			"initial_mana": 3,
+			"mana_max": 3,
+			"sfx": "",
+			"skills": [
+				{
+					"effect_id": "mana_boost",
+					"params": {
+						"amount": 2
+					},
+					"target": "self",
+					"trigger": "on_synthesis"
+				},
+				{
+					"effect_id": "status_card_cost_reduce",
+					"params": {
+						"amount": 1
+					},
+					"target": "self",
+					"trigger": "always"
+				}
+			],
+			"texture": ""
+		},
+		"berserker": {
+			"anim": "",
+			"description": "獣を率いて高速で敵を圧倒するバーサーカー",
+			"display": "バーサーカー",
+			"initial_deck": [
+				"ゴブリン",
+				"ゴブリン",
+				"ウルフ",
+				"ウルフ",
+				"タイガー",
+				"ワイルドホーク",
+				"戦場の鼓動",
+				"盤面強化"
+			],
+			"initial_mana": 3,
+			"mana_max": 3,
+			"sfx": "",
+			"skills": [
+				{
+					"effect_id": "spd_buff_pct",
+					"params": {
+						"pct": 0.2
+					},
+					"target": "front_ally_all",
+					"trigger": "always"
+				},
+				{
+					"effect_id": "low_hp_atk_boost",
+					"params": {
+						"atk": 3,
+						"threshold": 0.5
+					},
+					"target": "all_allies",
+					"trigger": "always"
+				}
+			],
+			"texture": ""
+		},
+		"necromancer": {
+			"anim": "",
+			"description": "死を操り不死の軍勢を従える死霊術師",
+			"display": "死霊術師",
+			"initial_deck": [
+				"スケルトン",
+				"スケルトン",
+				"グール",
+				"グール",
+				"バンシー",
+				"リッチ",
+				"生命の雫",
+				"弱体の呪詛"
+			],
+			"initial_mana": 3,
+			"mana_max": 3,
+			"sfx": "",
+			"skills": [
+				{
+					"effect_id": "mana_boost",
+					"params": {
+						"amount": 1,
+						"max_count": 10
+					},
+					"target": "self",
+					"trigger": "on_unit_died_ally"
+				},
+				{
+					"effect_id": "hp_pct_boost",
+					"params": {
+						"pct": 0.1,
+						"race": "アンデッド"
+					},
+					"target": "all_race_ally",
+					"trigger": "always"
+				}
+			],
+			"texture": ""
+		}
+	},
+	"enemy_pools": {
+		"act1_weak": [
+			{
+				"name": "スライム",
+				"col": 1
+			},
+			{
+				"name": "スケルトン",
+				"col": 0
+			},
+			{
+				"name": "ゴブリン",
+				"col": 0
+			},
+			{
+				"name": "マッドスライム",
+				"col": 1
+			},
+			{
+				"name": "スライム",
+				"col": 1
+			},
+			{
+				"name": "スケルトン",
+				"col": 2
+			},
+			{
+				"name": "ゴブリン",
+				"col": 2
+			}
+		],
+		"act1_enhanced1": [
+			{
+				"name": "マッドスライム",
+				"col": 1
+			},
+			{
+				"name": "スケルトン",
+				"col": 0
+			},
+			{
+				"name": "ゴブリン",
+				"col": 1
+			},
+			{
+				"name": "スライム",
+				"col": 2
+			},
+			{
+				"name": "マッドスライム",
+				"col": 0
+			},
+			{
+				"name": "スケルトン",
+				"col": 2
+			},
+			{
+				"name": "ゴブリン",
+				"col": 1
+			}
+		],
+		"act1_enhanced2": [
+			{
+				"name": "マッドスライム",
+				"col": 1
+			},
+			{
+				"name": "グール",
+				"col": 0
+			},
+			{
+				"name": "ウルフ",
+				"col": 1
+			},
+			{
+				"name": "スライム",
+				"col": 2
+			},
+			{
+				"name": "マッドスライム",
+				"col": 0
+			},
+			{
+				"name": "ゴブリン",
+				"col": 2
+			},
+			{
+				"name": "スケルトン",
+				"col": 1
+			}
+		],
+		"act1_enhanced3": [
+			{
+				"name": "グール",
+				"col": 1
+			},
+			{
+				"name": "ウルフ",
+				"col": 0
+			},
+			{
+				"name": "マッドスライム",
+				"col": 1
+			},
+			{
+				"name": "ブラッドスライム",
+				"col": 2
+			},
+			{
+				"name": "グール",
+				"col": 0
+			},
+			{
+				"name": "ウルフ",
+				"col": 2
+			},
+			{
+				"name": "マッドスライム",
+				"col": 1
+			}
+		],
+		"act2_weak": [
+			{
+				"name": "グール",
+				"col": 1
+			},
+			{
+				"name": "ウルフ",
+				"col": 1
+			},
+			{
+				"name": "ブラッドスライム",
+				"col": 2
+			},
+			{
+				"name": "バンシー",
+				"col": 2
+			},
+			{
+				"name": "グール",
+				"col": 0
+			},
+			{
+				"name": "ウルフ",
+				"col": 0
+			},
+			{
+				"name": "マッドスライム",
+				"col": 1
+			}
+		],
+		"act2_enhanced1": [
+			{
+				"name": "グール",
+				"col": 1
+			},
+			{
+				"name": "ウルフ",
+				"col": 0
+			},
+			{
+				"name": "ブラッドスライム",
+				"col": 2
+			},
+			{
+				"name": "バンシー",
+				"col": 1
+			},
+			{
+				"name": "グール",
+				"col": 0
+			},
+			{
+				"name": "ウルフ",
+				"col": 2
+			},
+			{
+				"name": "ブラッドスライム",
+				"col": 1
+			}
+		],
+		"act2_enhanced2": [
+			{
+				"name": "バンシー",
+				"col": 1
+			},
+			{
+				"name": "ブラッドスライム",
+				"col": 0
+			},
+			{
+				"name": "タイガー",
+				"col": 2
+			},
+			{
+				"name": "グール",
+				"col": 1
+			},
+			{
+				"name": "バンシー",
+				"col": 0
+			},
+			{
+				"name": "ウルフ",
+				"col": 2
+			},
+			{
+				"name": "ブラッドスライム",
+				"col": 1
+			}
+		],
+		"act2_enhanced3": [
+			{
+				"name": "タイガー",
+				"col": 1
+			},
+			{
+				"name": "バンシー",
+				"col": 0
+			},
+			{
+				"name": "ブラッドスライム",
+				"col": 2
+			},
+			{
+				"name": "タイガー",
+				"col": 1
+			},
+			{
+				"name": "バンシー",
+				"col": 0
+			},
+			{
+				"name": "リッチ",
+				"col": 2
+			},
+			{
+				"name": "ブラッドスライム",
+				"col": 1
+			}
+		],
+		"act3_weak": [
+			{
+				"name": "タイガー",
+				"col": 2
+			},
+			{
+				"name": "リッチ",
+				"col": 2
+			},
+			{
+				"name": "ヴリコラカス",
+				"col": 1
+			},
+			{
+				"name": "バンシー",
+				"col": 2
+			},
+			{
+				"name": "ブラッドスライム",
+				"col": 1
+			},
+			{
+				"name": "タイガー",
+				"col": 0
+			},
+			{
+				"name": "リッチ",
+				"col": 1
+			}
+		],
+		"act3_enhanced1": [
+			{
+				"name": "タイガー",
+				"col": 1
+			},
+			{
+				"name": "リッチ",
+				"col": 0
+			},
+			{
+				"name": "ヴリコラカス",
+				"col": 2
+			},
+			{
+				"name": "バンシー",
+				"col": 1
+			},
+			{
+				"name": "タイガー",
+				"col": 0
+			},
+			{
+				"name": "リッチ",
+				"col": 2
+			},
+			{
+				"name": "ヴリコラカス",
+				"col": 1
+			}
+		],
+		"act3_enhanced2": [
+			{
+				"name": "ヴリコラカス",
+				"col": 1
+			},
+			{
+				"name": "リッチ",
+				"col": 0
+			},
+			{
+				"name": "タイガー",
+				"col": 2
+			},
+			{
+				"name": "ヴリコラカス",
+				"col": 1
+			},
+			{
+				"name": "リッチ",
+				"col": 0
+			},
+			{
+				"name": "バンシー",
+				"col": 2
+			},
+			{
+				"name": "タイガー",
+				"col": 1
+			}
+		],
+		"act3_enhanced3": [
+			{
+				"name": "リッチ",
+				"col": 1
+			},
+			{
+				"name": "ヴリコラカス",
+				"col": 0
+			},
+			{
+				"name": "タイガー",
+				"col": 2
+			},
+			{
+				"name": "リッチ",
+				"col": 1
+			},
+			{
+				"name": "ヴリコラカス",
+				"col": 0
+			},
+			{
+				"name": "リッチ",
+				"col": 2
+			},
+			{
+				"name": "タイガー",
+				"col": 1
+			}
+		]
+	},
+	"elite_pools": {
+		"act1": [
+			{
+				"name": "グール",
+				"col": 1
+			},
+			{
+				"name": "ウルフ",
+				"col": 0
+			},
+			{
+				"name": "ブラッドスライム",
+				"col": 2
+			}
+		],
+		"act2": [
+			{
+				"name": "タイガー",
+				"col": 1
+			},
+			{
+				"name": "リッチ",
+				"col": 0
+			},
+			{
+				"name": "バンシー",
+				"col": 2
+			}
+		],
+		"act3": [
+			{
+				"name": "リッチ",
+				"col": 1
+			},
+			{
+				"name": "ヴリコラカス",
+				"col": 0
+			},
+			{
+				"name": "タイガー",
+				"col": 2
+			}
+		]
+	},
+	"equipment": {
+		"古びた護符": {
+			"anim": "",
+			"display": "古びた護符",
+			"effect": "前列召喚時に50%で鎧+1付与",
+			"sfx": "",
+			"skills": [
+				{
+					"effect_id": "armor_apply_chance",
+					"params": {
+						"chance": 0.5,
+						"stacks": 1
+					},
+					"target": "front_ally_placed",
+					"trigger": "on_unit_placed"
+				}
+			],
+			"texture": ""
+		},
+		"魔力の砂時計": {
+			"anim": "",
+			"display": "魔力の砂時計",
+			"effect": "マナ回復速度+20%",
+			"sfx": "",
+			"skills": [
+				{
+					"effect_id": "mana_regen_boost",
+					"params": {
+						"pct": 0.2
+					},
+					"target": "self",
+					"trigger": "always"
+				}
+			],
+			"texture": ""
+		},
+		"黒鉄の盾": {
+			"anim": "",
+			"display": "黒鉄の盾",
+			"effect": "本拠点ダメージ-10%",
+			"sfx": "",
+			"skills": [
+				{
+					"effect_id": "base_damage_reduce",
+					"params": {
+						"pct": 0.1
+					},
+					"target": "self",
+					"trigger": "always"
+				}
+			],
+			"texture": ""
+		}
+	},
+	"player_spells": [
+		"生命の雫",
+		"盤面強化",
+		"前中列入替",
+		"前列行混乱",
+		"前列崩し",
+		"ベノムバースト",
+		"ベノムクラウド",
+		"ベノムショック",
+		"デファイルカース",
+		"ヘクスアクルー",
+		"カースドレイン",
+		"デスシフト",
+		"ピュアポイント",
+		"ピュアライン",
+		"ピュアロウ",
+		"ピュアウェーブ",
+		"ヌルフィールド",
+		"ソウルクロウ",
+		"ワイルドシフト",
+		"パックラッシュ",
+		"プレイマーク"
+	],
+	"spells": {
+		"アースクエイク": {
+			"anim": "",
+			"rarity": "legend",
+			"mana": 28,
+			"effect": "全体30ダメージ＋全マスをヒビ床に",
+			"sfx": "",
+			"skills": [
+				{
+					"effect_id": "all_enemy_damage",
+					"params": {
+						"damage": 30
+					},
+					"target": "all_enemies",
+					"trigger": "on_play"
+				},
+				{
+					"effect_id": "tile_set_all",
+					"params": {
+						"tile_id": "tile_crack"
+					},
+					"target": "all",
+					"trigger": "on_play"
+				}
+			],
+			"target": "all_enemies",
+			"texture": ""
+		},
+		"全体再生": {
+			"anim": "",
+			"rarity": "epic",
+			"mana": 18,
+			"effect": "全味方にリジェネ+1",
+			"sfx": "",
+			"skills": [
+				{
+					"effect_id": "regen_apply",
+					"params": {
+						"stacks": 1
+					},
+					"target": "all_allies",
+					"trigger": "on_play"
+				}
+			],
+			"target": "all_allies",
+			"texture": ""
+		},
+		"反転の波": {
+			"anim": "",
+			"rarity": "rare",
+			"mana": 12,
+			"effect": "敵前列と後列を入れ替え",
+			"sfx": "",
+			"skills": [
+				{
+					"effect_id": "swap_front_back",
+					"params": {},
+					"target": "all_enemies",
+					"trigger": "on_play"
+				}
+			],
+			"target": "all_enemies",
+			"texture": ""
+		},
+		"弱体の呪詛": {
+			"anim": "",
+			"rarity": "uncommon",
+			"mana": 9,
+			"effect": "敵全体ATK低下",
+			"sfx": "",
+			"skills": [
+				{
+					"effect_id": "all_enemy_debuff",
+					"params": {
+						"stacks": 3,
+						"status": "burn"
+					},
+					"target": "all_enemies",
+					"trigger": "on_play"
+				}
+			],
+			"target": "all_enemies",
+			"texture": ""
+		},
+		"強化の儀式": {
+			"anim": "",
+			"rarity": "rare",
+			"mana": 12,
+			"effect": "対象1体ATK+5・HP+10",
+			"sfx": "",
+			"skills": [
+				{
+					"effect_id": "atk_hp_boost",
+					"params": {
+						"atk": 5,
+						"hp": 10
+					},
+					"target": "single_ally",
+					"trigger": "on_play"
+				}
+			],
+			"target": "single_ally",
+			"texture": ""
+		},
+		"戦場の鼓動": {
+			"anim": "",
+			"rarity": "uncommon",
+			"mana": 8,
+			"effect": "全味方SPD+50%(5s)",
+			"sfx": "",
+			"skills": [
+				{
+					"effect_id": "spd_buff_all",
+					"params": {
+						"duration": 5,
+						"factor": 0.5
+					},
+					"target": "all_allies",
+					"trigger": "on_play"
+				}
+			],
+			"target": "all_allies",
+			"texture": ""
+		},
+		"押し込み": {
+			"anim": "",
+			"rarity": "uncommon",
+			"mana": 8,
+			"effect": "敵前列1体を後列に移動",
+			"sfx": "",
+			"skills": [
+				{
+					"effect_id": "push_to_back",
+					"params": {},
+					"target": "enemy_front_one",
+					"trigger": "on_play"
+				}
+			],
+			"target": "single_enemy",
+			"texture": ""
+		},
+		"泥の鎧": {
+			"anim": "",
+			"rarity": "common",
+			"mana": 4,
+			"effect": "対象1体に鎧付与",
+			"sfx": "",
+			"skills": [
+				{
+					"effect_id": "armor_apply",
+					"params": {
+						"stacks": 1
+					},
+					"target": "single_ally",
+					"trigger": "on_play"
+				}
+			],
+			"target": "single_ally",
+			"texture": ""
+		},
+		"混沌の手": {
+			"anim": "",
+			"rarity": "uncommon",
+			"mana": 8,
+			"effect": "敵1体をランダム行に移動",
+			"sfx": "",
+			"skills": [
+				{
+					"effect_id": "move_random",
+					"params": {},
+					"target": "single_enemy",
+					"trigger": "on_play"
+				}
+			],
+			"target": "single_enemy",
+			"texture": ""
+		},
+		"烈風斬": {
+			"anim": "",
+			"rarity": "rare",
+			"mana": 12,
+			"effect": "敵全体に中ダメージ",
+			"sfx": "",
+			"skills": [
+				{
+					"effect_id": "all_enemy_damage",
+					"params": {
+						"damage": 8
+					},
+					"target": "all_enemies",
+					"trigger": "on_play"
+				}
+			],
+			"target": "all_enemies",
+			"texture": ""
+		},
+		"生命の雫": {
+			"anim": "",
+			"rarity": "common",
+			"mana": 5,
+			"effect": "対象1体HP15%回復",
+			"sfx": "",
+			"skills": [
+				{
+					"effect_id": "heal_pct",
+					"params": {
+						"factor": 0.15
+					},
+					"target": "single_ally",
+					"trigger": "on_play"
+				}
+			],
+			"target": "single_ally",
+			"texture": ""
+		},
+		"盤面凍結": {
+			"anim": "",
+			"rarity": "epic",
+			"mana": 18,
+			"effect": "敵全体を8s間凍結",
+			"sfx": "",
+			"skills": [
+				{
+					"effect_id": "all_enemy_debuff",
+					"params": {
+						"stacks": 8,
+						"status": "freeze"
+					},
+					"target": "all_enemies",
+					"trigger": "on_play"
+				}
+			],
+			"target": "all_enemies",
+			"texture": ""
+		},
+		"盤面強化": {
+			"anim": "",
+			"rarity": "common",
+			"mana": 5,
+			"effect": "全味方HP+10・ATK+2",
+			"sfx": "",
+			"skills": [
+				{
+					"effect_id": "all_stat_boost",
+					"params": {
+						"atk": 2,
+						"hp": 10
+					},
+					"target": "all_allies",
+					"trigger": "on_play"
+				}
+			],
+			"target": "all_allies",
+			"texture": ""
+		},
+		"結晶化": {
+			"anim": "",
+			"rarity": "rare",
+			"mana": 12,
+			"effect": "対象1体に呪文無効(1回)",
+			"sfx": "",
+			"skills": [
+				{
+					"effect_id": "crystallize",
+					"params": {},
+					"target": "single_ally",
+					"trigger": "on_play"
+				}
+			],
+			"target": "single_ally",
+			"texture": ""
+		},
+		"血の契約": {
+			"anim": "",
+			"rarity": "uncommon",
+			"mana": 8,
+			"effect": "対象1体にHP30%代償+吸血付与",
+			"sfx": "",
+			"skills": [
+				{
+					"effect_id": "hp_cost",
+					"params": {
+						"factor": 0.3
+					},
+					"target": "ally_max_atk",
+					"trigger": "on_play"
+				},
+				{
+					"effect_id": "lifesteal_apply",
+					"params": {
+						"stacks": 10
+					},
+					"target": "ally_max_atk",
+					"trigger": "on_play"
+				}
+			],
+			"target": "single_ally",
+			"texture": ""
+		},
+		"連鎖の触媒": {
+			"anim": "",
+			"rarity": "uncommon",
+			"mana": 8,
+			"effect": "次の3枚コスト-1",
+			"sfx": "",
+			"skills": [
+				{
+					"effect_id": "cost_reduction",
+					"params": {
+						"amount": 1,
+						"count": 3
+					},
+					"target": "self",
+					"trigger": "on_play"
+				}
+			],
+			"target": "self",
+			"texture": ""
+		},
+		"配置崩し": {
+			"anim": "",
+			"rarity": "uncommon",
+			"mana": 8,
+			"effect": "敵の次の召喚列をランダム化",
+			"sfx": "",
+			"skills": [
+				{
+					"effect_id": "randomize_enemy_col",
+					"params": {},
+					"target": "enemy",
+					"trigger": "on_play"
+				}
+			],
+			"target": "enemy_queue",
+			"texture": ""
+		},
+		"火球": {
+			"anim": "",
+			"rarity": "common",
+			"mana": 5,
+			"effect": "敵単体に15ダメージ",
+			"sfx": "",
+			"skills": [
+				{
+					"effect_id": "single_enemy_damage",
+					"params": {
+						"damage": 15
+					},
+					"target": "enemy_single",
+					"trigger": "on_play"
+				}
+			],
+			"target": "enemy_single",
+			"texture": ""
+		},
+		"雷撃": {
+			"anim": "",
+			"rarity": "uncommon",
+			"mana": 9,
+			"effect": "敵単体に25ダメージ",
+			"sfx": "",
+			"skills": [
+				{
+					"effect_id": "single_enemy_damage",
+					"params": {
+						"damage": 25
+					},
+					"target": "enemy_single",
+					"trigger": "on_play"
+				}
+			],
+			"target": "enemy_single",
+			"texture": ""
+		},
+		"業火の槍": {
+			"anim": "",
+			"rarity": "rare",
+			"mana": 14,
+			"effect": "敵単体に40ダメージ",
+			"sfx": "",
+			"skills": [
+				{
+					"effect_id": "single_enemy_damage",
+					"params": {
+						"damage": 40
+					},
+					"target": "enemy_single",
+					"trigger": "on_play"
+				}
+			],
+			"target": "enemy_single",
+			"texture": ""
+		},
+		"前列斬撃": {
+			"anim": "",
+			"rarity": "common",
+			"mana": 5,
+			"effect": "敵前列全体に10ダメージ",
+			"sfx": "",
+			"skills": [
+				{
+					"effect_id": "front_enemy_damage",
+					"params": {
+						"damage": 10
+					},
+					"target": "enemy_front",
+					"trigger": "on_play"
+				}
+			],
+			"target": "enemy_front",
+			"texture": ""
+		},
+		"後列狙撃": {
+			"anim": "",
+			"rarity": "uncommon",
+			"mana": 9,
+			"effect": "敵後列全体に12ダメージ",
+			"sfx": "",
+			"skills": [
+				{
+					"effect_id": "back_enemy_damage",
+					"params": {
+						"damage": 12
+					},
+					"target": "enemy_back",
+					"trigger": "on_play"
+				}
+			],
+			"target": "enemy_back",
+			"texture": ""
+		},
+		"列砲撃": {
+			"anim": "",
+			"rarity": "rare",
+			"mana": 12,
+			"effect": "敵1列全体に15ダメージ",
+			"sfx": "",
+			"skills": [
+				{
+					"effect_id": "column_damage",
+					"params": {
+						"damage": 15
+					},
+					"target": "enemy_column",
+					"trigger": "on_play"
+				}
+			],
+			"target": "enemy_column",
+			"texture": ""
+		},
+		"毒霧": {
+			"anim": "",
+			"rarity": "uncommon",
+			"mana": 8,
+			"effect": "敵前列全体に毒+2",
+			"sfx": "",
+			"skills": [
+				{
+					"effect_id": "poison_apply",
+					"params": {
+						"stacks": 2
+					},
+					"target": "enemy_front",
+					"trigger": "on_play"
+				}
+			],
+			"target": "enemy_front",
+			"texture": ""
+		},
+		"炎の渦": {
+			"anim": "",
+			"rarity": "uncommon",
+			"mana": 8,
+			"effect": "敵前列全体に火傷+2",
+			"sfx": "",
+			"skills": [
+				{
+					"effect_id": "burn_apply",
+					"params": {
+						"stacks": 2
+					},
+					"target": "enemy_front",
+					"trigger": "on_play"
+				}
+			],
+			"target": "enemy_front",
+			"texture": ""
+		},
+		"氷結": {
+			"anim": "",
+			"rarity": "uncommon",
+			"mana": 8,
+			"effect": "敵単体に凍結+3",
+			"sfx": "",
+			"skills": [
+				{
+					"effect_id": "freeze_apply",
+					"params": {
+						"stacks": 3
+					},
+					"target": "enemy_single",
+					"trigger": "on_play"
+				}
+			],
+			"target": "enemy_single",
+			"texture": ""
+		},
+		"力の祝福": {
+			"anim": "",
+			"rarity": "common",
+			"mana": 4,
+			"effect": "味方単体にATK+3",
+			"sfx": "",
+			"skills": [
+				{
+					"effect_id": "atk_buff",
+					"params": {
+						"amount": 3
+					},
+					"target": "ally_single",
+					"trigger": "on_play"
+				}
+			],
+			"target": "ally_single",
+			"texture": ""
+		},
+		"守りの祝福": {
+			"anim": "",
+			"rarity": "common",
+			"mana": 4,
+			"effect": "味方単体にHP+15",
+			"sfx": "",
+			"skills": [
+				{
+					"effect_id": "hp_buff",
+					"params": {
+						"amount": 15
+					},
+					"target": "ally_single",
+					"trigger": "on_play"
+				}
+			],
+			"target": "ally_single",
+			"texture": ""
+		},
+		"マナの泉": {
+			"anim": "",
+			"rarity": "rare",
+			"mana": 11,
+			"effect": "マナ+2（次ターン）",
+			"sfx": "",
+			"skills": [
+				{
+					"effect_id": "mana_gain_next_turn",
+					"params": {
+						"amount": 2
+					},
+					"target": "self",
+					"trigger": "on_play"
+				}
+			],
+			"target": "self",
+			"texture": ""
+		},
+		"魔力増幅": {
+			"anim": "",
+			"rarity": "uncommon",
+			"mana": 7,
+			"effect": "マナ+1（即時）",
+			"sfx": "",
+			"skills": [
+				{
+					"effect_id": "mana_gain",
+					"params": {
+						"amount": 1
+					},
+					"target": "self",
+					"trigger": "on_play"
+				}
+			],
+			"target": "self",
+			"texture": ""
+		},
+		"全体浄化": {
+			"anim": "",
+			"rarity": "rare",
+			"mana": 12,
+			"effect": "味方全体の状態異常解除",
+			"sfx": "",
+			"skills": [
+				{
+					"effect_id": "cleanse_all",
+					"params": {},
+					"target": "all_allies",
+					"trigger": "on_play"
+				}
+			],
+			"target": "all_allies",
+			"texture": ""
+		},
+		"弱体化": {
+			"anim": "",
+			"rarity": "common",
+			"mana": 4,
+			"effect": "敵単体ATK-2",
+			"sfx": "",
+			"skills": [
+				{
+					"effect_id": "atk_debuff",
+					"params": {
+						"amount": 2
+					},
+					"target": "enemy_single",
+					"trigger": "on_play"
+				}
+			],
+			"target": "enemy_single",
+			"texture": ""
+		},
+		"前中列入替": {
+			"cost": 5,
+			"display": "前中列入替",
+			"en_name": "Linewarp",
+			"description": "自分の前列と中列のユニットを全て入れ替える",
+			"effects": [
+				{
+					"effect_id": "swap_ally_rows",
+					"params": {
+						"row1": "front",
+						"row2": "mid"
+					},
+					"target": "ally_board"
+				}
+			],
+			"rarity": "common",
+			"texture": "",
+			"anim": "",
+			"sfx": ""
+		},
+		"前列行混乱": {
+			"cost": 5,
+			"display": "前列行混乱",
+			"en_name": "Rowblend",
+			"description": "自分の前列からランダム2体の行を入れ替える",
+			"effects": [
+				{
+					"effect_id": "swap_ally_random_rows",
+					"params": {
+						"count": 2
+					},
+					"target": "front_ally"
+				}
+			],
+			"rarity": "common",
+			"texture": "",
+			"anim": "",
+			"sfx": ""
+		},
+		"前列崩し": {
+			"cost": 5,
+			"display": "前列崩し",
+			"en_name": "Frontcrash",
+			"description": "敵の前列からランダム2体の行を入れ替える",
+			"effects": [
+				{
+					"effect_id": "swap_enemy_random_rows",
+					"params": {
+						"count": 2
+					},
+					"target": "front_enemy"
+				}
+			],
+			"rarity": "common",
+			"texture": "",
+			"anim": "",
+			"sfx": ""
+		},
+		"ベノムバースト": {
+			"anim": "",
+			"rarity": "common",
+			"mana": 6,
+			"effect": "敵単体に毒+5",
+			"sfx": "",
+			"skills": [
+				{
+					"effect_id": "poison_apply_single",
+					"params": {
+						"stacks": 5
+					},
+					"target": "random_enemy",
+					"trigger": "on_play"
+				}
+			],
+			"target": "random_enemy",
+			"texture": "",
+			"en_name": "Venomburst",
+			"description": "敵単体に毒+5"
+		},
+		"ベノムクラウド": {
+			"anim": "",
+			"rarity": "uncommon",
+			"mana": 8,
+			"effect": "敵ランダム3体に毒+3ずつ",
+			"sfx": "",
+			"skills": [
+				{
+					"effect_id": "poison_apply_random_multi",
+					"params": {
+						"stacks": 3,
+						"count": 3
+					},
+					"target": "random_enemies",
+					"trigger": "on_play"
+				}
+			],
+			"target": "random_enemies",
+			"texture": "",
+			"en_name": "Venomcloud",
+			"description": "敵ランダム3体に毒+3ずつ"
+		},
+		"ベノムショック": {
+			"anim": "",
+			"rarity": "rare",
+			"mana": 10,
+			"effect": "敵ユニットの毒スタック数分ダメージ（毒スタック消費なし）",
+			"sfx": "",
+			"skills": [
+				{
+					"effect_id": "poison_damage_by_stack",
+					"params": {
+						"consume": false
+					},
+					"target": "all_enemies",
+					"trigger": "on_play"
+				}
+			],
+			"target": "all_enemies",
+			"texture": "",
+			"en_name": "Venomshock",
+			"description": "敵ユニットの毒スタック数分ダメージ（毒スタック消費なし）"
+		},
+		"デファイルカース": {
+			"anim": "",
+			"rarity": "legend",
+			"mana": 14,
+			"effect": "敵ユニットの全デバフを呪いスタックに変換する",
+			"sfx": "",
+			"skills": [
+				{
+					"effect_id": "debuff_to_curse",
+					"params": {
+						"factor": 1.0
+					},
+					"target": "all_enemies",
+					"trigger": "on_play"
+				}
+			],
+			"target": "all_enemies",
+			"texture": "",
+			"en_name": "Defilecurse",
+			"description": "敵ユニットの全デバフを呪いスタックに変換する"
+		},
+		"ヘクスアクルー": {
+			"anim": "",
+			"rarity": "uncommon",
+			"mana": 5,
+			"effect": "直近5秒間にかけられたデバフ数×1呪いスタックをランダムなユニットに付与",
+			"sfx": "",
+			"skills": [
+				{
+					"effect_id": "recent_debuff_to_curse",
+					"params": {
+						"window": 5.0,
+						"factor": 1.0
+					},
+					"target": "random_enemy",
+					"trigger": "on_play"
+				}
+			],
+			"target": "random_enemy",
+			"texture": "",
+			"en_name": "Hexaccrue",
+			"description": "直近5秒間にかけられたデバフ数×1呪いスタックをランダムなユニットに付与"
+		},
+		"カースドレイン": {
+			"anim": "",
+			"rarity": "uncommon",
+			"mana": 7,
+			"effect": "自分ユニットの呪いスタックが最多のユニットから呪い5解除",
+			"sfx": "",
+			"skills": [
+				{
+					"effect_id": "curse_remove",
+					"params": {
+						"stacks": 5,
+						"target_type": "highest"
+					},
+					"target": "ally_highest_curse",
+					"trigger": "on_play"
+				}
+			],
+			"target": "ally_highest_curse",
+			"texture": "",
+			"en_name": "Cursedrain",
+			"description": "自分ユニットの呪いスタックが最多のユニットから呪い5解除"
+		},
+		"デスシフト": {
+			"anim": "",
+			"rarity": "rare",
+			"mana": 10,
+			"effect": "再生後のユニットに盤面全デバフを移す（対象なしで発動）",
+			"sfx": "",
+			"skills": [
+				{
+					"effect_id": "debuff_transfer_revived",
+					"params": {
+						"target_type": "revived"
+					},
+					"target": "revived_unit",
+					"trigger": "on_play"
+				}
+			],
+			"target": "revived_unit",
+			"texture": "",
+			"en_name": "Deathshift",
+			"description": "再生後のユニットに盤面全デバフを移す（対象なしで発動）"
+		},
+		"ピュアポイント": {
+			"anim": "",
+			"rarity": "rare",
+			"mana": 10,
+			"effect": "味方単体の全異常状態を解除",
+			"sfx": "",
+			"skills": [
+				{
+					"effect_id": "cleanse_single",
+					"params": {
+						"scope": "single"
+					},
+					"target": "random_ally",
+					"trigger": "on_play"
+				}
+			],
+			"target": "random_ally",
+			"texture": "",
+			"en_name": "Purepoint",
+			"description": "味方単体の全異常状態を解除"
+		},
+		"ピュアライン": {
+			"anim": "",
+			"rarity": "common",
+			"mana": 6,
+			"effect": "味方同列の異常状態1種類ランダム解除",
+			"sfx": "",
+			"skills": [
+				{
+					"effect_id": "cleanse_column_random",
+					"params": {
+						"scope": "column",
+						"count": 1
+					},
+					"target": "random_ally_column",
+					"trigger": "on_play"
+				}
+			],
+			"target": "random_ally_column",
+			"texture": "",
+			"en_name": "Pureline",
+			"description": "味方同列の異常状態1種類ランダム解除"
+		},
+		"ピュアロウ": {
+			"anim": "",
+			"rarity": "common",
+			"mana": 6,
+			"effect": "味方同行の異常状態1種類ランダム解除",
+			"sfx": "",
+			"skills": [
+				{
+					"effect_id": "cleanse_row_random",
+					"params": {
+						"scope": "row",
+						"count": 1
+					},
+					"target": "random_ally_row",
+					"trigger": "on_play"
+				}
+			],
+			"target": "random_ally_row",
+			"texture": "",
+			"en_name": "Purerow",
+			"description": "味方同行の異常状態1種類ランダム解除"
+		},
+		"ピュアウェーブ": {
+			"anim": "",
+			"rarity": "uncommon",
+			"mana": 9,
+			"effect": "味方全体の異常状態1種類ランダム解除",
+			"sfx": "",
+			"skills": [
+				{
+					"effect_id": "cleanse_all_random",
+					"params": {
+						"scope": "all",
+						"count": 1
+					},
+					"target": "all_allies",
+					"trigger": "on_play"
+				}
+			],
+			"target": "all_allies",
+			"texture": "",
+			"en_name": "Purewave",
+			"description": "味方全体の異常状態1種類ランダム解除"
+		},
+		"ヌルフィールド": {
+			"anim": "",
+			"rarity": "rare",
+			"mana": 9,
+			"effect": "味方全体に一定時間異常状態無効化バリア付与",
+			"sfx": "",
+			"skills": [
+				{
+					"effect_id": "status_immunity_barrier",
+					"params": {
+						"duration": 5.0,
+						"barrier_type": "status"
+					},
+					"target": "all_allies",
+					"trigger": "on_play"
+				}
+			],
+			"target": "all_allies",
+			"texture": "",
+			"en_name": "Nullfield",
+			"description": "味方全体に一定時間異常状態無効化バリア付与"
+		},
+		"ソウルクロウ": {
+			"anim": "",
+			"rarity": "rare",
+			"mana": 6,
+			"effect": "撃破された獣ユニットのATK合計を前列ランダム獣1体に付与",
+			"sfx": "",
+			"skills": [
+				{
+					"effect_id": "beast_atk_from_dead",
+					"params": {
+						"target_type": "front_random_beast"
+					},
+					"target": "front_random_beast",
+					"trigger": "on_play"
+				}
+			],
+			"target": "front_random_beast",
+			"texture": "",
+			"en_name": "Soulclaw",
+			"description": "撃破された獣ユニットのATK合計を前列ランダム獣1体に付与"
+		},
+		"ワイルドシフト": {
+			"anim": "",
+			"rarity": "uncommon",
+			"mana": 5,
+			"effect": "前列の獣を後退させて中列と交換・前列ユニットのHP回復",
+			"sfx": "",
+			"skills": [
+				{
+					"effect_id": "beast_retreat_heal",
+					"params": {
+						"heal_pct": 0.3
+					},
+					"target": "front_beasts",
+					"trigger": "on_play"
+				}
+			],
+			"target": "front_beasts",
+			"texture": "",
+			"en_name": "Wildshift",
+			"description": "前列の獣を後退させて中列と交換・前列ユニットのHP回復"
+		},
+		"パックラッシュ": {
+			"anim": "",
+			"rarity": "common",
+			"mana": 3,
+			"effect": "盤面の獣ユニット数×ATK1%を前列獣全体に5秒間付与",
+			"sfx": "",
+			"skills": [
+				{
+					"effect_id": "beast_pack_atk_boost",
+					"params": {
+						"atk_pct_per_beast": 0.01,
+						"duration": 5.0
+					},
+					"target": "front_beasts",
+					"trigger": "on_play"
+				}
+			],
+			"target": "front_beasts",
+			"texture": "",
+			"en_name": "Packrush",
+			"description": "盤面の獣ユニット数×ATK1%を前列獣全体に5秒間付与"
+		},
+		"プレイマーク": {
+			"anim": "",
+			"rarity": "uncommon",
+			"mana": 7,
+			"effect": "中後列のバフを前列獣1体に移す",
+			"sfx": "",
+			"skills": [
+				{
+					"effect_id": "buff_transfer_to_front_beast",
+					"params": {
+						"count": 99,
+						"target_type": "front_random_beast"
+					},
+					"target": "front_random_beast",
+					"trigger": "on_play"
+				}
+			],
+			"target": "front_random_beast",
+			"texture": "",
+			"en_name": "Preymark",
+			"description": "中後列のバフを前列獣1体に移す"
+		}
+	},
+	"status_spells": {
+		"凍結カード": {
+			"anim": "",
+			"rarity": "common",
+			"mana": 0,
+			"effect": "味方ランダム1体に凍結2付与",
+			"persistence": "battle",
+			"sfx": "",
+			"skills": [
+				{
+					"effect_id": "freeze_apply",
+					"params": {
+						"stacks": 2
+					},
+					"target": "random_ally",
+					"trigger": "on_play"
+				}
+			],
+			"target": "single_ally",
+			"texture": ""
+		},
+		"毒カード": {
+			"anim": "",
+			"rarity": "common",
+			"mana": 0,
+			"effect": "味方ランダム1体に毒2付与",
+			"persistence": "battle",
+			"sfx": "",
+			"skills": [
+				{
+					"effect_id": "poison_apply",
+					"params": {
+						"stacks": 2
+					},
+					"target": "random_ally",
+					"trigger": "on_play"
+				}
+			],
+			"target": "single_ally",
+			"texture": ""
+		},
+		"火傷カード": {
+			"anim": "",
+			"rarity": "common",
+			"mana": 0,
+			"effect": "味方ランダム1体に火傷2付与",
+			"persistence": "battle",
+			"sfx": "",
+			"skills": [
+				{
+					"effect_id": "burn_apply",
+					"params": {
+						"stacks": 2
+					},
+					"target": "random_ally",
+					"trigger": "on_play"
+				}
+			],
+			"target": "single_ally",
+			"texture": ""
+		},
+		"麻痺カード": {
+			"anim": "",
+			"rarity": "common",
+			"mana": 0,
+			"effect": "味方ランダム1体に麻痺2付与",
+			"persistence": "battle",
+			"sfx": "",
+			"skills": [
+				{
+					"effect_id": "paralysis_apply",
+					"params": {
+						"stacks": 2
+					},
+					"target": "random_ally",
+					"trigger": "on_play"
+				}
+			],
+			"target": "single_ally",
+			"texture": ""
+		}
+	},
+	"environments": {
+		"env_none": {
+			"display": "平原",
+			"description": "盤面効果なし",
+			"tile_id": "",
+			"min_tiles": 0,
+			"max_tiles": 0
+		},
+		"env_curse": {
+			"display": "呪われた地",
+			"description": "被ダメ+50%のマスがランダム配置",
+			"tile_id": "tile_curse",
+			"min_tiles": 1,
+			"max_tiles": 9
+		},
+		"env_crack": {
+			"display": "ヒビ割れ荒野",
+			"description": "踏むと穴になるヒビがランダム配置",
+			"tile_id": "tile_crack",
+			"min_tiles": 1,
+			"max_tiles": 6
+		},
+		"env_thorn": {
+			"display": "棘地帯",
+			"description": "侵入時5ダメージの棘がランダム配置",
+			"tile_id": "tile_thorn",
+			"min_tiles": 1,
+			"max_tiles": 6
+		},
+		"env_poison": {
+			"display": "毒沼",
+			"description": "毎秒毒ダメージのマスがランダム配置",
+			"tile_id": "tile_poison",
+			"min_tiles": 1,
+			"max_tiles": 6
+		},
+		"env_fortress": {
+			"display": "鉄壁の砦",
+			"description": "侵入時に鎧+2のマスがランダム配置",
+			"tile_id": "tile_fortress",
+			"min_tiles": 1,
+			"max_tiles": 6
+		},
+		"env_beast": {
+			"display": "獣の森",
+			"description": "獣族ATK+3のマスがランダム配置",
+			"tile_id": "tile_beast_forest",
+			"min_tiles": 1,
+			"max_tiles": 6
+		}
+	},
+	"base_deck": [
+		{
+			"name": "スライム",
+			"col": 1
+		},
+		{
+			"name": "スライム",
+			"col": 1
+		},
+		{
+			"name": "ゴブリン",
+			"col": 0
+		},
+		{
+			"name": "ゴブリン",
+			"col": 0
+		},
+		{
+			"name": "スケルトン",
+			"col": 0
+		},
+		{
+			"name": "スケルトン",
+			"col": 0
+		},
+		{
+			"name": "召喚加速",
+			"col": -1
+		},
+		{
+			"name": "生命の雫",
+			"col": -1
+		},
+		{
+			"name": "盤面強化",
+			"col": -1
+		}
+	],
+	"materials": [
+		{
+			"id": "iron_ore",
+			"display": "鉄鉱石",
+			"description": "堅牢な鉄の防具を作れる",
+			"is_cursed": false,
+			"benefits": [
+				{
+					"type": "equipment",
+					"id": "iron_shield"
+				}
+			],
+			"demerits": []
+		},
+		{
+			"id": "herb_bundle",
+			"display": "薬草束",
+			"description": "回復の呪文を1つ追加",
+			"is_cursed": false,
+			"benefits": [
+				{
+					"type": "add_spell",
+					"name": "生命の雫"
+				}
+			],
+			"demerits": []
+		},
+		{
+			"id": "magic_stone",
+			"display": "魔石",
+			"description": "初期マナが少し増える",
+			"is_cursed": false,
+			"benefits": [
+				{
+					"type": "initial_mana",
+					"amount": 1
+				}
+			],
+			"demerits": []
+		},
+		{
+			"id": "beast_fang",
+			"display": "獣の牙",
+			"description": "獣ユニットを1体追加",
+			"is_cursed": false,
+			"benefits": [
+				{
+					"type": "add_unit",
+					"name": "ウルフ",
+					"col": 0
+				}
+			],
+			"demerits": []
+		},
+		{
+			"id": "old_bone",
+			"display": "古い骨",
+			"description": "アンデッドを1体追加",
+			"is_cursed": false,
+			"benefits": [
+				{
+					"type": "add_unit",
+					"name": "グール",
+					"col": 1
+				}
+			],
+			"demerits": []
+		},
+		{
+			"id": "slime_core",
+			"display": "スライム核",
+			"description": "スライムを1体追加",
+			"is_cursed": false,
+			"benefits": [
+				{
+					"type": "add_unit",
+					"name": "スライム",
+					"col": 1
+				}
+			],
+			"demerits": []
+		},
+		{
+			"id": "whetstone",
+			"display": "砥石",
+			"description": "前列の攻撃力が上がる",
+			"is_cursed": false,
+			"benefits": [
+				{
+					"type": "start_buff",
+					"effect_id": "atk_buff_apply",
+					"stacks": 2,
+					"target": "front_ally_all"
+				}
+			],
+			"demerits": []
+		},
+		{
+			"id": "scroll",
+			"display": "古びた巻物",
+			"description": "ランダムな呪文を1つ追加",
+			"is_cursed": false,
+			"benefits": [
+				{
+					"type": "add_random_spell"
+				}
+			],
+			"demerits": []
+		},
+		{
+			"id": "purifier",
+			"display": "浄化の粉",
+			"description": "デッキからカードを1枚除去",
+			"is_cursed": false,
+			"benefits": [
+				{
+					"type": "remove_card",
+					"count": 1
+				}
+			],
+			"demerits": []
+		},
+		{
+			"id": "thorn_seed",
+			"display": "棘の種",
+			"description": "敵陣に棘床を1つ配置して開始",
+			"is_cursed": false,
+			"benefits": [
+				{
+					"type": "start_tile",
+					"tile_id": "tile_thorn",
+					"side": "enemy"
+				}
+			],
+			"demerits": []
+		},
+		{
+			"id": "cursed_blade",
+			"display": "呪いの刃",
+			"description": "強大な力を得るが、命を削る",
+			"is_cursed": true,
+			"benefits": [
+				{
+					"type": "start_buff",
+					"effect_id": "atk_buff_apply",
+					"stacks": 5,
+					"target": "all_allies"
+				}
+			],
+			"demerits": [
+				{
+					"type": "max_hp_pct",
+					"amount": -0.2
+				}
+			]
+		},
+		{
+			"id": "cursed_tome",
+			"display": "呪いの魔導書",
+			"description": "マナが溢れるが、やがて枯れる",
+			"is_cursed": true,
+			"benefits": [
+				{
+					"type": "initial_mana",
+					"amount": 3
+				}
+			],
+			"demerits": [
+				{
+					"type": "mana_regen",
+					"amount": -0.3,
+					"duration": 60
+				}
+			]
+		},
+		{
+			"id": "cursed_armor",
+			"display": "呪いの鎧",
+			"description": "鉄壁の守りだが動きが鈍る",
+			"is_cursed": true,
+			"benefits": [
+				{
+					"type": "start_buff",
+					"effect_id": "armor_apply",
+					"stacks": 5,
+					"target": "all_allies"
+				}
+			],
+			"demerits": [
+				{
+					"type": "spd_pct",
+					"amount": -0.3
+				}
+			]
+		},
+		{
+			"id": "blood_pact",
+			"display": "血の契約",
+			"description": "デッキを研ぎ澄ますが本拠地が脆くなる",
+			"is_cursed": true,
+			"benefits": [
+				{
+					"type": "remove_card",
+					"count": 2
+				},
+				{
+					"type": "add_random_spell"
+				}
+			],
+			"demerits": [
+				{
+					"type": "base_hp",
+					"amount": -10
+				}
+			]
+		},
+		{
+			"id": "void_crystal",
+			"display": "虚空の結晶",
+			"description": "強力な装備だが毒が回る",
+			"is_cursed": true,
+			"benefits": [
+				{
+					"type": "equipment",
+					"id": "虚空のオーブ"
+				}
+			],
+			"demerits": [
+				{
+					"type": "start_debuff",
+					"effect_id": "poison_apply",
+					"stacks": 2,
+					"interval": 30
+				}
+			]
+		}
+	],
+	"synthesis": [
+		{
+			"base": "スライム",
+			"card": "スライム",
+			"result": "ラージスライム"
+		},
+		{
+			"base": "ラージスライム",
+			"card": "ラージスライム",
+			"result": "ファットスライム"
+		},
+		{
+			"base": "ファットスライム",
+			"card": "ファットスライム",
+			"result": "キングスライム"
+		},
+		{
+			"base": "スライム",
+			"card": "泥の鎧",
+			"result": "マッドスライム"
+		},
+		{
+			"base": "スライム",
+			"card": "火傷カード",
+			"result": "ヒートスライム"
+		},
+		{
+			"base": "スライム",
+			"card": "凍結カード",
+			"result": "フロストスライム"
+		},
+		{
+			"base": "スライム",
+			"card": "麻痺カード",
+			"result": "パラライズスライム"
+		},
+		{
+			"base": "スライム",
+			"card": "毒カード",
+			"result": "ポイズンスライム"
+		},
+		{
+			"base": "スライム",
+			"card": "結晶化",
+			"result": "クリスタルスライム"
+		},
+		{
+			"base": "スライム",
+			"card": "血の契約",
+			"result": "ブラッドスライム"
+		},
+		{
+			"base": "スライム",
+			"card": "生命の雫",
+			"result": "ゼリーフィッシュ"
+		}
+	],
+	"system_spells": {
+		"召喚加速": {
+			"anim": "",
+			"rarity": "common",
+			"mana": 1,
+			"effect": "ユニット召喚間隔-0.5秒（重複可）",
+			"is_consumable": false,
+			"sfx": "",
+			"skills": [
+				{
+					"effect_id": "summon_speed_buff",
+					"params": {
+						"bonus": 0.5
+					},
+					"target": "all_allies",
+					"trigger": "on_play"
+				}
+			],
+			"target": "self",
+			"texture": ""
+		},
+		"呪文回収": {
+			"anim": "",
+			"rarity": "common",
+			"mana": 0,
+			"effect": "山札をシャッフル＋自身を山札最下部に追加",
+			"is_consumable": true,
+			"sfx": "",
+			"skills": [
+				{
+					"effect_id": "shuffle_deck",
+					"params": {},
+					"target": "self_deck",
+					"trigger": "on_play"
+				},
+				{
+					"effect_id": "deck_add_self",
+					"params": {
+						"position": "bottom"
+					},
+					"target": "self_deck",
+					"trigger": "on_play"
+				}
+			],
+			"target": "self",
+			"texture": ""
+		}
+	},
+	"units": {
+		"ウルフ": {
+			"anim": "",
+			"rarity": "uncommon",
+			"atk": 5,
+			"col": 1,
+			"mana": 2,
+			"hp": 20,
+			"race": "獣",
+			"range": "近接",
+			"sfx": "",
+			"skills": [],
+			"texture": "",
+			"roles": [
+				"攻撃"
+			],
+			"spd": 7,
+			"en_name": "Wolf"
+		},
+		"キングスライム": {
+			"anim": "",
+			"rarity": "legend",
+			"atk": 10,
+			"col": 2,
+			"mana": 10,
+			"hp": 100,
+			"race": "スライム",
+			"range": "近接",
+			"sfx": "",
+			"skills": [],
+			"texture": "",
+			"roles": [
+				"攻撃"
+			],
+			"spd": 2,
+			"en_name": "Kinglob"
+		},
+		"スライム": {
+			"anim": "",
+			"rarity": "common",
+			"atk": 1,
+			"col": 1,
+			"mana": 1,
+			"hp": 15,
+			"race": "スライム",
+			"range": "1行",
+			"sfx": "",
+			"skills": [],
+			"texture": "",
+			"spd": 2,
+			"en_name": "Slime"
+		},
+		"バンシー": {
+			"anim": "",
+			"rarity": "rare",
+			"atk": 1,
+			"col": 2,
+			"mana": 2,
+			"hp": 10,
+			"race": "アンデッド",
+			"range": "上下含む3行",
+			"sfx": "",
+			"skills": [
+				{
+					"effect_id": "burn_apply",
+					"params": {
+						"stacks": 2
+					},
+					"target": "hit_target",
+					"trigger": "on_hit"
+				}
+			],
+			"texture": "",
+			"spd": 5,
+			"en_name": "Banshee"
+		},
+		"リッチ": {
+			"anim": "",
+			"rarity": "legend",
+			"atk": 2,
+			"col": 2,
+			"mana": 3,
+			"hp": 15,
+			"race": "アンデッド",
+			"range": "上下含む3行",
+			"sfx": "",
+			"skills": [
+				{
+					"effect_id": "freeze_apply",
+					"params": {
+						"stacks": 3
+					},
+					"target": "hit_target",
+					"trigger": "on_hit"
+				}
+			],
+			"texture": "",
+			"spd": 3,
+			"en_name": "Lich"
+		},
+		"ワイルドホーク": {
+			"anim": "",
+			"rarity": "uncommon",
+			"atk": 2,
+			"col": 2,
+			"mana": 2,
+			"hp": 15,
+			"race": "獣",
+			"range": "1行",
+			"sfx": "",
+			"skills": [],
+			"texture": "",
+			"spd": 7,
+			"en_name": "WildHawk"
+		},
+		"ワイト": {
+			"anim": "",
+			"rarity": "rare",
+			"atk": 4,
+			"col": 1,
+			"mana": 3,
+			"hp": 35,
+			"race": "アンデッド",
+			"range": "1行",
+			"sfx": "",
+			"skills": [
+				{
+					"trigger": "on_hit",
+					"target": "front_one",
+					"effect_id": "freeze_apply",
+					"params": {
+						"stacks": 3
+					}
+				}
+			],
+			"texture": "",
+			"spd": 3,
+			"en_name": "Wight"
+		},
+		"デュラハン": {
+			"anim": "",
+			"rarity": "epic",
+			"atk": 7,
+			"col": 1,
+			"mana": 4,
+			"hp": 40,
+			"race": "アンデッド",
+			"range": "上下含む3行",
+			"sfx": "",
+			"skills": [],
+			"texture": "",
+			"spd": 3,
+			"en_name": "Dullahan"
+		},
+		"デスナイト": {
+			"anim": "",
+			"rarity": "god",
+			"atk": 15,
+			"col": 0,
+			"mana": 0,
+			"hp": 80,
+			"race": "アンデッド",
+			"range": "上下含む3行",
+			"sfx": "",
+			"skills": [
+				{
+					"trigger": "on_hit",
+					"target": "front_one",
+					"effect_id": "freeze_apply",
+					"params": {
+						"stacks": 3
+					}
+				},
+				{
+					"trigger": "on_hit",
+					"target": "front_one",
+					"effect_id": "poison_apply",
+					"params": {
+						"stacks": 2
+					}
+				}
+			],
+			"texture": "",
+			"spd": 3,
+			"en_name": "デスナイト"
+		},
+		"ケットシー": {
+			"anim": "",
+			"rarity": "uncommon",
+			"atk": 2,
+			"col": 1,
+			"mana": 2,
+			"hp": 12,
+			"race": "獣",
+			"range": "1行",
+			"sfx": "",
+			"skills": [],
+			"texture": "",
+			"spd": 10,
+			"en_name": "CaitSith"
+		},
+		"マンティコア": {
+			"anim": "",
+			"rarity": "rare",
+			"atk": 7,
+			"col": 1,
+			"mana": 3,
+			"hp": 30,
+			"race": "獣",
+			"range": "下含む2行",
+			"sfx": "",
+			"skills": [
+				{
+					"trigger": "on_hit",
+					"target": "front_one",
+					"effect_id": "poison_apply",
+					"params": {
+						"stacks": 2
+					}
+				}
+			],
+			"texture": "",
+			"spd": 5,
+			"en_name": "Manticore"
+		},
+		"フェンリル": {
+			"anim": "",
+			"rarity": "god",
+			"atk": 18,
+			"col": 0,
+			"mana": 0,
+			"hp": 70,
+			"race": "獣",
+			"range": "上下含む3行",
+			"sfx": "",
+			"skills": [
+				{
+					"trigger": "on_hit",
+					"target": "front_one",
+					"effect_id": "burn_apply",
+					"params": {
+						"stacks": 3
+					}
+				}
+			],
+			"texture": "",
+			"spd": 7,
+			"en_name": "Fenrir"
+		},
+		"リッチキング": {
+			"anim": "",
+			"rarity": "legend",
+			"atk": 3,
+			"col": 2,
+			"mana": 5,
+			"hp": 30,
+			"race": "アンデッド",
+			"range": "上下含む3行",
+			"sfx": "",
+			"skills": [
+				{
+					"trigger": "on_hit",
+					"target": "front_one",
+					"effect_id": "poison_apply",
+					"params": {
+						"stacks": 3
+					}
+				}
+			],
+			"texture": "",
+			"spd": 3,
+			"en_name": "LichKing"
+		},
+		"Granob": {
+			"anim": "",
+			"rarity": "rare",
+			"atk": 1,
+			"col": 1,
+			"mana": 5,
+			"hp": 80,
+			"race": "スライム",
+			"range": "1行",
+			"sfx": "",
+			"skills": [
+				{
+					"trigger": "on_front_attack",
+					"target": "self",
+					"effect_id": "max_hp_boost",
+					"params": {
+						"amount": 5
+					}
+				},
+				{
+					"trigger": "on_support",
+					"target": "self",
+					"effect_id": "max_hp_boost_periodic",
+					"params": {
+						"amount": 3,
+						"interval": 1
+					}
+				}
+			],
+			"texture": "",
+			"roles": [
+				"壁"
+			],
+			"spd": 3,
+			"en_name": "Granob"
+		},
+		"Amoeba": {
+			"anim": "",
+			"rarity": "common",
+			"atk": 2,
+			"col": 1,
+			"mana": 3,
+			"hp": 40,
+			"race": "スライム",
+			"range": "1行",
+			"sfx": "",
+			"skills": [
+				{
+					"trigger": "on_front_attack",
+					"target": "same_row_allies",
+					"effect_id": "heal",
+					"params": {
+						"amount": 10
+					}
+				},
+				{
+					"trigger": "on_support",
+					"target": "front_allies",
+					"effect_id": "heal_periodic",
+					"params": {
+						"amount": 3,
+						"interval": 1
+					}
+				}
+			],
+			"texture": "",
+			"roles": [
+				"サポート"
+			],
+			"spd": 5,
+			"en_name": "Amoeba"
+		},
+		"Barbzel": {
+			"anim": "",
+			"rarity": "uncommon",
+			"atk": 5,
+			"col": 1,
+			"mana": 3,
+			"hp": 40,
+			"race": "スライム",
+			"range": "1行",
+			"sfx": "",
+			"skills": [
+				{
+					"trigger": "on_front_attack",
+					"target": "self",
+					"effect_id": "thorn_apply",
+					"params": {
+						"stacks": 1
+					}
+				},
+				{
+					"trigger": "on_support",
+					"target": "allies_with_thorn",
+					"effect_id": "shield_apply",
+					"params": {
+						"amount": 5
+					}
+				}
+			],
+			"texture": "",
+			"roles": [
+				"攻撃",
+				"サポート"
+			],
+			"spd": 10,
+			"en_name": "Barbzel"
+		},
+		"Jelfix": {
+			"anim": "",
+			"rarity": "common",
+			"atk": 0,
+			"col": 1,
+			"mana": 1,
+			"hp": 40,
+			"race": "スライム",
+			"range": "1行",
+			"sfx": "",
+			"skills": [
+				{
+					"trigger": "on_front_attack",
+					"target": "hit_target",
+					"effect_id": "poison_apply",
+					"params": {
+						"stacks": 1
+					}
+				},
+				{
+					"trigger": "on_support",
+					"target": "enemy_front_random",
+					"effect_id": "poison_apply_periodic",
+					"params": {
+						"stacks": 1,
+						"interval": 2
+					}
+				}
+			],
+			"texture": "",
+			"roles": [
+				"サポート"
+			],
+			"spd": 10,
+			"en_name": "Jelfix"
+		},
+		"Mudblob": {
+			"anim": "",
+			"rarity": "uncommon",
+			"atk": 2,
+			"col": 1,
+			"mana": 3,
+			"hp": 40,
+			"race": "スライム",
+			"range": "1行",
+			"sfx": "",
+			"skills": [
+				{
+					"trigger": "on_front_attack",
+					"target": "hit_target",
+					"effect_id": "atk_debuff",
+					"params": {
+						"amount": 2,
+						"duration": 5
+					}
+				},
+				{
+					"trigger": "on_support",
+					"target": "enemies_with_poison",
+					"effect_id": "spd_debuff_by_poison",
+					"params": {
+						"factor": 0.1,
+						"duration": 3
+					}
+				}
+			],
+			"texture": "",
+			"roles": [
+				"サポート"
+			],
+			"spd": 5,
+			"en_name": "Mudblob"
+		},
+		"Venpool": {
+			"anim": "",
+			"rarity": "rare",
+			"atk": 2,
+			"col": 1,
+			"mana": 3,
+			"hp": 20,
+			"race": "スライム",
+			"range": "1行",
+			"sfx": "",
+			"skills": [
+				{
+					"trigger": "on_front_attack",
+					"target": "hit_target",
+					"effect_id": "poison_amplify",
+					"params": {
+						"factor": 3
+					}
+				},
+				{
+					"trigger": "on_support",
+					"target": "enemies_with_poison",
+					"effect_id": "poison_amplify_all",
+					"params": {
+						"factor": 1.5
+					}
+				}
+			],
+			"texture": "",
+			"roles": [
+				"サポート"
+			],
+			"spd": 2,
+			"en_name": "Venpool"
+		},
+		"Plagzel": {
+			"anim": "",
+			"rarity": "uncommon",
+			"atk": 0,
+			"col": 1,
+			"mana": 1,
+			"hp": 40,
+			"race": "スライム",
+			"range": "1行",
+			"sfx": "",
+			"skills": [
+				{
+					"trigger": "on_front_attack",
+					"target": "hit_target",
+					"effect_id": "poison_add_if_poisoned",
+					"params": {
+						"stacks": 5
+					}
+				},
+				{
+					"trigger": "on_support",
+					"target": "enemy_front_random_poisoned",
+					"effect_id": "poison_add_periodic",
+					"params": {
+						"stacks": 5,
+						"interval": 2
+					}
+				}
+			],
+			"texture": "",
+			"roles": [
+				"サポート"
+			],
+			"spd": 10,
+			"en_name": "Plagzel"
+		},
+		"Sparkblob": {
+			"anim": "",
+			"rarity": "uncommon",
+			"atk": 10,
+			"col": 1,
+			"mana": 1,
+			"hp": 20,
+			"race": "スライム",
+			"range": "1行",
+			"sfx": "",
+			"skills": [
+				{
+					"trigger": "on_support",
+					"target": "self",
+					"effect_id": "atk_boost_periodic",
+					"params": {
+						"amount": 0.5,
+						"interval": 1
+					}
+				}
+			],
+			"texture": "",
+			"roles": [
+				"攻撃"
+			],
+			"spd": 20,
+			"en_name": "Sparkblob"
+		},
+		"Crystel": {
+			"anim": "",
+			"rarity": "rare",
+			"atk": 2,
+			"col": 1,
+			"mana": 1,
+			"hp": 40,
+			"race": "スライム",
+			"range": "1行",
+			"sfx": "",
+			"skills": [
+				{
+					"trigger": "on_front_attack",
+					"target": "self",
+					"effect_id": "atk_boost_by_shield",
+					"params": {
+						"factor": 1
+					}
+				},
+				{
+					"trigger": "on_support",
+					"target": "self",
+					"effect_id": "shield_accumulate",
+					"params": {
+						"amount": 1,
+						"interval": 1
+					}
+				}
+			],
+			"texture": "",
+			"roles": [
+				"攻撃"
+			],
+			"spd": 5,
+			"en_name": "Crystel"
+		},
+		"Voidblob": {
+			"anim": "",
+			"rarity": "epic",
+			"atk": 0,
+			"col": 1,
+			"mana": 3,
+			"hp": 60,
+			"race": "スライム",
+			"range": "1行",
+			"sfx": "",
+			"skills": [
+				{
+					"trigger": "on_front_attack",
+					"target": "enemy_player",
+					"effect_id": "mana_drain",
+					"params": {
+						"amount": 3
+					}
+				},
+				{
+					"trigger": "on_support",
+					"target": "enemy_player",
+					"effect_id": "mana_drain_periodic",
+					"params": {
+						"amount": 3,
+						"interval": 2
+					}
+				},
+				{
+					"trigger": "passive",
+					"target": "self",
+					"effect_id": "max_hp_boost_by_mana_drained",
+					"params": {
+						"factor": 0.05
+					}
+				}
+			],
+			"texture": "",
+			"roles": [
+				"サポート"
+			],
+			"traits": [
+				"mana_drain"
+			],
+			"spd": 5,
+			"en_name": "Voidblob"
+		},
+		"Glitzel": {
+			"anim": "",
+			"rarity": "rare",
+			"atk": 1,
+			"col": 1,
+			"mana": 3,
+			"hp": 40,
+			"race": "スライム",
+			"range": "1行",
+			"sfx": "",
+			"skills": [
+				{
+					"trigger": "on_support",
+					"target": "enemy_spell_slot_random",
+					"effect_id": "spell_seal",
+					"params": {
+						"duration": 3
+					}
+				}
+			],
+			"texture": "",
+			"roles": [
+				"サポート"
+			],
+			"spd": 3,
+			"en_name": "Glitzel"
+		},
+		"Silenzel": {
+			"anim": "",
+			"rarity": "epic",
+			"atk": 1,
+			"col": 1,
+			"mana": 3,
+			"hp": 40,
+			"race": "スライム",
+			"range": "1行",
+			"sfx": "",
+			"skills": [
+				{
+					"trigger": "on_support",
+					"target": "all_units",
+					"effect_id": "heal_seal",
+					"params": {
+						"duration": 5
+					}
+				}
+			],
+			"texture": "",
+			"roles": [
+				"サポート"
+			],
+			"spd": 3,
+			"en_name": "Silenzel"
+		},
+		"Fangos": {
+			"anim": "",
+			"rarity": "common",
+			"atk": 4,
+			"col": 1,
+			"mana": 1,
+			"hp": 20,
+			"race": "獣",
+			"range": "1行",
+			"sfx": "",
+			"skills": [
+				{
+					"trigger": "on_front_attack",
+					"target": "hit_target",
+					"effect_id": "critical",
+					"params": {
+						"chance": 0.3,
+						"factor": 2.0
+					}
+				},
+				{
+					"trigger": "on_support",
+					"target": "same_row_allies",
+					"effect_id": "same_row_atk_boost",
+					"params": {
+						"amount": 3
+					}
+				}
+			],
+			"texture": "",
+			"roles": [
+				"攻撃",
+				"サポート"
+			],
+			"spd": 20,
+			"en_name": "Fangos"
+		},
+		"Piercor": {
+			"anim": "",
+			"rarity": "common",
+			"atk": 3,
+			"col": 1,
+			"mana": 1,
+			"hp": 20,
+			"race": "獣",
+			"range": "1行",
+			"sfx": "",
+			"skills": [
+				{
+					"trigger": "on_support",
+					"target": "same_row_allies",
+					"effect_id": "grant_pierce_to_same_row",
+					"params": {}
+				}
+			],
+			"texture": "",
+			"roles": [
+				"サポート"
+			],
+			"traits": [
+				"pierce"
+			],
+			"spd": 10,
+			"en_name": "Piercor"
+		},
+		"Hawkis": {
+			"anim": "",
+			"rarity": "common",
+			"atk": 2,
+			"col": 1,
+			"mana": 0,
+			"hp": 30,
+			"race": "獣",
+			"range": "1行",
+			"sfx": "",
+			"skills": [
+				{
+					"trigger": "on_front_attack",
+					"target": "self",
+					"effect_id": "atk_accumulate",
+					"params": {
+						"amount": 1,
+						"cap": 20
+					}
+				}
+			],
+			"texture": "",
+			"roles": [
+				"攻撃"
+			],
+			"traits": [
+				"flying"
+			],
+			"spd": 7,
+			"en_name": "Hawkis"
+		},
+		"Stalkor": {
+			"anim": "",
+			"rarity": "uncommon",
+			"atk": 2,
+			"col": 1,
+			"mana": 0,
+			"hp": 25,
+			"race": "獣",
+			"range": "1行",
+			"sfx": "",
+			"skills": [
+				{
+					"trigger": "on_support",
+					"target": "self",
+					"effect_id": "atk_boost_periodic",
+					"params": {
+						"amount": 1,
+						"interval": 2.0
+					}
+				}
+			],
+			"texture": "",
+			"roles": [
+				"攻撃"
+			],
+			"spd": 7,
+			"en_name": "Stalkor"
+		},
+		"Venomaw": {
+			"anim": "",
+			"rarity": "uncommon",
+			"atk": 3,
+			"col": 1,
+			"mana": 0,
+			"hp": 20,
+			"race": "獣",
+			"range": "1行",
+			"sfx": "",
+			"skills": [
+				{
+					"trigger": "on_front_attack",
+					"target": "hit_target",
+					"effect_id": "poison_stack_variable",
+					"params": {
+						"variable": "X"
+					}
+				},
+				{
+					"trigger": "on_support",
+					"target": "self",
+					"effect_id": "poison_stack_increment",
+					"params": {
+						"variable": "X",
+						"amount": 2,
+						"interval": 2.0
+					}
+				}
+			],
+			"texture": "",
+			"roles": [
+				"攻撃"
+			],
+			"spd": 10,
+			"en_name": "Venomaw"
+		},
+		"Voidclaw": {
+			"anim": "",
+			"rarity": "uncommon",
+			"atk": 3,
+			"col": 1,
+			"mana": 0,
+			"hp": 25,
+			"race": "獣",
+			"range": "1行",
+			"sfx": "",
+			"skills": [
+				{
+					"trigger": "on_front_attack",
+					"target": "hit_target",
+					"effect_id": "atk_by_empty_slots",
+					"params": {}
+				},
+				{
+					"trigger": "on_support",
+					"target": "front_allies",
+					"effect_id": "heal_pct_front",
+					"params": {
+						"pct": 0.05,
+						"interval": 2.0
+					}
+				}
+			],
+			"texture": "",
+			"roles": [
+				"攻撃",
+				"サポート"
+			],
+			"spd": 7,
+			"en_name": "Voidclaw"
+		},
+		"Thornbeast": {
+			"anim": "",
+			"rarity": "uncommon",
+			"atk": 3,
+			"col": 1,
+			"mana": 1,
+			"hp": 40,
+			"race": "獣",
+			"range": "1行",
+			"sfx": "",
+			"skills": [
+				{
+					"trigger": "on_front_attack",
+					"target": "self",
+					"effect_id": "thorn_apply",
+					"params": {
+						"stacks": 1
+					}
+				},
+				{
+					"trigger": "passive",
+					"target": "self",
+					"effect_id": "atk_by_thorn_stacks",
+					"params": {
+						"factor": 0.5
+					}
+				}
+			],
+			"texture": "",
+			"roles": [
+				"攻撃"
+			],
+			"spd": 7,
+			"en_name": "Thornbeast"
+		},
+		"Rageveil": {
+			"anim": "",
+			"rarity": "rare",
+			"atk": 3,
+			"col": 1,
+			"mana": 1,
+			"hp": 50,
+			"race": "獣",
+			"range": "1行",
+			"sfx": "",
+			"skills": [
+				{
+					"trigger": "passive",
+					"target": "self",
+					"effect_id": "on_ally_death_heal_and_buff",
+					"params": {
+						"heal_pct": 0.25,
+						"atk_pct": 0.05,
+						"spd_pct": 0.05
+					}
+				}
+			],
+			"texture": "",
+			"roles": [
+				"攻撃"
+			],
+			"traits": [
+				"indomitable"
+			],
+			"spd": 7,
+			"en_name": "Rageveil"
+		},
+		"Wolfpack": {
+			"anim": "",
+			"rarity": "common",
+			"atk": 1.5,
+			"col": 1,
+			"mana": 0,
+			"hp": 15,
+			"race": "獣",
+			"range": "1行",
+			"sfx": "",
+			"skills": [
+				{
+					"trigger": "on_front_attack",
+					"target": "same_row_beast",
+					"effect_id": "same_row_beast_atk_boost",
+					"params": {
+						"pct": 0.02,
+						"duration": 3.0
+					}
+				},
+				{
+					"trigger": "on_support",
+					"target": "front_beast",
+					"effect_id": "front_beast_spd_boost",
+					"params": {
+						"pct": 0.01,
+						"duration": 1.0
+					}
+				}
+			],
+			"texture": "",
+			"roles": [
+				"サポート"
+			],
+			"traits": [
+				"swarm"
+			],
+			"spd": 10,
+			"en_name": "Wolfpack"
+		},
+		"グレイヴシフト": {
+			"anim": "",
+			"rarity": "rare",
+			"atk": 2,
+			"col": 0,
+			"mana": 2,
+			"hp": 30,
+			"race": "アンデッド",
+			"range": "1行",
+			"sfx": "",
+			"skills": [
+				{
+					"effect_id": "swap_enemy_positions",
+					"params": {
+						"count": 2,
+						"target": "enemy_back"
+					},
+					"target": "enemy_back",
+					"trigger": "timer",
+					"interval": 5.0
+				},
+				{
+					"effect_id": "revive_on_death",
+					"params": {
+						"hp_pct": 0.1,
+						"delay": 5.0
+					},
+					"target": "self",
+					"trigger": "on_death"
+				}
+			],
+			"texture": "",
+			"spd": 2.0,
+			"en_name": "Gravshift"
+		},
+		"ソウルスティール": {
+			"anim": "",
+			"rarity": "rare",
+			"atk": 2,
+			"col": 1,
+			"mana": 2,
+			"hp": 25,
+			"race": "アンデッド",
+			"range": "1行",
+			"sfx": "",
+			"skills": [
+				{
+					"effect_id": "buff_steal_transfer",
+					"params": {
+						"count": 2
+					},
+					"target": "hit_target",
+					"trigger": "on_hit"
+				},
+				{
+					"effect_id": "buff_transfer",
+					"params": {
+						"count": 2
+					},
+					"target": "random_enemy",
+					"trigger": "timer",
+					"interval": 5.0
+				},
+				{
+					"effect_id": "revive_on_death",
+					"params": {
+						"hp_pct": 0.1,
+						"delay": 5.0
+					},
+					"target": "self",
+					"trigger": "on_death"
+				}
+			],
+			"texture": "",
+			"spd": 2.0,
+			"en_name": "Soulsteal"
+		},
+		"ヘクスヴァート": {
+			"anim": "",
+			"rarity": "uncommon",
+			"atk": 1,
+			"col": 0,
+			"mana": 1,
+			"hp": 10,
+			"race": "アンデッド",
+			"range": "1行",
+			"sfx": "",
+			"skills": [
+				{
+					"effect_id": "synergy_invert",
+					"params": {
+						"duration": 5.0
+					},
+					"target": "hit_target",
+					"trigger": "on_hit"
+				}
+			],
+			"texture": "",
+			"spd": 3.0,
+			"en_name": "Hexvert"
+		},
+		"カースシード": {
+			"anim": "",
+			"rarity": "common",
+			"atk": 1,
+			"col": 0,
+			"mana": 1,
+			"hp": 25,
+			"race": "アンデッド",
+			"range": "1行",
+			"sfx": "",
+			"skills": [
+				{
+					"effect_id": "curse_additional_damage",
+					"params": {
+						"factor": 1.0
+					},
+					"target": "hit_target",
+					"trigger": "on_hit"
+				},
+				{
+					"effect_id": "curse_apply_highest",
+					"params": {
+						"stacks": 1
+					},
+					"target": "enemy_highest_curse",
+					"trigger": "timer",
+					"interval": 3.0
+				}
+			],
+			"texture": "",
+			"spd": 1.0,
+			"en_name": "Curseed"
+		},
+		"マレアンプ": {
+			"anim": "",
+			"rarity": "uncommon",
+			"atk": 1,
+			"col": 0,
+			"mana": 2,
+			"hp": 20,
+			"race": "アンデッド",
+			"range": "1行",
+			"sfx": "",
+			"skills": [
+				{
+					"effect_id": "curse_amplify",
+					"params": {
+						"factor": 2.0
+					},
+					"target": "hit_target",
+					"trigger": "on_hit"
+				}
+			],
+			"texture": "",
+			"spd": 2.0,
+			"en_name": "Maleamp"
+		},
+		"レイスダンス": {
+			"anim": "",
+			"rarity": "rare",
+			"atk": 1,
+			"col": 1,
+			"mana": 2,
+			"hp": 20,
+			"race": "アンデッド",
+			"range": "1行",
+			"sfx": "",
+			"skills": [
+				{
+					"effect_id": "curse_spread_trigger",
+					"params": {
+						"threshold": 10
+					},
+					"target": "all_enemies",
+					"trigger": "timer",
+					"interval": 3.0
+				},
+				{
+					"effect_id": "curse_total_spd_boost",
+					"params": {
+						"pct": 0.001
+					},
+					"target": "self",
+					"trigger": "always"
+				}
+			],
+			"texture": "",
+			"spd": 3.0,
+			"en_name": "Wraithdance"
+		},
+		"グリムハウル": {
+			"anim": "",
+			"rarity": "uncommon",
+			"atk": 1,
+			"col": 1,
+			"mana": 2,
+			"hp": 20,
+			"race": "アンデッド",
+			"range": "1行",
+			"sfx": "",
+			"skills": [
+				{
+					"effect_id": "random_status_apply",
+					"params": {
+						"count": 1
+					},
+					"target": "random_enemy",
+					"trigger": "timer",
+					"interval": 5.0
+				},
+				{
+					"effect_id": "skill_seal_on_ally_death",
+					"params": {
+						"duration": 5.0
+					},
+					"target": "random_enemy",
+					"trigger": "on_ally_death"
+				}
+			],
+			"texture": "",
+			"spd": 2.0,
+			"en_name": "Grimhowl"
+		},
+		"カーシール": {
+			"anim": "",
+			"rarity": "uncommon",
+			"atk": 1,
+			"col": 1,
+			"mana": 3,
+			"hp": 30,
+			"race": "アンデッド",
+			"range": "1行",
+			"sfx": "",
+			"skills": [
+				{
+					"effect_id": "curse_apply",
+					"params": {
+						"stacks": 1
+					},
+					"target": "hit_target",
+					"trigger": "on_hit"
+				},
+				{
+					"effect_id": "disable_attack_effects",
+					"params": {
+						"effect_type": "on_hit",
+						"duration": 1.0
+					},
+					"target": "cursed_enemies",
+					"trigger": "timer",
+					"interval": 2.0
+				}
+			],
+			"texture": "",
+			"spd": 3.0,
+			"en_name": "Curseal"
+		},
+		"トレイトベイン": {
+			"anim": "",
+			"rarity": "epic",
+			"atk": 5,
+			"col": 0,
+			"mana": 2,
+			"hp": 50,
+			"race": "アンデッド",
+			"range": "1行",
+			"sfx": "",
+			"skills": [
+				{
+					"effect_id": "trait_seal",
+					"params": {
+						"duration": 999.0
+					},
+					"target": "hit_target",
+					"trigger": "on_hit"
+				},
+				{
+					"effect_id": "trait_seal_all_same",
+					"params": {
+						"duration": 999.0
+					},
+					"target": "all_enemies",
+					"trigger": "on_hit"
+				}
+			],
+			"texture": "",
+			"spd": 2.0,
+			"en_name": "Traitbane"
+		},
+		"ヘクススポーン": {
+			"anim": "",
+			"rarity": "common",
+			"atk": 1,
+			"col": 0,
+			"mana": 2,
+			"hp": 50,
+			"race": "アンデッド",
+			"range": "1行",
+			"sfx": "",
+			"skills": [
+				{
+					"effect_id": "curse_apply",
+					"params": {
+						"stacks": 1
+					},
+					"target": "hit_target",
+					"trigger": "on_hit"
+				},
+				{
+					"effect_id": "revive_on_death",
+					"params": {
+						"hp_pct": 0.1,
+						"delay": 5.0
+					},
+					"target": "self",
+					"trigger": "on_death"
+				},
+				{
+					"effect_id": "curse_apply_battle_start",
+					"params": {
+						"stacks": 1,
+						"max_count": 5
+					},
+					"target": "all_units",
+					"trigger": "battle_start"
+				}
+			],
+			"texture": "",
+			"spd": 2.0,
+			"en_name": "Hexspawn"
+		},
+		"ドゥームカース": {
+			"anim": "",
+			"rarity": "legend",
+			"atk": 8,
+			"col": 0,
+			"mana": 2,
+			"hp": 60,
+			"race": "アンデッド",
+			"range": "1行",
+			"sfx": "",
+			"skills": [
+				{
+					"effect_id": "total_curse_damage",
+					"params": {
+						"factor": 1.0
+					},
+					"target": "hit_target",
+					"trigger": "on_hit"
+				},
+				{
+					"effect_id": "curse_apply_front_random",
+					"params": {
+						"stacks": 1,
+						"count": 1
+					},
+					"target": "front_enemy",
+					"trigger": "timer",
+					"interval": 3.0
+				}
+			],
+			"texture": "",
+			"spd": 3.0,
+			"en_name": "Doomcurse"
+		},
+		"ベインウォール": {
+			"anim": "",
+			"rarity": "rare",
+			"atk": 2,
+			"col": 0,
+			"mana": 3,
+			"hp": 60,
+			"race": "アンデッド",
+			"range": "1行",
+			"sfx": "",
+			"skills": [
+				{
+					"effect_id": "curse_by_damage_taken",
+					"params": {
+						"factor": 0.1
+					},
+					"target": "hit_target",
+					"trigger": "on_hit"
+				},
+				{
+					"effect_id": "curse_apply_adjacent",
+					"params": {
+						"stacks": 1
+					},
+					"target": "adjacent_enemies",
+					"trigger": "on_damaged"
+				},
+				{
+					"effect_id": "curse_reflect",
+					"params": {
+						"stacks": 1
+					},
+					"target": "attacker",
+					"trigger": "on_damaged"
+				}
+			],
+			"texture": "",
+			"spd": 5.0,
+			"en_name": "Banewall"
+		}
+	},
+	"boss_decks": {
+		"boss_act1_beast": [
+			{
+				"name": "ウルフ",
+				"col": 0
+			},
+			{
+				"name": "ゴブリン",
+				"col": 0
+			},
+			{
+				"name": "ウルフ",
+				"col": 1
+			},
+			{
+				"name": "ケットシー",
+				"col": 1
+			},
+			{
+				"name": "ゴブリン",
+				"col": 2
+			},
+			{
+				"name": "ワイルドホーク",
+				"col": 2
+			},
+			{
+				"name": "コカトリス",
+				"col": 1
+			}
+		],
+		"boss_act1_beast_strong": [
+			{
+				"name": "タイガー",
+				"col": 0
+			},
+			{
+				"name": "ウルフ",
+				"col": 0
+			},
+			{
+				"name": "マンティコア",
+				"col": 1
+			},
+			{
+				"name": "コカトリス",
+				"col": 1
+			},
+			{
+				"name": "ワイルドホーク",
+				"col": 2
+			},
+			{
+				"name": "ウルフ",
+				"col": 2
+			},
+			{
+				"name": "猛獣使い",
+				"col": 2
+			}
+		],
+		"boss_act1_beast_enraged": [
+			{
+				"name": "タイガー",
+				"col": 0
+			},
+			{
+				"name": "マンティコア",
+				"col": 0
+			},
+			{
+				"name": "グリフォン",
+				"col": 1
+			},
+			{
+				"name": "コカトリス",
+				"col": 1
+			},
+			{
+				"name": "猛獣使い",
+				"col": 2
+			},
+			{
+				"name": "ビャッコ",
+				"col": 2
+			},
+			{
+				"name": "タイガー",
+				"col": 1
+			}
+		],
+		"boss_act1_slime": [
+			{
+				"name": "スライム",
+				"col": 0
+			},
+			{
+				"name": "マッドスライム",
+				"col": 0
+			},
+			{
+				"name": "スライム",
+				"col": 1
+			},
+			{
+				"name": "ラージスライム",
+				"col": 1
+			},
+			{
+				"name": "マッドスライム",
+				"col": 2
+			},
+			{
+				"name": "スライム",
+				"col": 2
+			},
+			{
+				"name": "ファットスライム",
+				"col": 1
+			}
+		],
+		"boss_act1_slime_strong": [
+			{
+				"name": "マッドスライム",
+				"col": 0
+			},
+			{
+				"name": "ファットスライム",
+				"col": 0
+			},
+			{
+				"name": "ラージスライム",
+				"col": 1
+			},
+			{
+				"name": "ヒートスライム",
+				"col": 1
+			},
+			{
+				"name": "マッドスライム",
+				"col": 2
+			},
+			{
+				"name": "ブラッドスライム",
+				"col": 2
+			},
+			{
+				"name": "母スライム核",
+				"col": 1
+			}
+		],
+		"boss_act1_slime_enraged": [
+			{
+				"name": "ファットスライム",
+				"col": 0
+			},
+			{
+				"name": "パラライズスライム",
+				"col": 0
+			},
+			{
+				"name": "ブラッドスライム",
+				"col": 1
+			},
+			{
+				"name": "母スライム核",
+				"col": 1
+			},
+			{
+				"name": "ヒートスライム",
+				"col": 2
+			},
+			{
+				"name": "フロストスライム",
+				"col": 2
+			},
+			{
+				"name": "融合スライム",
+				"col": 0
+			}
+		],
+		"boss_act1_undead": [
+			{
+				"name": "スケルトン",
+				"col": 0
+			},
+			{
+				"name": "グール",
+				"col": 0
+			},
+			{
+				"name": "スケルトン",
+				"col": 1
+			},
+			{
+				"name": "バンシー",
+				"col": 1
+			},
+			{
+				"name": "グール",
+				"col": 2
+			},
+			{
+				"name": "リッチ",
+				"col": 2
+			},
+			{
+				"name": "シャドウ",
+				"col": 1
+			}
+		],
+		"boss_act1_undead_strong": [
+			{
+				"name": "グール",
+				"col": 0
+			},
+			{
+				"name": "レヴナント",
+				"col": 0
+			},
+			{
+				"name": "バンシー",
+				"col": 1
+			},
+			{
+				"name": "ワイト",
+				"col": 1
+			},
+			{
+				"name": "リッチ",
+				"col": 2
+			},
+			{
+				"name": "シャドウ",
+				"col": 2
+			},
+			{
+				"name": "屍術師",
+				"col": 2
+			}
+		],
+		"boss_act1_undead_enraged": [
+			{
+				"name": "ヴリコラカス",
+				"col": 0
+			},
+			{
+				"name": "レヴナント",
+				"col": 0
+			},
+			{
+				"name": "ワイト",
+				"col": 1
+			},
+			{
+				"name": "屍術師",
+				"col": 1
+			},
+			{
+				"name": "リッチ",
+				"col": 2
+			},
+			{
+				"name": "バンシー",
+				"col": 2
+			},
+			{
+				"name": "死骸の王座",
+				"col": 1
+			}
+		]
+	},
+	"boss_exclusive_units": {
+		"猛獣使い": {
+			"hp": 25,
+			"atk": 6,
+			"mana": 3,
+			"race": "獣",
+			"range": "1行",
+			"col": 1,
+			"rarity": "epic",
+			"texture": "",
+			"anim": "",
+			"sfx": "",
+			"skills": [
+				{
+					"trigger": "on_hit",
+					"target": "hit_target",
+					"effect_id": "burn_apply",
+					"params": {
+						"stacks": 2
+					}
+				}
+			],
+			"boss_exclusive": true,
+			"spd": 7
+		},
+		"母スライム核": {
+			"hp": 60,
+			"atk": 1,
+			"mana": 4,
+			"race": "スライム",
+			"range": "1行",
+			"col": 2,
+			"rarity": "epic",
+			"texture": "",
+			"anim": "",
+			"sfx": "",
+			"skills": [
+				{
+					"trigger": "on_death",
+					"target": "self",
+					"effect_id": "self_revive",
+					"params": {
+						"hp": 20,
+						"delay": 5.0
+					}
+				}
+			],
+			"boss_exclusive": true,
+			"spd": 2
+		},
+		"融合スライム": {
+			"hp": 45,
+			"atk": 4,
+			"mana": 4,
+			"race": "スライム",
+			"range": "1行",
+			"col": 1,
+			"rarity": "epic",
+			"texture": "",
+			"anim": "",
+			"sfx": "",
+			"skills": [
+				{
+					"trigger": "on_hit",
+					"target": "hit_target",
+					"effect_id": "freeze_apply",
+					"params": {
+						"stacks": 2
+					}
+				}
+			],
+			"boss_exclusive": true,
+			"spd": 3
+		},
+		"屍術師": {
+			"hp": 20,
+			"atk": 3,
+			"mana": 3,
+			"race": "アンデッド",
+			"range": "上下含む3行",
+			"col": 2,
+			"rarity": "epic",
+			"texture": "",
+			"anim": "",
+			"sfx": "",
+			"skills": [
+				{
+					"trigger": "on_hit",
+					"target": "hit_target",
+					"effect_id": "poison_apply",
+					"params": {
+						"stacks": 2
+					}
+				}
+			],
+			"boss_exclusive": true,
+			"spd": 3
+		},
+		"死骸の王座": {
+			"hp": 50,
+			"atk": 5,
+			"mana": 4,
+			"race": "アンデッド",
+			"range": "上下含む3行",
+			"col": 2,
+			"rarity": "epic",
+			"texture": "",
+			"anim": "",
+			"sfx": "",
+			"skills": [
+				{
+					"trigger": "on_hit",
+					"target": "hit_target",
+					"effect_id": "freeze_apply",
+					"params": {
+						"stacks": 3
+					}
+				}
+			],
+			"boss_exclusive": true,
+			"spd": 3
+		}
+	},
+	"bosses": {
+		"boss_beast_king": {
+			"display": "獣王",
+			"act": 1,
+			"race_theme": "beast",
+			"description": "オオカミの群れを率いる古代の王",
+			"difficulty": 3,
+			"enemy_deck_id": "boss_act1_beast",
+			"enemy_deck_id_phase2_lv4": "boss_act1_beast_strong",
+			"enemy_deck_id_phase2_lv5": "boss_act1_beast_enraged",
+			"hp_multiplier": 1.5,
+			"atk_multiplier": 1.2,
+			"reward_gold": 200,
+			"reward_sp": 2,
+			"alert_level_buffs": {
+				"4": {
+					"hp_bonus": 5,
+					"atk_bonus": 1
+				},
+				"5": {
+					"hp_bonus": 10,
+					"atk_bonus": 2
+				}
+			},
+			"texture": "",
+			"en_name": "BEASTKING"
+		},
+		"boss_slime_mother": {
+			"display": "母なるスライム",
+			"act": 1,
+			"race_theme": "slime",
+			"description": "無限に分裂し続ける巨大スライム",
+			"difficulty": 2,
+			"enemy_deck_id": "boss_act1_slime",
+			"enemy_deck_id_phase2_lv4": "boss_act1_slime_strong",
+			"enemy_deck_id_phase2_lv5": "boss_act1_slime_enraged",
+			"hp_multiplier": 2,
+			"atk_multiplier": 0.8,
+			"reward_gold": 200,
+			"reward_sp": 2,
+			"alert_level_buffs": {
+				"4": {
+					"hp_bonus": 5,
+					"atk_bonus": 1
+				},
+				"5": {
+					"hp_bonus": 10,
+					"atk_bonus": 2
+				}
+			},
+			"texture": "",
+			"en_name": "OVERFLOW"
+		},
+		"boss_death_lord": {
+			"display": "死霊領主",
+			"act": 1,
+			"race_theme": "undead",
+			"description": "何度倒しても蘇る不死の王",
+			"difficulty": 4,
+			"enemy_deck_id": "boss_act1_undead",
+			"enemy_deck_id_phase2_lv4": "boss_act1_undead_strong",
+			"enemy_deck_id_phase2_lv5": "boss_act1_undead_enraged",
+			"hp_multiplier": 1.3,
+			"atk_multiplier": 1.1,
+			"reward_gold": 220,
+			"reward_sp": 2,
+			"alert_level_buffs": {
+				"4": {
+					"hp_bonus": 5,
+					"atk_bonus": 1
+				},
+				"5": {
+					"hp_bonus": 10,
+					"atk_bonus": 2
+				}
+			},
+			"texture": "",
+			"en_name": "LEAK LICH"
+		},
+		"boss_firewall": {
+			"display": "ファイア・ゲート",
+			"en_name": "FIREGATE",
+			"act": 1,
+			"race_theme": "mixed",
+			"description": "ネットワークを守る炎の障壁",
+			"difficulty": 3,
+			"enemy_deck_id": "boss_act1_firewall",
+			"enemy_deck_id_phase2_lv4": "boss_act1_firewall_strong",
+			"enemy_deck_id_phase2_lv5": "boss_act1_firewall_enraged",
+			"hp_multiplier": 1.5,
+			"atk_multiplier": 1.3,
+			"reward_gold": 200,
+			"reward_sp": 2,
+			"alert_level_buffs": {
+				"4": {
+					"hp_bonus": 5,
+					"atk_bonus": 1
+				},
+				"5": {
+					"hp_bonus": 10,
+					"atk_bonus": 2
+				}
+			},
+			"texture": ""
+		},
+		"boss_kepalos": {
+			"display": "ケパロス",
+			"en_name": "KEPALOS",
+			"act": 1,
+			"race_theme": "beast",
+			"description": "パケットを監視する三つ首の番犬",
+			"difficulty": 2,
+			"enemy_deck_id": "boss_act1_kepalos",
+			"enemy_deck_id_phase2_lv4": "boss_act1_kepalos_strong",
+			"enemy_deck_id_phase2_lv5": "boss_act1_kepalos_enraged",
+			"hp_multiplier": 1.3,
+			"atk_multiplier": 1.5,
+			"reward_gold": 200,
+			"reward_sp": 2,
+			"alert_level_buffs": {
+				"4": {
+					"hp_bonus": 5,
+					"atk_bonus": 1
+				},
+				"5": {
+					"hp_bonus": 10,
+					"atk_bonus": 2
+				}
+			},
+			"texture": ""
+		},
+		"boss_deadlock": {
+			"display": "デッド・ロック",
+			"en_name": "DEADLOCK",
+			"act": 2,
+			"race_theme": "undead",
+			"description": "互いに動けなくなる死の錠前",
+			"difficulty": 4,
+			"enemy_deck_id": "boss_act2_deadlock",
+			"enemy_deck_id_phase2_lv4": "boss_act2_deadlock_strong",
+			"enemy_deck_id_phase2_lv5": "boss_act2_deadlock_enraged",
+			"hp_multiplier": 1.8,
+			"atk_multiplier": 1.2,
+			"reward_gold": 300,
+			"reward_sp": 3,
+			"alert_level_buffs": {
+				"4": {
+					"hp_bonus": 8,
+					"atk_bonus": 2
+				},
+				"5": {
+					"hp_bonus": 15,
+					"atk_bonus": 3
+				}
+			},
+			"texture": ""
+		},
+		"boss_sandgolem": {
+			"display": "サンド・ゴーレム",
+			"en_name": "SANDGOLEM",
+			"act": 2,
+			"race_theme": "mixed",
+			"description": "隔離領域を守る人工生命",
+			"difficulty": 3,
+			"enemy_deck_id": "boss_act2_sandgolem",
+			"enemy_deck_id_phase2_lv4": "boss_act2_sandgolem_strong",
+			"enemy_deck_id_phase2_lv5": "boss_act2_sandgolem_enraged",
+			"hp_multiplier": 2.0,
+			"atk_multiplier": 1.0,
+			"reward_gold": 300,
+			"reward_sp": 3,
+			"alert_level_buffs": {
+				"4": {
+					"hp_bonus": 10,
+					"atk_bonus": 1
+				},
+				"5": {
+					"hp_bonus": 20,
+					"atk_bonus": 2
+				}
+			},
+			"texture": ""
+		},
+		"boss_cryptor": {
+			"display": "クリプター",
+			"en_name": "CRYPTOR",
+			"act": 2,
+			"race_theme": "undead",
+			"description": "暗号化された地下墓所の番人",
+			"difficulty": 4,
+			"enemy_deck_id": "boss_act2_cryptor",
+			"enemy_deck_id_phase2_lv4": "boss_act2_cryptor_strong",
+			"enemy_deck_id_phase2_lv5": "boss_act2_cryptor_enraged",
+			"hp_multiplier": 1.6,
+			"atk_multiplier": 1.4,
+			"reward_gold": 300,
+			"reward_sp": 3,
+			"alert_level_buffs": {
+				"4": {
+					"hp_bonus": 8,
+					"atk_bonus": 2
+				},
+				"5": {
+					"hp_bonus": 15,
+					"atk_bonus": 3
+				}
+			},
+			"texture": ""
+		},
+		"boss_manoras": {
+			"display": "マノラス",
+			"en_name": "MANORAS",
+			"act": 2,
+			"race_theme": "slime",
+			"description": "リソースを人質に取る領主",
+			"difficulty": 3,
+			"enemy_deck_id": "boss_act2_manoras",
+			"enemy_deck_id_phase2_lv4": "boss_act2_manoras_strong",
+			"enemy_deck_id_phase2_lv5": "boss_act2_manoras_enraged",
+			"hp_multiplier": 1.7,
+			"atk_multiplier": 1.3,
+			"reward_gold": 300,
+			"reward_sp": 3,
+			"alert_level_buffs": {
+				"4": {
+					"hp_bonus": 8,
+					"atk_bonus": 2
+				},
+				"5": {
+					"hp_bonus": 15,
+					"atk_bonus": 3
+				}
+			},
+			"texture": ""
+		},
+		"boss_null": {
+			"display": "NULL",
+			"en_name": "NULL",
+			"act": 2,
+			"race_theme": "mixed",
+			"description": "存在しない虚無の存在",
+			"difficulty": 5,
+			"enemy_deck_id": "boss_act2_null",
+			"enemy_deck_id_phase2_lv4": "boss_act2_null_strong",
+			"enemy_deck_id_phase2_lv5": "boss_act2_null_enraged",
+			"hp_multiplier": 1.5,
+			"atk_multiplier": 1.5,
+			"reward_gold": 300,
+			"reward_sp": 3,
+			"alert_level_buffs": {
+				"4": {
+					"hp_bonus": 8,
+					"atk_bonus": 2
+				},
+				"5": {
+					"hp_bonus": 15,
+					"atk_bonus": 3
+				}
+			},
+			"texture": ""
+		},
+		"boss_overfit": {
+			"display": "オーバーフィット",
+			"en_name": "OVERFIT",
+			"act": 3,
+			"race_theme": "mixed",
+			"description": "学習しすぎて狂ったAI",
+			"difficulty": 5,
+			"enemy_deck_id": "boss_act3_overfit",
+			"enemy_deck_id_phase2_lv4": "boss_act3_overfit_strong",
+			"enemy_deck_id_phase2_lv5": "boss_act3_overfit_enraged",
+			"hp_multiplier": 2.0,
+			"atk_multiplier": 1.5,
+			"reward_gold": 400,
+			"reward_sp": 4,
+			"alert_level_buffs": {
+				"4": {
+					"hp_bonus": 10,
+					"atk_bonus": 3
+				},
+				"5": {
+					"hp_bonus": 20,
+					"atk_bonus": 5
+				}
+			},
+			"texture": ""
+		},
+		"boss_rootshade": {
+			"display": "ルートキット・シャドウ",
+			"en_name": "ROOTSHADE",
+			"act": 3,
+			"race_theme": "undead",
+			"description": "見えない脅威",
+			"difficulty": 6,
+			"enemy_deck_id": "boss_act3_rootshade",
+			"enemy_deck_id_phase2_lv4": "boss_act3_rootshade_strong",
+			"enemy_deck_id_phase2_lv5": "boss_act3_rootshade_enraged",
+			"hp_multiplier": 1.8,
+			"atk_multiplier": 1.7,
+			"reward_gold": 400,
+			"reward_sp": 4,
+			"alert_level_buffs": {
+				"4": {
+					"hp_bonus": 10,
+					"atk_bonus": 3
+				},
+				"5": {
+					"hp_bonus": 20,
+					"atk_bonus": 5
+				}
+			},
+			"texture": ""
+		},
+		"boss_adversary": {
+			"display": "アドバーサリ",
+			"en_name": "ADVERSARY",
+			"act": 3,
+			"race_theme": "mixed",
+			"description": "学習して対抗する悪魔",
+			"difficulty": 5,
+			"enemy_deck_id": "boss_act3_adversary",
+			"enemy_deck_id_phase2_lv4": "boss_act3_adversary_strong",
+			"enemy_deck_id_phase2_lv5": "boss_act3_adversary_enraged",
+			"hp_multiplier": 1.9,
+			"atk_multiplier": 1.6,
+			"reward_gold": 400,
+			"reward_sp": 4,
+			"alert_level_buffs": {
+				"4": {
+					"hp_bonus": 10,
+					"atk_bonus": 3
+				},
+				"5": {
+					"hp_bonus": 20,
+					"atk_bonus": 5
+				}
+			},
+			"texture": ""
+		},
+		"boss_drifter": {
+			"display": "ドリフター",
+			"en_name": "DRIFTER",
+			"act": 3,
+			"race_theme": "slime",
+			"description": "漂うデータの幻影",
+			"difficulty": 4,
+			"enemy_deck_id": "boss_act3_drifter",
+			"enemy_deck_id_phase2_lv4": "boss_act3_drifter_strong",
+			"enemy_deck_id_phase2_lv5": "boss_act3_drifter_enraged",
+			"hp_multiplier": 1.7,
+			"atk_multiplier": 1.5,
+			"reward_gold": 400,
+			"reward_sp": 4,
+			"alert_level_buffs": {
+				"4": {
+					"hp_bonus": 10,
+					"atk_bonus": 3
+				},
+				"5": {
+					"hp_bonus": 20,
+					"atk_bonus": 5
+				}
+			},
+			"texture": ""
+		},
+		"boss_guardian": {
+			"display": "ガーディアン",
+			"en_name": "GUARDIAN",
+			"act": 3,
+			"race_theme": "beast",
+			"description": "最後の守護者",
+			"difficulty": 6,
+			"enemy_deck_id": "boss_act3_guardian",
+			"enemy_deck_id_phase2_lv4": "boss_act3_guardian_strong",
+			"enemy_deck_id_phase2_lv5": "boss_act3_guardian_enraged",
+			"hp_multiplier": 2.2,
+			"atk_multiplier": 1.4,
+			"reward_gold": 400,
+			"reward_sp": 4,
+			"alert_level_buffs": {
+				"4": {
+					"hp_bonus": 12,
+					"atk_bonus": 3
+				},
+				"5": {
+					"hp_bonus": 25,
+					"atk_bonus": 5
+				}
+			},
+			"texture": ""
+		}
+	},
+	"artifacts": {
+		"iron_talisman": {
+			"display": "鉄の護符",
+			"rarity": "common",
+			"description": "全ユニットHP+2",
+			"effect": {
+				"type": "stat_buff",
+				"target": "all_units",
+				"stat": "hp",
+				"value": 2
+			}
+		},
+		"berserker_horn": {
+			"display": "狂戦士の角笛",
+			"rarity": "common",
+			"description": "前列ユニットATK+1",
+			"effect": {
+				"type": "stat_buff",
+				"target": "front_row",
+				"stat": "atk",
+				"value": 1
+			}
+		},
+		"mana_shard": {
+			"display": "魔石の欠片",
+			"rarity": "common",
+			"description": "バトル開始時マナ+3",
+			"effect": {
+				"type": "battle_start_mana",
+				"value": 3
+			}
+		},
+		"hourglass": {
+			"display": "時の砂時計",
+			"rarity": "common",
+			"description": "バトル開始10秒間、全ユニットSPD+2",
+			"effect": {
+				"type": "timed_buff",
+				"target": "all_units",
+				"stat": "spd",
+				"value": 2,
+				"duration": 10
+			}
+		},
+		"golden_coin": {
+			"display": "黄金のコイン",
+			"rarity": "common",
+			"description": "バトル勝利Gold+20%",
+			"effect": {
+				"type": "gold_bonus",
+				"value": 0.2
+			}
+		},
+		"phoenix_feather": {
+			"display": "不死鳥の羽",
+			"rarity": "uncommon",
+			"description": "バトル中、最初の死亡ユニット1体がHP50%で復活",
+			"effect": {
+				"type": "revive_first",
+				"hp_percent": 50
+			}
+		},
+		"thorn_seed": {
+			"display": "棘の種",
+			"rarity": "uncommon",
+			"description": "バトル開始時、自陣前列3マスに棘Lv1配置",
+			"effect": {
+				"type": "battle_start_tiles",
+				"tile_type": "棘",
+				"positions": "ally_front_row",
+				"level": 1
+			}
+		},
+		"subject_card": {
+			"display": "実験体の札",
+			"rarity": "event",
+			"description": "被験者番号#2891",
+			"effect": {
+				"type": "passive",
+				"note": "フレーバーアイテム（効果なし）"
+			}
+		},
+		"memory_key": {
+			"display": "記憶の鍵",
+			"rarity": "event",
+			"description": "封印された記録へのアクセス",
+			"effect": {
+				"type": "passive",
+				"note": "フレーバーアイテム（効果なし）"
+			}
+		},
+		"atlas_alpha": {
+			"display": "ATLAS破片α",
+			"rarity": "event",
+			"description": "灰色の疫病以前の記憶",
+			"effect": {
+				"type": "stat_buff",
+				"target": "player",
+				"stat": "hp",
+				"value": 10,
+				"note": "本体HP+10（未実装）"
+			}
+		},
+		"atlas_beta": {
+			"display": "ATLAS破片β",
+			"rarity": "event",
+			"description": "システムの盲点",
+			"effect": {
+				"type": "passive",
+				"note": "警戒レベル上昇無効1回（未実装）"
+			}
+		},
+		"atlas_omega": {
+			"display": "ATLAS破片Ω",
+			"rarity": "event",
+			"description": "最後の記録",
+			"effect": {
+				"type": "battle_start_mana",
+				"value": 5
+			}
+		},
+		"glitch_core": {
+			"display": "グリッチコア",
+			"rarity": "event",
+			"description": "現実の亀裂",
+			"effect": {
+				"type": "passive",
+				"note": "バトル中5%でUI演出発生（未実装）"
+			}
+		},
+		"lucky_charm": {
+			"display": "幸運のお守り",
+			"rarity": "uncommon",
+			"description": "バトル報酬選択肢+1（4択になる）",
+			"effect": {
+				"type": "reward_choices",
+				"value": 1
+			}
+		}
+	},
+	"events": {
+		"memory_fragment": {
+			"display": "記憶の断片",
+			"act": [
+				1,
+				2,
+				3
+			],
+			"text": "床に散らばった古い記録を見つけた。\n文字が滲んで読みにくいが、数字が見える。\n\n「#2891 - 適応率 ██.█% - 次フェーズ ██████」\n\n...#2891。どこかで見たような数字だ。",
+			"choices": [
+				{
+					"label": "記録を読み進める",
+					"results": [
+						{
+							"type": "gold",
+							"value": 60
+						},
+						{
+							"type": "flavor",
+							"text": "...記憶...保持...条件...\n判読不能。"
+						}
+					]
+				},
+				{
+					"label": "破り捨てる",
+					"results": []
+				},
+				{
+					"label": "持ち去る",
+					"results": [
+						{
+							"type": "artifact",
+							"artifact_id": "subject_card"
+						},
+						{
+							"type": "gold",
+							"value": 30
+						}
+					]
+				}
+			]
+		},
+		"atlas_terminal_alpha": {
+			"display": "ATLAS端末α",
+			"act": [
+				1,
+				2,
+				3
+			],
+			"text": "古びた端末が起動している。\n画面には「ATLAS - ████ Security Lv.3」の文字。\n\nログイン画面が表示されている。",
+			"choices": [
+				{
+					"label": "適当な番号を入力",
+					"results": [
+						{
+							"type": "gold",
+							"value": 40
+						},
+						{
+							"type": "flavor",
+							"text": "「アクセス拒否」"
+						}
+					]
+				},
+				{
+					"label": "2891を入力してみる",
+					"results": [
+						{
+							"type": "gold",
+							"value": 80
+						},
+						{
+							"type": "artifact_choice",
+							"count": 1,
+							"rarity_weights": {
+								"common": 5,
+								"uncommon": 3
+							}
+						},
+						{
+							"type": "flavor",
+							"text": "「...許可」\n何が許可されたのか？"
+						}
+					]
+				},
+				{
+					"label": "端末を無視する",
+					"results": []
+				}
+			]
+		},
+		"gray_stain": {
+			"display": "灰色の染み",
+			"act": [
+				1,
+				2,
+				3
+			],
+			"text": "壁一面に灰色の染みが広がっている。\n近づくと、かすかに蠢いているように見える。\n\n触れてはいけない、という直感がある。",
+			"choices": [
+				{
+					"label": "触れてみる",
+					"results": [
+						{
+							"type": "hp",
+							"value": -15
+						},
+						{
+							"type": "flavor",
+							"text": "冷たい。何かを思い出しそうになる。\n灰色の...何か..."
+						}
+					]
+				},
+				{
+					"label": "距離を取る",
+					"results": []
+				},
+				{
+					"label": "染みを調べる",
+					"results": [
+						{
+							"type": "gold",
+							"value": 50
+						},
+						{
+							"type": "flavor",
+							"text": "染みの中に人の形が見える。\n動かない。"
+						}
+					]
+				}
+			]
+		},
+		"unmoving_thing": {
+			"display": "動かない何か",
+			"act": [
+				2,
+				3
+			],
+			"text": "通路の隅に、何かが倒れている。\nよく見ると...人の形をしている。金属のような質感。\n\n胸部に文字：「#1247 - ████████」",
+			"choices": [
+				{
+					"label": "パーツを回収する",
+					"results": [
+						{
+							"type": "artifact_choice",
+							"count": 1,
+							"rarity_weights": {
+								"uncommon": 5,
+								"rare": 2
+							}
+						},
+						{
+							"type": "gold",
+							"value": 50
+						}
+					]
+				},
+				{
+					"label": "そっとしておく",
+					"results": []
+				},
+				{
+					"label": "近づいて調べる",
+					"results": [
+						{
+							"type": "gold",
+							"value": 30
+						},
+						{
+							"type": "flavor",
+							"text": "冷たい。動かない。\nあなたと似ている...？"
+						}
+					]
+				}
+			]
+		},
+		"audio_log": {
+			"display": "音声ログ",
+			"act": [
+				2,
+				3
+			],
+			"text": "再生装置が起動した。ノイズ混じりの声。\n\n「...2891号...適応...記憶...は...\n...灰色...サンプル...接触...\n...最後...ATLAS...録...」\n\nノイズ。沈黙。何を言っていたのか分からない。",
+			"choices": [
+				{
+					"label": "ログを最後まで聞く",
+					"results": [
+						{
+							"type": "gold",
+							"value": 70
+						},
+						{
+							"type": "flavor",
+							"text": "...希望...\n途切れる。"
+						}
+					]
+				},
+				{
+					"label": "装置を止める",
+					"results": []
+				},
+				{
+					"label": "ログを持ち帰る",
+					"results": [
+						{
+							"type": "artifact",
+							"artifact_id": "memory_key"
+						},
+						{
+							"type": "sp",
+							"value": 2
+						}
+					]
+				}
+			]
+		},
+		"glitch_beta": {
+			"display": "グリッチ現象β",
+			"act": [
+				2,
+				3
+			],
+			"text": "視界が歪む。盤面が...デバイスが...金属の床が見える。\n\n一瞬、カプセルの中にいる。\n周囲には同じカプセルが並んでいる。全て...空？\n\n視界が戻る。いつもの通路だ。",
+			"choices": [
+				{
+					"label": "現実を疑う",
+					"results": [
+						{
+							"type": "sp",
+							"value": 2
+						},
+						{
+							"type": "flavor",
+							"text": "真実を知りたいか？\n...声が聞こえた気がする。"
+						}
+					]
+				},
+				{
+					"label": "幻覚だと割り切る",
+					"results": []
+				},
+				{
+					"label": "もう一度見ようとする",
+					"results": [
+						{
+							"type": "hp",
+							"value": -10
+						},
+						{
+							"type": "alert_level",
+							"value": -2
+						},
+						{
+							"type": "artifact",
+							"artifact_id": "glitch_core"
+						}
+					]
+				}
+			]
+		},
+		"atlas_omega": {
+			"display": "ATLAS端末Ω",
+			"act": [
+				3
+			],
+			"text": "巨大な端末が部屋の中央にある。\n「ATLAS ████ System - ██████プロトコル起動中」\n\n画面には無数の数字が流れている。",
+			"choices": [
+				{
+					"label": "システムに触れる",
+					"results": [
+						{
+							"type": "hp",
+							"value": -10
+						},
+						{
+							"type": "artifact_choice",
+							"count": 2,
+							"rarity_weights": {
+								"uncommon": 5,
+								"rare": 3
+							}
+						},
+						{
+							"type": "flavor",
+							"text": "警告音。\nシステムが反応した。"
+						}
+					]
+				},
+				{
+					"label": "数字を眺める",
+					"results": [
+						{
+							"type": "gold",
+							"value": 90
+						},
+						{
+							"type": "flavor",
+							"text": "#1, #2, #3...#2891...\n数字が続く。どこまで？"
+						}
+					]
+				},
+				{
+					"label": "何もしない",
+					"results": [
+						{
+							"type": "gold",
+							"value": 100
+						}
+					]
+				}
+			]
+		},
+		"white_coat": {
+			"display": "白衣の人物",
+			"act": [
+				3
+			],
+			"text": "誰かが倒れている。白衣。まだ呼吸がある。\n\n目を開ける。あなたを見る。\n「...2891...号...お前...が...」\n\n沈黙。何を言いたかったのか。",
+			"choices": [
+				{
+					"label": "話しかける",
+					"results": [
+						{
+							"type": "hp",
+							"value": -5
+						},
+						{
+							"type": "flavor",
+							"text": "...外...へ...██...もう...\n意味不明。"
+						}
+					]
+				},
+				{
+					"label": "その場を離れる",
+					"results": []
+				},
+				{
+					"label": "所持品を調べる",
+					"results": [
+						{
+							"type": "artifact",
+							"artifact_id": "atlas_omega"
+						},
+						{
+							"type": "gold",
+							"value": 80
+						}
+					]
+				}
+			]
+		},
+		"unknown_door": {
+			"display": "見たことのない扉",
+			"act": [
+				3
+			],
+			"text": "扉がある。表示には「████ - 外部█████接続」\n\n開くのか？開かないのか？\n向こうには何があるのか？\n\n分からない。",
+			"choices": [
+				{
+					"label": "扉を開けようとする",
+					"results": [
+						{
+							"type": "gold",
+							"value": 70
+						},
+						{
+							"type": "flavor",
+							"text": "「ロック解除条件: ████████」\n開かない。"
+						}
+					]
+				},
+				{
+					"label": "引き返す",
+					"results": []
+				},
+				{
+					"label": "扉を調べる",
+					"results": [
+						{
+							"type": "artifact_choice",
+							"count": 1,
+							"rarity_weights": {
+								"rare": 10
+							}
+						},
+						{
+							"type": "flavor",
+							"text": "無数の痕跡。\n誰かが触れた跡。"
+						}
+					]
+				}
+			]
+		}
+	},
+	"enemy_decks": {
+		"act1_slime_basic": {
+			"display": "スライムの群れ（基本）",
+			"race_theme": "slime",
+			"act": 1,
+			"tier": "basic",
+			"description": "序盤の標準的なスライム編成",
+			"units": [
+				{
+					"name": "スライム",
+					"col": 0,
+					"row": 0
+				},
+				{
+					"name": "スライム",
+					"col": 0,
+					"row": 1
+				},
+				{
+					"name": "スライム",
+					"col": 0,
+					"row": 2
+				},
+				{
+					"name": "マッドスライム",
+					"col": 1,
+					"row": 1
+				}
+			]
+		},
+		"act1_slime_enhanced1": {
+			"display": "スライムの群れ（警戒Lv3）",
+			"race_theme": "slime",
+			"act": 1,
+			"tier": "enhanced1",
+			"description": "警戒レベル3対応の強化編成",
+			"units": [
+				{
+					"name": "スライム",
+					"col": 0,
+					"row": 0
+				},
+				{
+					"name": "マッドスライム",
+					"col": 0,
+					"row": 1
+				},
+				{
+					"name": "マッドスライム",
+					"col": 0,
+					"row": 2
+				},
+				{
+					"name": "ブラッドスライム",
+					"col": 1,
+					"row": 1
+				},
+				{
+					"name": "スライム",
+					"col": 1,
+					"row": 0
+				}
+			]
+		},
+		"act1_slime_enhanced2": {
+			"display": "スライムの群れ（警戒Lv4）",
+			"race_theme": "slime",
+			"act": 1,
+			"tier": "enhanced2",
+			"description": "警戒レベル4対応の強化編成",
+			"units": [
+				{
+					"name": "マッドスライム",
+					"col": 0,
+					"row": 0
+				},
+				{
+					"name": "マッドスライム",
+					"col": 0,
+					"row": 1
+				},
+				{
+					"name": "ブラッドスライム",
+					"col": 0,
+					"row": 2
+				},
+				{
+					"name": "ブラッドスライム",
+					"col": 1,
+					"row": 1
+				},
+				{
+					"name": "マッドスライム",
+					"col": 1,
+					"row": 0
+				},
+				{
+					"name": "スライム",
+					"col": 1,
+					"row": 2
+				}
+			]
+		},
+		"act1_slime_enhanced3": {
+			"display": "スライムの群れ（警戒Lv5+）",
+			"race_theme": "slime",
+			"act": 1,
+			"tier": "enhanced3",
+			"description": "警戒レベル5以上対応の最強編成",
+			"units": [
+				{
+					"name": "マッドスライム",
+					"col": 0,
+					"row": 0
+				},
+				{
+					"name": "ブラッドスライム",
+					"col": 0,
+					"row": 1
+				},
+				{
+					"name": "ブラッドスライム",
+					"col": 0,
+					"row": 2
+				},
+				{
+					"name": "ブラッドスライム",
+					"col": 1,
+					"row": 1
+				},
+				{
+					"name": "マッドスライム",
+					"col": 1,
+					"row": 0
+				},
+				{
+					"name": "マッドスライム",
+					"col": 1,
+					"row": 2
+				},
+				{
+					"name": "スライム",
+					"col": 2,
+					"row": 1
+				}
+			]
+		},
+		"act1_beast_basic": {
+			"display": "獣の群れ（基本）",
+			"race_theme": "beast",
+			"act": 1,
+			"tier": "basic",
+			"description": "序盤の標準的な獣編成",
+			"units": [
+				{
+					"name": "ゴブリン",
+					"col": 0,
+					"row": 0
+				},
+				{
+					"name": "ゴブリン",
+					"col": 0,
+					"row": 1
+				},
+				{
+					"name": "ウルフ",
+					"col": 0,
+					"row": 2
+				},
+				{
+					"name": "ウルフ",
+					"col": 1,
+					"row": 1
+				}
+			]
+		},
+		"act1_beast_enhanced1": {
+			"display": "獣の群れ（警戒Lv3）",
+			"race_theme": "beast",
+			"act": 1,
+			"tier": "enhanced1",
+			"description": "警戒レベル3対応の強化編成",
+			"units": [
+				{
+					"name": "ゴブリン",
+					"col": 0,
+					"row": 0
+				},
+				{
+					"name": "ウルフ",
+					"col": 0,
+					"row": 1
+				},
+				{
+					"name": "ウルフ",
+					"col": 0,
+					"row": 2
+				},
+				{
+					"name": "タイガー",
+					"col": 1,
+					"row": 1
+				},
+				{
+					"name": "ゴブリン",
+					"col": 1,
+					"row": 0
+				}
+			]
+		},
+		"act1_beast_enhanced2": {
+			"display": "獣の群れ（警戒Lv4）",
+			"race_theme": "beast",
+			"act": 1,
+			"tier": "enhanced2",
+			"description": "警戒レベル4対応の強化編成",
+			"units": [
+				{
+					"name": "ウルフ",
+					"col": 0,
+					"row": 0
+				},
+				{
+					"name": "ウルフ",
+					"col": 0,
+					"row": 1
+				},
+				{
+					"name": "タイガー",
+					"col": 0,
+					"row": 2
+				},
+				{
+					"name": "タイガー",
+					"col": 1,
+					"row": 1
+				},
+				{
+					"name": "ウルフ",
+					"col": 1,
+					"row": 0
+				},
+				{
+					"name": "ゴブリン",
+					"col": 1,
+					"row": 2
+				}
+			]
+		},
+		"act1_beast_enhanced3": {
+			"display": "獣の群れ（警戒Lv5+）",
+			"race_theme": "beast",
+			"act": 1,
+			"tier": "enhanced3",
+			"description": "警戒レベル5以上対応の最強編成",
+			"units": [
+				{
+					"name": "ウルフ",
+					"col": 0,
+					"row": 0
+				},
+				{
+					"name": "タイガー",
+					"col": 0,
+					"row": 1
+				},
+				{
+					"name": "タイガー",
+					"col": 0,
+					"row": 2
+				},
+				{
+					"name": "ワイルドホーク",
+					"col": 1,
+					"row": 1
+				},
+				{
+					"name": "タイガー",
+					"col": 1,
+					"row": 0
+				},
+				{
+					"name": "ウルフ",
+					"col": 1,
+					"row": 2
+				},
+				{
+					"name": "ゴブリン",
+					"col": 2,
+					"row": 1
+				}
+			]
+		},
+		"act1_undead_basic": {
+			"display": "不死の群れ（基本）",
+			"race_theme": "undead",
+			"act": 1,
+			"tier": "basic",
+			"description": "序盤の標準的なアンデッド編成",
+			"units": [
+				{
+					"name": "スケルトン",
+					"col": 0,
+					"row": 0
+				},
+				{
+					"name": "スケルトン",
+					"col": 0,
+					"row": 1
+				},
+				{
+					"name": "スケルトン",
+					"col": 0,
+					"row": 2
+				},
+				{
+					"name": "グール",
+					"col": 1,
+					"row": 1
+				}
+			]
+		},
+		"act1_undead_enhanced1": {
+			"display": "不死の群れ（警戒Lv3）",
+			"race_theme": "undead",
+			"act": 1,
+			"tier": "enhanced1",
+			"description": "警戒レベル3対応の強化編成",
+			"units": [
+				{
+					"name": "スケルトン",
+					"col": 0,
+					"row": 0
+				},
+				{
+					"name": "グール",
+					"col": 0,
+					"row": 1
+				},
+				{
+					"name": "グール",
+					"col": 0,
+					"row": 2
+				},
+				{
+					"name": "バンシー",
+					"col": 1,
+					"row": 1
+				},
+				{
+					"name": "スケルトン",
+					"col": 1,
+					"row": 0
+				}
+			]
+		},
+		"act1_undead_enhanced2": {
+			"display": "不死の群れ（警戒Lv4）",
+			"race_theme": "undead",
+			"act": 1,
+			"tier": "enhanced2",
+			"description": "警戒レベル4対応の強化編成",
+			"units": [
+				{
+					"name": "グール",
+					"col": 0,
+					"row": 0
+				},
+				{
+					"name": "グール",
+					"col": 0,
+					"row": 1
+				},
+				{
+					"name": "バンシー",
+					"col": 0,
+					"row": 2
+				},
+				{
+					"name": "バンシー",
+					"col": 1,
+					"row": 1
+				},
+				{
+					"name": "グール",
+					"col": 1,
+					"row": 0
+				},
+				{
+					"name": "スケルトン",
+					"col": 1,
+					"row": 2
+				}
+			]
+		},
+		"act1_undead_enhanced3": {
+			"display": "不死の群れ（警戒Lv5+）",
+			"race_theme": "undead",
+			"act": 1,
+			"tier": "enhanced3",
+			"description": "警戒レベル5以上対応の最強編成",
+			"units": [
+				{
+					"name": "グール",
+					"col": 0,
+					"row": 0
+				},
+				{
+					"name": "バンシー",
+					"col": 0,
+					"row": 1
+				},
+				{
+					"name": "バンシー",
+					"col": 0,
+					"row": 2
+				},
+				{
+					"name": "リッチ",
+					"col": 1,
+					"row": 1
+				},
+				{
+					"name": "バンシー",
+					"col": 1,
+					"row": 0
+				},
+				{
+					"name": "グール",
+					"col": 1,
+					"row": 2
+				},
+				{
+					"name": "スケルトン",
+					"col": 2,
+					"row": 1
+				}
+			]
+		},
+		"act1_elite_slime": {
+			"display": "エリートスライム部隊",
+			"race_theme": "slime",
+			"act": 1,
+			"tier": "elite",
+			"description": "エリート戦用の強化スライム編成",
+			"units": [
+				{
+					"name": "ブラッドスライム",
+					"col": 0,
+					"row": 0
+				},
+				{
+					"name": "ブラッドスライム",
+					"col": 0,
+					"row": 1
+				},
+				{
+					"name": "ブラッドスライム",
+					"col": 0,
+					"row": 2
+				},
+				{
+					"name": "マッドスライム",
+					"col": 1,
+					"row": 0
+				},
+				{
+					"name": "マッドスライム",
+					"col": 1,
+					"row": 1
+				},
+				{
+					"name": "マッドスライム",
+					"col": 1,
+					"row": 2
+				}
+			]
+		},
+		"act1_elite_beast": {
+			"display": "エリート獣部隊",
+			"race_theme": "beast",
+			"act": 1,
+			"tier": "elite",
+			"description": "エリート戦用の強化獣編成",
+			"units": [
+				{
+					"name": "タイガー",
+					"col": 0,
+					"row": 0
+				},
+				{
+					"name": "タイガー",
+					"col": 0,
+					"row": 1
+				},
+				{
+					"name": "ワイルドホーク",
+					"col": 0,
+					"row": 2
+				},
+				{
+					"name": "ウルフ",
+					"col": 1,
+					"row": 0
+				},
+				{
+					"name": "ウルフ",
+					"col": 1,
+					"row": 1
+				},
+				{
+					"name": "ウルフ",
+					"col": 1,
+					"row": 2
+				}
+			]
+		},
+		"act1_elite_undead": {
+			"display": "エリート不死部隊",
+			"race_theme": "undead",
+			"act": 1,
+			"tier": "elite",
+			"description": "エリート戦用の強化アンデッド編成",
+			"units": [
+				{
+					"name": "バンシー",
+					"col": 0,
+					"row": 0
+				},
+				{
+					"name": "バンシー",
+					"col": 0,
+					"row": 1
+				},
+				{
+					"name": "リッチ",
+					"col": 0,
+					"row": 2
+				},
+				{
+					"name": "グール",
+					"col": 1,
+					"row": 0
+				},
+				{
+					"name": "グール",
+					"col": 1,
+					"row": 1
+				},
+				{
+					"name": "グール",
+					"col": 1,
+					"row": 2
+				}
+			]
+		}
+	}
+}

@@ -5,7 +5,6 @@ extends Node
 const BoardManagerScript   = preload("res://scripts/BoardManager.gd")
 const DeckManagerScript    = preload("res://scripts/DeckManager.gd")
 const EnemyAIScript        = preload("res://scripts/EnemyAI.gd")
-const EventQueueScript     = preload("res://scripts/EventQueue.gd")
 const SpellExecutorScript  = preload("res://scripts/SpellExecutor.gd")
 var EffectExecutorScript = null  # 遅延ロード（preloadだとコンパイル時にフリーズ）
 
@@ -84,8 +83,7 @@ func _ready() -> void:
 		_run_autotest()
 		return
 
-	var event_queue = Node.new()
-	event_queue.set_script(EventQueueScript)
+	var event_queue = EventQueue.new()
 	add_child(event_queue)
 
 	board_manager = Node.new()
@@ -183,8 +181,7 @@ func _run_autotest() -> void:
 	autotest.set_script(AutoTestScript)
 	add_child(autotest)
 	# 通常の初期化は継続（テストに必要なため）
-	var event_queue = Node.new()
-	event_queue.set_script(EventQueueScript)
+	var event_queue = EventQueue.new()
 	add_child(event_queue)
 
 # ---- 盤面合成レジストリ ----
@@ -195,7 +192,7 @@ func _build_synthesis_registry() -> void:
 		var u = UnitDataScript.new()
 		u.unit_name = recipe["result"]
 		u.max_hp = r["hp"]; u.current_hp = r["hp"]
-		u.attack = r["atk"]; u.attack_interval = r["interval"]
+		u.attack = r["atk"]; u.spd = r["spd"]
 		u.mana = r["mana"]; u.assigned_col = r["col"]
 		u.race = r.get("race", "スライム")
 		u.attack_range = r.get("range", "1行")
@@ -266,12 +263,14 @@ func _apply_battle_config() -> void:
 
 func _place_initial_units() -> void:
 	# v2設計: GameSession.initial_unitsを盤面に配置
-	if GameSession.initial_units.is_empty():
+	# ツールモード: tool_placement_playerを使用
+	var placement_data = GameSession.tool_placement_player if GameSession._is_tool_mode else GameSession.initial_units
+	if placement_data.is_empty():
 		print("[Main] 初期配置ユニットなし")
 		return
 
 	var UnitDataScript = load("res://scripts/UnitData.gd")
-	for unit_info in GameSession.initial_units:
+	for unit_info in placement_data:
 		if unit_info == null:
 			continue
 
@@ -293,7 +292,7 @@ func _place_initial_units() -> void:
 		unit.max_hp = unit_data["hp"]
 		unit.current_hp = unit_data["hp"]
 		unit.attack = unit_data["atk"]
-		unit.attack_interval = unit_data["interval"]
+		unit.spd = unit_data["spd"]
 		unit.mana = unit_data["mana"]
 		unit.race = unit_data["race"]
 		unit.attack_range = unit_data["range"]
@@ -304,6 +303,11 @@ func _place_initial_units() -> void:
 		print("[Main] 初期配置: %s → (%d, %d)" % [unit_name, row, col])
 
 func _place_enemy_initial_units() -> void:
+	# ツールモード: tool_placement_enemyを使用
+	if GameSession._is_tool_mode:
+		_place_tool_enemy_units()
+		return
+
 	# v2設計: 敵のenemy_deckから全ユニットを初期配置として盤面に展開
 	if enemy_ai.enemy_deck.is_empty():
 		print("[Main] 敵デッキが空です")
@@ -360,6 +364,46 @@ func _place_enemy_initial_units() -> void:
 	enemy_ai.MANA_MAX = total_cost
 	enemy_ai.mana = 0.0
 	print("[Main] 敵初期配置完了: %d体配置、総コスト%.1f、デッキ残り%d枚" % [placed_count, total_cost, remaining_cards.size()])
+
+func _place_tool_enemy_units() -> void:
+	# ツールモード: tool_placement_enemyを盤面に配置
+	var placement_data = GameSession.tool_placement_enemy
+	if placement_data.is_empty():
+		print("[Main] ツールモード: 敵初期配置ユニットなし")
+		return
+
+	var UnitDataScript = load("res://scripts/UnitData.gd")
+	for unit_info in placement_data:
+		if unit_info == null:
+			continue
+
+		var unit_name = unit_info.get("name", "")
+		var row = unit_info.get("row", -1)
+		var col = unit_info.get("col", -1)
+
+		if not CardDB.UNITS.has(unit_name):
+			print("[Main] ツール敵配置エラー: %s はユニットDBに存在しない" % unit_name)
+			continue
+
+		if row < 0 or row > 2 or col < 0 or col > 2:
+			print("[Main] ツール敵配置エラー: %s の座標が不正 (row=%d, col=%d)" % [unit_name, row, col])
+			continue
+
+		var unit_data = CardDB.UNITS[unit_name]
+		var unit = UnitDataScript.new()
+		unit.unit_name = unit_name
+		unit.max_hp = unit_data["hp"]
+		unit.current_hp = unit_data["hp"]
+		unit.attack = unit_data["atk"]
+		unit.spd = unit_data["spd"]
+		unit.mana = unit_data["mana"]
+		unit.race = unit_data["race"]
+		unit.attack_range = unit_data["range"]
+		unit.skills = unit_data.get("skills", []).duplicate(true)
+		unit.card_type = "unit"
+
+		board_manager.place_unit(1, unit, {"row": row, "col": col})
+		print("[Main] ツール敵配置: %s → (%d, %d)" % [unit_name, row, col])
 
 func _apply_alert_modifiers() -> void:
 	# 警戒システム: 敵デッキ加工・盤面効果付与
@@ -618,7 +662,12 @@ func _on_battle_timeout() -> void:
 
 func _transition_to_result_timer() -> void:
 	var timer = get_tree().create_timer(2.0)
-	timer.timeout.connect(func(): SceneManager.go_to(SceneManager.RESULT))
+	if GameSession._is_tool_mode:
+		# ツールモード: 結果をGameSessionに保存してツール画面に戻る
+		GameSession.tool_last_result = GameSession.last_result.duplicate()
+		timer.timeout.connect(func(): SceneManager.go_to(SceneManager.DECK_TEST_TOOL))
+	else:
+		timer.timeout.connect(func(): SceneManager.go_to(SceneManager.RESULT))
 
 # ---- シグナルハンドラ ----
 func _on_unit_placed(side: int, row: int, col: int, _unit: Object) -> void:
@@ -861,7 +910,7 @@ func _apply_stat_buff_to_units(artifact_name: String, target: String, stat: Stri
 					"atk":
 						unit.attack += value
 					"spd":
-						unit.attack_interval = max(0.1, unit.attack_interval - value)
+						unit._interval_bonus += value  # 攻撃間隔を短縮（速度を上げる）
 
 				count += 1
 
@@ -884,3 +933,9 @@ func _on_draw_cards_requested(side: int, count: int) -> void:
 			deck_manager.force_play_card(board_manager)
 		else:
 			enemy_ai.force_play_card(board_manager)
+
+# RestScreen遷移（Phase 1基盤構築用）
+func start_rest_screen() -> void:
+	var rest_manager = preload("res://scripts/RestScreenManager.gd").new()
+	rest_manager.initialize(GameSession, board_manager)
+	add_child(rest_manager)

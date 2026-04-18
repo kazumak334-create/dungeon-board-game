@@ -1,4 +1,42 @@
+
 # CHANGELOG
+## 2026-04-18
+
+### 警戒レベルシステム仕様変更（Phase 3 #27）
+
+**仕様変更**
+- 警戒レベル最大値を5→3に変更
+- 変動ルール統一: 戦闘+1、イベント/レスト-1（旧: レスト-2）
+- 警戒レベルによる敵強化はPhase 4バランス調整フェーズで実装予定
+
+**変更ファイル**
+- GameSession.gd: MAX_ALERT_LEVEL = 3 に変更
+- MapSelect.gd: レストノード選択時の警戒減少を-1に統一
+
+**備考**
+- roadmap.md Phase 3に#27追加、#23備考欄更新
+- コミット: 未コミット
+
+### RestScreen実装進捗（Phase 4 #0b）
+
+**Phase 1完了: 基盤構築**
+- RestScreenManager.gd作成
+- 基本的な画面構造の確立
+
+**Phase 2完了: デッキ編集機能**
+- BoardManager.gd拡張（RestScreen用モード追加）
+- 手持ちカードエリア実装
+- カードドラッグ&ドロップ対応
+
+**残作業（Phase 3-5）**
+- Phase 3: ショップ機能実装
+- Phase 4: ユニット復帰システム
+- Phase 5: 右パネルUI、画面遷移統合
+
+**備考**
+- roadmap.md Phase 4 #0bステータス更新（未着手→進行中）
+- TaskList #20に対応
+
 
 ## 2026-04-13
 
@@ -477,3 +515,22 @@
 
 ### ユニット調整
 - キングスライム：auto_promote対応（前列空きで自動昇格）
+
+## 2026-04-18
+
+### Phase 4 #21（#0c）SpellSlotSystem v2（キュー式）実装完了
+
+**実装内容**（7a96ab6）
+- 3スロット並列条件監視システム（v1既存機能維持）
+- 右クリック破棄機能追加
+  - SpellSlotSystem.gd: discard_slot()メソッド追加（Lines 305-316）
+  - GameUI.gd: 右クリック検出実装（Lines 634-641）
+- 発動条件満たした際の自動発動（v1既存機能）
+
+**次タスク**
+- Phase 4 #0系列（継続ウェーブ型転換）残タスク
+  - #0: 残論点確定（pve_wave_pending_issues.md 11項目）
+  - #0a: WaveManager実装
+  - #0b: RestScreen実装
+  - #0d: UnitReviveManager実装
+  - #0e: 素材ドロップ判定ロジック

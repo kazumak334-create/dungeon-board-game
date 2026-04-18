@@ -98,5 +98,30 @@ func execute(effect_id: String, params: Dictionary, context: Dictionary) -> void
 		"conditional_buff": pass  # SupportSystem._apply_class_skillsで処理
 		"hp_pct_buff":      pass  # BoardManager.place_unitで処理
 		"base_damage_reduce": pass  # EventQueue.base_damage処理で処理
+		# ---- Phase 5新規type ----
+		"debuff_amplify":          _actions.do_debuff_amplify(merged, ctx)
+		"execute_threshold":       _actions.do_execute_threshold(merged, ctx)
+		"hp_percent_damage":       _actions.do_hp_percent_damage(merged, ctx)
+		"skill_disable":           _actions.do_skill_disable(merged, ctx)
+		"position_swap":           _actions.do_position_swap(merged, ctx)
+		"support_disable":         _actions.do_support_disable(merged, ctx)
+		"position_shuffle":        _actions.do_position_shuffle(merged, ctx)
+		"initial_swap":            _actions.do_initial_swap(merged, ctx)
+		"heal_percent":            _actions.do_heal_percent(merged, ctx)
+		"heal_front_percent":      _actions.do_heal_front_percent(merged, ctx)
+		"full_hp_defense":         pass  # CombatSystem._do_attackで処理
+		"damage_accumulate":       pass  # CombatSystem._do_attack + EventQueue.damageで処理
+		"hp_equalize":             _actions.do_hp_equalize(merged, ctx)
+		"front_spd_reduce":        _actions.do_front_spd_reduce(merged, ctx)
+		"self_damage_attack":      _actions.do_self_damage_attack(merged, ctx)
+		"ally_death_penalty":      _actions.do_ally_death_penalty(merged, ctx)
+		"heal_to_damage":          _actions.do_heal_to_damage(merged, ctx)
+		"curse_heal_reduce":       pass  # TickSystem._apply_regenで処理
+		"buff_to_curse":           _actions.do_buff_to_curse(merged, ctx)
+		"extended_range":          pass  # CombatSystem._do_attackで処理
+		"mana_gen_trigger":        _actions.do_mana_gen_trigger(merged, ctx)
+		"thorn_damage_all":        _actions.do_thorn_damage_all(merged, ctx)
+		"mana_flare_damage":       _actions.do_mana_flare_damage(merged, ctx)
+		"revive_on_death":         pass  # EventQueue.death_eventsで処理（既存）
 		_:
 			print("[EffectExecutor] 未実装type: %s (effect_id: %s)" % [merged.get("type", "?"), effect_id])

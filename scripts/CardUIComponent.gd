@@ -51,7 +51,13 @@ static func create_unit_card(card_name: String, unit_data: Dictionary, width: fl
 	header.add_child(cost_lbl)
 
 	var name_lbl = Label.new()
-	name_lbl.text = card_name
+	# en_nameを使用（未設定の場合はcard_nameをそのまま表示）
+	var display_name = card_name
+	if CardDB.UNITS.has(card_name):
+		display_name = CardDB.UNITS[card_name].get("en_name", card_name)
+	elif CardDB.SPELLS.has(card_name):
+		display_name = CardDB.SPELLS[card_name].get("en_name", card_name)
+	name_lbl.text = display_name
 	name_lbl.add_theme_font_size_override("font_size", 13)
 	name_lbl.add_theme_color_override("font_color", Color(0.95, 0.92, 0.8))
 	name_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -67,7 +73,8 @@ static func create_unit_card(card_name: String, unit_data: Dictionary, width: fl
 
 	# サブステータス
 	var stats_lbl = Label.new()
-	stats_lbl.text = "ATK:%d  SPD:%.1fs" % [unit_data.get("atk", 0), unit_data.get("interval", 0)]
+	var _UnitDataScript = load("res://scripts/UnitData.gd")
+	stats_lbl.text = "ATK:%d  SPD:%.1fs" % [unit_data.get("atk", 0), _UnitDataScript.SPD_SCALE / unit_data.get("spd", 1.0)]
 	stats_lbl.add_theme_font_size_override("font_size", 10)
 	stats_lbl.add_theme_color_override("font_color", Color(0.6, 0.65, 0.7))
 	vbox.add_child(stats_lbl)
@@ -182,7 +189,13 @@ static func create_spell_card(card_name: String, spell_data: Dictionary, width: 
 	header.add_child(cost_lbl)
 
 	var name_lbl = Label.new()
-	name_lbl.text = card_name
+	# en_nameを使用（未設定の場合はcard_nameをそのまま表示）
+	var display_name = card_name
+	if CardDB.UNITS.has(card_name):
+		display_name = CardDB.UNITS[card_name].get("en_name", card_name)
+	elif CardDB.SPELLS.has(card_name):
+		display_name = CardDB.SPELLS[card_name].get("en_name", card_name)
+	name_lbl.text = display_name
 	name_lbl.add_theme_font_size_override("font_size", 13)
 	name_lbl.add_theme_color_override("font_color", Color(0.8, 0.85, 1.0))
 	name_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL

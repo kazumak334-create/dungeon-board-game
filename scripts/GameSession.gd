@@ -67,14 +67,32 @@ var selected_boss_id: String = ""    # 選択したボスID
 var current_event_id: String = ""    # 現在表示中のイベントID
 var visited_events: Array = []       # 既に発生したイベントID（1ラン中に同じイベントは2回出ない）
 var last_scene: String = ""          # 直前のシーン名（戻るボタン用）
-var alert_level: int = 0             # 警戒レベル（戦闘マス選択で+1、レストで-2）
+var alert_level: int = 0             # 警戒レベル（MAX 3、戦闘で+1、イベントで-1）
 var elite_injected_in_battle: bool = false  # エリート混入済みフラグ（報酬選択肢+1用）
+
+# Wave進行管理（Phase 4 #0-0a）
+var wave_current_big: int = 0       # 現在の大Wave（1-3）
+var wave_current_small: int = 0     # 現在の小Wave（1-7 or 8=ボス）
+var wave_mana_carryover: float = 0.0  # 小Wave間のマナ持ち越し
+var wave_board_snapshot: Dictionary = {}  # 小Wave間の盤面スナップショット
 
 # Godモードフラグ（デバッグUI専用）
 var god_mode_invincible: bool = false     # 無敵モード
 var god_mode_infinite_mana: bool = false  # マナ無限
 var god_mode_infinite_time: bool = false  # 時間無限
 var god_mode_auto_win: bool = false       # 必ず勝利
+
+# デッキテストツール用フィールド
+var _is_tool_mode: bool = false           # ツールモードフラグ
+var tool_deck_player: Array = []          # 自軍デッキ（ユニット+呪文）
+var tool_deck_enemy: Array = []           # 敵軍デッキ（ユニット+呪文）
+var tool_placement_player: Array = []     # 自軍初期配置（9マス）
+var tool_placement_enemy: Array = []      # 敵軍初期配置（9マス）
+var tool_rng_seed: int = -1               # 乱数シード（-1=ランダム）
+var tool_battle_speed: float = 1.0        # バトル速度（1.0/2.0/999.0）
+var tool_battle_count: int = 1            # バトル回数（統計用）
+var _synergy_log: Dictionary = {}         # シナジー発動ログ {name: count}
+var tool_last_result: Dictionary = {}     # ツール用結果データ
 
 func reset() -> void:
 	battle_config = get_default_battle_config()
@@ -116,9 +134,25 @@ func reset() -> void:
 	last_scene = ""
 	alert_level = 0
 	elite_injected_in_battle = false
+	# Wave進行管理
+	wave_current_big = 0
+	wave_current_small = 0
+	wave_mana_carryover = 0.0
+	wave_board_snapshot = {}
 	# Godモードフラグはreset時にクリア
 	god_mode_invincible = false
 	god_mode_infinite_mana = false
 	god_mode_infinite_time = false
 	god_mode_auto_win = false
+	# ツールモードフラグはreset時にクリア
+	_is_tool_mode = false
+	tool_deck_player = []
+	tool_deck_enemy = []
+	tool_placement_player = []
+	tool_placement_enemy = []
+	tool_rng_seed = -1
+	tool_battle_speed = 1.0
+	tool_battle_count = 1
+	_synergy_log = {}
+	tool_last_result = {}
 	print("[GameSession] reset")

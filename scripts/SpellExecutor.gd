@@ -37,11 +37,10 @@ func execute(spell: Object, side: int, board_manager: Node,
 			if target != null:
 				var hp_cost: int = max(1, target.max_hp * 30 / 100)
 				target.current_hp = max(1, target.current_hp - hp_cost)
-				target.lifesteal_stacks += 10  # 吸血10スタック付与（2秒ごと-1で約20秒持続）
 
 		"戦場の鼓動":
 			for u in _get_all_units(side, board_manager):
-				u._temp_spd_bonus = u.attack_interval * 0.5
+				u._temp_spd_bonus = u.get_attack_interval() * 0.5
 				u._temp_spd_timer = 5.0
 
 		"急召":
@@ -99,7 +98,7 @@ func execute(spell: Object, side: int, board_manager: Node,
 
 		"全体再生":
 			for u in _get_all_units(side, board_manager):
-				u._regen_stacks += 1
+				u.regen_stacks += 1
 
 		# ---- 相手弱体・環境操作系 ----
 		"泥の鎧":
@@ -286,7 +285,6 @@ func _inject_status_card(deck_mgr: Node, card_name: String) -> void:
 			card.skills = [{"trigger": "on_play", "effect_id": "burn_apply", "params": {"target": "random_ally", "stacks": 2}}]
 		"麻痺カード":
 			card.spell_effect = "味方ランダム1体に麻痺2付与"
-			card.skills = [{"trigger": "on_play", "effect_id": "paralysis_apply", "params": {"target": "random_ally", "stacks": 2}}]
 	var pos: int = randi() % max(1, deck_mgr.deck.size() + 1)
 	deck_mgr.deck.insert(pos, card)
 
@@ -331,7 +329,7 @@ func _move_random_enemy(enemy_side: int, bm: Node) -> void:
 	if bm.board[enemy_side][new_row][pick["col"]] != null:
 		return
 	bm.board[enemy_side][new_row][pick["col"]] = pick["unit"]
-	bm.attack_timers[enemy_side][new_row][pick["col"]] = pick["unit"].attack_interval
+	bm.attack_timers[enemy_side][new_row][pick["col"]] = pick["unit"].get_attack_interval()
 	bm.board[enemy_side][pick["row"]][pick["col"]] = null
 	bm.attack_timers[enemy_side][pick["row"]][pick["col"]] = 0.0
 	bm.on_board_changed()
@@ -356,7 +354,7 @@ func _push_front_to_back(enemy_side: int, bm: Node) -> void:
 		var u = bm.board[enemy_side][r][front]
 		if u != null and bm.board[enemy_side][r][back] == null:
 			bm.board[enemy_side][r][back] = u
-			bm.attack_timers[enemy_side][r][back] = u.attack_interval
+			bm.attack_timers[enemy_side][r][back] = u.get_attack_interval()
 			bm.board[enemy_side][r][front] = null
 			bm.attack_timers[enemy_side][r][front] = 0.0
 			bm.on_board_changed()
