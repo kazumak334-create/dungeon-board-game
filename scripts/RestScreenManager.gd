@@ -28,6 +28,7 @@ var game_session: Node
 var ui_root: Control
 var right_panel: Panel
 var hand_area: HBoxContainer
+var shop: Node
 
 var rest_state: Dictionary = {
 	"mode": RestMode.NONE,
@@ -64,6 +65,12 @@ func build_ui() -> void:
 	if board_manager:
 		board_manager.set_position(Vector2(LAYOUT.player_board.x, LAYOUT.player_board.y))
 		ui_root.add_child(board_manager)
+
+	# 3.5. ショップ盤面
+	shop = preload("res://scripts/RestScreenShop.gd").new()
+	add_child(shop)
+	shop.initialize(game_session, ui_root)
+	shop.purchase_completed.connect(_on_shop_purchase_completed)
 
 	# 4. 右パネル
 	right_panel = Panel.new()
@@ -177,8 +184,18 @@ func create_card_view(card_data: Dictionary, card_name: String) -> Control:
 
 	return card_container
 
+# ショップ購入完了コールバック
+func _on_shop_purchase_completed(card_id: String, new_gold: int) -> void:
+	rest_state.gold = new_gold
+	# 手持ちカードエリア再構築
+	for child in hand_area.get_children():
+		child.queue_free()
+	build_hand_area()
+
 # クリーンアップ
 func cleanup() -> void:
+	if shop:
+		shop.cleanup()
 	if ui_root:
 		ui_root.queue_free()
 	queue_free()
