@@ -2,6 +2,23 @@
 # CHANGELOG
 ## 2026-04-19
 
+### CheckAgent検証：次Wave開始時アニメーション（Phase 5 #0f step 2-3）
+
+**検証結果**
+- ✅ `_on_wave_started()` に `await _animate_wave_start()` 追加（L975）
+- ✅ `_animate_wave_start()` 関数実装（L1037-1055）
+  - is_animating = true/false 設定
+  - 暗転・敵配置・暗転明け・スライドイン・睨み合い（1.5秒）の順序
+- ✅ 補助関数4つ実装（L1057-1097）
+  - `_animate_fade_to_black()`
+  - `_animate_fade_from_black()`
+  - `_position_enemies_offscreen()`
+  - `_animate_enemy_slidein()`
+- ✅ 実装プロンプトとの完全一致を確認
+
+**備考**
+- コミット: 未コミット
+
 ### CheckAgent検証：自軍ユニット前進アニメーション（Phase 5 #0f step 2-2）
 
 **検証結果**
