@@ -956,6 +956,7 @@ func _on_draw_cards_requested(side: int, count: int) -> void:
 func start_rest_screen() -> void:
 	var rest_manager = preload("res://scripts/RestScreenManager.gd").new()
 	rest_manager.initialize(GameSession, board_manager)
+	rest_manager.rest_screen_closed.connect(_on_rest_screen_closed)
 	add_child(rest_manager)
 
 func _on_rest_screen_closed() -> void:

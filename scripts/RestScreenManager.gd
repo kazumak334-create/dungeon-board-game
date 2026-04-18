@@ -2,6 +2,8 @@ extends Node
 
 # RestScreen全体の制御・UI構築・状態管理
 
+signal rest_screen_closed
+
 # 座標定義（要件定義書 5.1準拠）
 const LAYOUT = {
 	"header": {"x": 0, "y": 0, "w": 1280, "h": 36},
@@ -458,14 +460,7 @@ func _show_validation_error(msg: String) -> void:
 
 # WaveManagerへ遷移
 func _transition_to_next_wave() -> void:
-	# Main.gd の _on_rest_screen_closed() を呼び出す
-	var main = get_tree().get_root().get_node_or_null("Main")
-	if main and main.has_method("_on_rest_screen_closed"):
-		main._on_rest_screen_closed()
-	else:
-		# フォールバック: GameSession.wave_rest_pending をクリア
-		if game_session:
-			game_session.wave_rest_pending = false
+	rest_screen_closed.emit()
 	cleanup()
 
 # クリーンアップ
