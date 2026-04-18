@@ -29,6 +29,7 @@ var ui_root: Control
 var right_panel: Panel
 var hand_area: HBoxContainer
 var shop: Node
+var revive: Node
 
 var rest_state: Dictionary = {
 	"mode": RestMode.NONE,
@@ -71,6 +72,12 @@ func build_ui() -> void:
 	add_child(shop)
 	shop.initialize(game_session, ui_root)
 	shop.purchase_completed.connect(_on_shop_purchase_completed)
+
+	# 3.6. ユニット復帰
+	revive = preload("res://scripts/RestScreenRevive.gd").new()
+	add_child(revive)
+	revive.initialize(game_session, ui_root)
+	revive.revive_completed.connect(_on_revive_completed)
 
 	# 4. 右パネル
 	right_panel = Panel.new()
@@ -130,19 +137,14 @@ func build_hand_area() -> void:
 		print("[RestScreenManager] GameSession未設定")
 		return
 
-	# selected_deckを読み込み
-	var deck: Array = game_session.selected_deck
-	if deck.size() == 0:
-		print("[RestScreenManager] selected_deckが空")
-		return
-
 	# CardDBからユニットデータ取得
 	var card_db = get_node_or_null("/root/CardDB")
 	if not card_db:
 		print("[RestScreenManager] CardDB未取得")
 		return
 
-	# 各カードのCardView作成
+	# selected_deckを読み込み（生存ユニット）
+	var deck: Array = game_session.selected_deck
 	for card_name in deck:
 		if not card_db.UNITS.has(card_name):
 			print("[RestScreenManager] カード未登録: %s" % card_name)
@@ -152,7 +154,22 @@ func build_hand_area() -> void:
 		var card_view = create_card_view(card_data_dict, card_name)
 		hand_area.add_child(card_view)
 
-	print("[RestScreenManager] 手持ちカード %d枚表示" % deck.size())
+	# 死亡ユニットを表示（revivable_units から）
+	if revive and revive.revivable_units.size() > 0:
+		for revivable_unit in revive.revivable_units:
+			var unit_name: String = revivable_unit.unit_name
+			if not card_db.UNITS.has(unit_name):
+				continue
+
+			var card_data_dict: Dictionary = card_db.UNITS[unit_name]
+			var card_view = create_card_view(card_data_dict, unit_name)
+
+			# 復帰ボタンを追加
+			var revive_button = revive.create_revive_button(card_view, revivable_unit)
+
+			hand_area.add_child(card_view)
+
+	print("[RestScreenManager] 手持ちカード %d枚 + 死亡ユニット %d体表示" % [deck.size(), revive.revivable_units.size() if revive else 0])
 
 # CardView作成
 func create_card_view(card_data: Dictionary, card_name: String) -> Control:
@@ -192,10 +209,20 @@ func _on_shop_purchase_completed(card_id: String, new_gold: int) -> void:
 		child.queue_free()
 	build_hand_area()
 
+# ユニット復帰完了コールバック
+func _on_revive_completed(unit_name: String, new_gold: int) -> void:
+	rest_state.gold = new_gold
+	# 手持ちカードエリア再構築
+	for child in hand_area.get_children():
+		child.queue_free()
+	build_hand_area()
+
 # クリーンアップ
 func cleanup() -> void:
 	if shop:
 		shop.cleanup()
+	if revive:
+		revive.cleanup()
 	if ui_root:
 		ui_root.queue_free()
 	queue_free()

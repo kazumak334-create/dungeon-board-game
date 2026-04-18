@@ -35,8 +35,14 @@
 - 購入可否による枠線色変更（緑=購入可、赤=資金不足、灰=売却済）
 - RestScreenManager.gd統合（購入完了シグナル連携）
 
-**残作業（Phase 4-5）**
-- Phase 4: ユニット復帰システム
+**Phase 4完了: ユニット復帰システム**
+- RestScreenRevive.gd作成（143行）
+- wave_dead_unitsから死亡ユニット検索
+- 復帰コスト計算（rarity_price × 0.3）
+- 復帰ボタン生成・クリック処理（gold減算、selected_deck追加、wave_dead_units削除）
+- RestScreenManager.gd統合（build_hand_area拡張、復帰完了シグナル連携）
+
+**残作業（Phase 5）**
 - Phase 5: 右パネルUI、画面遷移統合
 
 **備考**
