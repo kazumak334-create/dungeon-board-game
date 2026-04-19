@@ -2,6 +2,23 @@
 # CHANGELOG
 ## 2026-04-19
 
+### CheckAgent検証：WaveManager改修 + ショップUI 3段構成化（Phase 5 #0f step 2-4～2-7）
+
+**検証対象**
+- scripts/WaveManager.gd（SHOP_TRIGGER_WAVES、intermission_requested、_build_shop_config、resume_from_intermission）
+- scripts/Main.gd（intermission_requested接続、start_rest_screen引数、_on_intermission_requested）
+- scripts/RestScreenManager.gd（DEFAULT_SHOP_CONFIG、_shop_config正規化、initialize引数）
+- scripts/RestScreenShop.gd（TIER定数、DUMMY_MATERIALS、3段抽選、ダミー素材分岐、_get_cell_position変更）
+
+**検証結果**
+- ✅ 全項目実装プロンプト通り
+- ✅ 旧シグナル名（rest_screen_requested）削除確認
+- ✅ 旧メソッド名（resume_from_rest）削除確認
+- ✅ 修正不要
+
+**備考**
+- コミット: 未コミット
+
 ### CheckAgent検証：次Wave開始時アニメーション（Phase 5 #0f step 2-3）
 
 **検証結果**
