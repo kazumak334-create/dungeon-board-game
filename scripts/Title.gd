@@ -4,7 +4,7 @@ extends Control
 
 const TaskbarClass = preload("res://scripts/CommonTaskbar.gd")
 
-var _taskbar: RefCounted = null
+var _taskbar: Node = null
 var _selected_class_id: String = ""
 var _class_buttons: Dictionary = {}
 var _description_label: Label

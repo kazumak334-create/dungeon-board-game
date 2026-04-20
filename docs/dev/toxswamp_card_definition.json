@@ -1,0 +1,24 @@
+{
+	"Toxswamp": {
+		"card_type": "spell",
+		"mana": 5,
+		"display": "毒沼",
+		"effect": "自陣・敵陣の前列全マスを毒沼状態にする",
+		"is_consumable": true,
+		"persistence": "permanent",
+		"rarity": "common",
+		"texture": "",
+		"anim": "",
+		"sfx": "",
+		"skills": [
+			{
+				"trigger": "on_cast",
+				"effect_id": "tile_set_all",
+				"params": {
+					"scope": "front_columns",
+					"tile_id": "tile_poison"
+				}
+			}
+		]
+	}
+}

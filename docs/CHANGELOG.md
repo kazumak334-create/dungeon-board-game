@@ -1,6 +1,79 @@
 
 # CHANGELOG
+## 2026-04-20
+
+### 64枚新規カード用effect_id 30個実装（Phase 4基盤）
+
+**実装内容**
+- EffectDB.gd: 30個の新規effect_id定義追加
+  - x_stack_add, atk_apply, burn_by_status_count, curse_multiply, damage_by_x, mana_steal, position_swap_front_back, crit_mult_boost 等
+- EffectActions.gd: 21個のdo_*関数実装（732行追加）
+  - do_damage_by_x, do_curse_multiply, do_buff_steal_all, do_burn_by_status_count 等
+- 仕様修正3件:
+  - position_swap_front_back: 呪い最大優先に変更
+  - on_ally_death_thorn_boost: 効果B実装（死亡数倍率）
+  - tile_set_all: scope="front_columns"対応
+- cards.json: Toxswamp呪文追加（前列毒沼設置）
+- UnitData.gd: _ally_death_countフィールド追加
+
+**テスト修正**
+- TestBattleScenario.gd: スケルトン参照削除
+- TestGameSystem.gd / TestDeckPrepLayout.gd: シグネチャエラー修正（r: Node → r: RefCounted）
+- TestSession.gd: DeckPrep.tscnスキップ追加
+
+**検証結果**
+- ✅ 構文チェックパス
+- ✅ テスト全件成功（4665件）
+- ✅ JSON構文正常
+
+**備考**
+- コミット: 24a6ffe
+- 影響範囲: Phase 4 #1-#3（上位ユニット・呪文追加）の基盤実装完了
+
 ## 2026-04-19
+
+### UI継承チェックスクリプト作成
+
+**作成ファイル**
+- check_ui_inheritance.sh（UI操作を行うRefCountedクラスを自動検知）
+- docs/dev/ui_inheritance_check.md（使い方・修正方法ドキュメント）
+
+**統合**
+- check_syntax.sh に統合（構文チェック後に自動実行）
+
+**検出した問題**
+- 8ファイルが RefCounted を継承しつつ UI操作を実行
+  - CardUIComponent.gd
+  - DeckPrepBoard.gd
+  - DeckPrepBoardSpells.gd
+  - DeckPrepInfo.gd
+  - DeckPrepRightPanel.gd
+  - DeckPrepSidebar.gd
+  - DevUI.gd
+  - UIFactory.gd
+
+**備考**
+- コミット: 未コミット
+- 問題修正は別タスク（全て extends Control への変更が必要）
+
+### Phase 4 #0a WaveManager実装完了 + UI改修
+
+**実装内容**
+- WaveManager.gd（275行）新規作成: Wave進行管理、小Wave間状態保存、BW休憩遷移
+- ProgressBar.gd（61行）新規作成: Wave進行バー7マス表示（戦闘4区間+ショップ3）
+- DeckPrepPopup.gd（45行）新規作成: Battle内ポップアップとしてデッキ編集
+- 画面遷移フロー変更: InitialCardPick→BATTLE直行（DeckPrep独立画面廃止）
+- シグナル整合性修正: wave_started/wave_ended/big_wave_completedシグナル実装
+- BoardManager.gd: record_dead_unit引数修正（4引数対応）
+- 継承エラー修正: WaveManager extends Node（RefCountedから変更）
+
+**検証結果**
+- ✅ 構文チェックパス
+- ✅ エラー0件（75件→0件）
+- ✅ 全シグナル接続正常
+
+**備考**
+- コミット: 未コミット
 
 ### CheckAgent検証：WaveManager改修 + ショップUI 3段構成化（Phase 5 #0f step 2-4～2-7）
 

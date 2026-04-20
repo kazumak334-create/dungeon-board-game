@@ -7,8 +7,13 @@ session_check.py
 
 import os
 import re
+import sys
 from pathlib import Path
 from datetime import datetime, timedelta
+
+# Windows環境でUTF-8出力を保証
+if sys.platform == "win32":
+    sys.stdout.reconfigure(encoding='utf-8')
 
 # リポジトリルート
 REPO_ROOT = Path(__file__).resolve().parent.parent

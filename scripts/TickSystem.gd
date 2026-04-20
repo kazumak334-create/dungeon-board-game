@@ -99,7 +99,7 @@ func init_skill_timers(unit: Object) -> void:
 			var interval: float = skill["params"]["interval"]
 			if interval > 0.0:
 				unit._skill_timers["support_" + str(i)] = interval
-	# 旧方式passive_skill文字列パース（時間経過）は削除済み。timer triggerをskills配列で処理。
+	# 旧方式は削除済み。timer triggerをskills配列で処理。
 
 func _parse_skill_interval(entry: String) -> float:
 	var marker: String = "時間経過"
@@ -206,7 +206,7 @@ func _check_hp_thresholds() -> void:
 				var u = bm.board[s][r][c]
 				if u == null or not u.is_alive():
 					continue
-				# 旧方式passive_skill文字列パースは削除済み
+				# 旧方式は削除済み
 				# skills配列のon_hp_threshold処理（新方式）
 				for i in range(u.skills.size()):
 					var skill = u.skills[i]

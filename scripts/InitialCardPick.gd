@@ -18,7 +18,7 @@ var _initial_deck_counts: Dictionary = {}
 var _same_race_pool: Array = []
 
 # UI参照
-var _taskbar: RefCounted = null
+var _taskbar: Node = null
 var _pick_dots: Array = []
 var _pick_label: Label = null
 var _card_views: Array = []
@@ -41,7 +41,7 @@ func _build_ui() -> void:
 	_build_progress_bar()
 	_build_card_choices()
 	_build_picked_area()
-	_build_confirm_button()
+	_build_random_button()
 
 func _build_progress_bar() -> void:
 	var dot_w: int = 12
@@ -113,14 +113,13 @@ func _build_picked_area() -> void:
 		_picked_slots.append(slot)
 		_picked_mini_cards.append(null)
 
-func _build_confirm_button() -> void:
-	_confirm_button = Button.new()
-	_confirm_button.text = "冒険を始める"
-	_confirm_button.position = Vector2(540, 635)
-	_confirm_button.size = Vector2(200, 40)
-	_confirm_button.modulate.a = 0.0
-	_confirm_button.pressed.connect(_on_confirm_pressed)
-	add_child(_confirm_button)
+func _build_random_button() -> void:
+	var random_button = Button.new()
+	random_button.text = "残りをランダム選択"
+	random_button.position = Vector2(540, 635)
+	random_button.size = Vector2(200, 40)
+	random_button.pressed.connect(_on_random_all_pressed)
+	add_child(random_button)
 func _init_card_pool() -> void:
 	var cls = CardDB.CLASSES.get(GameSession.class_id, {})
 	var initial_deck = cls.get("initial_deck", [])
@@ -335,8 +334,9 @@ func _confirm_card(idx: int) -> void:
 					border.queue_free()
 			_select_borders.clear()
 
-			var btn_tween = create_tween()
-			btn_tween.tween_property(_confirm_button, "modulate:a", 1.0, 0.3).set_ease(Tween.EASE_OUT)
+			# 6枚目完了時に少し待機してから自動で画面遷移
+			await get_tree().create_timer(0.3).timeout
+			_on_confirm_pressed()
 	)
 
 func _add_to_picked_slot(card_name: String) -> void:
@@ -356,6 +356,16 @@ func _update_progress() -> void:
 			tween.tween_property(_pick_dots[i], "color", UIColors.PICKED, 0.2)
 	
 	_pick_label.text = "PICK %d / 6" % (_current_pick + 1)
+
+func _on_random_all_pressed() -> void:
+	if _is_animating:
+		return
+
+	# 残りのピックをランダムに自動選択
+	while _current_pick < 6:
+		var random_idx = randi() % 3
+		_confirm_card(random_idx)
+		await get_tree().create_timer(0.5).timeout
 
 func _on_confirm_pressed() -> void:
 	print("[InitialCardPick] _on_confirm_pressed() picked_cards=%s" % [_picked_cards])
@@ -382,4 +392,7 @@ func _on_confirm_pressed() -> void:
 
 	print("[InitialCardPick] GameSession.selected_deck=%s" % [GameSession.selected_deck])
 	print("[InitialCardPick] GameSession.placement_config=%s" % [GameSession.placement_config])
-	SceneManager.go_to(SceneManager.MAP_SELECT)
+
+	# 初回デッキ編集フラグ設定（Battle開始前にRestScreen表示）
+	GameSession.initial_deck_prep_pending = true
+	SceneManager.go_to(SceneManager.BATTLE)

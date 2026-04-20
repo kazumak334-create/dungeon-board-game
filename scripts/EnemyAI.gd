@@ -51,7 +51,7 @@ func _build_enemy_deck() -> void:
 		u.attack = d["atk"]; u.spd = d["spd"]
 		u.mana = d["mana"]; u.assigned_col = entry["col"]
 		u.race = d["race"]; u.attack_range = d["range"]
-		u.support_effect = ""; u.passive_skill = ""
+		u.support_effect = ""
 		u.skills = d.get("skills", []).duplicate(true)
 		enemy_deck.append(u)
 	enemy_deck.shuffle()
@@ -129,7 +129,7 @@ func _build_boss_deck() -> void:
 		u.spd = d["spd"]
 		u.mana = d["mana"]; u.assigned_col = entry["col"]
 		u.race = d["race"]; u.attack_range = d["range"]
-		u.support_effect = ""; u.passive_skill = ""
+		u.support_effect = ""
 		u.skills = d.get("skills", []).duplicate(true)
 		enemy_deck.append(u)
 	enemy_deck.shuffle()

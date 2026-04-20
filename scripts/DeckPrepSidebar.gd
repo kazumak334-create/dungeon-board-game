@@ -1,6 +1,6 @@
 # DeckPrepSidebar.gd
 # DeckPrep左パネル（ステータス表示）専用
-extends RefCounted
+extends Control
 
 const UIF = preload("res://scripts/UIFactory.gd")
 const UIColors = preload("res://scripts/ui/UIColors.gd")

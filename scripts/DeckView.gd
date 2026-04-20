@@ -6,7 +6,7 @@ extends Control
 const UIF = preload("res://scripts/UIFactory.gd")
 const TaskbarClass = preload("res://scripts/CommonTaskbar.gd")
 
-var _taskbar: RefCounted = null
+var _taskbar: Node = null
 
 # カード表示定数
 const CARD_W = 140

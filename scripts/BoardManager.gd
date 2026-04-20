@@ -307,7 +307,7 @@ func remove_unit(side: int, row: int, col: int) -> void:
 		return  # 既に削除済み（EventQueue の二重処理対策）
 	# 死亡ユニット記録（Phase 4 #0a）
 	var initial_slot: int = row * 3 + col
-	GameSession.record_dead_unit(unit.unit_name, initial_slot)
+	GameSession.record_dead_unit(unit.unit_name, unit.rarity, GameSession.wave_current_small, initial_slot)
 	# 撃破時スキル（on_death）処理
 	if unit != null:
 		for skill in unit.skills:
@@ -354,6 +354,8 @@ func remove_unit(side: int, row: int, col: int) -> void:
 	attack_timers[side][row][col] = 0.0
 	support_timers[side][row][col] = 0.0
 	emit_signal("unit_died", side, row, col, died_unit)
+	# 死後強まる怨念：味方死亡時に敵1体を5秒封印
+	_check_grudge_seal(side)
 	# 前列が空になったら promote_check を遅延キューに積む（イベント駆動・1フレームラグ）
 	var front_col_ref: int = 2 if side == 0 else 0
 	if col == front_col_ref and event_queue != null:
@@ -362,6 +364,16 @@ func remove_unit(side: int, row: int, col: int) -> void:
 	on_board_changed()
 
 func process_combat(delta: float, base_hp: Array) -> void:
+	# 封印タイマー減算
+	for s in range(2):
+		for r in range(3):
+			for c in range(3):
+				var u = board[s][r][c]
+				if u != null and u._is_sealed:
+					u._seal_timer -= delta
+					if u._seal_timer <= 0.0:
+						u._is_sealed = false
+						u._seal_timer = 0.0
 	combat_system.process_combat(delta, base_hp)
 
 func _push_summon_effects(side: int, row: int, col: int, unit: Object) -> void:
@@ -390,6 +402,33 @@ func _try_promote(side: int, row: int, col: int) -> void:
 
 func _get_frontmost_col(side: int, row: int) -> int:
 	return combat_system.get_frontmost_col(side, row)
+
+func _check_grudge_seal(side: int) -> void:
+	# 死亡したユニットと同じ陣営にgrudge_seal持ちがいるか確認
+	var has_grudge_seal: bool = false
+	for r in range(3):
+		for c in range(3):
+			var u = board[side][r][c]
+			if u != null and u._has_grudge_seal:
+				has_grudge_seal = true
+				break
+		if has_grudge_seal:
+			break
+	if not has_grudge_seal:
+		return
+	# 敵陣営からランダムに1体選んで5秒間封印
+	var enemy_side: int = 1 - side
+	var enemies: Array = []
+	for r in range(3):
+		for c in range(3):
+			var u = board[enemy_side][r][c]
+			if u != null:
+				enemies.append(u)
+	if enemies.is_empty():
+		return
+	var target = enemies[randi() % enemies.size()]
+	target._is_sealed = true
+	target._seal_timer = 5.0
 
 # ---- サポート効果システム ----
 
@@ -487,36 +526,6 @@ func set_tile_effect(side: int, row: int, col: int, effect_id: String, duration:
 func clear_tile_effect(side: int, row: int, col: int) -> void:
 	tile_system.clear_tile_effect(side, row, col)
 
-func _summon_unit_to_random_empty(side: int, unit_id: String) -> void:
-	# 指定サイドのランダムな空きマスにユニットを召喚
-	if not CardDB.UNITS.has(unit_id):
-		return
-	var ud = CardDB.UNITS[unit_id]
-	var empty_cells: Array = []
-	for r2 in range(3):
-		for c2 in range(3):
-			if board[side][r2][c2] == null and board_artifacts[side][r2][c2] == null:
-				empty_cells.append([r2, c2])
-	if empty_cells.is_empty():
-		return
-	empty_cells.shuffle()
-	var pos: Array = empty_cells[0]
-	var UDS = load("res://scripts/UnitData.gd")
-	var new_unit = UDS.new()
-	new_unit.unit_name = unit_id
-	new_unit.max_hp = ud["hp"]; new_unit.current_hp = ud["hp"]
-	new_unit.attack = ud["atk"]; new_unit.spd = ud.get("spd", 1.0)
-	new_unit.mana = ud["mana"]; new_unit.race = ud.get("race", "")
-	new_unit.attack_range = ud.get("range", "1行")
-	new_unit.assigned_col = ud.get("col", 0)
-	new_unit.skills = ud.get("skills", []).duplicate(true)
-	board[side][pos[0]][pos[1]] = new_unit
-	attack_timers[side][pos[0]][pos[1]] = new_unit.get_attack_interval()
-	emit_signal("unit_placed", side, pos[0], pos[1], new_unit)
-	on_board_changed()
-	_init_skill_timers(new_unit)
-	print("[BoardManager] 盤面効果召喚: %s → side=%d row=%d col=%d" % [unit_id, side, pos[0], pos[1]])
-
 # RestScreen用メソッド（Phase 4 #20）
 var is_rest_mode: bool = false
 
@@ -526,6 +535,13 @@ func enable_rest_mode() -> void:
 	if _status_timer:
 		_status_timer.stop()
 	print("[BoardManager] RestMode有効化")
+
+# RestScreen用：敵陣を非表示
+func hide_enemy_side() -> void:
+	# 敵陣（side=1）の表示を非表示にする
+	# ※現状BoardManager.gdは盤面データのみ保持しており、UI描画はMain.gdが担当
+	# ※Main.gdからのUI非表示実装が必要となるため、ここではログのみ出力
+	print("[BoardManager] hide_enemy_side() 呼び出し（UI非表示はMain.gd側で実装予定）")
 
 func on_rest_drop(card_data: Object, row: int, col: int) -> bool:
 	# 配置可能チェック（自陣のみ）
@@ -563,3 +579,58 @@ func on_rest_drop(card_data: Object, row: int, col: int) -> bool:
 
 	print("[BoardManager] RestDrop成功: %s → row=%d col=%d" % [card_data.unit_name, row, col])
 	return true
+
+func hide_battle_ui() -> void:
+	print("[BoardManager] hide_battle_ui開始")
+	# Main.gdへの参照を取得
+	var main = get_node_or_null("/root/Main")
+	if not main:
+		print("[BoardManager] hide_battle_ui失敗: Main取得失敗")
+		return
+
+	print("[BoardManager] Main取得成功、GameUI非表示開始")
+
+	# GameUIの各要素を個別に非表示
+	# 1. CommonTaskbar（Act, 種族, Gold表示）
+	if main.game_ui and main.game_ui._taskbar:
+		main.game_ui._taskbar.visible = false
+		print("[BoardManager] _taskbar非表示")
+
+	# 2. 速度ボタン群 + 一時停止ボタン
+	if main.game_ui:
+		for btn_data in main.game_ui._speed_buttons:
+			if btn_data.has("btn") and btn_data["btn"]:
+				btn_data["btn"].visible = false
+		if main.game_ui._pause_button:
+			main.game_ui._pause_button.visible = false
+		print("[BoardManager] 速度ボタン非表示")
+
+	# 3. 環境ラベル
+	if main.game_ui and main.game_ui._env_label:
+		main.game_ui._env_label.visible = false
+
+	# 4. 呪文スロットパネル
+	if main.game_ui:
+		for panel in main.game_ui._spell_slot_panels:
+			if panel:
+				panel.visible = false
+		print("[BoardManager] 呪文スロット非表示")
+
+	# 5. Overlay（HP, マナ, キャスト）
+	if main.game_ui and main.game_ui._overlay:
+		main.game_ui._overlay.visible = false
+		print("[BoardManager] Overlay非表示（HP/マナ/キャスト）")
+	else:
+		print("[BoardManager] Overlay取得失敗: game_ui=%s, _overlay=%s" % [str(main.game_ui != null), str(main.game_ui._overlay if main.game_ui else "N/A")])
+
+	# 6. キューUI
+	if main.game_ui and main.game_ui._queue:
+		main.game_ui._queue.visible = false
+
+	# 7. 本体HPラベル
+	if main.player_base_label:
+		main.player_base_label.visible = false
+	if main.enemy_base_label:
+		main.enemy_base_label.visible = false
+
+	print("[BoardManager] hide_battle_ui完了")

@@ -1,6 +1,6 @@
 # GameUIQueue.gd
 # キュー+デッキ情報UI（GameUI.gdから分離）
-extends RefCounted
+extends Control
 
 var main: Node = null
 var _EDB = null

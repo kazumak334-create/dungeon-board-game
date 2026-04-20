@@ -171,6 +171,11 @@ func build_ui() -> void:
     board_manager.set_position(Vector2(LAYOUT.player_board.x, LAYOUT.player_board.y))
     ui_root.add_child(board_manager)
     
+    # RestMode有効化・UI調整（RestScreen専用のBoardManager設定）
+    board_manager.enable_rest_mode()
+    board_manager.hide_enemy_side()  # 敵陣非表示（自陣のみ表示）
+    board_manager.hide_battle_ui()   # HP・マナバー等のバトルUI非表示
+    
     # 4. ショップ盤面
     shop.initialize(game_session, ui_root)
     var shop_board = shop.create_board(LAYOUT.shop_board)
@@ -202,16 +207,56 @@ func build_ui() -> void:
 3. 自陣3×3グリッドにドロップ→BoardManager.on_drop()
 4. GameSession.deck配列を更新
 
-**BoardManager.gd追加メソッド**:
+**BoardManager.gd追加メソッド（RestScreen専用）**:
 ```gdscript
 func enable_rest_mode() -> void:
     is_rest_mode = true
-    # バトル用イベント無効化
+    # バトル用イベント無効化（Tick更新・攻撃・HP減少等）
+
+func hide_enemy_side() -> void:
+    # 敵陣（side=1）のセル表示・ユニット表示を非表示
+    # RestScreenでは自陣のみ表示し、敵陣位置はショップに転用される
+
+func hide_battle_ui() -> void:
+    # HP表示・マナバー・攻撃エフェクト等のバトル用UIを非表示
+    # RestScreenではデッキ編成判断に不要な情報を取り除く
 
 func on_rest_drop(card_data: CardData, row: int, col: int) -> bool:
     # 配置可能チェック
     # GameSession.deck更新
     # CardView再描画
+```
+
+### 6.1.5 手持ちカード配置（クリック方式・DeckPrep流用）
+**処理フロー**:
+1. 手持ちカードエリアのカードをクリック→選択状態
+2. 盤面セル（自陣3×3）をクリック→配置
+3. 配置可能チェック（ユニットカードのみ）
+4. GameSession.placement_config更新
+5. 盤面再描画
+
+**DeckPrepBoard.gd参照箇所**:
+- `_selected_card_idx`: 選択中カードのインデックス
+- `_on_chip_input()`: カードチップクリック処理
+- `select_card()`: カード選択処理
+
+**RestScreenManager.gd実装**:
+```gdscript
+var _selected_hand_index: int = -1
+
+func on_hand_card_clicked(index: int) -> void:
+    _selected_hand_index = index
+    update_right_panel()
+
+func on_board_cell_clicked(row: int, col: int) -> void:
+    if _selected_hand_index < 0:
+        return
+    var card_data = GameSession.hand[_selected_hand_index]
+    # 配置処理（BoardManager委譲）
+    board_manager.on_rest_drop(card_data, row, col)
+    GameSession.hand.remove_at(_selected_hand_index)
+    _selected_hand_index = -1
+    rebuild_hand_area()
 ```
 
 ### 6.2 ショップ購入
@@ -271,16 +316,20 @@ func update_right_panel() -> void:
 **処理フロー**:
 ```gdscript
 func on_next_button_clicked() -> void:
-    # デッキバリデーション（3×3埋まっているか）
-    if not validate_deck():
-        show_error("デッキを完成させてください")
+    # 最低1枚配置チェック（0マス配置では進行不可）
+    if not has_at_least_one_unit():
+        show_error("最低1枚は配置してください")
         return
     
     cleanup()
     get_tree().change_scene_to_file("res://scenes/Battle.tscn")
 
 func on_skip_button_clicked() -> void:
-    # デッキ変更なしで次へ
+    # デッキ変更なしで次へ（next_button と同一バリデーション）
+    if not has_at_least_one_unit():
+        show_error("最低1枚は配置してください")
+        return
+    
     cleanup()
     get_tree().change_scene_to_file("res://scenes/Battle.tscn")
 ```
@@ -338,7 +387,7 @@ func on_battle_end() -> void:
 ### 9.2 GAME_DESIGN.mdとの整合性
 - ショップ商品数: 9個（3×3グリッド）
 - 復帰コスト: Tier × 30gold
-- デッキサイズ: 3×3必須
+- デッキサイズ: 最大3×3（最低1枚配置必須、全マス埋めは任意）
 
 ### 9.3 MVP範囲外
 - 合成機能（Phase 5以降）

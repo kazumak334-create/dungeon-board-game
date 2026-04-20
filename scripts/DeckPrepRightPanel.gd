@@ -1,6 +1,6 @@
 # DeckPrepRightPanel.gd
 # DeckPrep右パネル（カード詳細専用）
-extends RefCounted
+extends Control
 
 const UIF = preload("res://scripts/UIFactory.gd")
 const UIColors = preload("res://scripts/ui/UIColors.gd")

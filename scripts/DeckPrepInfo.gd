@@ -1,7 +1,7 @@
 # DeckPrepInfo.gd
 # DeckPrep画面の情報レーン（カード詳細/合成表示/ホバーポップアップ）専門
 # DeckPrep.gdから責務分離
-extends RefCounted
+extends Control
 
 const UIF = preload("res://scripts/UIFactory.gd")
 

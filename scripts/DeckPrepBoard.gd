@@ -1,6 +1,6 @@
 # DeckPrepBoard.gd
 # 配置タブの盤面UI・ドラッグ&ドロップ・ハイライト管理
-extends RefCounted
+extends Control
 
 const UIF = preload("res://scripts/UIFactory.gd")
 const SpellsClass = preload("res://scripts/DeckPrepBoardSpells.gd")

@@ -1,6 +1,6 @@
 # DeckPrepBoardSpells.gd
 # DeckPrepBoard呪文デッキ・手持ちカード・合成エリア専用
-extends RefCounted
+extends Control
 
 var _board: Object = null  # DeckPrepBoardへの参照
 var _spell_deck_label: Label = null

@@ -1,6 +1,6 @@
 # Main.gd
 # メインシーン制御・UI描画・ゲームループ
-extends Node
+extends Control
 
 const BoardManagerScript   = preload("res://scripts/BoardManager.gd")
 const DeckManagerScript    = preload("res://scripts/DeckManager.gd")
@@ -23,6 +23,7 @@ var deck_manager: Node
 var enemy_ai: Node
 var spell_slot_system: RefCounted = null  # v2設計: 呪文3スロットシステム
 var wave_manager: Node = null  # Phase 4 #0a: Wave進行管理
+var _progress_bar: Control = null
 
 var base_hp: Array = [30, 30]
 var row_breached: Array = [
@@ -56,13 +57,14 @@ var _equip_slots: Array = []         # 装備スロットラベル（GameUIが�
 var _equip_tooltip_panel: PanelContainer = null
 var _equip_tooltip_label: Label = null
 
-var game_ui: RefCounted = null  # GameUI インスタンス
+var game_ui: Node = null  # GameUI インスタンス
 var _EDB = null  # EffectDBキャッシュ
 
 var dev_mode: bool = false
 var dev_ui: RefCounted = null  # DevUI インスタンス
 var game_started: bool = false
 var game_paused: bool = false
+var is_animating: bool = false
 
 var game_over: bool = false
 var log_lines: Array  = []
@@ -120,7 +122,7 @@ func _ready() -> void:
 	wave_manager.setup(board_manager, deck_manager, enemy_ai, self)
 	wave_manager.wave_started.connect(_on_wave_started)
 	wave_manager.wave_ended.connect(_on_wave_ended)
-	wave_manager.rest_screen_requested.connect(_on_rest_screen_requested)
+	wave_manager.intermission_requested.connect(_on_intermission_requested)
 	wave_manager.big_wave_completed.connect(_on_big_wave_completed)
 
 	# SpellExecutor 初期化・注入
@@ -208,7 +210,7 @@ func _build_synthesis_registry() -> void:
 		u.mana = r["mana"]; u.assigned_col = r["col"]
 		u.race = r.get("race", "スライム")
 		u.attack_range = r.get("range", "1行")
-		u.support_effect = ""; u.passive_skill = ""
+		u.support_effect = ""
 		u.skills = r.get("skills", []).duplicate(true)
 		board_manager.synthesis_registry.append({
 			"base": recipe["base"],
@@ -230,37 +232,46 @@ func _build_mode_select() -> void:
 		dev_ui = DevUIScript.new()
 		dev_ui.setup(self, board_manager, deck_manager, enemy_ai)
 		_add_log("=== 開発者モード開始（一時停止・デッキ空）===")
+	elif GameSession.initial_deck_prep_pending:
+		# 初回デッキ編集: RestScreen表示（ショップ非表示）
+		GameSession.initial_deck_prep_pending = false
+		start_rest_screen({}, true)  # hide_shop=true
+		game_started = false
+		return  # RestScreen閉じるまで待機
 	else:
-		# 通常モード: 即座にバトル開始（モード選択パネル不要）
-		# リプレイ用シード設定
-		GameSession.battle_seed = randi()
-		GameSession.battle_log.clear()
-		seed(GameSession.battle_seed)
-		game_started = true
-		# アーティファクト効果フラグ初期化
-		board_manager.artifact_revive_used = false
-		# 警戒システム: エリート混入フラグリセット
-		GameSession.elite_injected_in_battle = false
-		_apply_battle_config()
-		deck_manager.ensure_shuffle_card()
-		enemy_ai.ensure_shuffle_card()
-		# v2設計: 初期配置ユニットを盤面に展開
-		_place_initial_units()
-		# 警戒システム: 配置前に敵デッキ加工・盤面効果付与
-		_apply_alert_modifiers()
-		_place_enemy_initial_units()
-		# v2設計: マナ上限をユニット総コストで初期化
-		deck_manager.initialize_mana_from_deck()
-		enemy_ai.initialize_mana_from_deck()
-		_apply_environment()
-		# アーティファクト効果適用（ユニット配置後）
-		_apply_artifact_effects_on_units()
-		_add_log("=== バトル開始 (seed: %d) ===" % GameSession.battle_seed)
+		# 通常バトル開始
+		_start_battle()
+
+func _start_battle() -> void:
+	# 既存のバトル開始ロジックを関数化
+	GameSession.battle_seed = randi()
+	GameSession.battle_log.clear()
+	seed(GameSession.battle_seed)
+	game_started = true
+	# アーティファクト効果フラグ初期化
+	board_manager.artifact_revive_used = false
+	# 警戒システム: エリート混入フラグリセット
+	GameSession.elite_injected_in_battle = false
+	_apply_battle_config()
+	deck_manager.ensure_shuffle_card()
+	enemy_ai.ensure_shuffle_card()
+	# v2設計: 初期配置ユニットを盤面に展開
+	_place_initial_units()
+	# 警戒システム: 配置前に敵デッキ加工・盤面効果付与
+	_apply_alert_modifiers()
+	_place_enemy_initial_units()
+	# v2設計: マナ上限をユニット総コストで初期化
+	deck_manager.initialize_mana_from_deck()
+	enemy_ai.initialize_mana_from_deck()
+	_apply_environment()
+	# アーティファクト効果適用（ユニット配置後）
+	_apply_artifact_effects_on_units()
+	_add_log("=== バトル開始 (seed: %d) ===" % GameSession.battle_seed)
 
 func _apply_battle_config() -> void:
 	var cfg: Dictionary = GameSession.battle_config
-	base_hp[0] = cfg.get("player_base_hp", 30)
-	base_hp[1] = cfg.get("enemy_base_hp", 30)
+	# base_hp[0] = cfg.get("player_base_hp", 30)  # 本体HP廃止
+	# base_hp[1] = cfg.get("enemy_base_hp", 30)   # 本体HP廃止
 	# MANA_REGEN削除: v2設計でユニット生成マナに変更
 	deck_manager.check_interval = cfg.get("card_play_interval", 1.0)
 	# enemy_ai.MANA_REGEN削除: v2設計で敵も初期配置に変更
@@ -271,7 +282,7 @@ func _apply_battle_config() -> void:
 	# enemy_atk_scale, enemy_hp_scale: place_unit時にBoardManagerで適用（将来）
 	# mana_max_override: 将来実装
 	# initial_units, summon_race_filter, placement_restriction: 将来実装
-	print("[Main] battle_config適用: hp=[%d,%d] timer=%.1f active=%s" % [base_hp[0], base_hp[1], tl, str(_battle_timer_active)])
+	print("[Main] battle_config適用: timer=%.1f active=%s" % [tl, str(_battle_timer_active)])
 
 func _place_initial_units() -> void:
 	# v2設計: GameSession.initial_unitsを盤面に配置
@@ -486,6 +497,8 @@ func _refresh_equipment_ui() -> void: game_ui._refresh_equipment_ui()
 
 # ---- 入力処理（開発者モード用） ----
 func _input(event: InputEvent) -> void:
+	if is_animating:
+		return
 	if not dev_mode or dev_ui == null:
 		return
 	# 盤面効果設置モード：クリックでセルに効果設置
@@ -526,6 +539,8 @@ func _dev_update_drag() -> void:
 
 # ---- ゲームループ ----
 func _unhandled_input(event: InputEvent) -> void:
+	if is_animating:
+		return
 	if event is InputEventKey and event.pressed and event.keycode == KEY_L:
 		game_ui.toggle_log()
 
@@ -583,23 +598,30 @@ func _process(delta: float) -> void:
 		game_ui.update_ui()
 
 func _check_game_over() -> void:
-	# v2設計: 本体HP0 OR 全滅で負け
-	var player_all_dead = _check_all_units_dead(0)
-	var enemy_all_dead = _check_all_units_dead(1)
+	# 企画通り勝敗条件: 前列・中列全滅 OR 1行全滅
+	var player_front_mid_dead = _check_front_mid_dead(0)
+	var player_row_wiped = _check_any_row_wiped(0)
 
-	if base_hp[0] <= 0 or player_all_dead:
+	var enemy_front_mid_dead = _check_front_mid_dead(1)
+	var enemy_row_wiped = _check_any_row_wiped(1)
+
+	# 敗北条件
+	if player_front_mid_dead or player_row_wiped:
 		game_over = true
 		game_over_label.text     = "GAME OVER"
 		game_over_label.modulate = Color(1.0, 0.3, 0.3)
 		game_over_label.visible  = true
-		var reason = "本体HP0" if base_hp[0] <= 0 else "全滅"
+		var reason = "前列・中列全滅" if player_front_mid_dead else "1行全滅"
 		_add_log("=== 敗北（%s）===" % reason)
 		GameSession.last_result = {"win": false, "player_hp_remaining": base_hp[0], "turns": 0, "battle_gold": GameSession.current_battle_gold}
 		_transition_to_result_timer()
-	elif base_hp[1] <= 0 or enemy_all_dead:
+		return
+
+	# 勝利条件
+	if enemy_front_mid_dead or enemy_row_wiped:
 		# Phase 4 #0a: WaveManager経由の勝利処理（通常モード）
 		if wave_manager != null and wave_manager.state == wave_manager.WaveState.COMBAT:
-			wave_manager.on_wave_victory()
+			_on_battle_victory()
 			return
 
 		# 既存ロジック（ツールモード・dev_mode用フォールバック）
@@ -612,18 +634,49 @@ func _check_game_over() -> void:
 		game_over_label.text     = "YOU WIN!"
 		game_over_label.modulate = Color(0.3, 1.0, 0.5)
 		game_over_label.visible  = true
-		var reason = "本体HP0" if base_hp[1] <= 0 else "全滅"
+		var reason = "前列・中列全滅" if enemy_front_mid_dead else "1行全滅"
 		_add_log("=== 勝利（%s）===" % reason)
 		GameSession.last_result = {"win": true, "player_hp_remaining": base_hp[0], "turns": 0, "battle_gold": GameSession.current_battle_gold}
 		_transition_to_result_timer()
+		return
 
-func _check_all_units_dead(side: int) -> bool:
-	"""指定陣営のユニットが全滅しているか判定"""
+func _check_front_mid_dead(side: int) -> bool:
+	"""前列・中列全滅チェック"""
+	if not board_manager:
+		return false
+
+	var front_dead = true  # 前列（col=2）
+	var mid_dead = true    # 中列（col=1）
+
+	# 前列チェック
 	for r in range(3):
+		if board_manager.board[side][r][2] != null:
+			front_dead = false
+			break
+
+	# 中列チェック
+	for r in range(3):
+		if board_manager.board[side][r][1] != null:
+			mid_dead = false
+			break
+
+	return front_dead and mid_dead
+
+func _check_any_row_wiped(side: int) -> bool:
+	"""1行全滅チェック"""
+	if not board_manager:
+		return false
+
+	for r in range(3):
+		var row_wiped = true
 		for c in range(3):
 			if board_manager.board[side][r][c] != null:
-				return false
-	return true
+				row_wiped = false
+				break
+		if row_wiped:
+			return true
+
+	return false
 
 func _start_boss_phase2() -> void:
 	"""ボス連戦: 第2戦開始"""
@@ -637,7 +690,7 @@ func _start_boss_phase2() -> void:
 	_add_log("第1戦クリア報酬: マナ+5")
 
 	# 敵側の状態リセット
-	base_hp[1] = GameSession.battle_config.get("enemy_base_hp", 30)
+	# base_hp[1] = GameSession.battle_config.get("enemy_base_hp", 30)  # 本体HP廃止
 
 	# 敵の盤面クリア
 	for r in range(3):
@@ -721,7 +774,7 @@ func _on_unit_died(side: int, row: int, col: int, died_unit: Object) -> void:
 	_mark_all_cells_dirty()
 
 func _check_row_breach(side: int, row: int) -> void:
-	"""行突破判定: 指定行が全滅したら本体HPを削る"""
+	"""行突破判定（本体HP廃止のためコメントアウト）"""
 	# 既に突破済みならスキップ
 	if row_breached[side][row]:
 		return
@@ -736,14 +789,14 @@ func _check_row_breach(side: int, row: int) -> void:
 	# 全滅していたら行突破
 	if not row_units_alive:
 		row_breached[side][row] = true
-		var damage = 10
-		base_hp[side] = max(0, base_hp[side] - damage)
+		# var damage = 10
+		# base_hp[side] = max(0, base_hp[side] - damage)
 		var side_name = "自陣" if side == 0 else "敵陣"
 		var row_name = ["上段", "中段", "下段"][row]
-		_add_log("! %s %s突破！本体 -%d (残:%d)" % [side_name, row_name, damage, base_hp[side]])
-		if game_ui != null:
-			game_ui.spawn_base_damage_float(side, damage)
-		_update_base_hp()
+		_add_log("! %s %s突破！" % [side_name, row_name])
+		# if game_ui != null:
+		# 	game_ui.spawn_base_damage_float(side, damage)
+		# _update_base_hp()
 
 func _on_unit_damaged(side: int, row: int, col: int) -> void:
 	if side >= 0 and row >= 0 and col >= 0:
@@ -953,29 +1006,167 @@ func _on_draw_cards_requested(side: int, count: int) -> void:
 			enemy_ai.force_play_card(board_manager)
 
 # RestScreen遷移（Phase 1基盤構築用）
-func start_rest_screen() -> void:
-	var rest_manager = preload("res://scripts/RestScreenManager.gd").new()
-	rest_manager.initialize(GameSession, board_manager)
-	rest_manager.rest_screen_closed.connect(_on_rest_screen_closed)
-	add_child(rest_manager)
+func start_rest_screen(shop_config: Dictionary = {}, hide_shop: bool = false) -> void:
+	# バトルUI全体を非表示
+	board_manager.hide_battle_ui()
 
-func _on_rest_screen_closed() -> void:
-	print("[Main] RestScreen終了、次Wave開始")
-	if wave_manager:
-		wave_manager.resume_from_rest()
+	# RestScreenManager（直接追加、シェードなし）
+	var popup_layer = Control.new()
+	popup_layer.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	add_child(popup_layer)
+
+	# RestScreenManager
+	var RestScreenManagerScript = load("res://scripts/RestScreenManager.gd")
+	var rest_manager = RestScreenManagerScript.new()
+	rest_manager.initialize(GameSession, board_manager, shop_config, hide_shop)
+	rest_manager.rest_screen_closed.connect(_on_rest_screen_closed.bind(popup_layer))
+	popup_layer.add_child(rest_manager)
+
+func _on_rest_screen_closed(popup_layer: CanvasLayer) -> void:
+	print("[Main] RestScreen終了")
+	# バトルUI全体を復元
+	if game_ui:
+		game_ui.visible = true
+	if player_base_label:
+		player_base_label.visible = true
+	if enemy_base_label:
+		enemy_base_label.visible = true
+
+	# CanvasLayerを削除
+	if popup_layer:
+		popup_layer.queue_free()
+
+	# 初回デッキ編集の場合はバトル開始、通常の休憩の場合は次Wave開始
+	if not game_started:
+		print("[Main] 初回デッキ編集完了 → バトル開始")
+		_start_battle()
+	elif wave_manager:
+		print("[Main] 休憩完了 → 次Wave開始")
+		wave_manager.resume_from_intermission()
 
 # Phase 4 #0a: WaveManagerシグナルハンドラ
 func _on_wave_started(big: int, small: int, scale: float) -> void:
 	_add_log("=== Wave %d-%d 開始（敵強化×%.1f）===" % [big, small, scale])
+	await _animate_wave_start()
 
 func _on_wave_ended(big: int, small: int, victory: bool) -> void:
 	var result_text: String = "勝利" if victory else "敗北"
 	_add_log("=== Wave %d-%d %s ===" % [big, small, result_text])
 
-func _on_rest_screen_requested() -> void:
-	print("[Main] RestScreen呼び出し")
-	start_rest_screen()
+func _on_intermission_requested(shop_config: Dictionary) -> void:
+	print("[Main] Intermission呼び出し shop_config=%s" % shop_config)
+	start_rest_screen(shop_config)
 
 func _on_big_wave_completed(next_act: int) -> void:
 	print("[Main] BW完了、次Act %d へ（Phase 4 未実装）" % next_act)
 	# TODO: 次Act直行（MapSelect経由なし）
+
+func _on_battle_victory() -> void:
+	is_animating = true
+
+	# Step 1: 敵ユニットスライドアウト
+	await _animate_enemy_slideout()
+
+	# Step 2: 自軍前進
+	await _animate_player_advance()
+
+	# 後続のアニメーションは次のステップで実装
+
+	# 最後にWaveManager経由の処理を呼び出す
+	is_animating = false
+	if wave_manager != null:
+		wave_manager.on_wave_victory()
+
+func _animate_enemy_slideout() -> void:
+	# 敵ユニット（cell_rects[1]）を右方向にスライドアウト
+	# 1体ずつ時間差で実行
+	var delay_per_unit := 0.05  # 1体あたり50msの遅延
+	var slide_duration := 0.3   # スライド所要時間
+	var slide_distance := 200.0 # 右方向への移動距離
+
+	for row in range(3):
+		for col in range(3):
+			var rect = cell_rects[1][row][col]
+			if rect and rect.visible:
+				var tween := create_tween()
+				tween.tween_property(rect, "position:x", rect.position.x + slide_distance, slide_duration)
+				await get_tree().create_timer(delay_per_unit).timeout
+
+	# 全体の完了待機
+	await get_tree().create_timer(slide_duration).timeout
+
+func _animate_player_advance() -> void:
+	# 自軍ユニット（cell_rects[0]）を右方向に少し前進
+	var advance_duration := 0.3   # 前進所要時間
+	var advance_distance := 30.0  # 右方向への移動距離（敵より少ない）
+
+	var tween := create_tween()
+	for row in range(3):
+		for col in range(3):
+			var rect = cell_rects[0][row][col]
+			if rect and rect.visible:
+				tween.parallel().tween_property(rect, "position:x", rect.position.x + advance_distance, advance_duration)
+
+	await tween.finished
+
+func _animate_wave_start() -> void:
+	is_animating = true
+
+	# Step 1: 暗転
+	await _animate_fade_to_black()
+
+	# Step 2: 暗転中に敵ユニットを画面外に配置
+	_position_enemies_offscreen()
+
+	# Step 3: 暗転明け
+	await _animate_fade_from_black()
+
+	# Step 4: 敵隊列スライドイン
+	await _animate_enemy_slidein()
+
+	# Step 5: 睨み合い
+	await get_tree().create_timer(1.5).timeout
+
+	is_animating = false
+
+func _animate_fade_to_black() -> void:
+	# TODO: 暗転アニメーション（ColorRect使用）
+	# 最小実装では待機のみ
+	await get_tree().create_timer(0.3).timeout
+
+func _animate_fade_from_black() -> void:
+	# TODO: 暗転明けアニメーション
+	# 最小実装では待機のみ
+	await get_tree().create_timer(0.3).timeout
+
+func _position_enemies_offscreen() -> void:
+	# 敵ユニットを画面右外に配置
+	var offscreen_x := 1500.0  # 画面外の右側
+	for row in range(3):
+		for col in range(3):
+			var rect = cell_rects[1][row][col]
+			if rect:
+				rect.position.x = offscreen_x
+
+func _animate_enemy_slidein() -> void:
+	# 敵ユニットを右から1体ずつスライドイン
+	var delay_per_unit := 0.1   # 1体あたり100msの遅延
+	var slide_duration := 0.4   # スライド所要時間
+
+	# 元の位置を計算（GameUI.gdの初期配置ロジックから計算）
+	# ここでは簡易的に、敵側の基準位置を使用
+	var base_x := 800.0  # 敵側の基準X座標（GameUI.gdから取得が望ましい）
+	var cell_size := 60.0
+	var gap := 10.0
+
+	for row in range(3):
+		for col in range(3):
+			var rect = cell_rects[1][row][col]
+			if rect and rect.visible:
+				var target_x := base_x + col * (cell_size + gap)
+				var tween := create_tween()
+				tween.tween_property(rect, "position:x", target_x, slide_duration)
+				await get_tree().create_timer(delay_per_unit).timeout
+
+	# 全体の完了待機
+	await get_tree().create_timer(slide_duration).timeout

@@ -6,7 +6,7 @@ const UIF = preload("res://scripts/UIFactory.gd")
 const TaskbarClass = preload("res://scripts/CommonTaskbar.gd")
 const RewardTableClass = preload("res://scripts/RewardTable.gd")
 
-var _taskbar: RefCounted = null
+var _taskbar: Node = null
 var _reward_gold: int = 0
 var _reward_sp: int = 0
 var _reward_material: Dictionary = {}

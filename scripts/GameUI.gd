@@ -1,14 +1,14 @@
 # GameUI.gd
 # UI描画・更新処理（Main.gdから分離）
-extends RefCounted
+extends Control
 
 const TaskbarClass = preload("res://scripts/CommonTaskbar.gd")
 
 var main: Node = null
 var _EDB = null  # EffectDBキャッシュ
-var _queue: RefCounted = null   # GameUIQueue
-var _overlay: RefCounted = null  # GameUIOverlay
-var _taskbar: RefCounted = null
+var _queue: Node = null   # GameUIQueue
+var _overlay: Node = null  # GameUIOverlay
+var _taskbar: Node = null
 
 var _log_bg: ColorRect = null              # ログ背景
 var _log_title: Label = null               # ログタイトル
@@ -33,6 +33,11 @@ func setup(p_main: Node) -> void:
 	_queue.main = main
 	_queue._EDB = _EDB
 	_queue._overlay = _overlay
+
+	# WaveManagerシグナル接続
+	if main.wave_manager != null:
+		main.wave_manager.wave_started.connect(_on_wave_started)
+		main.wave_manager.intermission_requested.connect(_on_intermission_requested)
 
 func build_ui() -> void:
 	# 背景
@@ -205,6 +210,12 @@ func build_ui() -> void:
 
 	# ---- 呪文スロットUI ----
 	_build_spell_slots()
+
+	# Wave進行バー（上部中央）
+	var progress_bar = preload("res://scripts/ProgressBar.gd").new()
+	progress_bar.position = Vector2(300, 10)
+	main.add_child(progress_bar)
+	main._progress_bar = progress_bar
 
 	# ---- ログ（デフォルト非表示・Lキーでトグル） ----
 	_log_bg = ColorRect.new()
@@ -488,17 +499,6 @@ func render_cell(side: int, r: int, c: int) -> void:
 func update_base_hp() -> void:
 	main.player_base_label.text = "自陣 本体HP: %d / 30" % main.base_hp[0]
 	main.enemy_base_label.text  = "敵陣 本体HP: %d / 30" % main.base_hp[1]
-	# HPバー更新
-	for side in range(2):
-		if _overlay._char_hp_bars[side] != null:
-			var ratio = float(main.base_hp[side]) / 30.0
-			_overlay._char_hp_bars[side].size.x = int(70.0 * max(0.0, ratio))
-			var color = Color(0.3, 0.9, 0.4) if side == 0 else Color(0.9, 0.3, 0.3)
-			if ratio < 0.3:
-				color = Color(0.9, 0.2, 0.2)
-			_overlay._char_hp_bars[side].color = color
-		if _overlay._char_hp_labels[side] != null:
-			_overlay._char_hp_labels[side].text = "%d" % main.base_hp[side]
 
 func _update_mana() -> void:
 	var mana: float = main.deck_manager.mana
@@ -511,41 +511,6 @@ func _update_mana() -> void:
 		_mana_gauge_bar.color = gauge_color
 	if _mana_gauge_label != null:
 		_mana_gauge_label.text = "%.1f / %d（上限%d）" % [mana, int(mana_max), int(mana_max)]
-
-	# ---- overlayの立絵パネル内マナバー更新 ----
-	var bar_inner_w: float = 70.0  # パネル幅(80) - 余白10
-	# 自分側マナ
-	if _overlay._char_mana_bars[0] != null:
-		_overlay._char_mana_bars[0].size.x = int(bar_inner_w * ratio)
-		var color0: Color = Color(0.2, 0.5, 1.0).lerp(Color(1.0, 0.85, 0.1), ratio)
-		_overlay._char_mana_bars[0].color = color0
-	if _overlay._char_mana_labels[0] != null:
-		_overlay._char_mana_labels[0].text = "%.1f / %d" % [mana, int(mana_max)]
-	# 敵側マナ
-	var e_mana: float = main.enemy_ai.mana
-	var e_mana_max: float = main.enemy_ai.MANA_MAX
-	var e_ratio: float = clamp(e_mana / max(1.0, e_mana_max), 0.0, 1.0)
-	if _overlay._char_mana_bars[1] != null:
-		_overlay._char_mana_bars[1].size.x = int(bar_inner_w * e_ratio)
-		var color1: Color = Color(1.0, 0.3, 0.2).lerp(Color(1.0, 0.7, 0.1), e_ratio)
-		_overlay._char_mana_bars[1].color = color1
-	if _overlay._char_mana_labels[1] != null:
-		_overlay._char_mana_labels[1].text = "%.1f / %d" % [e_mana, int(e_mana_max)]
-
-	# ---- キャストゲージ更新 ----
-	var cast_bar_w: float = 70.0
-	# 自分側キャスト
-	var self_timer = main.deck_manager._check_timer
-	var self_interval = main.deck_manager.check_interval
-	var self_cast_ratio = 1.0 - clamp(self_timer / max(0.01, self_interval), 0.0, 1.0)
-	if _overlay._char_cast_bars[0] != null:
-		_overlay._char_cast_bars[0].size.x = int(cast_bar_w * self_cast_ratio)
-	# 敵側キャスト
-	var enemy_timer = main.enemy_ai._check_timer
-	var enemy_interval = main.enemy_ai.check_interval
-	var enemy_cast_ratio = 1.0 - clamp(enemy_timer / max(0.01, enemy_interval), 0.0, 1.0)
-	if _overlay._char_cast_bars[1] != null:
-		_overlay._char_cast_bars[1].size.x = int(cast_bar_w * enemy_cast_ratio)
 
 func mark_all_cells_dirty() -> void:
 	for s in range(2):
@@ -659,3 +624,11 @@ func update_spell_slots() -> void:
 		else:
 			label.text = "空き"
 			panel.color = Color(0.08, 0.10, 0.14, 0.8)
+
+func _on_wave_started(big_wave: int, small_wave: int, scale: float) -> void:
+	if main._progress_bar != null:
+		main._progress_bar.update_progress(big_wave, small_wave)
+
+func _on_intermission_requested(shop_config: Dictionary) -> void:
+	if main._progress_bar != null:
+		main._progress_bar.on_intermission(shop_config)

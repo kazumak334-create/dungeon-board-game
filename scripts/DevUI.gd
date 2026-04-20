@@ -3,7 +3,7 @@
 # クリック = 通常発動（ゲームシステム経由）
 # ドラッグ = 手動配置（対象セル指定）
 class_name DevUI
-extends RefCounted
+extends Control
 
 var main: Node
 var board_manager: Node
@@ -429,7 +429,7 @@ func _build_card(index: int) -> Object:
 		obj.unit_name = card["name"]; obj.max_hp = d["hp"]; obj.current_hp = d["hp"]
 		obj.attack = d["atk"]; obj.spd = d["spd"]; obj.mana = d["mana"]
 		obj.assigned_col = d["col"]; obj.race = d["race"]; obj.attack_range = d["range"]
-		obj.support_effect = ""; obj.passive_skill = ""
+		obj.support_effect = ""
 		obj.skills = d.get("skills", []).duplicate(true)
 	elif card["type"] in ["artifact", "permanent_artifact"]:
 		# アーティファクト: UnitDataを軽量ラッパーとして使用

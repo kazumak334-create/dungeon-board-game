@@ -1,6 +1,6 @@
 # UIFactory.gd
 # 画面共通UIパーツ生成ユーティリティ
-extends RefCounted
+extends Control
 
 # 共通色定義
 const BG_COLOR       := Color(0.08, 0.08, 0.12)

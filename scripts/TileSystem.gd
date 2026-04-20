@@ -97,10 +97,6 @@ func process_tile_effects() -> void:
 					te["tick_timer"] -= 1.0
 					if te["tick_timer"] <= 0:
 						te["tick_timer"] = te["tick_interval"]
-						# 墓地: ランダム空きマスにユニット召喚（summon_unitフィールドから取得）
-						if def.has("summon_unit"):
-							var sum_unit_id: String = def["summon_unit"]
-							board_manager._summon_unit_to_random_empty(s, sum_unit_id)
 						if unit != null and unit.is_alive():
 							# 炎床: ダメージ
 							if def.has("damage"):

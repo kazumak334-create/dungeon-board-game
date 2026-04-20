@@ -6,7 +6,7 @@ extends Control
 const UIF = preload("res://scripts/UIFactory.gd")
 const TaskbarClass = preload("res://scripts/CommonTaskbar.gd")
 
-var _taskbar: RefCounted = null
+var _taskbar: Node = null
 var _selected_filter: String = "all"
 var _selected_material: Dictionary = {}
 var _content_container: Control = null

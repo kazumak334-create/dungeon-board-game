@@ -1,7 +1,7 @@
 # CommonTaskbar.gd
 # 全画面共通のタスクバーコンポーネント
 # 使用方法: 各画面の _ready() で CommonTaskbar.new().attach(self, "scene_name") を呼ぶ
-extends RefCounted
+extends Control
 class_name CommonTaskbar
 
 const UIF = preload("res://scripts/UIFactory.gd")

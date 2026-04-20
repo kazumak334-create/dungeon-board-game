@@ -1,16 +1,10 @@
 # GameUIOverlay.gd
 # オーバーレイ・フロート・ホバー・装備UI（GameUI.gdから分離）
-extends RefCounted
+extends Control
 
 var main: Node = null
 var _EDB = null
 
-var _char_hp_bars: Array = [null, null]    # [side] -> ColorRect (HPバー)
-var _char_hp_labels: Array = [null, null]  # [side] -> Label (HP数値)
-var _char_panels: Array = [null, null]     # [side] -> Panel
-var _char_mana_bars: Array = [null, null]  # [side] -> ColorRect (マナバー)
-var _char_mana_labels: Array = [null, null] # [side] -> Label (マナ数値)
-var _char_cast_bars: Array = [null, null]  # [side] -> ColorRect (キャストゲージ)
 var _damage_floats: Array = []             # [{label, timer, velocity}]
 var _event_bubble: Label = null            # 重要イベントフキダシ
 var _bubble_timer: float = 0.0             # フキダシ残り表示時間
@@ -28,9 +22,6 @@ func _cell_x(side: int, col: int) -> int:
 		return main.CENTER_X + main.GAP / 2 + col * main.CELL_W
 
 func build() -> void:
-	_build_character_panel(0)
-	_build_character_panel(1)
-	# _build_equipment_ui()  # 将来実装（現在は非表示）
 	# バトルタイマーラベル（画面上部中央）
 	_battle_timer_label = Label.new()
 	_battle_timer_label.position = Vector2(540, 42)
@@ -125,212 +116,6 @@ func _refresh_equipment_ui() -> void:
 			main._equip_slots[i].text    = "─ 空 ─"
 			main._equip_slots[i].modulate = Color(0.5, 0.5, 0.5)
 
-func _build_character_panel(side: int) -> void:
-	var panel_w: int = 80
-	# 盤面全体の高さに合わせる
-	var panel_h: int = 3 * main.CELL_H
-	var panel_x: int
-	if side == 0:
-		panel_x = _cell_x(0, 0) - panel_w - 5  # 自陣col0の左に密着
-	else:
-		panel_x = _cell_x(1, 2) + main.CELL_W + 5  # 敵陣col2の右に密着
-	# 盤面上端から開始
-	var panel_y: int = main.BOARD_TOP
-
-	# パネル背景
-	var panel = Panel.new()
-	panel.position = Vector2(panel_x, panel_y)
-	panel.size = Vector2(panel_w, panel_h)
-	var style = StyleBoxFlat.new()
-	style.bg_color = Color(0.12, 0.12, 0.18)
-	style.set_corner_radius_all(8)
-	style.set_border_width_all(2)
-	style.border_color = Color(0.3, 0.5, 0.3) if side == 0 else Color(0.5, 0.3, 0.3)
-	panel.add_theme_stylebox_override("panel", style)
-	panel.mouse_filter = Control.MOUSE_FILTER_STOP
-	panel.mouse_entered.connect(func(): _on_char_hover(side))
-	panel.mouse_exited.connect(func(): _on_char_hover_end())
-	main.add_child(panel)
-	_char_panels[side] = panel
-
-	# 内部レイアウト: panel_y基準でオフセット配置
-	# 内側の幅と余白
-	var inner_w: int = panel_w - 10  # 70px
-	var px: int = panel_x + 5        # 左余白5px
-
-	# --- 1. キャラアイコン（ColorRect + テキスト） ---
-	var portrait = ColorRect.new()
-	portrait.position = Vector2(panel_x + 15, panel_y + 4)
-	portrait.size = Vector2(50, 40)
-	portrait.color = Color(0.25, 0.3, 0.2) if side == 0 else Color(0.3, 0.2, 0.2)
-	main.add_child(portrait)
-
-	var portrait_label = Label.new()
-	portrait_label.text = "P" if side == 0 else "E"
-	portrait_label.position = Vector2(panel_x + 30, panel_y + 12)
-	portrait_label.add_theme_font_size_override("font_size", 20)
-	portrait_label.add_theme_color_override("font_color", Color(0.6, 0.8, 0.5) if side == 0 else Color(0.8, 0.5, 0.5))
-	main.add_child(portrait_label)
-
-	# --- 2. 装備なし表示 ---
-	var equip_label = Label.new()
-	equip_label.text = "装備なし"
-	equip_label.position = Vector2(px, panel_y + 47)
-	equip_label.size = Vector2(inner_w, 13)
-	equip_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	equip_label.add_theme_font_size_override("font_size", 9)
-	equip_label.add_theme_color_override("font_color", Color(0.5, 0.5, 0.5))
-	main.add_child(equip_label)
-
-	# --- 3. HPバー + HP数値 ---
-	var hp_bg = ColorRect.new()
-	hp_bg.position = Vector2(px, panel_y + 63)
-	hp_bg.size = Vector2(inner_w, 10)
-	hp_bg.color = Color(0.2, 0.2, 0.2)
-	main.add_child(hp_bg)
-
-	var hp_bar = ColorRect.new()
-	hp_bar.position = Vector2(px, panel_y + 63)
-	hp_bar.size = Vector2(inner_w, 10)
-	hp_bar.color = Color(0.3, 0.9, 0.4) if side == 0 else Color(0.9, 0.3, 0.3)
-	main.add_child(hp_bar)
-	_char_hp_bars[side] = hp_bar
-
-	var hp_label = Label.new()
-	hp_label.position = Vector2(px, panel_y + 76)
-	hp_label.size = Vector2(inner_w, 15)
-	hp_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	hp_label.add_theme_font_size_override("font_size", 13)
-	hp_label.add_theme_color_override("font_color", Color(0.9, 0.9, 0.9))
-	hp_label.text = "%d" % main.base_hp[side]
-	main.add_child(hp_label)
-	_char_hp_labels[side] = hp_label
-
-	# --- 4. マナバー + マナ数値 + "マナ"ラベル ---
-	var mana_bg = ColorRect.new()
-	mana_bg.position = Vector2(px, panel_y + 95)
-	mana_bg.size = Vector2(inner_w, 10)
-	mana_bg.color = Color(0.1, 0.1, 0.07)
-	main.add_child(mana_bg)
-
-	var mana_bar = ColorRect.new()
-	mana_bar.position = Vector2(px, panel_y + 95)
-	mana_bar.size = Vector2(0, 10)
-	mana_bar.color = Color(0.2, 0.5, 1.0) if side == 0 else Color(1.0, 0.3, 0.2)
-	main.add_child(mana_bar)
-	_char_mana_bars[side] = mana_bar
-
-	var mana_label = Label.new()
-	mana_label.position = Vector2(px, panel_y + 108)
-	mana_label.size = Vector2(inner_w, 13)
-	mana_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	mana_label.add_theme_font_size_override("font_size", 10)
-	mana_label.add_theme_color_override("font_color", Color(1.0, 0.9, 0.3) if side == 0 else Color(1.0, 0.6, 0.3))
-	mana_label.text = "0 / 10"
-	main.add_child(mana_label)
-	_char_mana_labels[side] = mana_label
-
-	var mana_title = Label.new()
-	mana_title.text = "マナ"
-	mana_title.position = Vector2(px, panel_y + 122)
-	mana_title.size = Vector2(inner_w, 12)
-	mana_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	mana_title.add_theme_font_size_override("font_size", 9)
-	mana_title.add_theme_color_override("font_color", Color(1.0, 0.85, 0.2) if side == 0 else Color(1.0, 0.5, 0.2))
-	main.add_child(mana_title)
-
-	# --- 5. キャストゲージ + "キャスト"ラベル ---
-	var cast_title = Label.new()
-	cast_title.text = "キャスト"
-	cast_title.position = Vector2(px, panel_y + 136)
-	cast_title.size = Vector2(inner_w, 11)
-	cast_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	cast_title.add_theme_font_size_override("font_size", 8)
-	cast_title.add_theme_color_override("font_color", Color(0.7, 0.5, 0.9) if side == 0 else Color(0.9, 0.5, 0.5))
-	main.add_child(cast_title)
-
-	var cast_bg = ColorRect.new()
-	cast_bg.position = Vector2(px, panel_y + 149)
-	cast_bg.size = Vector2(inner_w, 6)
-	cast_bg.color = Color(0.15, 0.1, 0.2)
-	main.add_child(cast_bg)
-
-	var cast_bar = ColorRect.new()
-	cast_bar.position = Vector2(px, panel_y + 149)
-	cast_bar.size = Vector2(0, 6)
-	cast_bar.color = Color(0.6, 0.3, 0.9) if side == 0 else Color(0.9, 0.4, 0.4)
-	main.add_child(cast_bar)
-	_char_cast_bars[side] = cast_bar
-
-	# --- 6. 獲得通貨ラベル（プレイヤー側のみ・キャストゲージ下） ---
-	if side == 0:
-		var gold_label = Label.new()
-		gold_label.text = "G: 0"
-		gold_label.position = Vector2(px, panel_y + 159)
-		gold_label.size = Vector2(inner_w, 14)
-		gold_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		gold_label.add_theme_font_size_override("font_size", 10)
-		gold_label.add_theme_color_override("font_color", Color(0.9, 0.8, 0.3))
-		main.add_child(gold_label)
-		_battle_gold_label = gold_label
-
-	# NEXTラベルはキューQ1上部に移動済み。プレース内からは削除
-
-	# --- デッキ情報（縦3段VBoxContainer）: パネル下端に配置 ---
-	var deck_block_y: int = panel_y + panel_h + 4  # パネル直下から開始
-	var block_h: int = 28  # 各ブロックの高さ
-
-	# 山札ブロック（茶色）
-	var deck_block = ColorRect.new()
-	deck_block.position = Vector2(panel_x, deck_block_y)
-	deck_block.size = Vector2(panel_w, block_h)
-	deck_block.color = Color(0.35, 0.25, 0.15)
-	main.add_child(deck_block)
-
-	var deck_count_lbl = Label.new()
-	deck_count_lbl.position = Vector2(panel_x, deck_block_y + 5)
-	deck_count_lbl.size = Vector2(panel_w, block_h - 10)
-	deck_count_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	deck_count_lbl.add_theme_font_size_override("font_size", 18)
-	deck_count_lbl.add_theme_color_override("font_color", Color(0.95, 0.9, 0.8))
-	deck_count_lbl.text = "0"
-	main.add_child(deck_count_lbl)
-	_deck_count_labels[side] = deck_count_lbl
-
-	# 捨て札ブロック（灰色）
-	var discard_block = ColorRect.new()
-	discard_block.position = Vector2(panel_x, deck_block_y + block_h)
-	discard_block.size = Vector2(panel_w, block_h)
-	discard_block.color = Color(0.25, 0.25, 0.3)
-	main.add_child(discard_block)
-
-	var discard_count_lbl = Label.new()
-	discard_count_lbl.position = Vector2(panel_x, deck_block_y + block_h + 5)
-	discard_count_lbl.size = Vector2(panel_w, block_h - 10)
-	discard_count_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	discard_count_lbl.add_theme_font_size_override("font_size", 18)
-	discard_count_lbl.add_theme_color_override("font_color", Color(0.75, 0.75, 0.8))
-	discard_count_lbl.text = "0"
-	main.add_child(discard_count_lbl)
-	_discard_count_labels[side] = discard_count_lbl
-
-	# 除外ブロック（黒紫）
-	var exile_block = ColorRect.new()
-	exile_block.position = Vector2(panel_x, deck_block_y + block_h * 2)
-	exile_block.size = Vector2(panel_w, block_h)
-	exile_block.color = Color(0.1, 0.05, 0.15)
-	main.add_child(exile_block)
-
-	var exile_count_lbl = Label.new()
-	exile_count_lbl.position = Vector2(panel_x, deck_block_y + block_h * 2 + 5)
-	exile_count_lbl.size = Vector2(panel_w, block_h - 10)
-	exile_count_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	exile_count_lbl.add_theme_font_size_override("font_size", 18)
-	exile_count_lbl.add_theme_color_override("font_color", Color(0.6, 0.4, 0.8))
-	exile_count_lbl.text = "0"
-	main.add_child(exile_count_lbl)
-	_exile_count_labels[side] = exile_count_lbl
-
 func spawn_damage_float(side: int, row: int, col: int, amount: int, is_heal: bool = false) -> void:
 	if amount == 0:
 		return
@@ -346,19 +131,8 @@ func spawn_damage_float(side: int, row: int, col: int, amount: int, is_heal: boo
 	_damage_floats.append({"label": label, "timer": 1.0, "y_start": y})
 
 func spawn_base_damage_float(side: int, amount: int) -> void:
-	var panel = _char_panels[side]
-	if panel == null:
-		return
-	var x = panel.position.x + 20
-	var y = panel.position.y + 40
-	var label = Label.new()
-	label.text = "-%d" % amount
-	label.position = Vector2(x, y)
-	label.add_theme_font_size_override("font_size", 22)
-	label.add_theme_color_override("font_color", Color(1.0, 0.2, 0.2))
-	label.z_index = 50
-	main.add_child(label)
-	_damage_floats.append({"label": label, "timer": 1.2, "y_start": y})
+	# 本体HPパネル削除により表示不要
+	pass
 
 func update_damage_floats(delta: float) -> void:
 	var to_remove: Array = []
@@ -470,27 +244,6 @@ func on_cell_hover(side: int, r: int, c: int) -> void:
 func on_cell_hover_end() -> void:
 	main._cell_tooltip_panel.visible = false
 
-func _on_char_hover(side: int) -> void:
-	var text: String = ""
-	if side == 0:
-		var cls: Dictionary = CardDB.CLASSES.get(GameSession.class_id, {})
-		text = "クラス: %s\n" % cls.get("display", "（未選択）")
-		var _edb = load("res://scripts/EffectDB.gd")
-		for skill in cls.get("skills", []):
-			var eid: String = skill.get("effect_id", "")
-			var edef: Dictionary = _edb.EFFECTS.get(eid, {})
-			text += "  [%s] %s\n" % [skill.get("trigger", ""), edef.get("display", eid)]
-		text += "\n装備: なし\n消費アイテム: なし"
-	else:
-		text = "敵"
-	main._cell_tooltip_label.text = text
-	var panel: Panel = _char_panels[side]
-	if panel != null:
-		main._cell_tooltip_panel.position = Vector2(panel.position.x + 90, panel.position.y)
-	main._cell_tooltip_panel.visible = true
-
-func _on_char_hover_end() -> void:
-	main._cell_tooltip_panel.visible = false
 
 func _is_important_event(text: String) -> bool:
 	# 重要イベント判定：死亡、本体ダメージ、スキル発動、合成

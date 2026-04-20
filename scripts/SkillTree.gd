@@ -6,7 +6,7 @@ const UIF = preload("res://scripts/UIFactory.gd")
 const TaskbarClass = preload("res://scripts/CommonTaskbar.gd")
 const SkillTreeGeneratorClass = preload("res://scripts/SkillTreeGenerator.gd")
 
-var _taskbar: RefCounted = null
+var _taskbar: Node = null
 var _tree_data: Dictionary = {}
 var _node_panels: Dictionary = {}  # id -> PanelContainer
 var _sp_label: Label

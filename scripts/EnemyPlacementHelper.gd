@@ -61,6 +61,5 @@ func _create_unit_from_pool_entry(entry: Dictionary) -> Object:
 	u.race = d.get("race", "")
 	u.attack_range = d.get("range", "1行")
 	u.support_effect = ""
-	u.passive_skill = ""
 	u.skills = d.get("skills", []).duplicate(true)
 	return u

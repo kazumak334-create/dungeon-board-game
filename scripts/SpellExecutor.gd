@@ -255,7 +255,7 @@ func _apply_self_status(side: int, bm: Node, eq: Node, status: String, stacks: i
 	var units = _get_all_units_with_pos(side, bm)
 	if units.is_empty():
 		return
-	# スライム種族のユニットを優先（passive_skill文字列依存を排除）
+	# スライム種族のユニットを優先
 	var priority: Array = units.filter(func(u):
 		return u["unit"].race == "スライム")
 	var pool: Array = priority if not priority.is_empty() else units

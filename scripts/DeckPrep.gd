@@ -13,7 +13,7 @@ const RightPanelClass = preload("res://scripts/DeckPrepRightPanel.gd")
 
 # 色彩設計（UIColors.gd参照）
 
-var _taskbar: RefCounted = null
+var _taskbar: Node = null
 var _PL = null
 var _board = null  # DeckPrepBoard インスタンス
 var _info: Object = null  # DeckPrepInfo インスタンス

@@ -48,6 +48,7 @@ var gold: int = 0          # 通貨
 var skill_points: int = 0  # スキルポイント
 var unlocked_skills: Array = []  # 解放済みスキルID配列
 var skill_tree_data: Dictionary = {}  # 現在のランで生成されたスキルツリー（SkillTreeGenerator.generate()の結果）
+var initial_deck_prep_pending: bool = false  # InitialCardPick後のデッキ編集待ちフラグ
 var last_result: Dictionary = {"win": false, "player_hp_remaining": 0, "enemy_hp_remaining": 0, "turns": 0}
 var run_depth: int = 0
 var artifacts_acquired: Array = []

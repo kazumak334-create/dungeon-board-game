@@ -105,6 +105,28 @@ func apply_support_effects() -> void:
 				# regen_stacksはスタック+時間減少方式のため_stolen_regenは直接加算済み
 				u._damage_reduction += u._stolen_armor
 				u._atk_bonus = min(u._atk_bonus, 10)  # ATKバフ重複上限+10
+		# 丑三つ狂乱：盤面全体の呪いスタック×0.1%のブーツ付与
+		_apply_midnight_frenzy()
+
+	func _apply_midnight_frenzy() -> void:
+		# 盤面全体の呪いスタック総数を計算
+		var total_curse: int = 0
+		for s in range(2):
+			for r in range(3):
+				for c in range(3):
+					var u = bm.board[s][r][c]
+					if u != null:
+						total_curse += u.curse_stacks
+		# midnight_frenzy持ちにブーツ付与
+		if total_curse > 0:
+			for s in range(2):
+				for r in range(3):
+					for c in range(3):
+						var u = bm.board[s][r][c]
+						if u != null and u._has_midnight_frenzy:
+							var boots_value: int = int(float(total_curse) * 0.1)
+							if boots_value > 0:
+								u.boots_stacks += boots_value
 
 func _process_unit_support(side: int, row: int, col: int, unit: Object) -> void:
 	var front_col: int = 2 if side == 0 else 0
@@ -236,7 +258,7 @@ func push_summon_effects(side: int, row: int, col: int, unit: Object) -> void:
 					"board_manager": bm, "deck_manager": bm.deck_manager_ref, "enemy_ai": bm.enemy_ai_ref,
 					"event_queue": bm.event_queue
 				})
-	# 旧方式（passive_skill文字列パース）は削除済み。全てskills配列で処理。
+	# 旧方式は削除済み。全てskills配列で処理。
 
 func _apply_class_skills(side: int, pdata: RefCounted) -> void:
 	for skill in pdata.skills:

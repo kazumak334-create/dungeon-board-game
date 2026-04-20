@@ -123,5 +123,10 @@ func execute(effect_id: String, params: Dictionary, context: Dictionary) -> void
 		"thorn_damage_all":        _actions.do_thorn_damage_all(merged, ctx)
 		"mana_flare_damage":       _actions.do_mana_flare_damage(merged, ctx)
 		"revive_on_death":         pass  # EventQueue.death_eventsで処理（既存）
+		# ---- Phase 3-1: 毒系スライム用 ----
+		"poison_amplify":          _actions.do_poison_amplify(merged, ctx)
+		"poison_amplify_all":      _actions.do_poison_amplify_all(merged, ctx)
+		"poison_add_conditional":  _actions.do_poison_add_conditional(merged, ctx)
+		"poison_damage":           _actions.do_poison_damage(merged, ctx)
 		_:
 			print("[EffectExecutor] 未実装type: %s (effect_id: %s)" % [merged.get("type", "?"), effect_id])

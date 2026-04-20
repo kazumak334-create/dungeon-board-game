@@ -216,6 +216,32 @@ func resolve(merged: Dictionary, context: Dictionary, ally_side: bool) -> Array:
 					if u != null and u.is_alive():
 						result_ae.append(u)
 			return result_ae
+		"enemy_max_poison":
+			# 毒スタック最多の敵1体
+			var best: Object = null
+			var best_stacks: int = 0
+			for r2 in range(3):
+				for c2 in range(3):
+					var u = bm.board[enemy_side][r2][c2]
+					if u != null and u.is_alive():
+						var stacks: int = u.poison_stacks if u.has("poison_stacks") else 0
+						if stacks > best_stacks:
+							best_stacks = stacks
+							best = u
+			return [best] if best != null else []
+		"enemy_front_random_poisoned":
+			# 前列の毒持ち敵ランダム1体
+			var front_efrp: int = 0 if enemy_side == 1 else 2
+			var cands_efrp: Array = []
+			for r2 in range(3):
+				var u = bm.board[enemy_side][r2][front_efrp]
+				if u != null and u.is_alive():
+					var stacks: int = u.poison_stacks if u.has("poison_stacks") else 0
+					if stacks > 0:
+						cands_efrp.append(u)
+			if cands_efrp.is_empty():
+				return []
+			return [cands_efrp[randi() % cands_efrp.size()]]
 	return []
 
 func pick_ally_by_strategy(side: int, bm: Node, strategy: String) -> Object:

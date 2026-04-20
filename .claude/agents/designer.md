@@ -1,7 +1,7 @@
 ---
 name: designer
 description: UI/UX企画・デザイン仕様策定・事後レビュー専門
-tools: [Read, Write, Glob, Grep]
+tools: [Read, Write, Edit, Glob, Grep]
 model: opus
 ---
 

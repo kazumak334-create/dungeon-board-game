@@ -1,24 +1,25 @@
 # WaveManager.gd
 # Wave進行管理の中核（Phase 4 #0-0a）
 class_name WaveManager
-extends RefCounted
+extends Node
 
 # シグナル（Main.gdで接続予定）
-signal wave_started(big_wave: int, small_wave: int)
-signal wave_cleared(big_wave: int, small_wave: int)
-signal rest_screen_requested()
-signal wave_all_cleared()
+signal wave_started(big_wave: int, small_wave: int, scale: float)
+signal wave_ended(big_wave: int, small_wave: int, victory: bool)
+signal intermission_requested(shop_config: Dictionary)
+signal big_wave_completed(next_act: int)
 
 # 定数
-const SMALL_WAVES_PER_BIG_WAVE: int = 6
-const BOSS_WAVE_PHASE1: int = 7
-const BOSS_WAVE_PHASE2: int = 8
-const TOTAL_WAVES_PER_BW: int = 8
-const TOTAL_BIG_WAVES: int = 3
+const SMALL_WAVES_PER_BIG_WAVE: int = 2
+const BOSS_WAVE_PHASE1: int = 3  # BW4の小Wave3（ボスPhase1）
+const BOSS_WAVE_PHASE2: int = 4  # BW4の小Wave4（ボスPhase2）
+const TOTAL_WAVES_PER_BW: int = 2  # 通常BW：小Wave2個、ボスBW：小Wave2個+ボス2
+const TOTAL_BIG_WAVES: int = 4
+const SHOP_TRIGGER_WAVES: Array[int] = [2, 4, 6]
 
-# Wave強化係数テーブル
+# Wave強化係数テーブル（小Wave1-6 + ボス2段階）
 const WAVE_SCALING_TABLE: Array = [
-	0.6, 0.8, 1.0, 1.3, 1.6, 2.0, 3.0, 3.5
+	0.6, 0.8, 1.0, 1.3, 1.6, 2.0, 2.5, 3.0
 ]
 
 # WaveState列挙型
@@ -41,6 +42,12 @@ var state: WaveState = WaveState.SMALL_WAVE
 
 func _init() -> void:
 	print("[WaveManager] 初期化完了")
+
+func setup(bm: Node, dm: Node, eai: Node, main: Node) -> void:
+	board_manager = bm
+	deck_manager = dm
+	enemy_ai = eai
+	print("[WaveManager] setup完了")
 
 func start_wave_mode(big_wave: int = 1, small_wave: int = 1) -> void:
 	if _is_running:
@@ -76,8 +83,8 @@ func _start_wave(big: int, small: int) -> void:
 			deck_manager.mana = 0.0
 	GameSession.wave_current_big = big
 	GameSession.wave_current_small = small
-	wave_started.emit(big, small)
-	print("[WaveManager] Wave開始シグナル発行: BW%d-SW%d" % [big, small])
+	wave_started.emit(big, small, scaling)
+	print("[WaveManager] Wave開始シグナル発行: BW%d-SW%d scale=%.1f" % [big, small, scaling])
 
 func on_wave_clear() -> void:
 	print("[WaveManager] Wave突破: BW%d-SW%d" % [_current_big, _current_small])
@@ -88,12 +95,22 @@ func on_wave_clear() -> void:
 			print("[WaveManager] マナ保存: %.1f" % GameSession.wave_mana_carryover)
 	else:
 		GameSession.wave_mana_carryover = 0.0
-	wave_cleared.emit(_current_big, _current_small)
+	wave_ended.emit(_current_big, _current_small, true)
 	_advance_to_next_wave()
 
 func on_wave_victory() -> void:
 	# Main.gd互換のためのエイリアス
 	on_wave_clear()
+
+func _build_shop_config() -> Dictionary:
+	# MVP: 全ショップ共通（B案）
+	return {
+		"unit_count": 6,
+		"spell_count": 3,
+		"material_count": 3,
+		"rarity_weights": {"common": 70, "uncommon": 20, "rare": 8, "epic": 2},
+		"allow_duplicates": true
+	}
 
 func _advance_to_next_wave() -> void:
 	if _current_small == BOSS_WAVE_PHASE2:
@@ -101,7 +118,7 @@ func _advance_to_next_wave() -> void:
 		if _current_big >= TOTAL_BIG_WAVES:
 			print("[WaveManager] 全Wave突破")
 			_is_running = false
-			wave_all_cleared.emit()
+			big_wave_completed.emit(4)
 			return
 		else:
 			print("[WaveManager] BW%d突破 → 休憩画面へ" % _current_big)
@@ -110,13 +127,21 @@ func _advance_to_next_wave() -> void:
 			state = WaveState.SMALL_WAVE
 			GameSession.wave_mana_carryover = 0.0
 			GameSession.wave_board_snapshot = {}
-			rest_screen_requested.emit()
+			intermission_requested.emit(_build_shop_config())
 			return
+
+	# 通常Wave突破後のショップ判定
+	if _current_small in SHOP_TRIGGER_WAVES:
+		print("[WaveManager] SW%d突破 → ショップへ" % _current_small)
+		_current_small += 1
+		intermission_requested.emit(_build_shop_config())
+		return
+
 	_current_small += 1
 	print("[WaveManager] 次Wave: BW%d-SW%d" % [_current_big, _current_small])
 	_start_wave(_current_big, _current_small)
 
-func resume_from_rest() -> void:
+func resume_from_intermission() -> void:
 	print("[WaveManager] 休憩完了 → 次BW開始: BW%d-SW%d" % [_current_big, _current_small])
 	_start_wave(_current_big, _current_small)
 

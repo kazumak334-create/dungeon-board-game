@@ -23,7 +23,7 @@ func process_combat(delta: float, base_hp: Array) -> void:
 		var front_col: int = 2 if side == 0 else 0
 		for row in range(3):
 			var unit = bm.board[side][row][front_col]
-			if unit == null:
+			if unit == null or unit._is_sealed:
 				continue
 			bm.attack_timers[side][row][front_col] -= delta
 			if bm.attack_timers[side][row][front_col] <= 0.0:
@@ -45,7 +45,7 @@ func process_combat(delta: float, base_hp: Array) -> void:
 		# 後列
 		for row in range(3):
 			var unit = bm.board[side][row][back_col]
-			if unit == null or not unit._can_attack_from_back:
+			if unit == null or not unit._can_attack_from_back or unit._is_sealed:
 				continue
 			bm.attack_timers[side][row][back_col] -= delta
 			if bm.attack_timers[side][row][back_col] <= 0.0:
@@ -61,7 +61,7 @@ func process_combat(delta: float, base_hp: Array) -> void:
 		# 中列（支援攻撃のみ）
 		for row in range(3):
 			var unit = bm.board[side][row][mid_col]
-			if unit == null or not unit._can_attack_from_mid:
+			if unit == null or not unit._can_attack_from_mid or unit._is_sealed:
 				continue
 			bm.attack_timers[side][row][mid_col] -= delta
 			if bm.attack_timers[side][row][mid_col] <= 0.0:
@@ -92,18 +92,19 @@ func _do_attack(side: int, row: int, col: int, attacker: Object, enemy_side: int
 	if attacker.burn_turns > 0:
 		var burn_reduction: float = 0.8 * float(attacker.burn_turns) / float(attacker.burn_turns + 2)
 		effective_atk = max(1, int(float(effective_atk) * (1.0 - burn_reduction)))
-	# クリティカル（初撃ATK×2 or senseバフでランダム判定）
+	# クリティカル（senseバフでランダム判定）
 	var is_critical: bool = false
 	var crit_chance: float = 0.0
-	if attacker._first_attack and "クリティカル" in attacker.passive_skill:
-		is_critical = true
-		attacker._first_attack = false
-	elif attacker.sense_stacks > 0:
+	if attacker.sense_stacks > 0:
 		crit_chance = min(1.0, attacker.sense_stacks * 0.01)
 		if randf() <= crit_chance:
 			is_critical = true
 	if is_critical:
-		effective_atk *= 2
+		# 弱点狙い：クリティカル時×3、それ以外は×2
+		if attacker._has_weakness_hunter:
+			effective_atk *= 3
+		else:
+			effective_atk *= 2
 	# damage_accumulate: 蓄積ダメージを追加ダメージとして反映
 	for skill in attacker.skills:
 		if skill.get("effect_id", "") == "damage_accumulate" and attacker._accumulated_damage > 0:
@@ -165,29 +166,46 @@ func _do_attack(side: int, row: int, col: int, attacker: Object, enemy_side: int
 					attacker, target, "damage", float(actual_damage),
 					{"enemy_side": enemy_side, "row": target_row, "col": target_col}
 				)
-				# 衝撃/貫通/大貫通スキルによるダメージ波及
-				var pen_depth: int = 0
-				var pen_factors: Array = []
+				# 貫通処理（再定義）
+				# 貫通：前列攻撃時に中列にも同じダメージ
+				# 大貫通：前列攻撃時に中列・後列にも同じダメージ
+				# 衝撃：後ろ1マス50%
 				if attacker._has_big_penetrate:
-					pen_depth = 2
-					pen_factors = [1.0, 0.5]
+					# 大貫通：前列攻撃時に中列・後列にも100%ダメージ
+					if target_col == (0 if enemy_side == 0 else 2):
+						for extra_col in [1, 2] if enemy_side == 0 else [1, 0]:
+							var extra_target = bm.board[enemy_side][target_row][extra_col]
+							if extra_target != null:
+								var extra_armor: float = min(1.0, extra_target._damage_reduction * 0.1)
+								var extra_dmg: int = max(0, int(float(actual_damage) * (1.0 - extra_armor)))
+								if extra_dmg > 0:
+									bm.event_queue.push(
+										1,
+										attacker, extra_target, "damage", float(extra_dmg),
+										{"enemy_side": enemy_side, "row": target_row, "col": extra_col}
+									)
 				elif attacker._has_penetrate:
-					pen_depth = 1
-					pen_factors = [1.0]
+					# 貫通：前列攻撃時に中列にも100%ダメージ
+					if target_col == (0 if enemy_side == 0 else 2):
+						var mid_col: int = 1
+						var mid_target = bm.board[enemy_side][target_row][mid_col]
+						if mid_target != null:
+							var mid_armor: float = min(1.0, mid_target._damage_reduction * 0.1)
+							var mid_dmg: int = max(0, int(float(actual_damage) * (1.0 - mid_armor)))
+							if mid_dmg > 0:
+								bm.event_queue.push(
+									1,
+									attacker, mid_target, "damage", float(mid_dmg),
+									{"enemy_side": enemy_side, "row": target_row, "col": mid_col}
+								)
 				elif attacker._has_impact:
-					pen_depth = 1
-					pen_factors = [0.5]
-				if pen_depth > 0:
-					var prev_col: int = target_col
-					for d_idx in range(pen_depth):
-						var behind_col: int = _get_behind_col(enemy_side, target_row, prev_col)
-						if behind_col == -1:
-							break
-						prev_col = behind_col
+					# 衝撃：後ろ1マス50%
+					var behind_col: int = _get_behind_col(enemy_side, target_row, target_col)
+					if behind_col != -1:
 						var behind_target = bm.board[enemy_side][target_row][behind_col]
 						if behind_target != null:
 							var pen_armor: float = min(1.0, behind_target._damage_reduction * 0.1)
-							var pen_dmg: int = max(0, int(float(actual_damage) * pen_factors[d_idx] * (1.0 - pen_armor)))
+							var pen_dmg: int = max(0, int(float(actual_damage) * 0.5 * (1.0 - pen_armor)))
 							if pen_dmg > 0:
 								bm.event_queue.push(
 									1,
@@ -247,7 +265,7 @@ func _push_on_hit_effects(side: int, row: int, col: int, attacker: Object, targe
 					"board_manager": bm, "deck_manager": bm.deck_manager_ref, "enemy_ai": bm.enemy_ai_ref,
 					"event_queue": bm.event_queue
 				})
-	# 旧方式（passive_skill文字列パース）は削除済み。全てskills配列で処理。
+	# 旧方式は削除済み。全てskills配列で処理。
 
 func _get_target_rows(attacker_row: int, attack_range: String) -> Array:
 	match attack_range:
@@ -274,7 +292,7 @@ func _process_support_effects(delta: float) -> void:
 		for row in range(3):
 			# 中列
 			var mid_unit = bm.board[side][row][mid_col]
-			if mid_unit != null:
+			if mid_unit != null and not mid_unit._is_sealed:
 				bm.support_timers[side][row][mid_col] -= delta
 				if bm.support_timers[side][row][mid_col] <= 0.0:
 					var base_interval: float = mid_unit.get_attack_interval()
@@ -288,7 +306,7 @@ func _process_support_effects(delta: float) -> void:
 
 			# 後列
 			var back_unit = bm.board[side][row][back_col]
-			if back_unit != null:
+			if back_unit != null and not back_unit._is_sealed:
 				bm.support_timers[side][row][back_col] -= delta
 				if bm.support_timers[side][row][back_col] <= 0.0:
 					var base_interval: float = back_unit.get_attack_interval()
@@ -450,7 +468,7 @@ func process_on_kill(killer: Object) -> void:
 					"board_manager": bm, "deck_manager": bm.deck_manager_ref, "enemy_ai": bm.enemy_ai_ref,
 					"event_queue": bm.event_queue
 				})
-	# 旧方式passive_skill文字列パースは削除済み。全てskills配列で処理。
+	# 旧方式は削除済み。全てskills配列で処理。
 
 func process_debuff_spread(killer: Object, victim: Object, victim_side: int, victim_row: int, victim_col: int) -> void:
 	# 死亡した敵の周囲（上下左右）の敵にデバフを波及

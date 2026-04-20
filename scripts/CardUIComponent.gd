@@ -1,6 +1,6 @@
 # CardUIComponent.gd
 # キュー用カードUIコンポーネント
-extends RefCounted
+extends Control
 
 # レアリティ枠色
 const RARITY_BORDER = {
@@ -99,7 +99,7 @@ static func create_unit_card(card_name: String, unit_data: Dictionary, width: fl
 	# スキルを分類
 	var attack_skills: Array = []
 	var support_skills: Array = []
-	var passive_skills: Array = []
+	var other_skills: Array = []
 	for skill in skills:
 		var trigger = skill.get("trigger", "")
 		var target = skill.get("target", "self")
@@ -110,17 +110,17 @@ static func create_unit_card(card_name: String, unit_data: Dictionary, width: fl
 				support_skills.append(skill)
 			"timer":
 				if target == "self":
-					passive_skills.append(skill)
+					other_skills.append(skill)
 				else:
 					support_skills.append(skill)
 			_:
-				passive_skills.append(skill)
+				other_skills.append(skill)
 
 	# スキル表示（最大3行）
 	var skill_sets = [
 		{"label": "攻撃", "skills": attack_skills, "color": Color(0.9, 0.5, 0.4)},
 		{"label": "サポ", "skills": support_skills, "color": Color(0.4, 0.8, 0.5)},
-		{"label": "パッシブ", "skills": passive_skills, "color": Color(0.5, 0.6, 0.9)},
+		{"label": "その他", "skills": other_skills, "color": Color(0.5, 0.6, 0.9)},
 	]
 
 	for ss in skill_sets:

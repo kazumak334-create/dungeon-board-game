@@ -5,7 +5,7 @@ extends Control
 const UIF = preload("res://scripts/UIFactory.gd")
 const TaskbarClass = preload("res://scripts/CommonTaskbar.gd")
 
-var _taskbar: RefCounted = null
+var _taskbar: Node = null
 var _editing_side: int = 0  # 0=自軍, 1=敵軍
 var _player_preview: Control = null
 var _enemy_preview: Control = null

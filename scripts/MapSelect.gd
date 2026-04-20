@@ -6,7 +6,7 @@ const UIF = preload("res://scripts/UIFactory.gd")
 const TaskbarClass = preload("res://scripts/CommonTaskbar.gd")
 const MapGenerator = preload("res://scripts/MapGenerator.gd")
 
-var _taskbar: RefCounted = null
+var _taskbar: Node = null
 var _node_buttons: Dictionary = {}  # node_id -> Button
 
 # ルートメモ機能
@@ -291,14 +291,14 @@ func _on_node_clicked(node_id: String, node_type: String) -> void:
 		"battle":
 			GameSession.alert_level = min(3, GameSession.alert_level + 1)
 			GameSession.battle_type = "normal"
-			SceneManager.go_to(SceneManager.DECK_PREP)
+			SceneManager.go_to(SceneManager.BATTLE)
 		"elite":
 			GameSession.alert_level = min(3, GameSession.alert_level + 1)
 			GameSession.battle_type = "elite"
-			SceneManager.go_to(SceneManager.DECK_PREP)
+			SceneManager.go_to(SceneManager.BATTLE)
 		"boss":
 			GameSession.battle_type = "boss"
-			SceneManager.go_to(SceneManager.DECK_PREP)
+			SceneManager.go_to(SceneManager.BATTLE)
 		"rest":
 			SceneManager.go_to(SceneManager.MAP_SELECT)
 		"shop":

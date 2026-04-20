@@ -6,7 +6,7 @@
 [ext_resource type="PackedScene" uid="uid://cg2b2jlxqwrvy" path="res://scenes/ui/cells/cell.tscn" id="3_vcsgt"]
 [ext_resource type="Script" uid="uid://ba5mhk4l61s81" path="res://scenes/ui/cells/cell.gd" id="4_c01mt"]
 
-[node name="Main" type="Node" unique_id=1758182147]
+[node name="Main" type="Control" unique_id=1758182147]
 script = ExtResource("1_main")
 
 [node name="Headerbar" parent="." unique_id=905322913 instance=ExtResource("2_vcsgt")]
