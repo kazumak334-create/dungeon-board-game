@@ -543,13 +543,13 @@
 		"魔力の砂時計": {
 			"anim": "",
 			"display": "魔力の砂時計",
-			"effect": "マナ回復速度+20%",
+			"effect": "マナ回復速度上昇（泉バフ+5）",
 			"sfx": "",
 			"skills": [
 				{
 					"effect_id": "mana_regen_boost",
 					"params": {
-						"pct": 0.2
+						"stacks": 5
 					},
 					"target": "self",
 					"trigger": "always"
@@ -1653,6 +1653,27 @@
 			"en_name": "Manaflare",
 			"description": "全マナ消費・消費したマナ量分を敵全体にダメージ",
 			"persistence": "permanent"
+		},
+		"Toxswamp": {
+			"anim": "",
+			"rarity": "common",
+			"mana": 5,
+			"effect": "自陣・敵陣の前列全マスを毒沼状態にする",
+			"sfx": "",
+			"skills": [
+				{
+					"effect_id": "tile_set_all",
+					"params": {
+						"scope": "front_columns",
+						"tile_id": "tile_poison"
+					},
+					"target": "all",
+					"trigger": "on_play"
+				}
+			],
+			"target": "all",
+			"texture": "",
+			"persistence": "permanent"
 		}
 	},
 	"status_spells": {
@@ -2041,6 +2062,104 @@
 					"interval": 30
 				}
 			]
+		},
+		{
+			"id": "beast_lurker",
+			"display": "潜伏者",
+			"description": "獣ユニット「Lurker」を追加",
+			"is_cursed": false,
+			"benefits": [
+				{
+					"type": "add_unit",
+					"name": "Lurker",
+					"col": 0
+				}
+			],
+			"demerits": []
+		},
+		{
+			"id": "beast_ambushor",
+			"display": "待伏の獣",
+			"description": "獣ユニット「Ambushor」を追加",
+			"is_cursed": false,
+			"benefits": [
+				{
+					"type": "add_unit",
+					"name": "Ambushor",
+					"col": 0
+				}
+			],
+			"demerits": []
+		},
+		{
+			"id": "beast_strikehawk",
+			"display": "急襲鷹",
+			"description": "獣ユニット「Strikehawk」を追加",
+			"is_cursed": false,
+			"benefits": [
+				{
+					"type": "add_unit",
+					"name": "Strikehawk",
+					"col": 0
+				}
+			],
+			"demerits": []
+		},
+		{
+			"id": "beast_divehawk",
+			"display": "急降下鷹",
+			"description": "獣ユニット「Divehawk」を追加",
+			"is_cursed": false,
+			"benefits": [
+				{
+					"type": "add_unit",
+					"name": "Divehawk",
+					"col": 0
+				}
+			],
+			"demerits": []
+		},
+		{
+			"id": "beast_lancefang",
+			"display": "槍牙",
+			"description": "獣ユニット「Lancefang」を追加",
+			"is_cursed": false,
+			"benefits": [
+				{
+					"type": "add_unit",
+					"name": "Lancefang",
+					"col": 0
+				}
+			],
+			"demerits": []
+		},
+		{
+			"id": "beast_spearfang",
+			"display": "長槍牙",
+			"description": "獣ユニット「Spearfang」を追加",
+			"is_cursed": false,
+			"benefits": [
+				{
+					"type": "add_unit",
+					"name": "Spearfang",
+					"col": 0
+				}
+			],
+			"demerits": []
+		},
+		{
+			"id": "beast_voidlance",
+			"display": "虚空の槍",
+			"description": "獣ユニット「Voidlance」を追加",
+			"is_cursed": false,
+			"benefits": [
+				{
+					"type": "add_unit",
+					"name": "Voidlance",
+					"col": 0
+				}
+			],
+			"demerits": []
 		}
 	],
 	"synthesis": [],
@@ -2581,6 +2700,434 @@
 			"spd": 2,
 			"en_name": "Venpool"
 		},
+		"Hexshift": {
+			"anim": "",
+			"rarity": "rare",
+			"atk": 2,
+			"col": 0,
+			"mana": 2,
+			"hp": 30,
+			"race": "アンデッド",
+			"range": "1行",
+			"sfx": "",
+			"skills": [
+				{
+					"trigger": "on_support",
+					"target": "enemies_with_curse",
+					"effect_id": "curse_amplify_all",
+					"params": {
+						"factor": 1.5,
+						"min_curse": 5
+					}
+				}
+			],
+			"texture": "",
+			"roles": [
+				"サポート"
+			],
+			"traits": [
+				"regeneration",
+				"midnight_frenzy"
+			],
+			"spd": 5,
+			"en_name": "Hexshift"
+		},
+		"Hexbreak": {
+			"anim": "",
+			"rarity": "epic",
+			"atk": 2,
+			"col": 0,
+			"mana": 3,
+			"hp": 40,
+			"race": "アンデッド",
+			"range": "1行",
+			"sfx": "",
+			"skills": [
+				{
+					"trigger": "on_support",
+					"target": "enemies_with_curse",
+					"effect_id": "curse_amplify_all",
+					"params": {
+						"factor": 2.0,
+						"min_curse": 5
+					}
+				}
+			],
+			"texture": "",
+			"roles": [
+				"サポート"
+			],
+			"traits": [
+				"regeneration",
+				"midnight_frenzy"
+			],
+			"spd": 5,
+			"en_name": "Hexbreak"
+		},
+		"Hexruin": {
+			"anim": "",
+			"rarity": "legend",
+			"atk": 2,
+			"col": 0,
+			"mana": 3,
+			"hp": 55,
+			"race": "アンデッド",
+			"range": "1行",
+			"sfx": "",
+			"skills": [
+				{
+					"trigger": "on_hit",
+					"target": "hit_target",
+					"effect_id": "curse_apply",
+					"params": {
+						"stacks": 3,
+						"min_curse": 5
+					}
+				},
+				{
+					"trigger": "on_support",
+					"target": "enemies_with_curse",
+					"effect_id": "curse_amplify_all",
+					"params": {
+						"factor": 2.5,
+						"min_curse": 5
+					}
+				}
+			],
+			"texture": "",
+			"roles": [
+				"サポート"
+			],
+			"traits": [
+				"regeneration",
+				"midnight_frenzy"
+			],
+			"spd": 5,
+			"en_name": "Hexruin"
+		},
+		"Hexdrift": {
+			"anim": "",
+			"rarity": "rare",
+			"atk": 2,
+			"col": 0,
+			"mana": 2,
+			"hp": 30,
+			"race": "アンデッド",
+			"range": "1行",
+			"sfx": "",
+			"skills": [
+				{
+					"trigger": "on_support",
+					"target": "enemy_front_random_one",
+					"effect_id": "position_swap_front_back",
+					"params": {
+						"min_curse": 20
+					}
+				}
+			],
+			"texture": "",
+			"roles": [
+				"サポート"
+			],
+			"traits": [
+				"regeneration",
+				"midnight_frenzy"
+			],
+			"spd": 5,
+			"en_name": "Hexdrift"
+		},
+		"Hexswap": {
+			"anim": "",
+			"rarity": "epic",
+			"atk": 2,
+			"col": 0,
+			"mana": 3,
+			"hp": 40,
+			"race": "アンデッド",
+			"range": "1行",
+			"sfx": "",
+			"skills": [
+				{
+					"trigger": "on_support",
+					"target": "enemy_random_two",
+					"effect_id": "position_swap_random",
+					"params": {
+						"min_curse": 10
+					}
+				}
+			],
+			"texture": "",
+			"roles": [
+				"サポート"
+			],
+			"traits": [
+				"regeneration",
+				"midnight_frenzy"
+			],
+			"spd": 5,
+			"en_name": "Hexswap"
+		},
+		"Hexlord": {
+			"anim": "",
+			"rarity": "legend",
+			"atk": 2,
+			"col": 0,
+			"mana": 3,
+			"hp": 55,
+			"race": "アンデッド",
+			"range": "1行",
+			"sfx": "",
+			"skills": [
+				{
+					"trigger": "on_support",
+					"target": "all_enemies",
+					"effect_id": "position_shuffle",
+					"params": {
+						"min_curse": 5
+					}
+				}
+			],
+			"texture": "",
+			"roles": [
+				"サポート"
+			],
+			"traits": [
+				"regeneration",
+				"midnight_frenzy"
+			],
+			"spd": 5,
+			"en_name": "Hexlord"
+		},
+		"Spinwall": {
+			"anim": "",
+			"rarity": "epic",
+			"atk": 4,
+			"col": 0,
+			"mana": 2,
+			"hp": 65,
+			"race": "スライム",
+			"range": "1行",
+			"sfx": "",
+			"skills": [
+				{
+					"trigger": "on_front_attack",
+					"target": "self",
+					"effect_id": "thorn_apply",
+					"params": {
+						"stacks": 2
+					}
+				},
+				{
+					"trigger": "on_front_attack",
+					"target": "same_row_allies",
+					"effect_id": "thorn_apply",
+					"params": {
+						"stacks": 2
+					}
+				},
+				{
+					"trigger": "on_support",
+					"target": "all_allies",
+					"effect_id": "armor_apply",
+					"params": {
+						"stacks": 1
+					}
+				},
+				{
+					"trigger": "on_support",
+					"target": "all_allies",
+					"effect_id": "regen_apply",
+					"params": {
+						"stacks": 1
+					}
+				}
+			],
+			"texture": "",
+			"roles": [
+				"守備"
+			],
+			"spd": 5.0,
+			"en_name": "Spinwall"
+		},
+		"Thornblast": {
+			"anim": "",
+			"rarity": "legend",
+			"atk": 3,
+			"col": 0,
+			"mana": 3,
+			"hp": 70,
+			"race": "スライム",
+			"range": "1行",
+			"sfx": "",
+			"skills": [
+				{
+					"trigger": "on_front_attack",
+					"target": "hit_target",
+					"effect_id": "thorn_damage",
+					"params": {}
+				},
+				{
+					"trigger": "on_support",
+					"target": "all_allies",
+					"effect_id": "armor_apply",
+					"params": {
+						"stacks": 1
+					}
+				},
+				{
+					"trigger": "on_support",
+					"target": "all_allies",
+					"effect_id": "regen_apply",
+					"params": {
+						"stacks": 1
+					}
+				},
+				{
+					"trigger": "on_support",
+					"target": "all_allies",
+					"effect_id": "power_apply",
+					"params": {
+						"stacks": 1
+					}
+				}
+			],
+			"texture": "",
+			"roles": [
+				"攻撃"
+			],
+			"spd": 5.0,
+			"en_name": "Thornblast"
+		},
+		"Shieldblast": {
+			"anim": "",
+			"rarity": "epic",
+			"atk": 2,
+			"col": 0,
+			"mana": 2,
+			"hp": 60,
+			"race": "スライム",
+			"range": "1行",
+			"sfx": "",
+			"skills": [
+				{
+					"trigger": "on_front_attack",
+					"target": "hit_target",
+					"effect_id": "armor_damage",
+					"params": {}
+				},
+				{
+					"trigger": "on_support",
+					"target": "self",
+					"effect_id": "armor_apply",
+					"params": {
+						"stacks": 2
+					}
+				},
+				{
+					"trigger": "on_support",
+					"target": "same_row_allies",
+					"effect_id": "armor_apply",
+					"params": {
+						"stacks": 2
+					}
+				}
+			],
+			"texture": "",
+			"roles": [
+				"守備"
+			],
+			"spd": 5.0,
+			"en_name": "Shieldblast"
+		},
+		"Crystalblast": {
+			"anim": "",
+			"rarity": "legend",
+			"atk": 2,
+			"col": 0,
+			"mana": 3,
+			"hp": 70,
+			"race": "スライム",
+			"range": "1行",
+			"sfx": "",
+			"skills": [
+				{
+					"trigger": "on_front_attack",
+					"target": "hit_target",
+					"effect_id": "armor_damage_consume",
+					"params": {}
+				},
+				{
+					"trigger": "on_support",
+					"target": "same_column_allies",
+					"effect_id": "armor_apply",
+					"params": {
+						"stacks": 2
+					}
+				}
+			],
+			"texture": "",
+			"roles": [
+				"攻撃"
+			],
+			"spd": 5.0,
+			"en_name": "Crystalblast"
+		},
+		"Spellock": {
+			"anim": "",
+			"rarity": "epic",
+			"atk": 1,
+			"col": 1,
+			"mana": 2,
+			"hp": 60,
+			"race": "スライム",
+			"range": "1行",
+			"sfx": "",
+			"skills": [
+				{
+					"trigger": "on_support",
+					"target": "enemy_spell_slots",
+					"effect_id": "spell_slot_seal",
+					"params": {
+						"count": 2,
+						"duration": 3.0
+					}
+				}
+			],
+			"texture": "",
+			"roles": [
+				"サポート"
+			],
+			"spd": 3.33,
+			"en_name": "Spellock"
+		},
+		"Nullock": {
+			"anim": "",
+			"rarity": "legend",
+			"atk": 1,
+			"col": 1,
+			"mana": 2,
+			"hp": 70,
+			"race": "スライム",
+			"range": "1行",
+			"sfx": "",
+			"skills": [
+				{
+					"trigger": "on_support",
+					"target": "enemy_spell_slots",
+					"effect_id": "spell_slot_seal",
+					"params": {
+						"count": 99,
+						"duration": 4.0
+					}
+				}
+			],
+			"texture": "",
+			"roles": [
+				"サポート"
+			],
+			"spd": 3.33,
+			"en_name": "Nullock"
+		},
 		"Plagzel": {
 			"anim": "",
 			"rarity": "uncommon",
@@ -2782,6 +3329,329 @@
 			"spd": 3,
 			"en_name": "Silenzel"
 		},
+		"Frostblob": {
+			"anim": "",
+			"rarity": "rare",
+			"atk": 2,
+			"col": 0,
+			"mana": 2,
+			"hp": 55,
+			"race": "スライム",
+			"range": "1行",
+			"sfx": "",
+			"skills": [
+				{
+					"trigger": "on_front_attack",
+					"target": "hit_target",
+					"effect_id": "burn_apply",
+					"params": {
+						"stacks": 3
+					}
+				},
+				{
+					"trigger": "on_front_attack",
+					"target": "hit_target",
+					"effect_id": "freeze_apply",
+					"params": {
+						"stacks": 3
+					}
+				},
+				{
+					"trigger": "on_support",
+					"target": "enemy_all_poisoned",
+					"effect_id": "burn_apply",
+					"params": {
+						"stacks": 3
+					}
+				},
+				{
+					"trigger": "on_support",
+					"target": "enemy_all_poisoned",
+					"effect_id": "freeze_apply",
+					"params": {
+						"stacks": 3
+					}
+				}
+			],
+			"texture": "",
+			"roles": [
+				"サポート"
+			],
+			"spd": 5.0,
+			"en_name": "Frostblob"
+		},
+		"Blightzel": {
+			"anim": "",
+			"rarity": "epic",
+			"atk": 2,
+			"col": 0,
+			"mana": 2,
+			"hp": 60,
+			"race": "スライム",
+			"range": "1行",
+			"sfx": "",
+			"skills": [
+				{
+					"trigger": "on_front_attack",
+					"target": "hit_target",
+					"effect_id": "burn_apply",
+					"params": {
+						"stacks": 5
+					}
+				},
+				{
+					"trigger": "on_front_attack",
+					"target": "hit_target",
+					"effect_id": "freeze_apply",
+					"params": {
+						"stacks": 3
+					}
+				},
+				{
+					"trigger": "on_support",
+					"target": "enemy_all_burned",
+					"effect_id": "freeze_apply",
+					"params": {
+						"stacks": 5
+					}
+				},
+				{
+					"trigger": "on_support",
+					"target": "enemy_all_frozen",
+					"effect_id": "burn_apply",
+					"params": {
+						"stacks": 5
+					}
+				}
+			],
+			"texture": "",
+			"roles": [
+				"サポート"
+			],
+			"spd": 5.0,
+			"en_name": "Blightzel"
+		},
+		"Ruinzel": {
+			"anim": "",
+			"rarity": "legend",
+			"atk": 2,
+			"col": 0,
+			"mana": 3,
+			"hp": 70,
+			"race": "スライム",
+			"range": "1行",
+			"sfx": "",
+			"skills": [
+				{
+					"trigger": "on_front_attack",
+					"target": "hit_target",
+					"effect_id": "burn_apply",
+					"params": {
+						"stacks": 5
+					}
+				},
+				{
+					"trigger": "on_front_attack",
+					"target": "hit_target",
+					"effect_id": "freeze_apply",
+					"params": {
+						"stacks": 5
+					}
+				},
+				{
+					"trigger": "on_front_attack_poisoned_target",
+					"target": "hit_target",
+					"effect_id": "burn_apply",
+					"params": {
+						"stacks": 5
+					}
+				},
+				{
+					"trigger": "on_front_attack_poisoned_target",
+					"target": "hit_target",
+					"effect_id": "freeze_apply",
+					"params": {
+						"stacks": 5
+					}
+				},
+				{
+					"trigger": "on_support",
+					"target": "enemy_all_burned_and_frozen",
+					"effect_id": "poison_amplify",
+					"params": {
+						"factor": 1.5
+					}
+				}
+			],
+			"texture": "",
+			"roles": [
+				"サポート"
+			],
+			"spd": 5.0,
+			"en_name": "Ruinzel"
+		},
+		"Miasmagod": {
+			"anim": "",
+			"rarity": "god",
+			"atk": 2,
+			"col": 0,
+			"mana": 4,
+			"hp": 90,
+			"race": "スライム",
+			"range": "1行",
+			"sfx": "",
+			"skills": [
+				{
+					"trigger": "on_front_attack",
+					"target": "hit_target",
+					"effect_id": "burn_apply",
+					"params": {
+						"stacks": 5
+					}
+				},
+				{
+					"trigger": "on_front_attack",
+					"target": "hit_target",
+					"effect_id": "freeze_apply",
+					"params": {
+						"stacks": 5
+					}
+				},
+				{
+					"trigger": "on_front_attack",
+					"target": "hit_target",
+					"effect_id": "poison_apply",
+					"params": {
+						"stacks": 5
+					}
+				},
+				{
+					"trigger": "on_support",
+					"target": "enemy_all_with_status",
+					"effect_id": "burn_by_status_count",
+					"params": {
+						"per_status": 5
+					}
+				},
+				{
+					"trigger": "on_support",
+					"target": "enemy_all_with_status",
+					"effect_id": "freeze_by_status_count",
+					"params": {
+						"per_status": 5
+					}
+				},
+				{
+					"trigger": "passive",
+					"target": "self",
+					"effect_id": "sturdy",
+					"params": {
+						"amount": 1
+					}
+				}
+			],
+			"texture": "",
+			"roles": [
+				"サポート"
+			],
+			"traits": [
+				"sturdy"
+			],
+			"spd": 3.33,
+			"en_name": "Miasmagod"
+		},
+		"Manawall": {
+			"anim": "",
+			"rarity": "legend",
+			"atk": 0,
+			"col": 2,
+			"mana": 10,
+			"hp": 80,
+			"race": "スライム",
+			"range": "1行",
+			"sfx": "",
+			"skills": [
+				{
+					"trigger": "on_front_attack",
+					"target": "hit_target",
+					"effect_id": "mana_steal",
+					"params": {
+						"amount": 1
+					}
+				},
+				{
+					"trigger": "on_front_attack",
+					"target": "self",
+					"effect_id": "mana_generation_boost",
+					"params": {
+						"amount": 1
+					}
+				},
+				{
+					"trigger": "on_support",
+					"target": "all_allies",
+					"effect_id": "mana_generation_trigger",
+					"params": {}
+				}
+			],
+			"texture": "",
+			"roles": [
+				"サポート"
+			],
+			"spd": 3.33,
+			"en_name": "Manawall"
+		},
+		"Aegisblob": {
+			"anim": "",
+			"rarity": "legend",
+			"atk": 0,
+			"col": 2,
+			"mana": 5,
+			"hp": 90,
+			"race": "スライム",
+			"range": "1行",
+			"sfx": "",
+			"skills": [
+				{
+					"trigger": "on_front_attack",
+					"target": "hit_target",
+					"effect_id": "mana_steal",
+					"params": {
+						"amount": 1
+					}
+				},
+				{
+					"trigger": "on_front_attack",
+					"target": "all_allies",
+					"effect_id": "shield_apply",
+					"params": {
+						"amount": 2
+					}
+				},
+				{
+					"trigger": "on_support",
+					"target": "all_allies",
+					"effect_id": "shield_apply",
+					"params": {
+						"stacks": 5
+					}
+				},
+				{
+					"trigger": "on_support",
+					"target": "all_allies",
+					"effect_id": "regen_apply",
+					"params": {
+						"stacks": 5
+					}
+				}
+			],
+			"texture": "",
+			"roles": [
+				"サポート"
+			],
+			"spd": 3.33,
+			"en_name": "Aegisblob"
+		},
 		"Fangos": {
 			"anim": "",
 			"rarity": "common",
@@ -2859,18 +3729,31 @@
 			"sfx": "",
 			"skills": [
 				{
-					"trigger": "on_front_attack",
+					"trigger": "on_hit",
 					"target": "self",
-					"effect_id": "atk_accumulate",
+					"effect_id": "power_stack",
 					"params": {
-						"amount": 1,
-						"cap": 20
+						"stacks": 1
 					}
+				},
+				{
+					"trigger": "always",
+					"target": "enemy_front_lowest_hp",
+					"effect_id": "rush_attack",
+					"params": {
+						"damage_mult": 1.5
+					}
+				},
+				{
+					"trigger": "always",
+					"target": "self",
+					"effect_id": "flying",
+					"params": {}
 				}
 			],
 			"texture": "",
 			"roles": [
-				"攻撃"
+				"サポート"
 			],
 			"traits": [
 				"flying"
@@ -3404,13 +4287,13 @@
 					"trigger": "on_death"
 				},
 				{
-					"effect_id": "curse_apply_battle_start",
+					"effect_id": "curse_apply_random",
 					"params": {
-						"stacks": 1,
-						"max_count": 5
+						"curse": 1,
+						"max_targets": 5
 					},
-					"target": "all_units",
-					"trigger": "battle_start"
+					"target": "all_units_random",
+					"trigger": "on_battle_start"
 				}
 			],
 			"texture": "",
@@ -3490,6 +4373,331 @@
 			"texture": "",
 			"spd": 5.0,
 			"en_name": "Banewall"
+		},
+		"Hexamp": {
+			"anim": "",
+			"rarity": "rare",
+			"atk": 2,
+			"col": 0,
+			"mana": 2,
+			"hp": 30,
+			"race": "アンデッド",
+			"range": "1行",
+			"sfx": "",
+			"skills": [
+				{
+					"effect_id": "curse_multiply",
+					"params": {
+						"factor": 2.5
+					},
+					"target": "hit_target",
+					"trigger": "on_hit"
+				},
+				{
+					"effect_id": "revive_on_death",
+					"params": {
+						"hp_pct": 0.1,
+						"delay": 5.0
+					},
+					"target": "self",
+					"trigger": "on_death"
+				}
+			],
+			"texture": "",
+			"spd": 5.0,
+			"en_name": "Hexamp"
+		},
+		"Hexburst": {
+			"anim": "",
+			"rarity": "epic",
+			"atk": 2,
+			"col": 0,
+			"mana": 3,
+			"hp": 40,
+			"race": "アンデッド",
+			"range": "1行",
+			"sfx": "",
+			"skills": [
+				{
+					"effect_id": "curse_multiply",
+					"params": {
+						"factor": 3.0
+					},
+					"target": "hit_target",
+					"trigger": "on_hit"
+				},
+				{
+					"effect_id": "curse_multiply_all_cursed",
+					"params": {
+						"factor": 1.5
+					},
+					"target": "all_cursed_enemies",
+					"trigger": "on_support"
+				},
+				{
+					"effect_id": "revive_on_death",
+					"params": {
+						"hp_pct": 0.1,
+						"delay": 5.0
+					},
+					"target": "self",
+					"trigger": "on_death"
+				}
+			],
+			"texture": "",
+			"spd": 5.0,
+			"en_name": "Hexburst"
+		},
+		"Hexblast": {
+			"anim": "",
+			"rarity": "legend",
+			"atk": 2,
+			"col": 0,
+			"mana": 3,
+			"hp": 50,
+			"race": "アンデッド",
+			"range": "1行",
+			"sfx": "",
+			"skills": [
+				{
+					"effect_id": "curse_multiply",
+					"params": {
+						"factor": 4.0
+					},
+					"target": "hit_target",
+					"trigger": "on_hit"
+				},
+				{
+					"effect_id": "curse_multiply_all_cursed",
+					"params": {
+						"factor": 2.0
+					},
+					"target": "all_cursed_enemies",
+					"trigger": "on_support"
+				},
+				{
+					"effect_id": "revive_on_death",
+					"params": {
+						"hp_pct": 0.1,
+						"delay": 5.0
+					},
+					"target": "self",
+					"trigger": "on_death"
+				},
+				{
+					"effect_id": "curse_burst_on_death",
+					"params": {
+						"threshold": 20
+					},
+					"target": "adjacent_enemies",
+					"trigger": "on_death"
+				}
+			],
+			"texture": "",
+			"spd": 5.0,
+			"en_name": "Hexblast"
+		},
+		"Curswall": {
+			"anim": "",
+			"rarity": "uncommon",
+			"atk": 1,
+			"col": 0,
+			"mana": 2,
+			"hp": 35,
+			"race": "アンデッド",
+			"range": "1行",
+			"sfx": "",
+			"skills": [
+				{
+					"effect_id": "curse_apply",
+					"params": {
+						"stacks": 2
+					},
+					"target": "hit_target",
+					"trigger": "on_hit"
+				},
+				{
+					"effect_id": "curse_apply_front_random",
+					"params": {
+						"stacks": 2,
+						"count": 1
+					},
+					"target": "front_enemy",
+					"trigger": "on_support"
+				},
+				{
+					"effect_id": "revive_on_death",
+					"params": {
+						"hp_pct": 0.1,
+						"delay": 5.0
+					},
+					"target": "self",
+					"trigger": "on_death"
+				},
+				{
+					"effect_id": "curse_apply_random",
+					"params": {
+						"curse": 1,
+						"max_targets": 5
+					},
+					"target": "all_units_random",
+					"trigger": "on_battle_start"
+				}
+			],
+			"texture": "",
+			"spd": 3.33,
+			"en_name": "Curswall"
+		},
+		"Hexguard": {
+			"anim": "",
+			"rarity": "epic",
+			"atk": 2,
+			"col": 0,
+			"mana": 3,
+			"hp": 65,
+			"race": "アンデッド",
+			"range": "1行",
+			"sfx": "",
+			"skills": [
+				{
+					"effect_id": "curse_by_damage_taken",
+					"params": {
+						"factor": 0.15
+					},
+					"target": "hit_target",
+					"trigger": "on_hit"
+				},
+				{
+					"effect_id": "heal_reduction_cursed",
+					"params": {
+						"factor": 2.0
+					},
+					"target": "all_cursed_enemies",
+					"trigger": "on_support"
+				},
+				{
+					"effect_id": "revive_on_death",
+					"params": {
+						"hp_pct": 0.1,
+						"delay": 5.0
+					},
+					"target": "self",
+					"trigger": "on_death"
+				},
+				{
+					"effect_id": "curse_reflect",
+					"params": {
+						"stacks": 1
+					},
+					"target": "attacker",
+					"trigger": "on_damaged"
+				}
+			],
+			"texture": "",
+			"spd": 2.5,
+			"en_name": "Hexguard"
+		},
+		"Hexflow": {
+			"anim": "",
+			"rarity": "epic",
+			"atk": 2,
+			"col": 0,
+			"mana": 3,
+			"hp": 50,
+			"race": "アンデッド",
+			"range": "1行",
+			"sfx": "",
+			"skills": [
+				{
+					"effect_id": "curse_apply",
+					"params": {
+						"stacks": 3
+					},
+					"target": "hit_target",
+					"trigger": "on_hit"
+				},
+				{
+					"effect_id": "curse_apply_front_random",
+					"params": {
+						"stacks": 2,
+						"count": 1
+					},
+					"target": "front_enemy",
+					"trigger": "on_support"
+				},
+				{
+					"effect_id": "revive_on_death",
+					"params": {
+						"hp_pct": 0.1,
+						"delay": 5.0
+					},
+					"target": "self",
+					"trigger": "on_death"
+				},
+				{
+					"effect_id": "curse_apply_random",
+					"params": {
+						"curse": 2,
+						"max_targets": 5
+					},
+					"target": "all_units_random",
+					"trigger": "on_battle_start"
+				}
+			],
+			"texture": "",
+			"spd": 2.5,
+			"en_name": "Hexflow"
+		},
+		"Hexwave": {
+			"anim": "",
+			"rarity": "legend",
+			"atk": 2,
+			"col": 0,
+			"mana": 3,
+			"hp": 60,
+			"race": "アンデッド",
+			"range": "1行",
+			"sfx": "",
+			"skills": [
+				{
+					"effect_id": "curse_apply",
+					"params": {
+						"stacks": 5
+					},
+					"target": "hit_target",
+					"trigger": "on_hit"
+				},
+				{
+					"effect_id": "curse_apply_front_random",
+					"params": {
+						"stacks": 3,
+						"count": 1
+					},
+					"target": "front_enemy",
+					"trigger": "on_support"
+				},
+				{
+					"effect_id": "revive_on_death",
+					"params": {
+						"hp_pct": 0.1,
+						"delay": 5.0
+					},
+					"target": "self",
+					"trigger": "on_death"
+				},
+				{
+					"effect_id": "curse_apply_random",
+					"params": {
+						"curse": 3,
+						"max_targets": 7
+					},
+					"target": "all_units_random",
+					"trigger": "on_battle_start"
+				}
+			],
+			"texture": "",
+			"spd": 2.5,
+			"en_name": "Hexwave"
 		},
 		"Fangod": {
 			"anim": "",
@@ -3821,6 +5029,45 @@
 			"spd": 20.0,
 			"en_name": "Healcore"
 		},
+		"Manasly": {
+			"anim": "",
+			"rarity": "god",
+			"atk": 0,
+			"col": 0,
+			"mana": 20,
+			"hp": 80,
+			"race": "スライム",
+			"range": "1行",
+			"sfx": "",
+			"skills": [
+				{
+					"trigger": "on_hit",
+					"target": "all_allies",
+					"effect_id": "mana_generation_trigger",
+					"params": {}
+				},
+				{
+					"trigger": "on_hit",
+					"target": "all_allies",
+					"effect_id": "spring_apply",
+					"params": {
+						"stacks": 10
+					}
+				},
+				{
+					"trigger": "always",
+					"target": "all_allies",
+					"effect_id": "mana_generation_trigger",
+					"params": {}
+				}
+			],
+			"texture": "",
+			"traits": [
+				"mana_flare"
+			],
+			"spd": 1.0,
+			"en_name": "Manasly"
+		},
 		"Shieldblob": {
 			"anim": "",
 			"rarity": "god",
@@ -4048,6 +5295,648 @@
 			"texture": "",
 			"spd": 1.0,
 			"en_name": "Manaslime"
+		},
+		"Toxzel": {
+			"anim": "",
+			"rarity": "rare",
+			"atk": 0,
+			"col": 2,
+			"mana": 2,
+			"hp": 50,
+			"race": "スライム",
+			"range": "1行",
+			"sfx": "",
+			"skills": [
+				{
+					"trigger": "on_hit",
+					"target": "hit_target",
+					"effect_id": "poison_add_if_poisoned",
+					"params": {
+						"stacks": 8
+					}
+				},
+				{
+					"trigger": "on_support",
+					"target": "enemy_max_poison",
+					"effect_id": "poison_apply",
+					"params": {
+						"stacks": 8
+					}
+				}
+			],
+			"texture": "",
+			"roles": ["サポート"],
+			"spd": 10.0,
+			"en_name": "Toxzel"
+		},
+		"Pestzel": {
+			"anim": "",
+			"rarity": "epic",
+			"atk": 0,
+			"col": 2,
+			"mana": 2,
+			"hp": 60,
+			"race": "スライム",
+			"range": "1行",
+			"sfx": "",
+			"skills": [
+				{
+					"trigger": "on_hit",
+					"target": "hit_target",
+					"effect_id": "poison_add_if_poisoned",
+					"params": {
+						"stacks": 8
+					}
+				},
+				{
+					"trigger": "on_support",
+					"target": "enemy_max_poison",
+					"effect_id": "poison_amplify",
+					"params": {
+						"factor": 2.0
+					}
+				}
+			],
+			"texture": "",
+			"roles": ["サポート"],
+			"spd": 10.0,
+			"en_name": "Pestzel"
+		},
+		"Deathzel": {
+			"anim": "",
+			"rarity": "legend",
+			"atk": 1,
+			"col": 2,
+			"mana": 3,
+			"hp": 70,
+			"race": "スライム",
+			"range": "1行",
+			"sfx": "",
+			"skills": [
+				{
+					"trigger": "on_hit",
+					"target": "hit_target",
+					"effect_id": "poison_damage_by_stack",
+					"params": {}
+				},
+				{
+					"trigger": "on_support",
+					"target": "enemy_max_poison",
+					"effect_id": "poison_amplify",
+					"params": {
+						"factor": 3.0
+					}
+				}
+			],
+			"texture": "",
+			"roles": ["サポート"],
+			"spd": 6.67,
+			"en_name": "Deathzel"
+		},
+		"Amplzel": {
+			"anim": "",
+			"rarity": "epic",
+			"atk": 0,
+			"col": 2,
+			"mana": 2,
+			"hp": 60,
+			"race": "スライム",
+			"range": "1行",
+			"sfx": "",
+			"skills": [
+				{
+					"trigger": "on_hit",
+					"target": "all_enemies",
+					"effect_id": "poison_amplify_all",
+					"params": {
+						"factor": 2.5
+					}
+				},
+				{
+					"trigger": "on_support",
+					"target": "all_enemies",
+					"effect_id": "poison_amplify_all",
+					"params": {
+						"factor": 1.5
+					}
+				}
+			],
+			"texture": "",
+			"roles": ["サポート"],
+			"spd": 6.67,
+			"en_name": "Amplzel"
+		},
+		"Voidpool": {
+			"anim": "",
+			"rarity": "legend",
+			"atk": 1,
+			"col": 2,
+			"mana": 3,
+			"hp": 70,
+			"race": "スライム",
+			"range": "1行",
+			"sfx": "",
+			"skills": [
+				{
+					"trigger": "on_hit",
+					"target": "all_enemies",
+					"effect_id": "poison_amplify_all",
+					"params": {
+						"factor": 3.0
+					}
+				},
+				{
+					"trigger": "on_support",
+					"target": "all_enemies",
+					"effect_id": "poison_amplify_all",
+					"params": {
+						"factor": 2.0
+					}
+				}
+			],
+			"texture": "",
+			"roles": ["サポート"],
+			"spd": 6.67,
+			"en_name": "Voidpool"
+		},
+		"Thornwall": {
+			"anim": "",
+			"rarity": "rare",
+			"atk": 3,
+			"col": 2,
+			"mana": 2,
+			"hp": 55,
+			"race": "スライム",
+			"range": "1行",
+			"sfx": "",
+			"skills": [
+				{
+					"trigger": "on_hit",
+					"target": "self",
+					"effect_id": "thorn_apply",
+					"params": {
+						"stacks": 1
+					}
+				},
+				{
+					"trigger": "on_support",
+					"target": "all_allies",
+					"effect_id": "shield_apply",
+					"params": {
+						"stacks": 1
+					}
+				}
+			],
+			"texture": "",
+			"roles": ["サポート"],
+			"spd": 6.67,
+			"en_name": "Thornwall"
+		},
+		"Brandpaw": {
+			"anim": "",
+			"rarity": "rare",
+			"atk": 5,
+			"col": 0,
+			"mana": 1,
+			"hp": 50,
+			"race": "獣",
+			"range": "1行",
+			"sfx": "",
+			"skills": [
+				{
+					"trigger": "on_front_attack",
+					"target": "hit_target",
+					"effect_id": "brand_apply",
+					"params": {
+						"stacks": 2
+					}
+				},
+				{
+					"trigger": "on_support",
+					"target": "brand_attackers",
+					"effect_id": "power_apply",
+					"params": {
+						"stacks": 3
+					}
+				}
+			],
+			"texture": "",
+			"roles": ["攻撃"],
+			"spd": 10.0,
+			"en_name": "Brandpaw"
+		},
+		"Brandfang": {
+			"anim": "",
+			"rarity": "epic",
+			"atk": 6,
+			"col": 0,
+			"mana": 1,
+			"hp": 55,
+			"race": "獣",
+			"range": "1行",
+			"sfx": "",
+			"skills": [
+				{
+					"trigger": "on_front_attack",
+					"target": "hit_target",
+					"effect_id": "brand_apply",
+					"params": {
+						"stacks": 3
+					}
+				},
+				{
+					"trigger": "on_support",
+					"target": "brand_attackers",
+					"effect_id": "power_apply",
+					"params": {
+						"stacks": 5
+					}
+				}
+			],
+			"texture": "",
+			"roles": ["攻撃"],
+			"spd": 10.0,
+			"en_name": "Brandfang"
+		},
+		"Brandstrike": {
+			"anim": "",
+			"rarity": "legend",
+			"atk": 8,
+			"col": 0,
+			"mana": 2,
+			"hp": 65,
+			"race": "獣",
+			"range": "1行",
+			"sfx": "",
+			"skills": [
+				{
+					"trigger": "on_front_attack",
+					"target": "hit_target",
+					"effect_id": "brand_apply",
+					"params": {
+						"stacks": 5
+					}
+				},
+				{
+					"trigger": "on_support",
+					"target": "brand_attackers",
+					"effect_id": "power_apply",
+					"params": {
+						"stacks": 8
+					}
+				}
+			],
+			"texture": "",
+			"roles": ["攻撃"],
+			"spd": 10.0,
+			"en_name": "Brandstrike"
+		},
+		"Sharpfang": {
+			"anim": "",
+			"rarity": "rare",
+			"atk": 6,
+			"col": 0,
+			"mana": 1,
+			"hp": 45,
+			"race": "獣",
+			"range": "1行",
+			"sfx": "",
+			"skills": [
+				{
+					"trigger": "on_front_attack",
+					"target": "self",
+					"effect_id": "sense_apply",
+					"params": {
+						"stacks": 3
+					}
+				},
+				{
+					"trigger": "on_crit",
+					"target": "self",
+					"effect_id": "atk_apply",
+					"params": {
+						"stacks": 1
+					}
+				}
+			],
+			"texture": "",
+			"roles": ["攻撃"],
+			"spd": 20.0,
+			"en_name": "Sharpfang"
+		},
+		"Critclaw": {
+			"anim": "",
+			"rarity": "epic",
+			"atk": 7,
+			"col": 0,
+			"mana": 1,
+			"hp": 50,
+			"race": "獣",
+			"range": "1行",
+			"sfx": "",
+			"skills": [
+				{
+					"trigger": "on_front_attack",
+					"target": "self",
+					"effect_id": "sense_apply",
+					"params": {
+						"stacks": 5
+					}
+				},
+				{
+					"trigger": "on_crit",
+					"target": "same_row_allies",
+					"effect_id": "sense_apply",
+					"params": {
+						"stacks": 3
+					}
+				},
+				{
+					"trigger": "on_support",
+					"target": "same_row_allies",
+					"effect_id": "sense_apply",
+					"params": {
+						"stacks": 3
+					}
+				}
+			],
+			"texture": "",
+			"roles": ["攻撃", "サポート"],
+			"spd": 20.0,
+			"en_name": "Critclaw"
+		},
+		"Deadeye": {
+			"anim": "",
+			"rarity": "legend",
+			"atk": 10,
+			"col": 0,
+			"mana": 2,
+			"hp": 60,
+			"race": "獣",
+			"range": "1行",
+			"sfx": "",
+			"skills": [
+				{
+					"trigger": "on_front_attack",
+					"target": "self",
+					"effect_id": "sense_apply",
+					"params": {
+						"stacks": 8
+					}
+				},
+				{
+					"trigger": "on_crit",
+					"target": "all_allies",
+					"effect_id": "sense_apply",
+					"params": {
+						"stacks": 5
+					}
+				},
+				{
+					"trigger": "on_support",
+					"target": "self",
+					"effect_id": "crit_mult_boost",
+					"params": {}
+				}
+			],
+			"texture": "",
+			"roles": ["攻撃", "サポート"],
+			"spd": 20.0,
+			"en_name": "Deadeye"
+		},
+		"Thornrage": {
+			"anim": "",
+			"rarity": "epic",
+			"atk": 5,
+			"col": 0,
+			"mana": 2,
+			"hp": 60,
+			"race": "獣",
+			"range": "1行",
+			"sfx": "",
+			"skills": [
+				{
+					"trigger": "on_front_attack",
+					"target": "self",
+					"effect_id": "thorn_apply",
+					"params": {
+						"stacks": 1
+					}
+				},
+				{
+					"trigger": "on_support",
+					"target": "front_tile",
+					"effect_id": "thorn_apply",
+					"params": {
+						"stacks": 1
+					}
+				},
+				{
+					"trigger": "passive",
+					"target": "self",
+					"effect_id": "on_ally_death_thorn_boost",
+					"params": {
+						"thorn_stacks": 10,
+						"thorn_damage_boost": 1
+					}
+				}
+			],
+			"texture": "",
+			"roles": ["攻撃"],
+			"spd": 6.67,
+			"en_name": "Thornrage"
+		},
+		"Ironpelt": {
+			"anim": "",
+			"rarity": "legend",
+			"atk": 10,
+			"col": 0,
+			"mana": 1,
+			"hp": 90,
+			"race": "獣",
+			"range": "1行",
+			"sfx": "",
+			"skills": [
+				{
+					"trigger": "on_front_attack",
+					"target": "self",
+					"effect_id": "thorn_apply",
+					"params": {
+						"stacks": 5
+					}
+				},
+				{
+					"trigger": "on_support",
+					"target": "front_tile",
+					"effect_id": "thorn_apply",
+					"params": {
+						"stacks": 5
+					}
+				},
+				{
+					"trigger": "passive",
+					"target": "self",
+					"effect_id": "on_ally_death_heal_and_buff",
+					"params": {
+						"heal_pct": 0.15,
+						"atk_pct": 0.05,
+						"spd_pct": 0.05
+					}
+				}
+			],
+			"texture": "",
+			"roles": ["攻撃"],
+			"traits": ["indomitable"],
+			"spd": 10.0,
+			"en_name": "Ironpelt"
+		},
+		"Keenfang": {
+			"anim": "",
+			"rarity": "rare",
+			"atk": 6,
+			"col": 0,
+			"mana": 1,
+			"hp": 45,
+			"race": "獣",
+			"range": "1行",
+			"sfx": "",
+			"skills": [
+				{
+					"trigger": "on_front_attack",
+					"target": "self",
+					"effect_id": "sense_apply",
+					"params": {
+						"stacks": 5
+					}
+				},
+				{
+					"trigger": "on_support",
+					"target": "self",
+					"effect_id": "sense_apply",
+					"params": {
+						"stacks": 3
+					}
+				}
+			],
+			"texture": "",
+			"roles": ["攻撃"],
+			"spd": 10.0,
+			"en_name": "Keenfang"
+		},
+		"Blazefang": {
+			"anim": "",
+			"rarity": "epic",
+			"atk": 7,
+			"col": 0,
+			"mana": 1,
+			"hp": 55,
+			"race": "獣",
+			"range": "1行",
+			"sfx": "",
+			"skills": [
+				{
+					"trigger": "on_front_attack",
+					"target": "self",
+					"effect_id": "sense_apply",
+					"params": {
+						"stacks": 5
+					}
+				},
+				{
+					"trigger": "on_crit",
+					"target": "self",
+					"effect_id": "heal_pct",
+					"params": {
+						"pct": 0.5
+					}
+				},
+				{
+					"trigger": "on_support",
+					"target": "self",
+					"effect_id": "sense_apply",
+					"params": {
+						"stacks": 5
+					}
+				}
+			],
+			"texture": "",
+			"roles": ["攻撃"],
+			"spd": 10.0,
+			"en_name": "Blazefang"
+		},
+		"Deadfang": {
+			"anim": "",
+			"rarity": "legend",
+			"atk": 9,
+			"col": 0,
+			"mana": 1,
+			"hp": 80,
+			"race": "獣",
+			"range": "1行",
+			"sfx": "",
+			"skills": [
+				{
+					"trigger": "on_front_attack",
+					"target": "self",
+					"effect_id": "sense_apply",
+					"params": {
+						"stacks": 8
+					}
+				},
+				{
+					"trigger": "on_crit",
+					"target": "self",
+					"effect_id": "heal_pct",
+					"params": {
+						"pct": 0.5
+					}
+				},
+				{
+					"trigger": "on_support",
+					"target": "self",
+					"effect_id": "sense_apply",
+					"params": {
+						"stacks": 8
+					}
+				}
+			],
+			"texture": "",
+			"roles": ["攻撃"],
+			"traits": ["weakpoint_hunter"],
+			"spd": 10.0,
+			"en_name": "Deadfang"
+		},
+		"Fugaku": {
+			"anim": "",
+			"rarity": "god",
+			"atk": 12,
+			"col": 0,
+			"mana": 0,
+			"hp": 70,
+			"race": "獣",
+			"range": "1行",
+			"sfx": "",
+			"skills": [
+				{
+					"trigger": "on_front_attack",
+					"target": "hit_target",
+					"effect_id": "sense_consume_damage",
+					"params": {}
+				},
+				{
+					"trigger": "on_support",
+					"target": "self",
+					"effect_id": "sense_apply",
+					"params": {
+						"stacks": 10
+					}
+				}
+			],
+			"texture": "",
+			"roles": ["攻撃"],
+			"traits": ["weakpoint_hunter", "pierce_large"],
+			"spd": 3.33,
+			"en_name": "Fugaku"
 		}
 	},
 	"boss_decks": {
@@ -4347,6 +6236,237 @@
 			"boss_exclusive": true,
 			"spd": 7
 		},
+		"Toxblade": {
+			"hp": 45,
+			"atk": 3,
+			"mana": 1,
+			"race": "獣",
+			"range": "1行",
+			"col": 0,
+			"rarity": "rare",
+			"texture": "",
+			"anim": "",
+			"sfx": "",
+			"skills": [
+				{
+					"trigger": "on_hit",
+					"target": "hit_target",
+					"effect_id": "poison_by_x",
+					"params": {
+						"multiplier": 1
+					}
+				},
+				{
+					"trigger": "on_hit",
+					"target": "hit_target",
+					"effect_id": "damage_by_x",
+					"params": {
+						"divisor": 5
+					}
+				},
+				{
+					"trigger": "on_support",
+					"target": "self",
+					"effect_id": "x_stack_add",
+					"params": {
+						"stacks": 3
+					}
+				}
+			],
+			"boss_exclusive": false,
+			"spd": 0.667
+		},
+		"Venomstrike": {
+			"hp": 50,
+			"atk": 3,
+			"mana": 1,
+			"race": "獣",
+			"range": "1行",
+			"col": 0,
+			"rarity": "epic",
+			"texture": "",
+			"anim": "",
+			"sfx": "",
+			"skills": [
+				{
+					"trigger": "on_hit",
+					"target": "hit_target",
+					"effect_id": "poison_by_x",
+					"params": {
+						"multiplier": 1
+					}
+				},
+				{
+					"trigger": "on_hit",
+					"target": "self",
+					"effect_id": "x_stack_add",
+					"params": {
+						"stacks": 4
+					}
+				},
+				{
+					"trigger": "on_support",
+					"target": "deck",
+					"effect_id": "deck_add_toxswamp",
+					"params": {}
+				}
+			],
+			"boss_exclusive": false,
+			"spd": 0.667
+		},
+		"Voidvenom": {
+			"hp": 60,
+			"atk": 4,
+			"mana": 2,
+			"race": "獣",
+			"range": "1行",
+			"col": 0,
+			"rarity": "legend",
+			"texture": "",
+			"anim": "",
+			"sfx": "",
+			"skills": [
+				{
+					"trigger": "on_hit",
+					"target": "hit_target",
+					"effect_id": "poison_by_x",
+					"params": {
+						"multiplier": 1
+					}
+				},
+				{
+					"trigger": "on_support",
+					"target": "self",
+					"effect_id": "poison_total_to_x",
+					"params": {
+						"multiplier": 1
+					}
+				}
+			],
+			"boss_exclusive": false,
+			"spd": 0.667
+		},
+		"Toxmark": {
+			"hp": 45,
+			"atk": 4,
+			"mana": 1,
+			"race": "獣",
+			"range": "1行",
+			"col": 0,
+			"rarity": "rare",
+			"texture": "",
+			"anim": "",
+			"sfx": "",
+			"skills": [
+				{
+					"trigger": "on_hit",
+					"target": "hit_target",
+					"effect_id": "poison_by_x",
+					"params": {
+						"multiplier": 1
+					}
+				},
+				{
+					"trigger": "on_hit",
+					"target": "hit_target",
+					"effect_id": "mark_if_poison_gte",
+					"params": {
+						"poison_threshold": 10,
+						"mark_stacks": 2
+					}
+				},
+				{
+					"trigger": "on_support",
+					"target": "self",
+					"effect_id": "x_stack_add",
+					"params": {
+						"stacks": 3
+					}
+				}
+			],
+			"boss_exclusive": false,
+			"spd": 0.667
+		},
+		"Plaguemark": {
+			"hp": 50,
+			"atk": 5,
+			"mana": 1,
+			"race": "獣",
+			"range": "1行",
+			"col": 0,
+			"rarity": "epic",
+			"texture": "",
+			"anim": "",
+			"sfx": "",
+			"skills": [
+				{
+					"trigger": "on_hit",
+					"target": "hit_target",
+					"effect_id": "poison_by_x",
+					"params": {
+						"multiplier": 1
+					}
+				},
+				{
+					"trigger": "on_hit",
+					"target": "hit_target",
+					"effect_id": "poison_if_marked",
+					"params": {
+						"stacks": 5
+					}
+				},
+				{
+					"trigger": "on_support",
+					"target": "self",
+					"effect_id": "x_stack_add",
+					"params": {
+						"stacks": 4
+					}
+				}
+			],
+			"boss_exclusive": false,
+			"spd": 0.667
+		},
+		"Voidmark": {
+			"hp": 65,
+			"atk": 7,
+			"mana": 2,
+			"race": "獣",
+			"range": "1行",
+			"col": 0,
+			"rarity": "legend",
+			"texture": "",
+			"anim": "",
+			"sfx": "",
+			"skills": [
+				{
+					"trigger": "on_hit",
+					"target": "hit_target",
+					"effect_id": "poison_by_x",
+					"params": {
+						"multiplier": 1
+					}
+				},
+				{
+					"trigger": "on_hit",
+					"target": "self",
+					"effect_id": "x_stack_add",
+					"params": {
+						"stacks": 5
+					}
+				},
+				{
+					"trigger": "on_support",
+					"target": "self",
+					"effect_id": "x_stack_add",
+					"params": {
+						"stacks": 5
+					}
+				}
+			],
+			"boss_exclusive": false,
+			"spd": 0.667
+		},
 		"母スライム核": {
 			"hp": 60,
 			"atk": 1,
@@ -4443,6 +6563,276 @@
 			],
 			"boss_exclusive": true,
 			"spd": 3
+		},
+		"Deathhowl": {
+			"hp": 25,
+			"atk": 1,
+			"mana": 2,
+			"race": "アンデッド",
+			"range": "1行",
+			"col": 0,
+			"rarity": "uncommon",
+			"texture": "",
+			"anim": "",
+			"sfx": "",
+			"skills": [
+				{
+					"trigger": "on_hit",
+					"target": "self",
+					"effect_id": "heal_by_damage_dealt",
+					"params": {
+						"factor": 0.05
+					}
+				},
+				{
+					"trigger": "on_death",
+					"target": "self",
+					"effect_id": "revive_on_death",
+					"params": {
+						"hp_pct": 0.1,
+						"delay": 5.0
+					}
+				}
+			],
+			"spd": 3.33,
+			"en_name": "Deathhowl"
+		},
+		"Souldrain": {
+			"hp": 40,
+			"atk": 2,
+			"mana": 3,
+			"race": "アンデッド",
+			"range": "1行",
+			"col": 0,
+			"rarity": "epic",
+			"texture": "",
+			"anim": "",
+			"sfx": "",
+			"skills": [
+				{
+					"trigger": "on_hit",
+					"target": "hit_target",
+					"effect_id": "buff_steal",
+					"params": {
+						"count": 2
+					}
+				},
+				{
+					"trigger": "on_support",
+					"target": "random_front_enemy",
+					"effect_id": "buff_steal_all",
+					"params": {}
+				},
+				{
+					"trigger": "on_death",
+					"target": "self",
+					"effect_id": "revive_on_death",
+					"params": {
+						"hp_pct": 0.1,
+						"delay": 5.0
+					}
+				}
+			],
+			"spd": 5.0,
+			"en_name": "Souldrain"
+		},
+		"Soulreap": {
+			"hp": 50,
+			"atk": 2,
+			"mana": 3,
+			"race": "アンデッド",
+			"range": "1行",
+			"col": 0,
+			"rarity": "legend",
+			"texture": "",
+			"anim": "",
+			"sfx": "",
+			"skills": [
+				{
+					"trigger": "on_hit",
+					"target": "hit_target",
+					"effect_id": "buff_steal_all",
+					"params": {}
+				},
+				{
+					"trigger": "on_support",
+					"target": "random_back_enemy",
+					"effect_id": "buff_steal_all",
+					"params": {}
+				},
+				{
+					"trigger": "on_death",
+					"target": "self",
+					"effect_id": "revive_on_death",
+					"params": {
+						"hp_pct": 0.1,
+						"delay": 5.0
+					}
+				}
+			],
+			"spd": 5.0,
+			"en_name": "Soulreap"
+		},
+		"Voidcurse": {
+			"hp": 40,
+			"atk": 2,
+			"mana": 3,
+			"race": "アンデッド",
+			"range": "1行",
+			"col": 0,
+			"rarity": "epic",
+			"texture": "",
+			"anim": "",
+			"sfx": "",
+			"skills": [
+				{
+					"trigger": "on_hit",
+					"target": "hit_target",
+					"effect_id": "buff_to_curse_convert_all",
+					"params": {}
+				},
+				{
+					"trigger": "on_support",
+					"target": "random_front_enemy",
+					"effect_id": "buff_to_curse_convert_all",
+					"params": {}
+				},
+				{
+					"trigger": "on_death",
+					"target": "self",
+					"effect_id": "revive_on_death",
+					"params": {
+						"hp_pct": 0.1,
+						"delay": 5.0
+					}
+				}
+			],
+			"spd": 5.0,
+			"en_name": "Voidcurse"
+		},
+		"Hexvoid": {
+			"hp": 50,
+			"atk": 2,
+			"mana": 3,
+			"race": "アンデッド",
+			"range": "1行",
+			"col": 0,
+			"rarity": "legend",
+			"texture": "",
+			"anim": "",
+			"sfx": "",
+			"skills": [
+				{
+					"trigger": "on_hit",
+					"target": "hit_target",
+					"effect_id": "buff_to_curse_convert_all",
+					"params": {}
+				},
+				{
+					"trigger": "on_hit",
+					"target": "hit_target",
+					"effect_id": "curse_multiply",
+					"params": {
+						"factor": 2.0
+					}
+				},
+				{
+					"trigger": "on_support",
+					"target": "all_enemies",
+					"effect_id": "buff_to_curse_convert_all",
+					"params": {}
+				},
+				{
+					"trigger": "on_death",
+					"target": "self",
+					"effect_id": "revive_on_death",
+					"params": {
+						"hp_pct": 0.1,
+						"delay": 5.0
+					}
+				}
+			],
+			"spd": 5.0,
+			"en_name": "Hexvoid"
+		},
+		"Backbane": {
+			"hp": 50,
+			"atk": 2,
+			"mana": 3,
+			"race": "アンデッド",
+			"range": "1行",
+			"col": 0,
+			"rarity": "legend",
+			"texture": "",
+			"anim": "",
+			"sfx": "",
+			"skills": [
+				{
+					"trigger": "on_death",
+					"target": "self",
+					"effect_id": "revive_on_death",
+					"params": {
+						"hp_pct": 0.1,
+						"delay": 5.0
+					}
+				}
+			],
+			"spd": 5.0,
+			"en_name": "Backbane"
+		},
+		"Voidchaos": {
+			"hp": 80,
+			"atk": 3,
+			"mana": 2,
+			"race": "アンデッド",
+			"range": "1行",
+			"col": 0,
+			"rarity": "god",
+			"texture": "",
+			"anim": "",
+			"sfx": "",
+			"skills": [
+				{
+					"trigger": "on_hit",
+					"target": "hit_target",
+					"effect_id": "total_curse_damage",
+					"params": {
+						"factor": 0.1
+					}
+				},
+				{
+					"trigger": "on_support",
+					"target": "random_enemies",
+					"effect_id": "swap_cursed_enemies",
+					"params": {
+						"curse_threshold": 5,
+						"count": 2
+					}
+				},
+				{
+					"trigger": "on_death",
+					"target": "self",
+					"effect_id": "revive_on_death",
+					"params": {
+						"hp_pct": 0.1,
+						"delay": 5.0
+					}
+				},
+				{
+					"trigger": "passive",
+					"target": "self",
+					"effect_id": "trait_madness",
+					"params": {}
+				},
+				{
+					"trigger": "passive",
+					"target": "self",
+					"effect_id": "trait_resilient",
+					"params": {}
+				}
+			],
+			"spd": 10.0,
+			"en_name": "Voidchaos"
 		}
 	},
 	"bosses": {

@@ -49,7 +49,7 @@ func run(runner: RefCounted) -> void:
 	# _test_inventory_not_overlap_right_panel(runner)  # 持ち物廃止により無効化
 	# Phase 3 タスクバー・タブ削除・画面分離テスト
 	_test_taskbar_on_title(runner)
-	_test_taskbar_on_material_select(runner)
+	# _test_taskbar_on_material_select(runner)  # MaterialSelect.gd削除により無効化
 	_test_taskbar_on_deck_prep(runner)
 	_test_taskbar_on_battle(runner)
 	_test_taskbar_on_result(runner)
@@ -541,13 +541,13 @@ func _test_taskbar_on_title(r: RefCounted) -> void:
 	r._assert_true("_taskbar" in title, "test_taskbar_on_title: _taskbar変数がTitle.gdに存在する")
 	title.queue_free()
 
-func _test_taskbar_on_material_select(r: RefCounted) -> void:
-	# MaterialSelect.gdにCommonTaskbarが埋め込まれていること
-	var MSClass = load("res://scripts/MaterialSelect.gd")
-	var ms = MSClass.new()
-	r._assert_true("_taskbar" in ms,
-		"test_taskbar_on_material_select: _taskbar変数がMaterialSelect.gdに存在する")
-	ms.queue_free()
+# func _test_taskbar_on_material_select(r: RefCounted) -> void:
+# 	# MaterialSelect.gdにCommonTaskbarが埋め込まれていること
+# 	var MSClass = load("res://scripts/MaterialSelect.gd")
+# 	var ms = MSClass.new()
+# 	r._assert_true("_taskbar" in ms,
+# 		"test_taskbar_on_material_select: _taskbar変数がMaterialSelect.gdに存在する")
+# 	ms.queue_free()
 
 func _test_taskbar_on_deck_prep(r: RefCounted) -> void:
 	# DeckPrep.gdにCommonTaskbarが埋め込まれていること

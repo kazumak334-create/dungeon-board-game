@@ -70,8 +70,8 @@ func _test_scene_manager_paths(r: RefCounted) -> void:
 	for key in scenes:
 		var path = scenes[key]
 		if path != null:
-			# rest_screenは実装中のためスキップ
-			if key == "rest_screen":
+			# rest_screen, deck_prepは削除済みのためスキップ
+			if key == "rest_screen" or key == "deck_prep":
 				continue
 			r._assert_true(FileAccess.file_exists(path), "シーン存在: %s -> %s" % [key, path])
 

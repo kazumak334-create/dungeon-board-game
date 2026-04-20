@@ -11,27 +11,50 @@ const EFFECTS: Dictionary = {
 	"boots_apply":      {"type": "buff_apply",  "buff": "boots",      "stacks": 1, "display": "ブーツ付与", "texture": "", "anim": "", "sfx": ""},
 	"sense_apply":      {"type": "buff_apply",  "buff": "sense",      "stacks": 1, "display": "センス付与", "texture": "", "anim": "", "sfx": ""},
 	"power_apply":      {"type": "buff_apply",  "buff": "power",      "stacks": 1, "display": "パワー付与", "texture": "", "anim": "", "sfx": ""},
+	"power_stack":      {"type": "buff_apply",  "buff": "power",      "stacks": 1, "display": "パワー蓄積", "texture": "", "anim": "", "sfx": ""},
 	"spring_apply":     {"type": "buff_apply",  "buff": "spring",     "stacks": 1, "display": "泉付与", "texture": "", "anim": "", "sfx": ""},
+	"x_stack_add":      {"type": "x_stack_add", "stacks": 1,                       "display": "X値蓄積", "texture": "", "anim": "", "sfx": ""},
+	"x_stack_add_from_field": {"type": "x_stack_add_from_field",                   "display": "盤面毒→X値", "texture": "", "anim": "", "sfx": ""},
+	"atk_apply":        {"type": "buff_apply",  "buff": "atk_permanent", "stacks": 1, "display": "ATKバフ付与", "texture": "", "anim": "", "sfx": ""},
+	"atk_buff_apply":   {"type": "buff_apply",  "buff": "power", "stacks": 2,         "display": "サポートATKバフ", "texture": "", "anim": "", "sfx": ""},
+	"summon_speed_buff":{"type": "buff_apply",  "buff": "boots", "stacks": 3,         "display": "召喚SPDバフ", "texture": "", "anim": "", "sfx": ""},
 
 	# ---- デバフ付与 ----
 	"burn_apply":       {"type": "debuff_apply", "status": "burn",      "stacks": 2, "display": "火傷付与", "texture": "", "anim": "", "sfx": ""},
 	"freeze_apply":     {"type": "debuff_apply", "status": "freeze",    "stacks": 3, "display": "凍結付与", "texture": "", "anim": "", "sfx": ""},
 	"poison_apply":     {"type": "debuff_apply", "status": "poison",    "stacks": 1, "display": "毒付与", "texture": "", "anim": "", "sfx": ""},
 	"curse_apply":      {"type": "debuff_apply", "status": "curse",     "stacks": 1, "display": "呪い付与", "texture": "", "anim": "", "sfx": ""},
+	"curse_apply_random":{"type": "curse_random", "status": "curse",    "stacks": 1, "max_targets": 5, "display": "ランダム呪い付与", "texture": "", "anim": "", "sfx": ""},
 	"brand_apply":      {"type": "debuff_apply", "status": "brand",     "stacks": 1, "display": "烙印付与", "texture": "", "anim": "", "sfx": ""},
+	"poison_by_x":      {"type": "poison_by_x",  "multiplier": 1,                   "display": "X値毒付与", "texture": "", "anim": "", "sfx": ""},
+	"curse_amplify_all":{"type": "curse_amplify_all", "factor": 1.5, "min_curse": 5, "display": "呪い増幅", "texture": "", "anim": "", "sfx": ""},
+	"burn_by_status_count": {"type": "burn_by_status_count", "stacks_per_status": 5, "display": "異常数火傷", "texture": "", "anim": "", "sfx": ""},
+	"freeze_by_status_count": {"type": "freeze_by_status_count", "stacks_per_status": 5, "display": "異常数凍結", "texture": "", "anim": "", "sfx": ""},
+	"mark_if_poison_gte": {"type": "mark_if_poison_gte", "poison_threshold": 10, "mark_stacks": 2, "display": "毒閾値マーク", "texture": "", "anim": "", "sfx": ""},
+	"poison_if_marked": {"type": "poison_if_marked", "stacks": 5,                    "display": "マーク毒付与", "texture": "", "anim": "", "sfx": ""},
+	"curse_burst_on_death": {"type": "curse_burst_on_death", "threshold": 20,       "display": "呪い爆発", "texture": "", "anim": "", "sfx": ""},
+	"curse_multiply":   {"type": "curse_multiply", "factor": 2.5,                    "display": "呪い倍化", "texture": "", "anim": "", "sfx": ""},
+	"curse_multiply_all_cursed": {"type": "curse_multiply_all_cursed", "factor": 1.5, "display": "全呪い倍化", "texture": "", "anim": "", "sfx": ""},
 
 	# ---- ダメージ ----
 	"direct_damage":       {"type": "damage",             "factor": 1.0,                                "display": "直接ダメージ", "texture": "", "anim": "", "sfx": ""},
 	"chain_damage":        {"type": "damage",             "target": "adjacent_rows", "factor": 0.5,    "display": "連鎖ダメージ", "texture": "", "anim": "", "sfx": ""},
 	"big_damage":          {"type": "damage",             "target": "enemy_max_hp",  "factor": 3.0,    "display": "単体大ダメージ", "texture": "", "anim": "", "sfx": ""},
+	"rush_attack":         {"type": "rush_damage",        "damage_mult": 1.5,                           "display": "急襲攻撃", "texture": "", "anim": "", "sfx": ""},
 	"single_enemy_damage": {"type": "single_enemy_damage", "damage": 15,                                "display": "単体ダメージ", "texture": "", "anim": "", "sfx": ""},
 	"front_enemy_damage":  {"type": "front_enemy_damage",  "damage": 10,                                "display": "前列ダメージ", "texture": "", "anim": "", "sfx": ""},
 	"back_enemy_damage":   {"type": "back_enemy_damage",   "damage": 12,                                "display": "後列ダメージ", "texture": "", "anim": "", "sfx": ""},
 	"column_damage":       {"type": "column_damage",       "damage": 15,                                "display": "列ダメージ", "texture": "", "anim": "", "sfx": ""},
 	"hp_cost":             {"type": "self_damage",         "factor": 0.30, "min_hp": 1,                 "display": "HP代償", "texture": "", "anim": "", "sfx": ""},
+	"armor_damage":        {"type": "armor_damage",        "multiplier": 1,                             "display": "盾ダメージ", "texture": "", "anim": "", "sfx": ""},
+	"armor_damage_consume":{"type": "armor_damage_consume","multiplier": 2,                             "display": "盾消費ダメージ", "texture": "", "anim": "", "sfx": ""},
+	"damage_by_x":         {"type": "damage_by_x",         "divisor": 5,                                "display": "X値ダメージ", "texture": "", "anim": "", "sfx": ""},
+	"sense_consume_damage":{"type": "sense_consume_damage",                                             "display": "センス消費ダメージ", "texture": "", "anim": "", "sfx": ""},
+	"thorn_damage":        {"type": "thorn_damage",        "multiplier": 1,                             "display": "棘ダメージ", "texture": "", "anim": "", "sfx": ""},
 
 	# ---- 回復 ----
 	"heal_pct":         {"type": "heal",          "factor": 0.15,                               "display": "HP回復", "texture": "", "anim": "", "sfx": ""},
+	"heal_by_damage_dealt": {"type": "heal_by_damage_dealt", "factor": 0.05,                   "display": "吸血", "texture": "", "anim": "", "sfx": ""},
 
 	# ---- ATK変化 ----
 	"atk_accumulate":   {"type": "atk_permanent", "amount": 2, "cap": 10,                      "display": "ATK累積", "texture": "", "anim": "", "sfx": ""},
@@ -42,17 +65,33 @@ const EFFECTS: Dictionary = {
 
 	# ---- デッキ操作 ----
 	"deck_add_self":       {"type": "deck_add",         "unit_id": "self", "count": 1,               "display": "デッキ追加", "texture": "", "anim": "", "sfx": ""},
+	"deck_add_toxswamp":   {"type": "deck_add",         "unit_id": "Toxswamp", "count": 1,           "display": "毒沼追加", "texture": "", "anim": "", "sfx": ""},
 	"draw_cards":          {"type": "draw",             "count": 2,                                   "display": "ドロー", "texture": "", "anim": "", "sfx": ""},
 	"mana_boost":          {"type": "mana_add",         "amount": 3,                                  "display": "マナ回復", "texture": "", "anim": "", "sfx": ""},
 	"mana_gain":           {"type": "mana_add",         "amount": 1,                                  "display": "マナ獲得", "texture": "", "anim": "", "sfx": ""},
 	"mana_gain_next_turn": {"type": "mana_add_next_turn", "amount": 2,                               "display": "次ターンマナ", "texture": "", "anim": "", "sfx": ""},
+	"poison_total_to_x":   {"type": "poison_total_to_x",                                             "display": "毒総数→X値", "texture": "", "anim": "", "sfx": ""},
 
 	# ---- バフ奪取 ----
 	"steal_buffs":      {"type": "steal_buffs",   "factor": 1.5,                               "display": "バフ奪取", "texture": "", "anim": "", "sfx": ""},
 	"steal_all_buffs":  {"type": "steal_all_buffs", "factor": 1.5,                             "display": "全バフ奪取", "texture": "", "anim": "", "sfx": ""},
+	"buff_steal":       {"type": "buff_steal",    "count": 2,                                  "display": "バフ奪取", "texture": "", "anim": "", "sfx": ""},
+	"buff_steal_all":   {"type": "buff_steal_all",                                             "display": "全バフ奪取", "texture": "", "anim": "", "sfx": ""},
+	"buff_to_curse_amplify": {"type": "buff_to_curse_amplify", "amplify_factor": 2,            "display": "バフ→呪い増幅", "texture": "", "anim": "", "sfx": ""},
+	"buff_to_curse_convert_all": {"type": "buff_to_curse",                                     "display": "全バフ→呪い", "texture": "", "anim": "", "sfx": ""},
+
+	# ---- マナ操作 ----
+	"mana_steal":       {"type": "mana_steal",    "factor": 0.1,                               "display": "マナドレイン", "texture": "", "anim": "", "sfx": ""},
+	"mana_steal_shield":{"type": "mana_steal_shield", "factor": 0.1, "armor_mult": 2,          "display": "マナ→盾", "texture": "", "anim": "", "sfx": ""},
+	"mana_generation_boost": {"type": "buff_apply", "buff": "spring", "stacks": 10,            "display": "マナ生成ブースト", "texture": "", "anim": "", "sfx": ""},
+	"mana_generation_trigger": {"type": "mana_generation_trigger",                             "display": "マナ生成発動", "texture": "", "anim": "", "sfx": ""},
+	"mana_regen_boost": {"type": "buff_apply", "buff": "spring", "stacks": 5,                  "display": "マナ回復上昇", "texture": "", "anim": "", "sfx": ""},
 
 	# ---- 位置移動 ----
 	"force_front":      {"type": "move",          "dest": "front",                              "display": "最前列突撃", "texture": "", "anim": "", "sfx": ""},
+	"position_swap_front_back": {"type": "position_swap_front_back", "min_curse": 20,          "display": "前後入替（呪い）", "texture": "", "anim": "", "sfx": ""},
+	"position_swap_random": {"type": "position_swap_random", "min_curse": 10, "count": 2,      "display": "ランダム入替", "texture": "", "anim": "", "sfx": ""},
+	"swap_cursed_enemies": {"type": "swap_cursed_enemies", "min_curse": 5,                     "display": "呪い敵シャッフル", "texture": "", "anim": "", "sfx": ""},
 
 	# ---- 復活 ----
 	"self_revive":      {"type": "revive",        "hp": 5, "delay": 3.0, "range": "same_row",  "display": "自己再起", "texture": "", "anim": "", "sfx": ""},
@@ -71,6 +110,14 @@ const EFFECTS: Dictionary = {
 	"overflow_curse":   {"type": "skill_flag",    "flags": {"_has_overflow_curse": true},                                                         "display": "溢れる呪", "texture": "", "anim": "", "sfx": ""},
 	"mana_flare":       {"type": "skill_flag",    "flags": {"_has_mana_flare": true},                                                             "display": "マナフレア", "texture": "", "anim": "", "sfx": ""},
 	"unyielding":       {"type": "skill_flag",    "flags": {"_has_unyielding": true},                                                             "display": "不撓不屈", "texture": "", "anim": "", "sfx": ""},
+	"trait_madness":    {"type": "skill_flag",    "flags": {"_has_midnight_frenzy": true},                                                        "display": "丑三つ狂乱", "texture": "", "anim": "", "sfx": ""},
+	"trait_resilient":  {"type": "trait_resilient", "hp_pct": 0.1, "delay": 5.0,                                                                  "display": "再生特性", "texture": "", "anim": "", "sfx": ""},
+
+	# ---- 特殊効果 ----
+	"spell_slot_seal":  {"type": "spell_slot_seal", "count": 2, "duration": 3.0,                                                                  "display": "スロット封印", "texture": "", "anim": "", "sfx": ""},
+	"on_ally_death_thorn_boost": {"type": "on_ally_death_thorn_boost", "thorn_stacks": 10, "damage_mult": 0.1,                                   "display": "死亡時棘上昇", "texture": "", "anim": "", "sfx": ""},
+	"heal_reduction_cursed": {"type": "heal_reduction_cursed", "reduction_per_curse": 0.02,                                                       "display": "呪い回復減少", "texture": "", "anim": "", "sfx": ""},
+	"crit_mult_boost":  {"type": "crit_mult_boost", "divisor": 10,                                                                                "display": "クリティカル倍率上昇", "texture": "", "anim": "", "sfx": ""},
 
 	# ---- マナ妨害 ----
 	"enemy_mana_drain": {"type": "mana_drain",    "per_unit": -0.1,                             "display": "マナ妨害", "texture": "", "anim": "", "sfx": ""},
@@ -136,7 +183,7 @@ const EFFECTS: Dictionary = {
 	"hp_pct_boost":            {"type": "hp_pct_buff",     "race": "", "pct": 0.1,                    "display": "HP%バフ", "texture": "", "anim": "", "sfx": ""},
 
 	# ---- アーティファクト用盤面効果 ----
-	"tile_grave":        {"type": "tile_effect", "trigger": "on_tick", "tick_interval": 3.0, "display": "墓地", "unit_label": "墓地", "summon_unit": "スケルトン", "color": [0.2, 0.15, 0.1, 0.3], "texture": "", "anim": "", "sfx": ""},
+	"tile_grave":        {"type": "tile_effect", "trigger": "on_tick", "tick_interval": 3.0, "display": "墓地", "unit_label": "墓地", "color": [0.2, 0.15, 0.1, 0.3], "texture": "", "anim": "", "sfx": ""},
 
 	# ---- アーティファクト用永久効果 ----
 	"base_damage_reduce":  {"type": "base_damage_reduce", "pct": 0.1, "display": "本体守護", "texture": "", "anim": "", "sfx": ""},
@@ -196,7 +243,6 @@ const EFFECTS: Dictionary = {
 	"trait_seal_all_same":         {"type": "trait_seal_all",       "duration": 999.0,                               "display": "同特性全封印", "texture": "", "anim": "", "sfx": ""},
 	"curse_by_damage_taken":       {"type": "curse_by_damage",      "factor": 0.1,                                   "display": "被ダメ呪い", "texture": "", "anim": "", "sfx": ""},
 	"curse_apply_adjacent":        {"type": "curse_adjacent",       "stacks": 1,                                     "display": "隣接呪い", "texture": "", "anim": "", "sfx": ""},
-	"curse_apply_random":          {"type": "curse_random",         "stacks": 1, "count": 1,                         "display": "ランダム呪い", "texture": "", "anim": "", "sfx": ""},
 	"curse_apply_highest":         {"type": "curse_highest",        "stacks": 1,                                     "display": "呪い最多追加", "texture": "", "anim": "", "sfx": ""},
 	"curse_apply_front_random":    {"type": "curse_front_random",   "stacks": 1, "count": 1,                         "display": "前列ランダム呪い", "texture": "", "anim": "", "sfx": ""},
 	"total_curse_damage":          {"type": "total_curse_damage",   "factor": 1.0,                                   "display": "全体呪いダメージ", "texture": "", "anim": "", "sfx": ""},

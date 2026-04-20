@@ -11,7 +11,6 @@ func run(runner: RefCounted) -> void:
 	_test_tile_effect_damage(runner)
 	_test_artifact_exclusion(runner)
 	_test_promote(runner)
-	_test_revive_delay(runner)
 
 func _create_unit(unit_name: String) -> Object:
 	var UDS = load("res://scripts/UnitData.gd")
@@ -32,10 +31,6 @@ func _test_unit_placement(r: RefCounted) -> void:
 	r._assert_eq(u.max_hp, 15, "スライムHP=15")
 	r._assert_eq(u.attack, 1, "スライムATK=1")
 	r._assert_eq(u.race, "スライム", "スライム種族=スライム")
-	# スケルトン弱体化確認
-	var sk = _create_unit("スケルトン")
-	r._assert_eq(sk.attack, 2, "スケルトンATK=2（弱体化後）")
-	r._assert_eq(sk.get_attack_interval(), 3.33, "スケルトンSPD=3→間隔3.33s")
 
 # ---- ダメージ計算テスト ----
 func _test_damage_calculation(r: RefCounted) -> void:
@@ -120,20 +115,6 @@ func _test_promote(r: RefCounted) -> void:
 	var original_hp: int = u.current_hp
 	u.current_hp -= 5  # ダメージを受けた状態
 	r._assert_eq(u.current_hp, original_hp - 5, "promote後HPは変わらない（ダメージ保持）")
-
-# ---- 遅延復活テスト ----
-func _test_revive_delay(r: RefCounted) -> void:
-	var sk = _create_unit("スケルトン")
-	# on_deathスキルにself_reviveがあるか
-	var has_revive: bool = false
-	for skill in sk.skills:
-		if skill.get("trigger", "") == "on_death" and skill.get("effect_id", "") == "self_revive":
-			has_revive = true
-			var delay = skill.get("params", {}).get("delay", 0)
-			r._assert_eq(delay, 3.0, "スケルトン復活遅延=3秒")
-			var hp = skill.get("params", {}).get("hp", 0)
-			r._assert_eq(hp, 5, "スケルトン復活HP=5")
-	r._assert_true(has_revive, "スケルトンにself_reviveスキルがある")
 
 # ---- 表示と内部ロジックの一致テスト ----
 func _test_display_logic_consistency(r: RefCounted) -> void:

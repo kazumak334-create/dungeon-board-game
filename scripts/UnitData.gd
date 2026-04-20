@@ -17,7 +17,6 @@ var assigned_col: int = 0
 var race: String = ""
 var attack_range: String = "1行"
 var support_effect: String = ""   # サポート効果（常時発動/召喚時/条件達成時）
-var passive_skill: String = ""     # パッシブスキル（召喚時/死亡時/HP閾値時等、位置無関係）
 # 呪文カード用フィールド（ユニットカードでは使用しない）
 var card_type: String = "unit"    # "unit" | "spell" | "status_spell"
 var spell_id: String = ""         # 呪文識別子
@@ -51,6 +50,9 @@ var _has_sturdy: bool = false  # 頑丈：被ダメージ-1
 var _has_overflow_curse: bool = false  # 溢れる呪：5秒ごとに盤面全ユニットに呪い+1
 var _has_mana_flare: bool = false  # マナフレア：初期デッキにマナフレア呪文を追加
 var _has_unyielding: bool = false  # 不撓不屈：味方死亡時にHP25%回復・ATK・SPD10%上昇
+var _has_weakness_hunter: bool = false  # 弱点狙い：クリティカル時ダメージ×3
+var _has_midnight_frenzy: bool = false  # 丑三つ狂乱：盤面呪いスタック×0.1%のブーツ付与
+var _has_grudge_seal: bool = false      # 死後強まる怨念：味方死亡時に敵1体を5秒封印
 # パッシブスキル状態（永続・cloneには引き継がない）
 var _has_revived: bool = false
 var _support_revive: bool = false    # サポート効果由来の再起（毎フレーム再計算）
@@ -76,6 +78,8 @@ var power_stacks:     int = 0  # パワー: スタック×1%ATK上昇
 var spring_stacks:    int = 0  # 泉: スタック×1%マナ生成上昇
 var regen_stacks:     int = 0  # リジェネ: 2秒ごとにHP5%×スタック数回復（重複可）
 var thorn_stacks:     int = 0  # 棘: 棘爆発の対象（スタック数分ダメージ）
+var x_stacks:         int = 0  # X値: 毒スタック連動システム用（poison_by_x等）
+var _ally_death_count: int = 0  # 味方死亡カウント（BW中累積・on_ally_death_thorn_boost用）
 # 時間経過スキル（cloneには引き継がない）
 var _skill_timers: Dictionary = {}  # {entry文字列: 残り秒数}
 var _temp_atk_bonus: int = 0        # 一時ATKバフ（時間経過スキル用）
@@ -87,6 +91,9 @@ var _hp_threshold_triggered: Dictionary = {}  # {entry: true} 発動済みフラ
 var _invincible_timer: float = 0.0            # 結晶化：無敵残り時間
 # ダメージ蓄積（cloneには引き継がない）
 var _accumulated_damage: int = 0              # ダメージ蓄積：攻撃時に追加ダメージとして反映
+# 封印状態（cloneには引き継がない）
+var _is_sealed: bool = false                  # 封印：攻撃・サポート発動を停止
+var _seal_timer: float = 0.0                  # 封印残り時間
 
 # SPD → attack_interval 変換（互換性レイヤー）
 # SPD = 10秒あたりの攻撃回数（SPD 10 = 1秒間隔、SPD 5 = 2秒間隔）
@@ -123,7 +130,6 @@ func clone() -> RefCounted:
 	d.race = race
 	d.attack_range = attack_range
 	d.support_effect = support_effect
-	d.passive_skill = passive_skill
 	d.card_type = card_type
 	d.spell_id = spell_id
 	d.spell_target = spell_target

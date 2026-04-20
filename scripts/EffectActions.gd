@@ -681,21 +681,18 @@ func do_tile_set(merged: Dictionary, ctx: Dictionary) -> void:
 						bm.set_tile_effect(side, r2, c2, tile_id, tile_dur)
 		else:
 			var sides_to_set: Array = []
+			var cols_to_set: Array = [0, 1, 2]  # デフォルトは全列
 			match scope:
 				"all":   sides_to_set = [0, 1]
 				"enemy": sides_to_set = [enemy_side]
 				"ally":  sides_to_set = [side]
+				"front_columns":
+					sides_to_set = [0, 1]
+					cols_to_set = [0]  # 前列のみ
 			for s2 in sides_to_set:
 				for r2 in range(3):
-					for c2 in range(3):
+					for c2 in cols_to_set:
 						bm.set_tile_effect(s2, r2, c2, tile_id, tile_dur)
-
-func do_summon_to_empty(merged: Dictionary, ctx: Dictionary) -> void:
-	var bm: Node  = ctx.get("bm", null)
-	var side: int = ctx.get("side", 0)
-	var unit_id_se: String = merged.get("unit_id", "ゴブリン")
-	if bm != null:
-		bm._summon_unit_to_random_empty(side, unit_id_se)
 
 # ---- ユーティリティ ----
 
@@ -1159,3 +1156,722 @@ func do_mana_flare_damage(merged: Dictionary, ctx: Dictionary) -> void:
 				t.current_hp = max(0, t.current_hp - current_mana)
 				if eq != null:
 					eq.push(3, source, t, "damage", 0.0, {"damage": current_mana, "side": enemy_side, "row": r, "col": c})
+
+# ---- Phase 3-1: 毒系スライム用エフェクト ----
+
+func do_poison_amplify(merged: Dictionary, ctx: Dictionary) -> void:
+	# 単体毒増幅
+	var bm: Node       = ctx.get("bm", null)
+	var side: int      = ctx.get("side", 0)
+	var row: int       = ctx.get("row", 0)
+	var col: int       = ctx.get("col", 0)
+	var source: Object = ctx.get("source", null)
+	var target: Object = ctx.get("target", null)
+	var damage: int    = ctx.get("damage", 0)
+	var context: Dictionary = {
+		"board_manager": bm, "side": side, "row": row, "col": col,
+		"source": source, "target": target, "damage": damage
+	}
+	var tgt = targets.resolve(merged, context, false)
+	var factor: float = merged.get("factor", 2.0)
+	for t in tgt:
+		if t.has("poison_stacks"):
+			t.poison_stacks = int(t.poison_stacks * factor)
+
+func do_poison_amplify_all(merged: Dictionary, ctx: Dictionary) -> void:
+	# 全体毒増幅
+	var bm: Node       = ctx.get("bm", null)
+	var side: int      = ctx.get("side", 0)
+	var row: int       = ctx.get("row", 0)
+	var col: int       = ctx.get("col", 0)
+	var source: Object = ctx.get("source", null)
+	var target: Object = ctx.get("target", null)
+	var damage: int    = ctx.get("damage", 0)
+	var context: Dictionary = {
+		"board_manager": bm, "side": side, "row": row, "col": col,
+		"source": source, "target": target, "damage": damage
+	}
+	var tgt = targets.resolve(merged, context, false)
+	var factor: float = merged.get("factor", 1.5)
+	for t in tgt:
+		if t.has("poison_stacks") and t.poison_stacks > 0:
+			t.poison_stacks = int(t.poison_stacks * factor)
+
+func do_poison_add_conditional(merged: Dictionary, ctx: Dictionary) -> void:
+	# 条件付き毒追加（対象が毒を持っている場合のみ追加）
+	var bm: Node       = ctx.get("bm", null)
+	var side: int      = ctx.get("side", 0)
+	var row: int       = ctx.get("row", 0)
+	var col: int       = ctx.get("col", 0)
+	var source: Object = ctx.get("source", null)
+	var target: Object = ctx.get("target", null)
+	var damage: int    = ctx.get("damage", 0)
+	var context: Dictionary = {
+		"board_manager": bm, "side": side, "row": row, "col": col,
+		"source": source, "target": target, "damage": damage
+	}
+	var tgt = targets.resolve(merged, context, false)
+	var stacks: int = merged.get("stacks", 5)
+	for t in tgt:
+		if t.has("poison_stacks") and t.poison_stacks > 0:
+			t.poison_stacks += stacks
+
+func do_poison_damage(merged: Dictionary, ctx: Dictionary) -> void:
+	# 毒スタック数に応じたダメージ
+	var bm: Node       = ctx.get("bm", null)
+	var eq: Node       = ctx.get("eq", null)
+	var side: int      = ctx.get("side", 0)
+	var row: int       = ctx.get("row", 0)
+	var col: int       = ctx.get("col", 0)
+	var source: Object = ctx.get("source", null)
+	var target: Object = ctx.get("target", null)
+	var damage: int    = ctx.get("damage", 0)
+	var context: Dictionary = {
+		"board_manager": bm, "side": side, "row": row, "col": col,
+		"source": source, "target": target, "damage": damage
+	}
+	var tgt = targets.resolve(merged, context, false)
+	var consume: bool = merged.get("consume", false)
+	for t in tgt:
+		if t.has("poison_stacks"):
+			var dmg: int = t.poison_stacks
+			if dmg > 0:
+				t.current_hp = max(0, t.current_hp - dmg)
+				if eq != null:
+					var t_side: int = targets.get_unit_side(t, bm)
+					var t_row: int = targets.get_unit_row(t, bm)
+					var t_col: int = targets.get_unit_col(t, bm)
+					eq.push(3, source, t, "damage", 0.0, {"damage": dmg, "side": t_side, "row": t_row, "col": t_col})
+				if consume:
+					t.poison_stacks = 0
+
+func do_armor_damage(merged: Dictionary, ctx: Dictionary) -> void:
+	# 盾スタック数×multiplierダメージ（消費なし）
+	var bm: Node       = ctx.get("bm", null)
+	var eq: Node       = ctx.get("eq", null)
+	var side: int      = ctx.get("side", 0)
+	var row: int       = ctx.get("row", 0)
+	var col: int       = ctx.get("col", 0)
+	var source: Object = ctx.get("source", null)
+	var target: Object = ctx.get("target", null)
+	var multiplier: int = merged.get("multiplier", 1)
+	if source == null or target == null or eq == null:
+		return
+	var armor_dmg: int = source._damage_reduction * multiplier
+	if armor_dmg > 0:
+		var context: Dictionary = {
+			"board_manager": bm, "side": side, "row": row, "col": col,
+			"source": source, "target": target, "damage": 0
+		}
+		var t_side: int = targets.get_unit_side(target, bm)
+		var t_row: int = targets.get_unit_row(target, bm)
+		var t_col: int = targets.get_unit_col(target, bm)
+		eq.push(1, source, target, "damage", float(armor_dmg), {"enemy_side": t_side, "row": t_row, "col": t_col})
+
+func do_armor_damage_consume(merged: Dictionary, ctx: Dictionary) -> void:
+	# 盾スタック数×multiplierダメージ（全消費）
+	var bm: Node       = ctx.get("bm", null)
+	var eq: Node       = ctx.get("eq", null)
+	var side: int      = ctx.get("side", 0)
+	var row: int       = ctx.get("row", 0)
+	var col: int       = ctx.get("col", 0)
+	var source: Object = ctx.get("source", null)
+	var target: Object = ctx.get("target", null)
+	var multiplier: int = merged.get("multiplier", 2)
+	if source == null or target == null or eq == null:
+		return
+	var armor_dmg: int = source._damage_reduction * multiplier
+	if armor_dmg > 0:
+		var t_side: int = targets.get_unit_side(target, bm)
+		var t_row: int = targets.get_unit_row(target, bm)
+		var t_col: int = targets.get_unit_col(target, bm)
+		eq.push(1, source, target, "damage", float(armor_dmg), {"enemy_side": t_side, "row": t_row, "col": t_col})
+		source._damage_reduction = 0
+
+func do_mana_steal(merged: Dictionary, ctx: Dictionary) -> void:
+	# 敵マナ吸収（ATK×factor）
+	var dm: RefCounted = ctx.get("dm", null)
+	var ai: RefCounted = ctx.get("ai", null)
+	var side: int      = ctx.get("side", 0)
+	var source: Object = ctx.get("source", null)
+	var factor: float  = merged.get("factor", 0.1)
+	if source == null:
+		return
+	var steal_amount: float = float(source.attack) * factor
+	if side == 0 and dm != null and ai != null:
+		ai.mana = max(0.0, ai.mana - steal_amount)
+		dm.mana = min(dm.mana + steal_amount, dm.MANA_MAX)
+	elif side == 1 and dm != null and ai != null:
+		dm.mana = max(0.0, dm.mana - steal_amount)
+		ai.mana = min(ai.mana + steal_amount, ai.MANA_MAX)
+
+func do_mana_steal_shield(merged: Dictionary, ctx: Dictionary) -> void:
+	# 敵マナ吸収→全味方に盾付与
+	var bm: Node       = ctx.get("bm", null)
+	var dm: RefCounted = ctx.get("dm", null)
+	var ai: RefCounted = ctx.get("ai", null)
+	var side: int      = ctx.get("side", 0)
+	var source: Object = ctx.get("source", null)
+	var factor: float  = merged.get("factor", 0.1)
+	var armor_mult: int = merged.get("armor_mult", 2)
+	if source == null or bm == null:
+		return
+	var steal_amount: float = float(source.attack) * factor
+	if side == 0 and dm != null and ai != null:
+		ai.mana = max(0.0, ai.mana - steal_amount)
+	elif side == 1 and dm != null and ai != null:
+		dm.mana = max(0.0, dm.mana - steal_amount)
+	var armor_stacks: int = int(steal_amount * float(armor_mult))
+	if armor_stacks > 0:
+		for r in range(3):
+			for c in range(3):
+				var ally = bm.board[side][r][c]
+				if ally != null:
+					ally._damage_reduction += armor_stacks
+
+func do_poison_by_x(merged: Dictionary, ctx: Dictionary) -> void:
+	# X値×multiplier分の毒付与
+	var bm: Node       = ctx.get("bm", null)
+	var side: int      = ctx.get("side", 0)
+	var row: int       = ctx.get("row", 0)
+	var col: int       = ctx.get("col", 0)
+	var source: Object = ctx.get("source", null)
+	var target: Object = ctx.get("target", null)
+	var damage: int    = ctx.get("damage", 0)
+	var context: Dictionary = {
+		"board_manager": bm, "side": side, "row": row, "col": col,
+		"source": source, "target": target, "damage": damage
+	}
+	var tgt = targets.resolve(merged, context, false)
+	var multiplier: int = merged.get("multiplier", 1)
+	if source == null:
+		return
+	var poison_amount: int = source.x_stacks * multiplier
+	for t in tgt:
+		if poison_amount > 0:
+			t.poison_stacks += poison_amount
+
+func do_x_stack_add(merged: Dictionary, ctx: Dictionary) -> void:
+	# X値にstacks加算
+	var source: Object = ctx.get("source", null)
+	var stacks: int = merged.get("stacks", 1)
+	if source == null:
+		return
+	source.x_stacks += stacks
+
+func do_x_stack_add_from_field(merged: Dictionary, ctx: Dictionary) -> void:
+	# 盤面毒スタック総数をX値に加算
+	var bm: Node       = ctx.get("bm", null)
+	var source: Object = ctx.get("source", null)
+	if source == null or bm == null:
+		return
+	var total_poison: int = 0
+	for s in range(2):
+		for r in range(3):
+			for c in range(3):
+				var u = bm.board[s][r][c]
+				if u != null:
+					total_poison += u.poison_stacks
+	source.x_stacks += total_poison
+
+func do_curse_amplify_all(merged: Dictionary, ctx: Dictionary) -> void:
+	# 条件を満たした敵全体の呪いスタックを増幅
+	var bm: Node       = ctx.get("bm", null)
+	var side: int      = ctx.get("side", 0)
+	var factor: float  = merged.get("factor", 1.5)
+	var min_curse: int = merged.get("min_curse", 5)
+	if bm == null:
+		return
+	var enemy_side: int = 1 - side
+	for r in range(3):
+		for c in range(3):
+			var enemy = bm.board[enemy_side][r][c]
+			if enemy != null and enemy.curse_stacks >= min_curse:
+				enemy.curse_stacks = int(float(enemy.curse_stacks) * factor)
+
+func do_buff_steal(merged: Dictionary, ctx: Dictionary) -> void:
+	# バフ奪取（固定数 or 全て）
+	var bm: Node       = ctx.get("bm", null)
+	var side: int      = ctx.get("side", 0)
+	var row: int       = ctx.get("row", 0)
+	var col: int       = ctx.get("col", 0)
+	var source: Object = ctx.get("source", null)
+	var target: Object = ctx.get("target", null)
+	var damage: int    = ctx.get("damage", 0)
+	var context: Dictionary = {
+		"board_manager": bm, "side": side, "row": row, "col": col,
+		"source": source, "target": target, "damage": damage
+	}
+	var tgt = targets.resolve(merged, context, false)
+	var count: int = merged.get("count", 2)
+	if source == null:
+		return
+	for t in tgt:
+		var stolen: int = 0
+		# 全バフ種別から奪取
+		var buff_types: Array = [
+			{"field": "_damage_reduction", "min": 1},
+			{"field": "boots_stacks", "min": 1},
+			{"field": "sense_stacks", "min": 1},
+			{"field": "power_stacks", "min": 1},
+			{"field": "spring_stacks", "min": 1},
+			{"field": "regen_stacks", "min": 1}
+		]
+		for buff in buff_types:
+			if stolen >= count:
+				break
+			var field: String = buff["field"]
+			var min_val: int = buff["min"]
+			if t.get(field, 0) >= min_val:
+				var steal_amt: int = min(count - stolen, t.get(field, 0))
+				t.set(field, t.get(field, 0) - steal_amt)
+				if field == "_damage_reduction":
+					source._stolen_armor += steal_amt
+				elif field == "boots_stacks":
+					source.boots_stacks += steal_amt
+				elif field == "sense_stacks":
+					source.sense_stacks += steal_amt
+				elif field == "power_stacks":
+					source.power_stacks += steal_amt
+				elif field == "spring_stacks":
+					source.spring_stacks += steal_amt
+				elif field == "regen_stacks":
+					source._stolen_regen += steal_amt
+				stolen += steal_amt
+
+func do_buff_to_curse(merged: Dictionary, ctx: Dictionary) -> void:
+	# バフを呪いに変換（percent指定で部分変換、なしで全変換）
+	var bm: Node       = ctx.get("bm", null)
+	var side: int      = ctx.get("side", 0)
+	var row: int       = ctx.get("row", 0)
+	var col: int       = ctx.get("col", 0)
+	var source: Object = ctx.get("source", null)
+	var target: Object = ctx.get("target", null)
+	var damage: int    = ctx.get("damage", 0)
+	var context: Dictionary = {
+		"board_manager": bm, "side": side, "row": row, "col": col,
+		"source": source, "target": target, "damage": damage
+	}
+	var tgt = targets.resolve(merged, context, false)
+	var percent: float = merged.get("percent", 1.0)  # デフォルト100%（全変換）
+	for t in tgt:
+		var total_buffs: int = 0
+		total_buffs += t.get("_damage_reduction", 0)
+		total_buffs += t.get("boots_stacks", 0)
+		total_buffs += t.get("sense_stacks", 0)
+		total_buffs += t.get("power_stacks", 0)
+		total_buffs += t.get("spring_stacks", 0)
+		total_buffs += t.get("regen_stacks", 0)
+		if total_buffs > 0:
+			var convert_amount: int = int(float(total_buffs) * percent)
+			if percent >= 1.0:
+				# 全変換
+				t._damage_reduction = 0
+				t.boots_stacks = 0
+				t.sense_stacks = 0
+				t.power_stacks = 0
+				t.spring_stacks = 0
+				t.regen_stacks = 0
+			else:
+				# 部分変換（各バフから比例配分で減算）
+				var reduction_factor: float = 1.0 - percent
+				t._damage_reduction = int(float(t._damage_reduction) * reduction_factor)
+				t.boots_stacks = int(float(t.boots_stacks) * reduction_factor)
+				t.sense_stacks = int(float(t.sense_stacks) * reduction_factor)
+				t.power_stacks = int(float(t.power_stacks) * reduction_factor)
+				t.spring_stacks = int(float(t.spring_stacks) * reduction_factor)
+				t.regen_stacks = int(float(t.regen_stacks) * reduction_factor)
+			t.curse_stacks += convert_amount
+
+func do_buff_to_curse_amplify(merged: Dictionary, ctx: Dictionary) -> void:
+	# バフ→呪い変換＋追加呪い付与
+	var bm: Node       = ctx.get("bm", null)
+	var side: int      = ctx.get("side", 0)
+	var row: int       = ctx.get("row", 0)
+	var col: int       = ctx.get("col", 0)
+	var source: Object = ctx.get("source", null)
+	var target: Object = ctx.get("target", null)
+	var damage: int    = ctx.get("damage", 0)
+	var context: Dictionary = {
+		"board_manager": bm, "side": side, "row": row, "col": col,
+		"source": source, "target": target, "damage": damage
+	}
+	var tgt = targets.resolve(merged, context, false)
+	var amplify_factor: int = merged.get("amplify_factor", 2)
+	for t in tgt:
+		var total_buffs: int = 0
+		total_buffs += t.get("_damage_reduction", 0)
+		total_buffs += t.get("boots_stacks", 0)
+		total_buffs += t.get("sense_stacks", 0)
+		total_buffs += t.get("power_stacks", 0)
+		total_buffs += t.get("spring_stacks", 0)
+		total_buffs += t.get("regen_stacks", 0)
+		if total_buffs > 0:
+			t._damage_reduction = 0
+			t.boots_stacks = 0
+			t.sense_stacks = 0
+			t.power_stacks = 0
+			t.spring_stacks = 0
+			t.regen_stacks = 0
+			t.curse_stacks += total_buffs + (total_buffs * amplify_factor)
+func do_damage_by_x(merged: Dictionary, ctx: Dictionary) -> void:
+	# X値÷divisor分の追加ダメージ
+	var bm: Node       = ctx.get("bm", null)
+	var eq: Node       = ctx.get("eq", null)
+	var side: int      = ctx.get("side", 0)
+	var row: int       = ctx.get("row", 0)
+	var col: int       = ctx.get("col", 0)
+	var source: Object = ctx.get("source", null)
+	var target: Object = ctx.get("target", null)
+	var divisor: int   = merged.get("divisor", 5)
+	if source == null or target == null or eq == null:
+		return
+	var extra_dmg: int = source.x_stacks / divisor
+	if extra_dmg > 0:
+		var t_side: int = targets.get_unit_side(target, bm)
+		var t_row: int = targets.get_unit_row(target, bm)
+		var t_col: int = targets.get_unit_col(target, bm)
+		eq.push(1, source, target, "damage", float(extra_dmg), {"enemy_side": t_side, "row": t_row, "col": t_col})
+
+func do_curse_multiply(merged: Dictionary, ctx: Dictionary) -> void:
+	# 命中した敵の呪いスタックを倍率増幅
+	var bm: Node       = ctx.get("bm", null)
+	var side: int      = ctx.get("side", 0)
+	var row: int       = ctx.get("row", 0)
+	var col: int       = ctx.get("col", 0)
+	var source: Object = ctx.get("source", null)
+	var target: Object = ctx.get("target", null)
+	var damage: int    = ctx.get("damage", 0)
+	var context: Dictionary = {
+		"board_manager": bm, "side": side, "row": row, "col": col,
+		"source": source, "target": target, "damage": damage
+	}
+	var tgt = targets.resolve(merged, context, false)
+	var factor: float = merged.get("factor", 2.5)
+	for t in tgt:
+		if t.curse_stacks > 0:
+			t.curse_stacks = int(float(t.curse_stacks) * factor)
+
+func do_curse_multiply_all_cursed(merged: Dictionary, ctx: Dictionary) -> void:
+	# 呪い持ち敵全体の呪いスタックを倍率増幅
+	var bm: Node       = ctx.get("bm", null)
+	var side: int      = ctx.get("side", 0)
+	var factor: float  = merged.get("factor", 1.5)
+	if bm == null:
+		return
+	var enemy_side: int = 1 - side
+	for r in range(3):
+		for c in range(3):
+			var enemy = bm.board[enemy_side][r][c]
+			if enemy != null and enemy.curse_stacks > 0:
+				enemy.curse_stacks = int(float(enemy.curse_stacks) * factor)
+
+func do_buff_steal_all(merged: Dictionary, ctx: Dictionary) -> void:
+	# 全バフ奪取
+	var bm: Node       = ctx.get("bm", null)
+	var side: int      = ctx.get("side", 0)
+	var row: int       = ctx.get("row", 0)
+	var col: int       = ctx.get("col", 0)
+	var source: Object = ctx.get("source", null)
+	var target: Object = ctx.get("target", null)
+	var damage: int    = ctx.get("damage", 0)
+	var context: Dictionary = {
+		"board_manager": bm, "side": side, "row": row, "col": col,
+		"source": source, "target": target, "damage": damage
+	}
+	var tgt = targets.resolve(merged, context, false)
+	if source == null:
+		return
+	for t in tgt:
+		# 全バフを奪取
+		source._stolen_armor += t._damage_reduction
+		source.boots_stacks += t.boots_stacks
+		source.sense_stacks += t.sense_stacks
+		source.power_stacks += t.power_stacks
+		source.spring_stacks += t.spring_stacks
+		source._stolen_regen += t.regen_stacks
+		# 対象のバフをクリア
+		t._damage_reduction = 0
+		t.boots_stacks = 0
+		t.sense_stacks = 0
+		t.power_stacks = 0
+		t.spring_stacks = 0
+		t.regen_stacks = 0
+
+func do_burn_by_status_count(merged: Dictionary, ctx: Dictionary) -> void:
+	# 異常状態の種類数×N火傷付与
+	var bm: Node       = ctx.get("bm", null)
+	var side: int      = ctx.get("side", 0)
+	var stacks_per_status: int = merged.get("stacks_per_status", 5)
+	if bm == null:
+		return
+	var enemy_side: int = 1 - side
+	for r in range(3):
+		for c in range(3):
+			var enemy = bm.board[enemy_side][r][c]
+			if enemy != null:
+				var status_count: int = 0
+				if enemy.poison_stacks > 0: status_count += 1
+				if enemy.frozen_turns > 0: status_count += 1
+				if enemy.burn_turns > 0: status_count += 1
+				if enemy.curse_stacks > 0: status_count += 1
+				if enemy.brand_stacks > 0: status_count += 1
+				if status_count > 0:
+					enemy.burn_turns += status_count * stacks_per_status
+
+func do_freeze_by_status_count(merged: Dictionary, ctx: Dictionary) -> void:
+	# 異常状態の種類数×N凍結付与
+	var bm: Node       = ctx.get("bm", null)
+	var side: int      = ctx.get("side", 0)
+	var stacks_per_status: int = merged.get("stacks_per_status", 5)
+	if bm == null:
+		return
+	var enemy_side: int = 1 - side
+	for r in range(3):
+		for c in range(3):
+			var enemy = bm.board[enemy_side][r][c]
+			if enemy != null:
+				var status_count: int = 0
+				if enemy.poison_stacks > 0: status_count += 1
+				if enemy.frozen_turns > 0: status_count += 1
+				if enemy.burn_turns > 0: status_count += 1
+				if enemy.curse_stacks > 0: status_count += 1
+				if enemy.brand_stacks > 0: status_count += 1
+				if status_count > 0:
+					enemy.frozen_turns += status_count * stacks_per_status
+
+func do_mark_if_poison_gte(merged: Dictionary, ctx: Dictionary) -> void:
+	# 毒閾値以上で烙印付与
+	var bm: Node       = ctx.get("bm", null)
+	var side: int      = ctx.get("side", 0)
+	var row: int       = ctx.get("row", 0)
+	var col: int       = ctx.get("col", 0)
+	var source: Object = ctx.get("source", null)
+	var target: Object = ctx.get("target", null)
+	var damage: int    = ctx.get("damage", 0)
+	var context: Dictionary = {
+		"board_manager": bm, "side": side, "row": row, "col": col,
+		"source": source, "target": target, "damage": damage
+	}
+	var tgt = targets.resolve(merged, context, false)
+	var poison_threshold: int = merged.get("poison_threshold", 10)
+	var mark_stacks: int = merged.get("mark_stacks", 2)
+	for t in tgt:
+		if t.poison_stacks >= poison_threshold:
+			t.brand_stacks += mark_stacks
+
+func do_poison_if_marked(merged: Dictionary, ctx: Dictionary) -> void:
+	# 烙印持ちに毒付与
+	var bm: Node       = ctx.get("bm", null)
+	var side: int      = ctx.get("side", 0)
+	var stacks: int    = merged.get("stacks", 5)
+	if bm == null:
+		return
+	var enemy_side: int = 1 - side
+	for r in range(3):
+		for c in range(3):
+			var enemy = bm.board[enemy_side][r][c]
+			if enemy != null and enemy.brand_stacks > 0:
+				enemy.poison_stacks += stacks
+
+func do_curse_burst_on_death(merged: Dictionary, ctx: Dictionary) -> void:
+	# 死亡時に呪いスタックを周辺敵に波及
+	var bm: Node       = ctx.get("bm", null)
+	var side: int      = ctx.get("side", 0)
+	var row: int       = ctx.get("row", 0)
+	var col: int       = ctx.get("col", 0)
+	var source: Object = ctx.get("source", null)
+	var threshold: int = merged.get("threshold", 20)
+	if bm == null or source == null:
+		return
+	if source.curse_stacks >= threshold:
+		var burst_curse: int = source.curse_stacks
+		var enemy_side: int = 1 - side
+		for r in range(3):
+			for c in range(3):
+				var enemy = bm.board[enemy_side][r][c]
+				if enemy != null:
+					enemy.curse_stacks += burst_curse
+
+func do_poison_total_to_x(merged: Dictionary, ctx: Dictionary) -> void:
+	# 盤面毒スタック総数をX値に加算（x_stack_add_from_fieldと同じ）
+	do_x_stack_add_from_field(merged, ctx)
+
+func do_sense_consume_damage(merged: Dictionary, ctx: Dictionary) -> void:
+	# センス全消費→センス×ATK%追加ダメージ
+	var bm: Node       = ctx.get("bm", null)
+	var eq: Node       = ctx.get("eq", null)
+	var side: int      = ctx.get("side", 0)
+	var row: int       = ctx.get("row", 0)
+	var col: int       = ctx.get("col", 0)
+	var source: Object = ctx.get("source", null)
+	var target: Object = ctx.get("target", null)
+	if source == null or target == null or eq == null:
+		return
+	if source.sense_stacks > 0:
+		var extra_dmg: int = int(float(source.attack) * float(source.sense_stacks) * 0.01)
+		if extra_dmg > 0:
+			var t_side: int = targets.get_unit_side(target, bm)
+			var t_row: int = targets.get_unit_row(target, bm)
+			var t_col: int = targets.get_unit_col(target, bm)
+			eq.push(1, source, target, "damage", float(extra_dmg), {"enemy_side": t_side, "row": t_row, "col": t_col})
+		source.sense_stacks = 0
+
+func do_thorn_damage(merged: Dictionary, ctx: Dictionary) -> void:
+	# 棘スタック×ダメージ（味方死亡数で倍率上昇）
+	var bm: Node       = ctx.get("bm", null)
+	var eq: Node       = ctx.get("eq", null)
+	var side: int      = ctx.get("side", 0)
+	var row: int       = ctx.get("row", 0)
+	var col: int       = ctx.get("col", 0)
+	var source: Object = ctx.get("source", null)
+	var target: Object = ctx.get("target", null)
+	var multiplier: int = merged.get("multiplier", 1)
+	if source == null or target == null or eq == null:
+		return
+	var base_dmg: int = source.thorn_stacks * multiplier
+	var death_mult: float = 1.0 + float(source._ally_death_count) * 0.1
+	var thorn_dmg: int = int(float(base_dmg) * death_mult)
+	if thorn_dmg > 0:
+		var t_side: int = targets.get_unit_side(target, bm)
+		var t_row: int = targets.get_unit_row(target, bm)
+		var t_col: int = targets.get_unit_col(target, bm)
+		eq.push(1, source, target, "damage", float(thorn_dmg), {"enemy_side": t_side, "row": t_row, "col": t_col})
+
+func do_mana_generation_trigger(merged: Dictionary, ctx: Dictionary) -> void:
+	# 召喚時にマナ生成1回分即時発動
+	var dm: RefCounted = ctx.get("dm", null)
+	var ai: RefCounted = ctx.get("ai", null)
+	var side: int      = ctx.get("side", 0)
+	var source: Object = ctx.get("source", null)
+	if source == null:
+		return
+	var mana_gain: float = float(source.mana) if source.mana >= 0 else 0.0
+	# springバフ適用
+	if source.spring_stacks > 0:
+		mana_gain += mana_gain * source.spring_stacks * 0.01
+	if side == 0 and dm != null:
+		dm.mana = min(dm.mana + mana_gain, dm.MANA_MAX)
+	elif side == 1 and ai != null:
+		ai.mana = min(ai.mana + mana_gain, ai.MANA_MAX)
+
+func do_position_swap_front_back(merged: Dictionary, ctx: Dictionary) -> void:
+	# 呪い閾値以上の敵前列1体を後列と入れ替え（呪い最大優先）
+	var bm: Node       = ctx.get("bm", null)
+	var side: int      = ctx.get("side", 0)
+	var min_curse: int = merged.get("min_curse", 20)
+	if bm == null:
+		return
+	var enemy_side: int = 1 - side
+	var front_col: int = 0 if enemy_side == 0 else 2
+	var back_col: int = 2 if enemy_side == 0 else 0
+	# 呪いスタック最大の前列ユニットを選択
+	var max_curse: int = 0
+	var target_row: int = -1
+	for r in range(3):
+		var front_unit = bm.board[enemy_side][r][front_col]
+		if front_unit != null and front_unit.curse_stacks >= min_curse:
+			if front_unit.curse_stacks > max_curse:
+				max_curse = front_unit.curse_stacks
+				target_row = r
+	if target_row >= 0:
+		var front_unit = bm.board[enemy_side][target_row][front_col]
+		var back_unit = bm.board[enemy_side][target_row][back_col]
+		bm.board[enemy_side][target_row][front_col] = back_unit
+		bm.board[enemy_side][target_row][back_col] = front_unit
+		if front_unit != null:
+			front_unit.assigned_col = back_col
+		if back_unit != null:
+			back_unit.assigned_col = front_col
+
+func do_position_swap_random(merged: Dictionary, ctx: Dictionary) -> void:
+	# 呪い閾値以上の敵2体をランダム入れ替え
+	var bm: Node       = ctx.get("bm", null)
+	var side: int      = ctx.get("side", 0)
+	var min_curse: int = merged.get("min_curse", 10)
+	var count: int     = merged.get("count", 2)
+	if bm == null:
+		return
+	var enemy_side: int = 1 - side
+	var candidates: Array = []
+	for r in range(3):
+		for c in range(3):
+			var enemy = bm.board[enemy_side][r][c]
+			if enemy != null and enemy.curse_stacks >= min_curse:
+				candidates.append({"r": r, "c": c, "unit": enemy})
+	if candidates.size() >= count:
+		candidates.shuffle()
+		var pos1 = candidates[0]
+		var pos2 = candidates[1]
+		bm.board[enemy_side][pos1["r"]][pos1["c"]] = pos2["unit"]
+		bm.board[enemy_side][pos2["r"]][pos2["c"]] = pos1["unit"]
+		pos1["unit"].assigned_col = pos2["c"]
+		pos2["unit"].assigned_col = pos1["c"]
+
+func do_swap_cursed_enemies(merged: Dictionary, ctx: Dictionary) -> void:
+	# 呪い閾値以上の敵全体をランダムシャッフル（既存のdo_position_shuffleと同じ）
+	var bm: Node       = ctx.get("bm", null)
+	var side: int      = ctx.get("side", 0)
+	var min_curse: int = merged.get("min_curse", 5)
+	if bm == null:
+		return
+	var enemy_side: int = 1 - side
+	var positions: Array = []
+	for r in range(3):
+		for c in range(3):
+			var enemy = bm.board[enemy_side][r][c]
+			if enemy != null and enemy.curse_stacks >= min_curse:
+				positions.append({"r": r, "c": c, "unit": enemy})
+	if positions.size() > 1:
+		var units_only: Array = []
+		for pos in positions:
+			units_only.append(pos["unit"])
+		units_only.shuffle()
+		for i in range(positions.size()):
+			var pos = positions[i]
+			var new_unit = units_only[i]
+			bm.board[enemy_side][pos["r"]][pos["c"]] = new_unit
+			new_unit.assigned_col = pos["c"]
+
+func do_spell_slot_seal(merged: Dictionary, ctx: Dictionary) -> void:
+	# 呪文スロット封印（Phase 5実装予定・現状はスタブ）
+	pass
+
+func do_trait_resilient(merged: Dictionary, ctx: Dictionary) -> void:
+	# 再生特性：死亡後5秒でHP10%復活（revive_on_deathと同じ）
+	var bm: Node       = ctx.get("bm", null)
+	var eq: Node       = ctx.get("eq", null)
+	var side: int      = ctx.get("side", 0)
+	var row: int       = ctx.get("row", 0)
+	var col: int       = ctx.get("col", 0)
+	var source: Object = ctx.get("source", null)
+	var hp_pct: float  = merged.get("hp_pct", 0.1)
+	var delay: float   = merged.get("delay", 5.0)
+	if source == null or eq == null:
+		return
+	var revive_hp: int = max(1, int(float(source.max_hp) * hp_pct))
+	eq.push(5, source, null, "revive", float(revive_hp), {
+		"side": side, "row": row, "col": col, "delay": delay
+	})
+
+func do_on_ally_death_thorn_boost(merged: Dictionary, ctx: Dictionary) -> void:
+	# 味方死亡時に自陣全員に棘スタック+1 & 死亡カウント+1
+	var bm: Node       = ctx.get("bm", null)
+	var side: int      = ctx.get("side", 0)
+	var thorn_stacks: int = merged.get("thorn_stacks", 1)
+	if bm == null:
+		return
+	for r in range(3):
+		for c in range(3):
+			var u = bm.board[side][r][c]
+			if u != null:
+				u.thorn_stacks += thorn_stacks
+				u._ally_death_count += 1
+
+func do_heal_reduction_cursed(merged: Dictionary, ctx: Dictionary) -> void:
+	# 呪い持ち敵の回復量減少（常時効果・実装は回復処理側で対応）
+	pass
+
+func do_crit_mult_boost(merged: Dictionary, ctx: Dictionary) -> void:
+	# クリティカル倍率上昇（センス÷10・常時効果・実装はクリティカル判定側で対応）
+	pass
