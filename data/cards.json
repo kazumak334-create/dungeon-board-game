@@ -6205,6 +6205,126 @@
 				"name": "死骸の王座",
 				"col": 1
 			}
+		],
+		"boss_act2_deadlock": [
+			{
+				"name": "グリムハウル",
+				"col": 0
+			},
+			{
+				"name": "ワイト",
+				"col": 1
+			},
+			{
+				"name": "カーシール",
+				"col": 1
+			},
+			{
+				"name": "バンシー",
+				"col": 2
+			},
+			{
+				"name": "グリムハウル",
+				"col": 0
+			},
+			{
+				"name": "カーシール",
+				"col": 1
+			},
+			{
+				"name": "バンシー",
+				"col": 2
+			}
+		],
+		"boss_act2_deadlock_strong": [
+			{
+				"name": "トレイトベイン",
+				"col": 0
+			},
+			{
+				"name": "ワイト",
+				"col": 1
+			},
+			{
+				"name": "カーシール",
+				"col": 1
+			},
+			{
+				"name": "リッチ",
+				"col": 2
+			},
+			{
+				"name": "ワイト",
+				"col": 0
+			},
+			{
+				"name": "バンシー",
+				"col": 2
+			},
+			{
+				"name": "屍術師",
+				"col": 2
+			}
+		],
+		"boss_act3_guardian": [
+			{
+				"name": "ウルフ",
+				"col": 0
+			},
+			{
+				"name": "Rageveil",
+				"col": 1
+			},
+			{
+				"name": "ケットシー",
+				"col": 1
+			},
+			{
+				"name": "Thornbeast",
+				"col": 1
+			},
+			{
+				"name": "ウルフ",
+				"col": 0
+			},
+			{
+				"name": "ケットシー",
+				"col": 2
+			},
+			{
+				"name": "ワイルドホーク",
+				"col": 2
+			}
+		],
+		"boss_act3_guardian_strong": [
+			{
+				"name": "Rageveil",
+				"col": 0
+			},
+			{
+				"name": "マンティコア",
+				"col": 1
+			},
+			{
+				"name": "Thornbeast",
+				"col": 1
+			},
+			{
+				"name": "ワイルドホーク",
+				"col": 2
+			},
+			{
+				"name": "Rageveil",
+				"col": 0
+			},
+			{
+				"name": "マンティコア",
+				"col": 1
+			},
+			{
+				"name": "猛獣使い",
+				"col": 2
+			}
 		]
 	},
 	"boss_exclusive_units": {
