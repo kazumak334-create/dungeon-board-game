@@ -1674,6 +1674,48 @@
 			"target": "all",
 			"texture": "",
 			"persistence": "permanent"
+		},
+		"フロントヒール": {
+			"anim": "",
+			"rarity": "rare",
+			"mana": 18,
+			"effect": "前列全員のHP30%回復",
+			"sfx": "",
+			"skills": [
+				{
+					"effect_id": "heal_pct",
+					"params": {
+						"factor": 0.3
+					},
+					"target": "front_allies",
+					"trigger": "on_play"
+				}
+			],
+			"target": "front_allies",
+			"texture": "",
+			"persistence": "permanent",
+			"en_name": "FrontHeal"
+		},
+		"シングルヒール": {
+			"anim": "",
+			"rarity": "uncommon",
+			"mana": 12,
+			"effect": "前列1体のHP50%回復",
+			"sfx": "",
+			"skills": [
+				{
+					"effect_id": "heal_pct",
+					"params": {
+						"factor": 0.5
+					},
+					"target": "front_ally",
+					"trigger": "on_play"
+				}
+			],
+			"target": "front_ally",
+			"texture": "",
+			"persistence": "permanent",
+			"en_name": "SingleHeal"
 		}
 	},
 	"status_spells": {
@@ -2533,19 +2575,18 @@
 			"skills": [
 				{
 					"trigger": "on_front_attack",
-					"target": "same_row_allies",
-					"effect_id": "heal",
+					"target": "random_ally",
+					"effect_id": "regen_apply",
 					"params": {
-						"amount": 10
+						"stacks": 1
 					}
 				},
 				{
 					"trigger": "on_support",
-					"target": "front_allies",
-					"effect_id": "heal_periodic",
+					"target": "random_ally",
+					"effect_id": "regen_apply",
 					"params": {
-						"amount": 3,
-						"interval": 1
+						"stacks": 1
 					}
 				}
 			],
@@ -3845,11 +3886,10 @@
 				},
 				{
 					"trigger": "on_support",
-					"target": "front_allies",
-					"effect_id": "heal_pct_front",
+					"target": "random_ally",
+					"effect_id": "regen_apply",
 					"params": {
-						"pct": 0.05,
-						"interval": 2.0
+						"stacks": 1
 					}
 				}
 			],
