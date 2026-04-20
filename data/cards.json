@@ -6839,20 +6839,15 @@
 			"description": "オオカミの群れを率いる古代の王",
 			"difficulty": 3,
 			"enemy_deck_id": "boss_act1_beast",
-			"enemy_deck_id_phase2_lv4": "boss_act1_beast_strong",
-			"enemy_deck_id_phase2_lv5": "boss_act1_beast_enraged",
+			"enemy_deck_id_phase2_lv3": "boss_act1_beast_strong",
 			"hp_multiplier": 1.5,
 			"atk_multiplier": 1.2,
 			"reward_gold": 200,
 			"reward_sp": 2,
 			"alert_level_buffs": {
-				"4": {
+				"2": {
 					"hp_bonus": 5,
 					"atk_bonus": 1
-				},
-				"5": {
-					"hp_bonus": 10,
-					"atk_bonus": 2
 				}
 			},
 			"texture": "",
@@ -6865,20 +6860,15 @@
 			"description": "無限に分裂し続ける巨大スライム",
 			"difficulty": 2,
 			"enemy_deck_id": "boss_act1_slime",
-			"enemy_deck_id_phase2_lv4": "boss_act1_slime_strong",
-			"enemy_deck_id_phase2_lv5": "boss_act1_slime_enraged",
+			"enemy_deck_id_phase2_lv3": "boss_act1_slime_strong",
 			"hp_multiplier": 2,
 			"atk_multiplier": 0.8,
 			"reward_gold": 200,
 			"reward_sp": 2,
 			"alert_level_buffs": {
-				"4": {
+				"2": {
 					"hp_bonus": 5,
 					"atk_bonus": 1
-				},
-				"5": {
-					"hp_bonus": 10,
-					"atk_bonus": 2
 				}
 			},
 			"texture": "",
@@ -6891,20 +6881,15 @@
 			"description": "何度倒しても蘇る不死の王",
 			"difficulty": 4,
 			"enemy_deck_id": "boss_act1_undead",
-			"enemy_deck_id_phase2_lv4": "boss_act1_undead_strong",
-			"enemy_deck_id_phase2_lv5": "boss_act1_undead_enraged",
+			"enemy_deck_id_phase2_lv3": "boss_act1_undead_strong",
 			"hp_multiplier": 1.3,
 			"atk_multiplier": 1.1,
 			"reward_gold": 220,
 			"reward_sp": 2,
 			"alert_level_buffs": {
-				"4": {
+				"2": {
 					"hp_bonus": 5,
 					"atk_bonus": 1
-				},
-				"5": {
-					"hp_bonus": 10,
-					"atk_bonus": 2
 				}
 			},
 			"texture": "",
@@ -6918,20 +6903,15 @@
 			"description": "ネットワークを守る炎の障壁",
 			"difficulty": 3,
 			"enemy_deck_id": "boss_act1_firewall",
-			"enemy_deck_id_phase2_lv4": "boss_act1_firewall_strong",
-			"enemy_deck_id_phase2_lv5": "boss_act1_firewall_enraged",
+			"enemy_deck_id_phase2_lv3": "boss_act1_firewall_strong",
 			"hp_multiplier": 1.5,
 			"atk_multiplier": 1.3,
 			"reward_gold": 200,
 			"reward_sp": 2,
 			"alert_level_buffs": {
-				"4": {
+				"2": {
 					"hp_bonus": 5,
 					"atk_bonus": 1
-				},
-				"5": {
-					"hp_bonus": 10,
-					"atk_bonus": 2
 				}
 			},
 			"texture": ""
@@ -6944,20 +6924,15 @@
 			"description": "パケットを監視する三つ首の番犬",
 			"difficulty": 2,
 			"enemy_deck_id": "boss_act1_kepalos",
-			"enemy_deck_id_phase2_lv4": "boss_act1_kepalos_strong",
-			"enemy_deck_id_phase2_lv5": "boss_act1_kepalos_enraged",
+			"enemy_deck_id_phase2_lv3": "boss_act1_kepalos_strong",
 			"hp_multiplier": 1.3,
 			"atk_multiplier": 1.5,
 			"reward_gold": 200,
 			"reward_sp": 2,
 			"alert_level_buffs": {
-				"4": {
+				"2": {
 					"hp_bonus": 5,
 					"atk_bonus": 1
-				},
-				"5": {
-					"hp_bonus": 10,
-					"atk_bonus": 2
 				}
 			},
 			"texture": ""
@@ -6970,20 +6945,15 @@
 			"description": "互いに動けなくなる死の錠前",
 			"difficulty": 4,
 			"enemy_deck_id": "boss_act2_deadlock",
-			"enemy_deck_id_phase2_lv4": "boss_act2_deadlock_strong",
-			"enemy_deck_id_phase2_lv5": "boss_act2_deadlock_enraged",
+			"enemy_deck_id_phase2_lv3": "boss_act2_deadlock_strong",
 			"hp_multiplier": 1.8,
 			"atk_multiplier": 1.2,
 			"reward_gold": 300,
 			"reward_sp": 3,
 			"alert_level_buffs": {
-				"4": {
-					"hp_bonus": 8,
-					"atk_bonus": 2
-				},
-				"5": {
-					"hp_bonus": 15,
-					"atk_bonus": 3
+				"2": {
+					"hp_bonus": 5,
+					"atk_bonus": 1
 				}
 			},
 			"texture": ""
@@ -6996,20 +6966,15 @@
 			"description": "隔離領域を守る人工生命",
 			"difficulty": 3,
 			"enemy_deck_id": "boss_act2_sandgolem",
-			"enemy_deck_id_phase2_lv4": "boss_act2_sandgolem_strong",
-			"enemy_deck_id_phase2_lv5": "boss_act2_sandgolem_enraged",
+			"enemy_deck_id_phase2_lv3": "boss_act2_sandgolem_strong",
 			"hp_multiplier": 2.0,
 			"atk_multiplier": 1.0,
 			"reward_gold": 300,
 			"reward_sp": 3,
 			"alert_level_buffs": {
-				"4": {
-					"hp_bonus": 10,
+				"2": {
+					"hp_bonus": 5,
 					"atk_bonus": 1
-				},
-				"5": {
-					"hp_bonus": 20,
-					"atk_bonus": 2
 				}
 			},
 			"texture": ""
@@ -7022,20 +6987,15 @@
 			"description": "暗号化された地下墓所の番人",
 			"difficulty": 4,
 			"enemy_deck_id": "boss_act2_cryptor",
-			"enemy_deck_id_phase2_lv4": "boss_act2_cryptor_strong",
-			"enemy_deck_id_phase2_lv5": "boss_act2_cryptor_enraged",
+			"enemy_deck_id_phase2_lv3": "boss_act2_cryptor_strong",
 			"hp_multiplier": 1.6,
 			"atk_multiplier": 1.4,
 			"reward_gold": 300,
 			"reward_sp": 3,
 			"alert_level_buffs": {
-				"4": {
-					"hp_bonus": 8,
-					"atk_bonus": 2
-				},
-				"5": {
-					"hp_bonus": 15,
-					"atk_bonus": 3
+				"2": {
+					"hp_bonus": 5,
+					"atk_bonus": 1
 				}
 			},
 			"texture": ""
@@ -7048,20 +7008,15 @@
 			"description": "リソースを人質に取る領主",
 			"difficulty": 3,
 			"enemy_deck_id": "boss_act2_manoras",
-			"enemy_deck_id_phase2_lv4": "boss_act2_manoras_strong",
-			"enemy_deck_id_phase2_lv5": "boss_act2_manoras_enraged",
+			"enemy_deck_id_phase2_lv3": "boss_act2_manoras_strong",
 			"hp_multiplier": 1.7,
 			"atk_multiplier": 1.3,
 			"reward_gold": 300,
 			"reward_sp": 3,
 			"alert_level_buffs": {
-				"4": {
-					"hp_bonus": 8,
-					"atk_bonus": 2
-				},
-				"5": {
-					"hp_bonus": 15,
-					"atk_bonus": 3
+				"2": {
+					"hp_bonus": 5,
+					"atk_bonus": 1
 				}
 			},
 			"texture": ""
@@ -7074,20 +7029,15 @@
 			"description": "存在しない虚無の存在",
 			"difficulty": 5,
 			"enemy_deck_id": "boss_act2_null",
-			"enemy_deck_id_phase2_lv4": "boss_act2_null_strong",
-			"enemy_deck_id_phase2_lv5": "boss_act2_null_enraged",
+			"enemy_deck_id_phase2_lv3": "boss_act2_null_strong",
 			"hp_multiplier": 1.5,
 			"atk_multiplier": 1.5,
 			"reward_gold": 300,
 			"reward_sp": 3,
 			"alert_level_buffs": {
-				"4": {
-					"hp_bonus": 8,
-					"atk_bonus": 2
-				},
-				"5": {
-					"hp_bonus": 15,
-					"atk_bonus": 3
+				"2": {
+					"hp_bonus": 5,
+					"atk_bonus": 1
 				}
 			},
 			"texture": ""
@@ -7100,20 +7050,15 @@
 			"description": "学習しすぎて狂ったAI",
 			"difficulty": 5,
 			"enemy_deck_id": "boss_act3_overfit",
-			"enemy_deck_id_phase2_lv4": "boss_act3_overfit_strong",
-			"enemy_deck_id_phase2_lv5": "boss_act3_overfit_enraged",
+			"enemy_deck_id_phase2_lv3": "boss_act3_overfit_strong",
 			"hp_multiplier": 2.0,
 			"atk_multiplier": 1.5,
 			"reward_gold": 400,
 			"reward_sp": 4,
 			"alert_level_buffs": {
-				"4": {
-					"hp_bonus": 10,
-					"atk_bonus": 3
-				},
-				"5": {
-					"hp_bonus": 20,
-					"atk_bonus": 5
+				"2": {
+					"hp_bonus": 5,
+					"atk_bonus": 1
 				}
 			},
 			"texture": ""
@@ -7126,20 +7071,15 @@
 			"description": "見えない脅威",
 			"difficulty": 6,
 			"enemy_deck_id": "boss_act3_rootshade",
-			"enemy_deck_id_phase2_lv4": "boss_act3_rootshade_strong",
-			"enemy_deck_id_phase2_lv5": "boss_act3_rootshade_enraged",
+			"enemy_deck_id_phase2_lv3": "boss_act3_rootshade_strong",
 			"hp_multiplier": 1.8,
 			"atk_multiplier": 1.7,
 			"reward_gold": 400,
 			"reward_sp": 4,
 			"alert_level_buffs": {
-				"4": {
-					"hp_bonus": 10,
-					"atk_bonus": 3
-				},
-				"5": {
-					"hp_bonus": 20,
-					"atk_bonus": 5
+				"2": {
+					"hp_bonus": 5,
+					"atk_bonus": 1
 				}
 			},
 			"texture": ""
@@ -7152,20 +7092,15 @@
 			"description": "学習して対抗する悪魔",
 			"difficulty": 5,
 			"enemy_deck_id": "boss_act3_adversary",
-			"enemy_deck_id_phase2_lv4": "boss_act3_adversary_strong",
-			"enemy_deck_id_phase2_lv5": "boss_act3_adversary_enraged",
+			"enemy_deck_id_phase2_lv3": "boss_act3_adversary_strong",
 			"hp_multiplier": 1.9,
 			"atk_multiplier": 1.6,
 			"reward_gold": 400,
 			"reward_sp": 4,
 			"alert_level_buffs": {
-				"4": {
-					"hp_bonus": 10,
-					"atk_bonus": 3
-				},
-				"5": {
-					"hp_bonus": 20,
-					"atk_bonus": 5
+				"2": {
+					"hp_bonus": 5,
+					"atk_bonus": 1
 				}
 			},
 			"texture": ""
@@ -7178,20 +7113,15 @@
 			"description": "漂うデータの幻影",
 			"difficulty": 4,
 			"enemy_deck_id": "boss_act3_drifter",
-			"enemy_deck_id_phase2_lv4": "boss_act3_drifter_strong",
-			"enemy_deck_id_phase2_lv5": "boss_act3_drifter_enraged",
+			"enemy_deck_id_phase2_lv3": "boss_act3_drifter_strong",
 			"hp_multiplier": 1.7,
 			"atk_multiplier": 1.5,
 			"reward_gold": 400,
 			"reward_sp": 4,
 			"alert_level_buffs": {
-				"4": {
-					"hp_bonus": 10,
-					"atk_bonus": 3
-				},
-				"5": {
-					"hp_bonus": 20,
-					"atk_bonus": 5
+				"2": {
+					"hp_bonus": 5,
+					"atk_bonus": 1
 				}
 			},
 			"texture": ""
@@ -7204,20 +7134,15 @@
 			"description": "最後の守護者",
 			"difficulty": 6,
 			"enemy_deck_id": "boss_act3_guardian",
-			"enemy_deck_id_phase2_lv4": "boss_act3_guardian_strong",
-			"enemy_deck_id_phase2_lv5": "boss_act3_guardian_enraged",
+			"enemy_deck_id_phase2_lv3": "boss_act3_guardian_strong",
 			"hp_multiplier": 2.2,
 			"atk_multiplier": 1.4,
 			"reward_gold": 400,
 			"reward_sp": 4,
 			"alert_level_buffs": {
-				"4": {
-					"hp_bonus": 12,
-					"atk_bonus": 3
-				},
-				"5": {
-					"hp_bonus": 25,
-					"atk_bonus": 5
+				"2": {
+					"hp_bonus": 5,
+					"atk_bonus": 1
 				}
 			},
 			"texture": ""

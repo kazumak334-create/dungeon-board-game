@@ -96,11 +96,9 @@ func _build_boss_deck() -> void:
 	# フェーズと警戒レベルに応じたデッキIDを選択
 	var deck_id: String = ""
 	if GameSession.boss_phase == 2:
-		# 第2戦: 警戒レベルに応じて強化版/超強化版
-		if GameSession.alert_level >= 5:
-			deck_id = boss.get("enemy_deck_id_phase2_lv5", "")
-		elif GameSession.alert_level >= 4:
-			deck_id = boss.get("enemy_deck_id_phase2_lv4", "")
+		# 第2戦: 警戒レベルに応じて強化版
+		if GameSession.alert_level >= 3:
+			deck_id = boss.get("enemy_deck_id_phase2_lv3", "")
 
 	# デッキIDが空の場合は第1戦用デッキ
 	if deck_id == "":
