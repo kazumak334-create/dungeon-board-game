@@ -477,50 +477,6 @@
 			}
 		]
 	},
-	"elite_pools": {
-		"act1": [
-			{
-				"name": "グリムハウル",
-				"col": 1
-			},
-			{
-				"name": "ウルフ",
-				"col": 0
-			},
-			{
-				"name": "Venpool",
-				"col": 2
-			}
-		],
-		"act2": [
-			{
-				"name": "Rageveil",
-				"col": 1
-			},
-			{
-				"name": "リッチ",
-				"col": 0
-			},
-			{
-				"name": "バンシー",
-				"col": 2
-			}
-		],
-		"act3": [
-			{
-				"name": "リッチ",
-				"col": 1
-			},
-			{
-				"name": "トレイトベイン",
-				"col": 0
-			},
-			{
-				"name": "Rageveil",
-				"col": 2
-			}
-		]
-	},
 	"equipment": {
 		"古びた護符": {
 			"anim": "",
