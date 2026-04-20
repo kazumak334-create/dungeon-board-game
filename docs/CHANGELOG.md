@@ -1,5 +1,52 @@
 
 # CHANGELOG
+## 2026-04-21
+
+### Phase 4 #6「敵デッキパターン」初期MVP実装完了
+
+**実装内容**
+
+**1. 警戒レベルシステム要件定義更新（3ドキュメント）**
+- alert_level_combat_impact.md: 警戒MAX=3、通常戦0-2、ボス1-3に変更
+- alert_level_requirements.md: エリート廃止、3段階デッキ構成に変更
+- enemy_deck_system_requirements.md: 新規作成、ボスデッキ構成確定
+
+**2. エリートノード廃止**
+- elite_pools削除（44行削除）
+- EnemyPlacementHelper.gdのエリート混入ロジック不要化
+
+**3. ボス戦alert判定を新仕様に対応**
+- EnemyAI.gd: alert >= 4/5 → alert >= 3に変更
+- 全15ボスデータ: phase2_lv4/lv5 → phase2_lv3に統一
+- alert_level_buffs: "4"/"5" → "2"に変更
+- alert 1: バフなし、alert 2: 小バフ（HP+5/ATK+1）、alert 3: 強化デッキ
+
+**4. ボス9体に絞り込み**
+- 15ボス → 9ボスに削減（種族バランス考慮）
+- 削除: boss_firewall, boss_kepalos, boss_cryptor, boss_null, boss_overfit, boss_adversary
+- 残存: 各Act × beast/slime/undead（+mixed）
+
+**5. Act2/3ボスデッキ実装**
+- boss_act2_deadlock（ベース + 強化）
+- boss_act3_guardian（ベース + 強化）
+- 初期MVP: 3ボス×2段階=6デッキで全Act通しプレイ可能
+
+**検証結果**
+- ✅ 構文チェックパス
+- ✅ テスト全件成功（4655件）
+- ✅ 通しプレイ可能な状態
+
+**コミット**
+- 1615778: 警戒レベル要件定義更新
+- c535680: 敵デッキシステム要件定義書作成 + elite_pools削除
+- 36a152b: ボス戦alert判定を新仕様に対応
+- 1251a30: 未使用ボス6体削除
+- ddef4df: Act2/3初期MVPボスデッキ実装
+
+**影響範囲**
+- Phase 4 #6完了により通しプレイテスト可能
+- Phase 4 #11バランス調整の前提条件整備完了
+
 ## 2026-04-20
 
 ### 64枚新規カード用effect_id 30個実装（Phase 4基盤）
