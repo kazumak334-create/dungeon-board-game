@@ -130,7 +130,7 @@ Phase 7  ローンチ準備             ░░░░░░░░░░░░░�
 | 0a | **WaveManager実装** | **最高** | ✅ | ✅ | ✅ | 完了（2026-04-19）: WaveManager.gd（275行）、Wave進行バーUI、DeckPrepポップアップ化、画面遷移フロー変更（InitialCardPick→BATTLE直行）。小Wave管理・BW休憩遷移・Wave間状態管理実装完了 |
 | 0b | **RestScreen実装** | **最高** | ✅ | ✅ | ✅ | Phase 1-5完了（2026-04-18）: RestScreenManager.gd（480行）、RestScreenShop.gd（220行）、RestScreenRevive.gd（143行）。ショップ購入・ユニット復帰・右パネル詳細表示・デッキバリデーション・遷移統合。TaskList #20対応 |
 | 0c | **SpellSlotSystem v2（キュー式）** | **最高** | ✅ | ✅ | ✅ | 3枠キュー・先頭から順次処理・無限待機・捨てる操作。実装完了（2026-04-18、7a96ab6）: discard_slot()メソッド追加、GameUI連携 |
-| 0d | **UnitReviveManager実装** | 高 | — | 保留 | 未着手 | 死亡ユニット記録・復帰コスト管理。論点2確定後に実装 |
+| 0d | **UnitReviveManager実装** | 高 | ✅ | ✅ | ✅ | 完了（2026-04-18）: RestScreenRevive.gd（143行）、GameSession.wave_dead_units実装。復帰コスト調整必要（確定値と乖離: Common 10G→15G, Rare 80G→60G等） |
 | 0e | **素材ドロップ判定ロジック** | 中 | — | 保留 | 未着手 | 撃破時のドロップテーブル参照。#13aと連動 |
 | 1 | 上位ユニット★4（約10体） | 高 | ✅ | 未着手 | 未着手 | フォートレススライム/ゴブリンロード等 |
 | 2 | 最終形態★5（約6体） | 高 | ✅ | 未着手 | 未着手 | スライム神/獣王ガルガンタ/ブラッドキング等 |
