@@ -579,9 +579,8 @@ func _process(delta: float) -> void:
 		deck_manager.process_deck(effective_delta, board_manager)
 		enemy_ai.process_ai(effective_delta, board_manager)
 		board_manager.process_combat(effective_delta, base_hp)
-		# v2設計: 呪文3スロット並列監視
-		if spell_slot_system != null:
-			spell_slot_system.process_slots(effective_delta)
+		# Phase A: 呪文手動発動のため自動発動呼び出し削除
+		# spell_slot_system.process_slots() は削除
 		if not dev_mode:
 			_check_game_over()
 		# 開発者モード: デッキ表示を更新（サイズ変化時のみ）

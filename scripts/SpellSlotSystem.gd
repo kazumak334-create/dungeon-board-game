@@ -98,22 +98,9 @@ func clear_slot(index: int) -> void:
 	slots[index]["enabled"] = false
 
 func process_slots(delta: float) -> void:
-	# v2設計: 3スロット並列監視、条件+マナが揃ったら発動
-	for i in range(3):
-		var slot = slots[i]
-		if not slot["enabled"] or slot["spell"] == null:
-			continue
-
-		# マナチェック
-		if deck_manager.mana < slot["mana_cost"]:
-			continue
-
-		# 条件チェック
-		if not _check_condition(slot["condition"]):
-			continue
-
-		# 発動
-		_trigger_spell(i, slot)
+	# Phase A: 自動発動を廃止。手動発動（cast_spell）のみ。
+	# この関数は呼び出し元から削除される。
+	pass
 
 func _check_condition(condition: String) -> bool:
 	# v2設計: 発動条件チェック
@@ -257,6 +244,40 @@ func _check_empty_ratio(area: String, threshold: float) -> bool:
 
 	var empty_ratio = (float(empty_cells) / float(total_cells)) * 100.0
 	return empty_ratio > threshold
+
+func can_cast(index: int) -> bool:
+	"""発動可否判定（UI表示・発動前チェック兼用）"""
+	if index < 0 or index >= 3:
+		return false
+	var slot = slots[index]
+	if not slot["enabled"] or slot["spell"] == null:
+		return false
+	if deck_manager == null or deck_manager.mana < slot["mana_cost"]:
+		return false
+	# 条件チェック（既存 _check_condition を流用）
+	if not _check_condition(slot["condition"]):
+		return false
+	return true
+
+func get_cast_block_reason(index: int) -> String:
+	"""発動不可理由取得（エラー表示用）"""
+	if index < 0 or index >= 3:
+		return "empty"
+	var slot = slots[index]
+	if not slot["enabled"] or slot["spell"] == null:
+		return "empty"
+	if deck_manager == null or deck_manager.mana < slot["mana_cost"]:
+		return "mana"
+	if not _check_condition(slot["condition"]):
+		return "condition"
+	return ""
+
+func cast_spell(index: int) -> bool:
+	"""手動発動API"""
+	if not can_cast(index):
+		return false
+	_trigger_spell(index, slots[index])
+	return true
 
 func _trigger_spell(index: int, slot: Dictionary) -> void:
 	var spell = slot["spell"]

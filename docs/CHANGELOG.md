@@ -49,6 +49,23 @@
 
 ## 2026-04-20
 
+### 呪文手動発動システム実装（Phase A）
+
+**実装内容**
+- SpellSlotSystem.gd: 自動発動削除、手動発動API追加（can_cast/cast_spell/get_cast_block_reason）
+- GameUI.gd: 4状態表示（empty/unavailable/ready/casting）、8コンポーネント構成、パルスアニメーション、エラーフィードバック実装
+- Main.gd: process_slots()自動呼び出し削除
+
+**検証結果**
+- ✅ 構文チェックパス
+- ✅ UI継承チェックパス
+- ✅ 要件定義書との乖離なし
+
+**備考**
+- 要件定義書: spell_manual_cast_ui_design.md（Designer）、spell_manual_cast_requirements.md（Architect）
+- Phase B（ログ収集）、Phase C（プロトコル）は未実装
+- 左クリック発動、右クリック破棄に対応
+
 ### 64枚新規カード用effect_id 30個実装（Phase 4基盤）
 
 **実装内容**
