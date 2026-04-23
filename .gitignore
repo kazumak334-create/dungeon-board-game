@@ -22,3 +22,7 @@ config/balance.json
 .DS_Store
 Thumbs.db
 tools/sprite_gen/.env
+
+# 調査・運用ログ
+godot_warnings.log
+.claude/hooks/*.log
