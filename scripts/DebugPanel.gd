@@ -2,6 +2,10 @@
 # AutoLoad: F12トグルで表示・非表示を切り替えるデバッグパネル
 extends CanvasLayer
 
+const DebugParamTabScript = preload("res://scripts/DebugParamTab.gd")
+const DebugCheatTabScript = preload("res://scripts/DebugCheatTab.gd")
+const DebugSystemTabScript = preload("res://scripts/DebugSystemTab.gd")
+
 # UI要素
 var _panel: Panel
 var _tab_container: TabContainer
