@@ -94,11 +94,16 @@ var _hint_overlays: Array = []
 # 呪文・手持ちカード専用クラス
 var _spells = null
 
+# 擬似遠近法パラメータ（DebugParamTabスライダーで調整可能）
+var perspective_depth_offset: float = 18.0   # 後列ほど上に上げるpx量
+var perspective_height_scale: float = 0.12   # 後列ほどセルを縮小する率(0=なし)
+
 func build_placement_tab(_tab_container_arg: Control, PL) -> void:
 	tab_container = _tab_container_arg
 	_PL = PL
 	_spells = SpellsClass.new()
 	_spells.setup(self)
+	add_to_group("deck_prep_board")
 
 	var enemy_x = BOARD_X + ROW_LABEL_W + 3 * (CELL_W + CELL_GAP) + CENTER_GAP
 	# 自陣・敵陣ラベル完全削除 → 列ラベルのみ
@@ -153,11 +158,13 @@ func _build_board_cells(enemy_x: float) -> void:
 		tab_container.add_child(rl_ally)
 
 		for ci in range(3):
+			var depth_y_offset: float = (2 - ci) * perspective_depth_offset
+			var cell_h_adjusted: float = CELL_H * (1.0 - float(2 - ci) * perspective_height_scale)
 			var bx: float = BOARD_X + ROW_LABEL_W + ci * (CELL_W + CELL_GAP)
-			var by = CELLS_START_Y + ri * (CELL_H + CELL_GAP)
+			var by = CELLS_START_Y + ri * (CELL_H + CELL_GAP) - depth_y_offset
 			var cell = Panel.new()
 			cell.position = Vector2(bx, by)
-			cell.size = Vector2(CELL_W, CELL_H)
+			cell.size = Vector2(CELL_W, cell_h_adjusted)
 			var cell_style = StyleBoxFlat.new()
 			cell_style.bg_color = Color(0.1, 0.12, 0.16)
 			cell_style.border_color = Color(0.2, 0.3, 0.25)
@@ -166,7 +173,7 @@ func _build_board_cells(enemy_x: float) -> void:
 			tab_container.add_child(cell)
 			var vbox = VBoxContainer.new()
 			vbox.position = Vector2(2, 2)
-			vbox.size = Vector2(CELL_W - 4, CELL_H - 4)
+			vbox.size = Vector2(CELL_W - 4, cell_h_adjusted - 4)
 			vbox.add_theme_constant_override("separation", 2)
 			vbox.mouse_filter = Control.MOUSE_FILTER_IGNORE
 			cell.add_child(vbox)
@@ -175,6 +182,26 @@ func _build_board_cells(enemy_x: float) -> void:
 
 			# 項目1: 役割アイコン追加（列ごと）
 			_add_role_icon(cell, ci)
+
+# DebugParamTabスライダーから呼ばれる遠近法ライブ更新
+func apply_perspective(depth_offset: float, height_scale: float) -> void:
+	perspective_depth_offset = depth_offset
+	perspective_height_scale = height_scale
+	for ri in range(3):
+		for ci in range(3):
+			if _cell_rects.is_empty() or _cell_rects[0][ri][ci] == null:
+				continue
+			var cell: Panel = _cell_rects[0][ri][ci]
+			var depth_y: float = (2 - ci) * perspective_depth_offset
+			var h: float = CELL_H * (1.0 - float(2 - ci) * perspective_height_scale)
+			var bx: float = BOARD_X + ROW_LABEL_W + ci * (CELL_W + CELL_GAP)
+			var by: float = CELLS_START_Y + ri * (CELL_H + CELL_GAP) - depth_y
+			cell.position = Vector2(bx, by)
+			cell.size = Vector2(CELL_W, h)
+			if cell.get_child_count() > 0:
+				var vbox = cell.get_child(0)
+				if vbox is VBoxContainer:
+					vbox.size = Vector2(CELL_W - 4, h - 4)
 
 # 項目1: セル内に役割アイコンを描画（前列=攻撃、中列=両用、後列=盾）
 func _add_role_icon(cell: Panel, col: int) -> void:

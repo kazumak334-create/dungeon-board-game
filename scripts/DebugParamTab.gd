@@ -44,6 +44,11 @@ func _build_ui() -> void:
 	_add_slider(vbox, "alert_system", "armor_damage_reduction", "アーマー軽減量", 0, 10, 1)
 	_add_slider(vbox, "alert_system", "thorn_damage", "棘ダメージ", 0, 10, 1)
 	
+	# デッキ準備遠近法
+	_add_section_label(vbox, "デッキ準備: 遠近法")
+	_add_perspective_slider(vbox, "perspective_depth_offset", "奥行きオフセット(px)", 0.0, 60.0, 1.0, 18.0)
+	_add_perspective_slider(vbox, "perspective_height_scale", "高さ縮小率", 0.0, 0.4, 0.01, 0.12)
+
 	# リセットボタン
 	var reset_button = Button.new()
 	reset_button.text = "リセット（全デフォルト）"
@@ -94,6 +99,52 @@ func _add_slider(parent: VBoxContainer, section: String, key: String, label_text
 	var dict_key = section + "." + key
 	_sliders[dict_key] = slider
 	_labels[dict_key] = value_label
+
+func _add_perspective_slider(parent: VBoxContainer, key: String, label_text: String, min_val: float, max_val: float, step: float, default_val: float) -> void:
+	var hbox = HBoxContainer.new()
+	hbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	parent.add_child(hbox)
+
+	var label = Label.new()
+	label.text = label_text
+	label.custom_minimum_size = Vector2(120, 0)
+	hbox.add_child(label)
+
+	var slider = HSlider.new()
+	slider.min_value = min_val
+	slider.max_value = max_val
+	slider.step = step
+	slider.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	slider.custom_minimum_size = Vector2(150, 0)
+	slider.value = default_val
+	hbox.add_child(slider)
+
+	var value_label = Label.new()
+	value_label.custom_minimum_size = Vector2(60, 0)
+	value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	value_label.text = str(default_val)
+	hbox.add_child(value_label)
+
+	var p_key = key
+	slider.value_changed.connect(func(value: float):
+		value_label.text = str(snappedf(value, step))
+		_apply_perspective_to_board(p_key, value)
+	)
+
+func _apply_perspective_to_board(changed_key: String, value: float) -> void:
+	if get_tree() == null:
+		return
+	var boards = get_tree().get_nodes_in_group("deck_prep_board")
+	for board in boards:
+		if not board.has_method("apply_perspective"):
+			continue
+		var depth = board.perspective_depth_offset
+		var scale_val = board.perspective_height_scale
+		if changed_key == "perspective_depth_offset":
+			depth = value
+		elif changed_key == "perspective_height_scale":
+			scale_val = value
+		board.apply_perspective(depth, scale_val)
 
 func _get_config_value(section: String, key: String) -> float:
 	# ドロップテーブルは階層が深いので特別処理
