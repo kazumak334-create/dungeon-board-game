@@ -1,0 +1,82 @@
+# SSOT 正式用語リスト
+# 作成日: 2026-04-23
+# 用途: Architect / Implementer / Checker が参照する用語SSOT
+# フォーマット: 正式用語 | 意味 | 型/単位 | 出典
+# 出典は主に: CLAUDE.md / docs/design/glossary.md / docs/design/terminology_inconsistencies.md / data/cards.json
+
+# ============================================================
+# カード・データスキーマ（cards.json フィールド）
+# ============================================================
+hp | 体力 | int/HP | CLAUDE.md, cards.json, UnitData.gd
+atk | 攻撃力 | int/ダメージ | CLAUDE.md, cards.json, UnitData.gd
+spd | 攻撃速度 | float/(1/秒) | CLAUDE.md, cards.json, UnitData.gd（攻撃間隔=1/spd）
+mana | マナ生成基準値 | int | CLAUDE.md, cards.json
+race | 種族 | string（スライム｜獣｜アンデッド）| CLAUDE.md, cards.json
+col | 初期配置列 | int（0=前,1=中,2=後）| CLAUDE.md, cards.json
+range | 攻撃範囲 | string（1行｜2行｜3行）| CLAUDE.md, cards.json
+
+# ============================================================
+# 盤面構造（glossary.md）
+# ============================================================
+前列 | 相手に最も近い列 | - | glossary.md
+中列 | 中央の列 | - | glossary.md
+後列 | 相手から最も遠い列 | - | glossary.md
+上行 | 盤面の上の行 | - | glossary.md
+中行 | 盤面の中央の行 | - | glossary.md
+下行 | 盤面の下の行 | - | glossary.md
+盤面 | 自・敵含む6×3全体 | - | glossary.md
+自 | 自陣営の枕詞 | - | glossary.md
+敵 | 敵陣営の枕詞 | - | glossary.md
+周辺 | 周囲8マス（端は存在マスのみ）| - | glossary.md
+前マス | 自分より前列側の同行の1マス | - | glossary.md
+後マス | 自分より後列側の同行の1マス | - | glossary.md
+
+# ============================================================
+# カード・ユニット（glossary.md）
+# ============================================================
+ユニットカード | デッキ段階のカード | - | glossary.md
+ユニット | 盤面に配置された状態のもの | - | glossary.md
+デッキ | 呪文デッキのみを指す | - | glossary.md
+
+# ============================================================
+# ゲームシステム（glossary.md）
+# ============================================================
+配置 | ユニットを盤面の特定マスに置くこと | - | glossary.md
+初期配置 | バトル開始時の9マス配置 | - | glossary.md
+撃破 | ユニットのHPが0になること | - | glossary.md
+波及 | 異常状態が別のユニットに広がること | - | glossary.md
+蓄積 | スタックと同義 | - | glossary.md
+付与 | 一時的・永続どちらも含む | - | glossary.md
+トリガー | 効果の発動条件 | - | glossary.md
+発動 | 効果が実行される瞬間 | - | glossary.md
+
+# ============================================================
+# トリガー（実装名・推奨形式のみ）
+# ============================================================
+on_attack | 攻撃時 | - | glossary.md
+on_front_attack | 前列攻撃時（前列配置時のみ発動）| - | glossary.md
+on_hit | 命中時（配置列不問）| - | glossary.md
+on_damaged | 被攻撃時 | - | glossary.md
+on_summon | 召喚時（初期配置含む・復活除く）| - | glossary.md
+on_death | 死亡時 | - | glossary.md
+on_ally_death | 味方死亡時 | - | glossary.md
+on_synthesis | 合成時 | - | glossary.md
+on_play | 呪文発動時 | - | glossary.md
+on_support | サポート発動時（SPD依存）| - | glossary.md
+battle_start | バトル開始時（1回のみ）| - | glossary.md
+always | 常時 | - | glossary.md
+timer | 時間経過 | - | glossary.md
+
+# ============================================================
+# カード効果の種類（glossary.md）
+# ============================================================
+前列能力 | 前列配置時のみ有効・on_front_attackで発動 | - | glossary.md
+サポート効果 | 中列・後列配置時のSPD依存発動・on_supportで発動 | - | glossary.md
+特性 | 常時発動パッシブ・配置列に関わらず有効・alwaysで発動 | - | glossary.md
+
+# ============================================================
+# 呪文システム（glossary.md）
+# ============================================================
+キュー3枠式 | 呪文を3枠のキューに並べる方式 | - | glossary.md
+捨て札 | 通常呪文の捨て時の行き先 | - | glossary.md
+消滅型 | 捨てたら消える呪文特性 | - | glossary.md

@@ -1,6 +1,8 @@
 {
   "permissions": {
     "allow": [
+      "Write",
+      "Edit",
       "Bash(git:*)",
       "Read(//c/Users/kazum/.claude/**)",
       "Bash(echo \"---EXIT_CODE:$?---\")",
@@ -168,6 +170,19 @@
       "Bash(awk '/^\\\\s+\"[a-z_]+\": \\\\{$/ {print NR\": \"$0}' data/cards.json)",
       "Bash(awk 'NR>=601 && NR<=800 && /^\\\\s+},?$/ {print NR\": \"$0}' data/cards.json)",
       "Bash(awk *)"
+    ]
+  },
+  "hooks": {
+    "SubagentStop": [
+      {
+        "matcher": "implementer",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/implementer-post-check.sh\""
+          }
+        ]
+      }
     ]
   },
   "enableAllProjectMcpServers": true,
