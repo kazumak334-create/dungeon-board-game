@@ -606,6 +606,7 @@ func start_drag_group(idx: int, group: Array, source_node: Control, mouse_pos: V
 
 	_drag_node = Control.new()
 	_drag_node.custom_minimum_size = Vector2(DRAG_CARD_W, DRAG_CARD_H)
+	_drag_node.size = Vector2(DRAG_CARD_W, DRAG_CARD_H)
 	_drag_node.z_index = 100
 	_drag_node.modulate = Color(1, 1, 1, 0.7)  # 半透明化
 
