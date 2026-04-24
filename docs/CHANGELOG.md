@@ -1,5 +1,17 @@
 
 # CHANGELOG
+## 2026-04-24
+
+### ファイル構成整理フェーズB（scripts/debug/分離）
+
+**実装内容**
+
+- デバッグ・テスト用18ファイル（+.uid 18）を `scripts/` → `scripts/debug/` へ移動
+- `DebugPanel.gd`（autoload）は `scripts/` 直下に維持
+- 影響ファイル参照パス更新：`DebugPanel.gd` / `Main.gd` / `DevUI.gd` / `RunTests.gd` / `TestRunner.gd`（11箇所）/ `tests/` 3ファイル / `scenes/` 2ファイル / `settings.local.json` / `debug_ui_requirements.md`
+- `.git/hooks/pre-commit` のテスト実行パスも更新
+- テスト結果：4652 passed / 0 failed
+
 ## 2026-04-21
 
 ### Phase 4 #6「敵デッキパターン」初期MVP実装完了
