@@ -104,7 +104,8 @@ func build_placement_tab(_tab_container_arg: Control, PL) -> void:
 	_PL = PL
 	_spells = SpellsClass.new()
 	_spells.setup(self)
-	add_to_group("deck_prep_board")
+	perspective_depth_offset = ConfigLoader.get_value("deckprep_view", "perspective_depth_offset", 18.0)
+	perspective_height_scale = ConfigLoader.get_value("deckprep_view", "perspective_height_scale", 0.12)
 
 	var enemy_x = BOARD_X + ROW_LABEL_W + 3 * (CELL_W + CELL_GAP) + CENTER_GAP
 	# 自陣・敵陣ラベル完全削除 → 列ラベルのみ

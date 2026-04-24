@@ -132,19 +132,7 @@ func _add_perspective_slider(parent: VBoxContainer, key: String, label_text: Str
 	)
 
 func _apply_perspective_to_board(changed_key: String, value: float) -> void:
-	if get_tree() == null:
-		return
-	var boards = get_tree().get_nodes_in_group("deck_prep_board")
-	for board in boards:
-		if not board.has_method("apply_perspective"):
-			continue
-		var depth = board.perspective_depth_offset
-		var scale_val = board.perspective_height_scale
-		if changed_key == "perspective_depth_offset":
-			depth = value
-		elif changed_key == "perspective_height_scale":
-			scale_val = value
-		board.apply_perspective(depth, scale_val)
+	ConfigLoader.set_runtime_value("deckprep_view", changed_key, value)
 
 func _get_config_value(section: String, key: String) -> float:
 	# ドロップテーブルは階層が深いので特別処理
