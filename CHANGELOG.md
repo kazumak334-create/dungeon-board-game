@@ -2,6 +2,24 @@
 
 ## [Unreleased]
 
+### 2026-04-24 Claude Design → DesignerAgent 自動パイプライン実装
+
+**新規ファイル:**
+- `docs/design/handoff/README.md`: bundle受け取りフォルダの利用説明
+- `docs/design/handoff/.gitkeep`: フォルダgit保持用
+- `docs/design/handoff/processed/.gitkeep`: アーカイブフォルダgit保持用
+- `.claude/hooks/claude_design_watcher.sh`: bundle検知 → DesignerAgent起動スクリプト
+- `.claude/hooks/lib/handoff_adapter.sh`: bundle形式抽象化レイヤー（JSON/MD対応、API移行ポイント実装）
+
+**変更ファイル:**
+- `.claude/settings.local.json`: hooks セクション追加（UserPromptSubmit / Stop）
+- `.gitignore`: `docs/design/handoff/.errors.log` と `docs/design/handoff/processed/` を除外
+
+**設計:**
+- `.bundle.json` または `.bundle.md` をドロップすると次のプロンプト送信時に自動処理
+- jq未導入時はbundle全体をフォールバック転記
+- API webhook化時の差し替えポイント2箇所をコメントで明記（watcher.sh + adapter.sh）
+
 ### 2026-04-07 Phase3基盤実装（GameSessionマップフィールド+bossesデータ+MapGenerator+Result遷移変更）
 
 **変更ファイル:**

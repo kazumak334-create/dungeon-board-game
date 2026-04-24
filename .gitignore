@@ -22,3 +22,7 @@ config/balance.json
 .DS_Store
 Thumbs.db
 tools/sprite_gen/.env
+
+# Claude Design pipeline
+docs/design/handoff/.errors.log
+docs/design/handoff/processed/
