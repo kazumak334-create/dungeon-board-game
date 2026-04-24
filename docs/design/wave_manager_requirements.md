@@ -436,7 +436,7 @@ Wave開始時のUI表示で以下が3秒で伝わること：
 7. 既存テスト（TestBattleConfig/TestSession）への影響確認
 
 ### 8.6 構文チェック必須
-各ファイル編集後に`bash check_syntax.sh`を実行。
+各ファイル編集後に`bash tools/ci/tools/ci/check_syntax.sh`を実行。
 
 ---
 

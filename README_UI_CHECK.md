@@ -7,13 +7,13 @@
 
 ### 方法1: 構文チェックと同時実行（推奨）
 ```bash
-bash check_syntax.sh
+bash tools/ci/check_syntax.sh
 ```
 構文チェック後に自動的にUI継承チェックが実行されます。
 
 ### 方法2: UI継承チェックのみ実行
 ```bash
-bash check_ui_inheritance.sh
+bash tools/ci/check_ui_inheritance.sh
 ```
 
 ## 検出される問題
@@ -85,6 +85,6 @@ FAILED: RefCountedを継承しているのにUI操作を行っているファイ
 
 ## 関連ファイル
 
-- `check_ui_inheritance.sh` - チェックスクリプト本体
-- `check_syntax.sh` - 構文チェック（UI継承チェックを含む）
+- `tools/ci/check_ui_inheritance.sh` - チェックスクリプト本体
+- `tools/ci/check_syntax.sh` - 構文チェック（UI継承チェックを含む）
 - `docs/dev/ui_inheritance_check.md` - 詳細ドキュメント

@@ -301,7 +301,7 @@ func _on_rest_screen_closed() -> void:
 3. `validate_deck()` + `_show_validation_error()` を実装
 4. `on_next_button_clicked()` / `on_skip_button_clicked()` を完成形へ置換
 5. `_transition_to_next_wave()` 実装、Main.gd側 `_on_rest_screen_closed()` を別タスクでTODO明記
-6. 構文チェック: `bash check_syntax.sh`
+6. 構文チェック: `bash tools/ci/tools/ci/check_syntax.sh`
 7. Checkerへ引き継ぎ
 
 ---
@@ -314,7 +314,7 @@ func _on_rest_screen_closed() -> void:
 - [ ] デッキ未完成時のエラー表示動作
 - [ ] 「次へ進む」「スキップ」でRestScreen閉鎖
 - [ ] ファイル行数330行以下
-- [ ] `check_syntax.sh` 通過
+- [ ] `tools/ci/tools/ci/check_syntax.sh` 通過
 - [ ] CEO承認
 
 ---

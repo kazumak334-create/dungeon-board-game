@@ -310,4 +310,4 @@ func _on_confirm_pressed() -> void:
 | 10 | 確定ボタン: 押下でマップ画面に遷移 | 目視 |
 | 11 | GameSession保存: 遷移後にGameSession.selected_deckが9エントリ（ユニット6+呪文3） | print確認 |
 | 12 | アニメーション中操作: Tween中にクリックしても反応しない | 連打テスト |
-| 13 | 構文チェック: `bash check_syntax.sh` でエラー0件 | コマンド実行 |
+| 13 | 構文チェック: `bash tools/ci/tools/ci/check_syntax.sh` でエラー0件 | コマンド実行 |

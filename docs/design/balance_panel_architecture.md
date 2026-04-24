@@ -197,7 +197,7 @@ _board.on_cards_populated = func():
 
 ### 5-3. テスト観点
 
-- 構文チェック: `bash check_syntax.sh` で確認
+- 構文チェック: `bash tools/ci/tools/ci/check_syntax.sh` で確認
 - 視覚確認: ユーザーによるスクリーンショット確認（CLAUDE.md準拠）
 
 ---

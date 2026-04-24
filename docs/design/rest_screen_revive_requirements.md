@@ -228,7 +228,7 @@ HP=0ユニットは `wave_dead_units` 側にのみ存在し selected_deck から
 - [ ] calculate_revive_cost が rarity_price × 0.3 で算出
 - [ ] revive_unit が gold減算 + selected_deck追加 + wave_dead_units削除を正しく実行
 - [ ] RestScreenManager との連携（シグナル接続・cleanup）が機能
-- [ ] check_syntax.sh でエラー0件
+- [ ] tools/ci/check_syntax.sh でエラー0件
 - [ ] CEO承認済み
 
 ## 7. 参照ファイル

@@ -74,7 +74,7 @@ Step 2: scripts/DeckPrep.gd の色定数を UIColors 参照に変更
   ↓ (Step 1に依存)
 Step 3: scripts/Title.gd リニューアル
   ↓ (Step 1に依存)
-Step 4: 構文チェック (bash check_syntax.sh)
+Step 4: 構文チェック (bash tools/ci/tools/ci/check_syntax.sh)
 ```
 
 ### 4.2 Step 1: UIColors.gd 新規作成
@@ -224,7 +224,7 @@ _build_ui() の後:
 ## 8. テスト項目（動作確認チェックリスト）
 
 ### 構文チェック
-- [ ] `bash check_syntax.sh` がエラー0件
+- [ ] `bash tools/ci/tools/ci/check_syntax.sh` がエラー0件
 
 ### 画面表示
 - [ ] 背景がCOLOR_BGで表示される（画像なしフォールバック）

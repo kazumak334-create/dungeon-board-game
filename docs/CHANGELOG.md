@@ -2,6 +2,14 @@
 # CHANGELOG
 ## 2026-04-24
 
+### ファイル構成整理フェーズC（check_*.sh → tools/ci/ 集約）
+
+**実装内容**
+
+- `check_syntax.sh` / `check_gameplay.sh` / `check_godot_health.sh` / `check_runtime_errors.sh` / `check_ui_inheritance.sh` を `tools/ci/` へ移動
+- `tools/ci/check_syntax.sh` の PROJECT_DIR をルートを正しく指すよう修正
+- 参照更新：CLAUDE.md / .claude/agents/checker.md / README_UI_CHECK.md / docs/design/ 配下11件 / docs/meta/ 配下2件 / docs/dev/ui_inheritance_check.md
+
 ### ファイル構成整理フェーズD（docs/sprints/ → docs/archive/ 統合）
 
 **実装内容**

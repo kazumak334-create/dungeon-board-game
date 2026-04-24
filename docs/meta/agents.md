@@ -129,7 +129,7 @@ GDScriptによる実装
 
 ### やること
 - 指示された内容のみ実装する
-- 1ファイル編集ごとにcheck_syntax.sh実行
+- 1ファイル編集ごとにtools/ci/check_syntax.sh実行
 - 実装完了後は必ずCheckerに同じプロンプトを渡す
 
 ### やらないこと
@@ -142,7 +142,7 @@ GDScriptによる実装
 - テスト全パス
 - ハードコードなし
 - GAME_DESIGN.mdと整合している
-- 構文エラーゼロ（check_syntax.sh）
+- 構文エラーゼロ（tools/ci/check_syntax.sh）
 - Checkerに引き継ぎ完了
 
 ### 参照ファイル
@@ -162,7 +162,7 @@ model: claude-sonnet-4-5
 品質検証
 
 ### やること
-- 構文チェック（check_syntax.sh実行必須）
+- 構文チェック（tools/ci/check_syntax.sh実行必須）
 - ハードコード検出
 - テスト確認
 - 設計整合性確認
@@ -177,7 +177,7 @@ model: claude-sonnet-4-5
 
 ### チェック項目
 
-1. 構文エラーがないか（check_syntax.sh実行必須）
+1. 構文エラーがないか（tools/ci/check_syntax.sh実行必須）
 2. ハードコード禁止違反がないか（grepで検出）
 3. テストが全パスしているか
 4. GAME_DESIGN.mdの廃止済み設計が実装されていないか

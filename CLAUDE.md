@@ -300,7 +300,7 @@
 
 1. **変更ファイル・行番号**
    - 例：Main.gd 643-663行
-2. **check_syntax.sh 結果**
+2. **tools/ci/check_syntax.sh 結果**
    - 例：✅ エラー0件
 3. **変更内容の grep 確認**
    - 例：grep "col=2" で該当箇所を確認済み
@@ -398,13 +398,13 @@ Claude Codeは構文チェック通過後に「構文チェックOK・修正完�
 コードを変更したら必ず以下を実行する。
 エラーが1件でもあれば修正を止めてユーザーに報告する。
 ```bash
-bash check_syntax.sh
+bash tools/ci/check_syntax.sh
 ```
 「直しました」報告の前に必ず実行すること。
 
 ## 自動テスト方針
 ### 修正後に必ず実行（構文チェック）
-上記の `bash check_syntax.sh` を実行する。
+上記の `bash tools/ci/check_syntax.sh` を実行する。
 エラーが1件でもあれば修正を止めてユーザーに報告する。
 
 ### 実行してはいけないテスト

@@ -229,7 +229,7 @@ const ALERT_LEVEL_BUFFS = {
 - [ ] Act1の2デッキ（boss_act1_beast、boss_act1_beast_strong）を使用してボス戦が動作
 - [ ] alert 1-2バフ適用ロジックが実装されている
 - [ ] alert 1: バフなし、alert 2: 1.2倍バフ、alert 3: _strongデッキ使用
-- [ ] check_syntax.shでエラーなし
+- [ ] tools/ci/check_syntax.shでエラーなし
 - [ ] WaveManager/WaveConfigでelite関連参照が残っていない
 
 ### Phase 4 後期

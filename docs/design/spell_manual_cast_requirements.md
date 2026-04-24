@@ -441,7 +441,7 @@ func process_autocast_slots(delta: float) -> void:
 ### 6-4. テスト・検証
 
 - **Phase A完了時**：
-  - `bash check_syntax.sh` でエラー0件を確認する。
+  - `bash tools/ci/tools/ci/check_syntax.sh` でエラー0件を確認する。
   - 4状態の視覚表現を確認する：
     - 空きスロット：暗色＋中点アイコン
     - 発動不可：グレー＋×アイコン＋失敗理由

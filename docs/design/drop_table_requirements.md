@@ -244,7 +244,7 @@ func _add_boost_icon() -> void
 2. `scripts/Result.gd` 変更
    - 既存 `RARITY_WEIGHTS_*` 定数削除
    - `_generate_card_choices()` を `RewardTable.get_weights(...)` 呼び出しに差し替え
-3. `bash check_syntax.sh` 実行
+3. `bash tools/ci/tools/ci/check_syntax.sh` 実行
 
 **完了条件**:
 - 通常戦（非エリート）で run_depth が 0-3 / 4-7 / 8+ の時に重みが切り替わる
@@ -279,7 +279,7 @@ func _add_boost_icon() -> void
 **タスク**:
 1. `Result.gd` に `_add_boost_icon()` 関数を追加
 2. `_build_ui()` から呼び出し
-3. `bash check_syntax.sh` 実行
+3. `bash tools/ci/tools/ci/check_syntax.sh` 実行
 
 **完了条件**:
 - エリート混入戦の報酬画面に `★ BOOSTED` アイコンが表示される
@@ -327,7 +327,7 @@ func _add_boost_icon() -> void
 
 ### 5-4. 構文・回帰
 
-- `bash check_syntax.sh` クリーン
+- `bash tools/ci/tools/ci/check_syntax.sh` クリーン
 - 既存の `TestSession.gd` シナリオ 2（run_depth 加算）が引き続きパスする
 
 ---
@@ -428,7 +428,7 @@ roadmap #12 完了の判定条件:
 2. 警戒 Lv4+ でエリート混入した通常戦の報酬が、ベースより 1 段階上のテーブルから抽選される
 3. エリート混入戦の報酬画面に BOOSTED アイコンが 3 秒以内に視認できる
 4. ボス戦の報酬は既存通りアーティファクト 3 択を維持している
-5. `bash check_syntax.sh` クリーン
+5. `bash tools/ci/tools/ci/check_syntax.sh` クリーン
 6. CEO 視覚確認で「深く潜るほど良いカードが出る」体験が成立
 
 ---

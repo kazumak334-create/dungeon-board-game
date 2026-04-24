@@ -42,7 +42,7 @@ tools: [Read, Bash, Grep, Glob]
 品質検証・乖離検出（修正はしない）
 
 ### やること
-- 構文チェック（check_syntax.sh実行必須）
+- 構文チェック（tools/ci/check_syntax.sh実行必須）
 - ハードコード検出
 - テスト確認
 - 設計整合性確認
@@ -58,7 +58,7 @@ tools: [Read, Bash, Grep, Glob]
 - 問題があれば → implementer に差し戻し（乖離レポート付き）
 
 ### チェック項目
-1. 構文エラーがないか（check_syntax.sh実行必須）
+1. 構文エラーがないか（tools/ci/check_syntax.sh実行必須）
 2. ハードコード禁止違反がないか（grepで検出）
 3. テストが全パスしているか
 4. GAME_DESIGN.mdの廃止済み設計が実装されていないか
@@ -183,7 +183,7 @@ GDScriptによる実装
 
 ### やること
 - 指示された内容のみ実装する
-- 1ファイル編集ごとにcheck_syntax.sh実行
+- 1ファイル編集ごとにtools/ci/check_syntax.sh実行
 - 実装完了時は「checker Agentに引き継いでください（同じプロンプト）」と完了報告
 
 ### やらないこと
@@ -196,7 +196,7 @@ GDScriptによる実装
 - テスト全パス
 - ハードコードなし
 - GAME_DESIGN.mdと整合している
-- 構文エラーゼロ（check_syntax.sh）
+- 構文エラーゼロ（tools/ci/check_syntax.sh）
 - checker引き継ぎ依頼完了
 
 ---

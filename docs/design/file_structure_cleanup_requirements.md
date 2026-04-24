@@ -36,7 +36,7 @@
 
 **検証方法：**
 - ファイルが存在しないことを確認（ls またはGlob）
-- `bash check_syntax.sh` でエラー増加がないことを確認
+- `bash tools/ci/check_syntax.sh` でエラー増加がないことを確認
 
 ---
 
@@ -60,7 +60,7 @@
 
 **検証方法：**
 - ファイルが存在しないことを確認
-- `bash check_syntax.sh` でエラー増加がないことを確認
+- `bash tools/ci/check_syntax.sh` でエラー増加がないことを確認
 
 ---
 
@@ -91,7 +91,7 @@
 - `.uid` ファイルはGodotが自動再生成するため移動のみで可
 
 **検証方法：**
-- `bash check_syntax.sh` でエラー増加がないことを確認
+- `bash tools/ci/check_syntax.sh` でエラー増加がないことを確認
 - Godotエディタ起動でエラーが出ないことをユーザーが確認
 
 ---
@@ -156,7 +156,7 @@ scripts/
 | `scenes/tools/DeckTestTool.tscn` | debug/ 移動ファイルの参照パス更新 |
 
 **検証方法：**
-- `bash check_syntax.sh` でエラー0件を確認
+- `bash tools/ci/check_syntax.sh` でエラー0件を確認
 - Godotエディタ起動でエラーが出ないことをユーザーが確認
 - `grep -r "scripts/" project.godot` でautoloadパスが正しいことを確認（選択肢A時）
 

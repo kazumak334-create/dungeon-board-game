@@ -1,6 +1,7 @@
 #!/bin/bash
 GODOT="/c/Users/kazum/OneDrive/デスクトップ/プライベート/Godot/Godot_v4.6.2-stable_win64.exe"
-PROJECT_DIR="$(cd "$(dirname "$0")" && pwd)"
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+PROJECT_DIR="$(cd "$SCRIPT_DIR/../.." && pwd)"
 
 echo "=== Godotチェック開始 ==="
 cd "$PROJECT_DIR"

@@ -263,7 +263,7 @@ func _get_price(card_data: Dictionary) -> int:
 - [ ] クリックで GameSession.gold が減算・selected_deck に追加される
 - [ ] 購入後に該当セルが売却済表示になる
 - [ ] RestScreenManager から signal 経由で手持ちエリアが更新される
-- [ ] check_syntax.sh が通る
+- [ ] tools/ci/check_syntax.sh が通る
 - [ ] CEO承認済み
 
 ## 11. 参照ファイル

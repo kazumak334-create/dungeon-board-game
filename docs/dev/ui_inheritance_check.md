@@ -13,14 +13,14 @@ UI操作を行っているのに`RefCounted`を継承している問題を自動
 
 ### 単体実行
 ```bash
-bash check_ui_inheritance.sh
+bash tools/ci/check_ui_inheritance.sh
 ```
 
 ### 構文チェックと統合実行
 ```bash
-bash check_syntax.sh
+bash tools/ci/check_syntax.sh
 ```
-（check_syntax.shが自動的にUI継承チェックを呼び出します）
+（tools/ci/check_syntax.shが自動的にUI継承チェックを呼び出します）
 
 ## 検知対象
 
@@ -94,7 +94,7 @@ FAILED: RefCountedを継承しているのにUI操作を行っているファイ
 
 3. **検証**
    ```bash
-   bash check_syntax.sh
+   bash tools/ci/check_syntax.sh
    ```
 
 ## 背景
@@ -136,4 +136,4 @@ FAILED: RefCountedを継承しているのにUI操作を行っているファイ
 
 ## 関連ドキュメント
 - [CLAUDE.md](../../CLAUDE.md) — 構文チェック徹底ルール
-- [check_syntax.sh](../../check_syntax.sh) — 構文チェックスクリプト
+- [tools/ci/check_syntax.sh](../../tools/ci/check_syntax.sh) — 構文チェックスクリプト
