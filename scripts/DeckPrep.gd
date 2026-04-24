@@ -109,6 +109,7 @@ func _build_ui() -> void:
 	_build_adventure_buttons()
 
 	# 配置タブを表示
+	add_child(_board)
 	_board.tab_container = _tab_container
 	_board.build_placement_tab(_tab_container, _PL)
 
@@ -118,6 +119,10 @@ func _build_ui() -> void:
 
 	# 盤面マナ初期値を計算
 	_update_board_mana()
+
+	var gui_nodes = get_tree().get_nodes_in_group("game_ui")
+	if gui_nodes.size() > 0:
+		gui_nodes[0].set_spell_slots_visible(false)
 
 # ===== サイドバー・右パネルは別ファイルに分離済み =====
 

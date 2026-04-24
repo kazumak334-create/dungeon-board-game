@@ -31,8 +31,10 @@ var _pause_button: Button = null          # 一時停止ボタン
 var _speed_buttons: Array = []            # 速度ボタン配列（ハイライト用）
 var _env_label: Label = null              # 環境表示ラベル
 var _spell_slot_panels: Array = []        # 呪文スロット表示パネル（3つ）
+var _spell_slot_title: Label = null       # 呪文スロットタイトルラベル
 
 func setup(p_main: Node) -> void:
+	add_to_group("game_ui")
 	main = p_main
 	_EDB = load("res://scripts/EffectDB.gd")
 	var OverlayClass = load("res://scripts/GameUIOverlay.gd")
@@ -584,6 +586,7 @@ func _build_spell_slots() -> void:
 	title.add_theme_font_size_override("font_size", 11)
 	title.add_theme_color_override("font_color", Color(0.6, 0.7, 0.8))
 	main.add_child(title)
+	_spell_slot_title = title
 
 	_spell_slot_panels.clear()
 	for i in range(3):
@@ -869,3 +872,16 @@ func _play_error_feedback(slot_index: int, reason: String) -> void:
 		var tween_flash = create_tween()
 		tween_flash.tween_property(status_label, "modulate", COLOR_FAIL_ACCENT, 0.0)
 		tween_flash.tween_property(status_label, "modulate", Color(COLOR_FAIL_ACCENT.r * 0.3, COLOR_FAIL_ACCENT.g * 0.3, COLOR_FAIL_ACCENT.b * 0.3), 0.2)
+
+func set_spell_slots_visible(visible: bool) -> void:
+	if _spell_slot_title != null:
+		_spell_slot_title.visible = visible
+	for slot_dict in _spell_slot_panels:
+		slot_dict["panel"].visible = visible
+		slot_dict["glow_rect"].visible = false if not visible else slot_dict["glow_rect"].visible
+		slot_dict["status_icon"].visible = visible
+		slot_dict["spell_name_label"].visible = visible
+		slot_dict["condition_label"].visible = visible
+		slot_dict["cost_label"].visible = visible
+		slot_dict["status_label"].visible = visible
+		slot_dict["cooldown_overlay"].visible = false if not visible else slot_dict["cooldown_overlay"].visible
