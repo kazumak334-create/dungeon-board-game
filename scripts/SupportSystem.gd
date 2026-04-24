@@ -108,25 +108,25 @@ func apply_support_effects() -> void:
 		# 丑三つ狂乱：盤面全体の呪いスタック×0.1%のブーツ付与
 		_apply_midnight_frenzy()
 
-	func _apply_midnight_frenzy() -> void:
-		# 盤面全体の呪いスタック総数を計算
-		var total_curse: int = 0
+func _apply_midnight_frenzy() -> void:
+	# 盤面全体の呪いスタック総数を計算
+	var total_curse: int = 0
+	for s in range(2):
+		for r in range(3):
+			for c in range(3):
+				var u = bm.board[s][r][c]
+				if u != null:
+					total_curse += u.curse_stacks
+	# midnight_frenzy持ちにブーツ付与
+	if total_curse > 0:
 		for s in range(2):
 			for r in range(3):
 				for c in range(3):
 					var u = bm.board[s][r][c]
-					if u != null:
-						total_curse += u.curse_stacks
-		# midnight_frenzy持ちにブーツ付与
-		if total_curse > 0:
-			for s in range(2):
-				for r in range(3):
-					for c in range(3):
-						var u = bm.board[s][r][c]
-						if u != null and u._has_midnight_frenzy:
-							var boots_value: int = int(float(total_curse) * 0.1)
-							if boots_value > 0:
-								u.boots_stacks += boots_value
+					if u != null and u._has_midnight_frenzy:
+						var boots_value: int = int(float(total_curse) * 0.1)
+						if boots_value > 0:
+							u.boots_stacks += boots_value
 
 func _process_unit_support(side: int, row: int, col: int, unit: Object) -> void:
 	var front_col: int = 2 if side == 0 else 0

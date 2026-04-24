@@ -1068,38 +1068,6 @@ func do_heal_to_damage(merged: Dictionary, ctx: Dictionary) -> void:
 func do_curse_heal_reduce(merged: Dictionary, ctx: Dictionary) -> void:
 	pass  # このeffectはalwaysトリガーでTickSystem側で処理される
 
-func do_buff_to_curse(merged: Dictionary, ctx: Dictionary) -> void:
-	var bm: Node       = ctx.get("bm", null)
-	var eq: Node       = ctx.get("eq", null)
-	var side: int      = ctx.get("side", 0)
-	var row: int       = ctx.get("row", 0)
-	var col: int       = ctx.get("col", 0)
-	var source: Object = ctx.get("source", null)
-	var target: Object = ctx.get("target", null)
-	var damage: int    = ctx.get("damage", 0)
-	var context: Dictionary = {
-		"board_manager": bm, "side": side, "row": row, "col": col,
-		"source": source, "target": target, "damage": damage
-	}
-	var tgt = targets.resolve(merged, context, false)
-	var percent: float = merged.get("percent", 0.3)
-	for t in tgt:
-		var total_buff: int = t.boots_stacks + t.sense_stacks + t.power_stacks + t.spring_stacks + t.regen_stacks
-		var curse_amt: int = int(total_buff * percent)
-		if curse_amt > 0:
-			t.curse_stacks += curse_amt
-			t.boots_stacks = int(t.boots_stacks * (1.0 - percent))
-			t.sense_stacks = int(t.sense_stacks * (1.0 - percent))
-			t.power_stacks = int(t.power_stacks * (1.0 - percent))
-			t.spring_stacks = int(t.spring_stacks * (1.0 - percent))
-			t.regen_stacks = int(t.regen_stacks * (1.0 - percent))
-			if eq != null:
-				var t_side: int = targets.get_unit_side(t, bm)
-				var t_row: int = targets.get_unit_row(t, bm)
-				var t_col: int = targets.get_unit_col(t, bm)
-				eq.push(4, source, t, "status_apply", 0.0,
-					{"status": "呪い", "stacks": curse_amt, "side": t_side, "row": t_row, "col": t_col})
-
 func do_extended_range(merged: Dictionary, ctx: Dictionary) -> void:
 	pass  # このeffectはalwaysトリガーでCombatSystem側で処理される
 
