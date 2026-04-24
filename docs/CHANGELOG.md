@@ -2,6 +2,14 @@
 # CHANGELOG
 ## 2026-04-24
 
+### ファイル構成整理フェーズD（docs/sprints/ → docs/archive/ 統合）
+
+**実装内容**
+
+- `docs/sprints/sprint1_deckprep_ux_item2.md` を `docs/archive/` へ移動
+- `docs/sprints/` ディレクトリを削除
+- 要件定義書（`file_structure_cleanup_requirements.md`）の参照パスを更新
+
 ### ファイル構成整理フェーズB（scripts/debug/分離）
 
 **実装内容**
