@@ -409,6 +409,7 @@ func _build_hand_card_container(hand_cards: Array, start_x: float, start_y: floa
 	return container
 
 func _on_chip_input_from_slot(event: InputEvent, idx: int, all_indices: Array, slot: Control) -> void:
+	print("[Spells] _on_chip_input_from_slot called: idx=", idx)
 	if not (event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed):
 		return
 	_board._selected_card_idx = idx

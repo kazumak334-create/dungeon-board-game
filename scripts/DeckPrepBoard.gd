@@ -591,6 +591,7 @@ func start_drag(idx: int, source_node: Control, mouse_pos: Vector2) -> void:
 	start_drag_group(idx, [idx], source_node, mouse_pos)
 
 func start_drag_group(idx: int, group: Array, source_node: Control, mouse_pos: Vector2) -> void:
+	print("[Board] start_drag_group: idx=", idx, " mouse=", mouse_pos, " drag_offset=", _drag_offset)
 	_dragging = true; _drag_source_idx = idx; _drag_group_indices = group
 	_drag_offset = Vector2.ZERO  # カードをマウス位置に表示してドロップ判定と一致させる
 	var entry = GameSession.selected_deck[idx] if idx < GameSession.selected_deck.size() else {}
@@ -701,6 +702,8 @@ func end_drag() -> void:
 	_drag_group_indices = []
 
 func process_drag(_delta: float) -> void:
+	if _dragging:
+		print("[Board] process_drag: dragging=", _dragging, " btn_pressed=", Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT), " just_started=", _drag_just_started)
 	if _dragging and _drag_node != null:
 		_drag_node.global_position = main_node.get_viewport().get_mouse_position() + _drag_offset
 	if _drag_just_started:
@@ -710,6 +713,9 @@ func process_drag(_delta: float) -> void:
 		try_drop_at_mouse(tab_container)
 
 func try_drop_at_mouse(_tc: Control) -> void:
+	var _dbg_mouse = main_node.get_viewport().get_mouse_position()
+	var _dbg_local = _dbg_mouse - _tc.global_position
+	print("[Board] try_drop: mouse=", _dbg_mouse, " tc_global=", _tc.global_position, " local=", _dbg_local)
 	if not _dragging or _drag_source_idx < 0:
 		end_drag()
 		return
