@@ -165,7 +165,7 @@ func _tween_hover(up: bool) -> void:
 		_hover_tween.set_ease(Tween.EASE_IN)
 
 func _gui_input(event: InputEvent) -> void:
-	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
+	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
 		if on_card_clicked.is_valid():
 			on_card_clicked.call(card_indices[0] if card_indices.size() > 0 else -1, event)
 		accept_event()
