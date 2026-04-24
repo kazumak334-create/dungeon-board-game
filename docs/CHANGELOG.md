@@ -1,5 +1,25 @@
 
 # CHANGELOG
+## 2026-04-24
+
+### EnemyPanelManager 3フェーズ管理システム実装
+
+**実装内容**
+
+**1. 新規作成: scripts/EnemyPanelManager.gd**
+- NEXT_EI / SCRATCH / SHOP の3フェーズ管理
+- SCRATCHフェーズ: 9件カードをランダム生成、1枚ダブルクリックで獲得→0.5秒後SHOPへ
+- SHOPフェーズ: RestScreenShopをインスタンス化して接続
+- NEXT_EIフェーズ: 次の敵配置シルエット表示（現状フォールバックで全非表示）
+
+**2. 変更: scripts/RestScreenManager.gd**
+- `wave_manager: Node` フィールド追加
+- `_enemy_panel: EnemyPanelManager` フィールド追加
+- `initialize()` に `wm: Node = null` パラメータ追加
+- `build_ui()` 内で EnemyPanelManager を生成・NEXT_EIフェーズで初期化
+- `trigger_scratch_phase()` 関数追加（バトル終了後のトリガー用）
+- `cleanup()` で `_enemy_panel.queue_free()` を追加
+
 ## 2026-04-21
 
 ### Phase 4 #6「敵デッキパターン」初期MVP実装完了
