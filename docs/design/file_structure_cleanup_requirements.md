@@ -201,7 +201,7 @@ scripts/
 | `docs/meta/agents.md` | check_*.sh 参照パス更新 |
 | `docs/meta/agents_v2.md` | check_*.sh 参照パス更新 |
 | `docs/dev/ui_inheritance_check.md` | check_ui_inheritance.sh 参照パス更新 |
-| `docs/sprints/sprint1_deckprep_ux_item2.md` | check_*.sh 参照パス更新 |
+| `docs/archive/sprint1_deckprep_ux_item2.md` | check_*.sh 参照パス更新 |
 
 **実施前確認：**
 ```bash
