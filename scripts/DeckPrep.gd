@@ -110,6 +110,7 @@ func _build_ui() -> void:
 
 	# 配置タブを表示
 	add_child(_board)
+	_board.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_board.tab_container = _tab_container
 	_board.build_placement_tab(_tab_container, _PL)
 

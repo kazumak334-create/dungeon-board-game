@@ -183,40 +183,6 @@ func _build_card_queue_ui() -> void:
 	enemy_glow.z_index = -1
 	main.add_child(enemy_glow)
 
-	# ---- 敵側 Q2（中列・グレーアウト気味） ----
-	var enemy_q2_bg := ColorRect.new()
-	enemy_q2_bg.position = Vector2(enemy_q2_x, queue_y)
-	enemy_q2_bg.size = Vector2(cell_w, card_h)
-	enemy_q2_bg.color = Color(0.14, 0.1, 0.12, 0.7)
-	main.add_child(enemy_q2_bg)
-
-	var enemy_q2_label := Label.new()
-	enemy_q2_label.position = Vector2(enemy_q2_x, queue_y)
-	enemy_q2_label.size = Vector2(cell_w, card_h)
-	enemy_q2_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	enemy_q2_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	enemy_q2_label.add_theme_font_size_override("font_size", 11)
-	enemy_q2_label.add_theme_color_override("font_color", Color(0.6, 0.45, 0.45))
-	enemy_q2_label.text = "Q2"
-	main.add_child(enemy_q2_label)
-
-	# ---- 敵側 Q3（後列・グレーアウト気味） ----
-	var enemy_q3_bg := ColorRect.new()
-	enemy_q3_bg.position = Vector2(enemy_q3_x, queue_y)
-	enemy_q3_bg.size = Vector2(cell_w, card_h)
-	enemy_q3_bg.color = Color(0.11, 0.08, 0.1, 0.6)
-	main.add_child(enemy_q3_bg)
-
-	var enemy_q3_label := Label.new()
-	enemy_q3_label.position = Vector2(enemy_q3_x, queue_y)
-	enemy_q3_label.size = Vector2(cell_w, card_h)
-	enemy_q3_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	enemy_q3_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	enemy_q3_label.add_theme_font_size_override("font_size", 11)
-	enemy_q3_label.add_theme_color_override("font_color", Color(0.5, 0.35, 0.35))
-	enemy_q3_label.text = "Q3"
-	main.add_child(enemy_q3_label)
-
 	# 互換用（非表示）
 	_queue_enemy_deck_label = Label.new()
 	_queue_enemy_deck_label.visible = false
