@@ -80,6 +80,7 @@ var _cell_rects: Array = []
 var _cell_card_containers: Array = []
 var _selected_card_idx: int = -1
 var _dragging: bool = false
+var _drag_just_started: bool = false
 var _drag_node: Control = null
 var _drag_offset: Vector2 = Vector2.ZERO
 var _drag_source_idx: int = -1
@@ -521,11 +522,13 @@ func populate_cards() -> void:
 						# ダブルクリック → セル内全カード選択
 						select_cell(0, r, c)
 					else:
-						# シングルクリック → 選択リセット
-						_selected_card_idx = -1
-						_drag_group_indices = []
-						if on_card_selected.is_valid():
-							on_card_selected.call(-1)
+						if _selected_card_idx >= 0 and not _dragging:
+							try_drop_card(_selected_card_idx, 0, r, c)
+						else:
+							_selected_card_idx = -1
+							_drag_group_indices = []
+							if on_card_selected.is_valid():
+								on_card_selected.call(-1)
 			)
 			cell_panel.set_meta("click_connected", true)
 
@@ -682,6 +685,7 @@ func start_drag_group(idx: int, group: Array, source_node: Control, mouse_pos: V
 
 	# ドロップヒント表示
 	_show_drop_hints(card_name)
+	_drag_just_started = true
 
 func end_drag() -> void:
 	# ドロップヒント非表示
@@ -697,6 +701,9 @@ func end_drag() -> void:
 func process_drag(_delta: float) -> void:
 	if _dragging and _drag_node != null:
 		_drag_node.global_position = main_node.get_viewport().get_mouse_position() + _drag_offset
+	if _drag_just_started:
+		_drag_just_started = false
+		return
 	if _dragging and not Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT):
 		try_drop_at_mouse(tab_container)
 
