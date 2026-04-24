@@ -10,7 +10,7 @@ func _init():
 		quit(1)
 
 	print("=== テスト実行開始 ===")
-	var TestRunner = load("res://scripts/TestRunner.gd")
+	var TestRunner = load("res://scripts/debug/TestRunner.gd")
 	var runner = TestRunner.new()
 	var result = runner.run_all()
 	print(result)

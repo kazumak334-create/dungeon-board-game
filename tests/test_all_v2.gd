@@ -3,22 +3,22 @@ extends SceneTree
 func _init():
 	print("\n=== v2設計テスト一括実行 ===")
 
-	var TestRunner = load("res://scripts/TestRunner.gd")
+	var TestRunner = load("res://scripts/debug/TestRunner.gd")
 	var runner = TestRunner.new()
 
 	# TestManaGeneration
 	print("\n[1/3] TestManaGeneration")
-	var mana_test = load("res://scripts/TestManaGeneration.gd").new()
+	var mana_test = load("res://scripts/debug/TestManaGeneration.gd").new()
 	mana_test.run(runner)
 
 	# TestInitialPlacement
 	print("\n[2/3] TestInitialPlacement")
-	var placement_test = load("res://scripts/TestInitialPlacement.gd").new()
+	var placement_test = load("res://scripts/debug/TestInitialPlacement.gd").new()
 	placement_test.run(runner)
 
 	# TestSpellSlot
 	print("\n[3/3] TestSpellSlot")
-	var spell_slot_test = load("res://scripts/TestSpellSlot.gd").new()
+	var spell_slot_test = load("res://scripts/debug/TestSpellSlot.gd").new()
 	spell_slot_test.run(runner)
 
 	print("\n=== テスト結果 ===")

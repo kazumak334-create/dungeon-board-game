@@ -754,7 +754,7 @@ func _on_heal_both_base() -> void:
 
 func _on_run_tests() -> void:
 	main._add_log("=== テスト開始 ===")
-	var TestRunnerScript = load("res://scripts/TestRunner.gd")
+	var TestRunnerScript = load("res://scripts/debug/TestRunner.gd")
 	if TestRunnerScript == null:
 		main._add_log("ERROR: TestRunner.gd ロード失敗")
 		return

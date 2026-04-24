@@ -190,7 +190,7 @@ func _ready() -> void:
 
 func _run_autotest() -> void:
 	print("[Main] 自動テストモード起動")
-	var AutoTestScript = load("res://scripts/AutoTest.gd")
+	var AutoTestScript = load("res://scripts/debug/AutoTest.gd")
 	var autotest = Node.new()
 	autotest.set_script(AutoTestScript)
 	add_child(autotest)

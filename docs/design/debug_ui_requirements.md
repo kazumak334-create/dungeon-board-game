@@ -165,9 +165,9 @@
 | ファイル | 責務 |
 |----------|------|
 | `scripts/DebugPanel.gd` | CanvasLayer + Panel構築、F12トグル、タブ管理 |
-| `scripts/DebugParamTab.gd` | パラメータタブのスライダー群構築・ConfigLoader連携 |
-| `scripts/DebugCheatTab.gd` | チートタブのボタン群構築・GameSession操作 |
-| `scripts/DebugSystemTab.gd` | システムタブの速度制御・ダンプ・リロード |
+| `scripts/debug/DebugParamTab.gd` | パラメータタブのスライダー群構築・ConfigLoader連携 |
+| `scripts/debug/DebugCheatTab.gd` | チートタブのボタン群構築・GameSession操作 |
+| `scripts/debug/DebugSystemTab.gd` | システムタブの速度制御・ダンプ・リロード |
 
 ### ConfigLoader拡張
 

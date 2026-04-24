@@ -8,7 +8,7 @@ func _init() -> void:
 	timer.timeout.connect(_run)
 
 func _run() -> void:
-	var TestRunnerScript = load("res://scripts/TestRunner.gd")
+	var TestRunnerScript = load("res://scripts/debug/TestRunner.gd")
 	if TestRunnerScript == null:
 		print("ERROR: TestRunner.gd not found")
 		quit(1)

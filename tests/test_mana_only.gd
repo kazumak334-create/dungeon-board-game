@@ -11,11 +11,11 @@ func _init():
 		return
 
 	# TestRunner作成
-	var TestRunnerScript = load("res://scripts/TestRunner.gd")
+	var TestRunnerScript = load("res://scripts/debug/TestRunner.gd")
 	var runner = TestRunnerScript.new()
 
 	# TestManaGeneration実行
-	var TestMana = load("res://scripts/TestManaGeneration.gd")
+	var TestMana = load("res://scripts/debug/TestManaGeneration.gd")
 	if TestMana == null:
 		print("ERROR: TestManaGeneration.gd ロード失敗")
 		quit(1)

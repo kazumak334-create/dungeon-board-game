@@ -13,43 +13,43 @@ func run_all() -> String:
 	_results.clear()
 
 	# DB整合性テスト
-	var db_tests = load("res://scripts/TestDBIntegrity.gd").new()
+	var db_tests = load("res://scripts/debug/TestDBIntegrity.gd").new()
 	db_tests.run(self)
 
 	# シナリオ/バトルテスト
-	var battle_tests = load("res://scripts/TestBattleScenario.gd").new()
+	var battle_tests = load("res://scripts/debug/TestBattleScenario.gd").new()
 	battle_tests.run(self)
 
 	# 画面遷移・セッション
-	var session_tests = load("res://scripts/TestSession.gd").new()
+	var session_tests = load("res://scripts/debug/TestSession.gd").new()
 	session_tests.run(self)
 
 	# 配置ロジック
-	var placement_tests = load("res://scripts/TestPlacement.gd").new()
+	var placement_tests = load("res://scripts/debug/TestPlacement.gd").new()
 	placement_tests.run(self)
 
 	# 環境/システム
-	var system_tests = load("res://scripts/TestGameSystem.gd").new()
+	var system_tests = load("res://scripts/debug/TestGameSystem.gd").new()
 	system_tests.run(self)
 
 	# バトルコンフィグ
-	var config_tests = load("res://scripts/TestBattleConfig.gd").new()
+	var config_tests = load("res://scripts/debug/TestBattleConfig.gd").new()
 	config_tests.run(self)
 
 	# DeckPrepレイアウト（パターンB）
-	var layout_tests = load("res://scripts/TestDeckPrepLayout.gd").new()
+	var layout_tests = load("res://scripts/debug/TestDeckPrepLayout.gd").new()
 	layout_tests.run(self)
 
 	# v2設計: マナ生成システム
-	var mana_tests = load("res://scripts/TestManaGeneration.gd").new()
+	var mana_tests = load("res://scripts/debug/TestManaGeneration.gd").new()
 	mana_tests.run(self)
 
 	# v2設計: 初期配置システム
-	var initial_placement_tests = load("res://scripts/TestInitialPlacement.gd").new()
+	var initial_placement_tests = load("res://scripts/debug/TestInitialPlacement.gd").new()
 	initial_placement_tests.run(self)
 
 	# v2設計: 呪文3スロット
-	var spell_slot_tests = load("res://scripts/TestSpellSlot.gd").new()
+	var spell_slot_tests = load("res://scripts/debug/TestSpellSlot.gd").new()
 	spell_slot_tests.run(self)
 
 	var summary: String = "テスト結果: %d passed / %d failed" % [_pass_count, _fail_count]

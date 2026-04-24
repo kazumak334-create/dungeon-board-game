@@ -2,12 +2,16 @@
 # AutoLoad: F12トグルで表示・非表示を切り替えるデバッグパネル
 extends CanvasLayer
 
+const DebugParamTabScript = preload("res://scripts/debug/DebugParamTab.gd")
+const DebugCheatTabScript = preload("res://scripts/debug/DebugCheatTab.gd")
+const DebugSystemTabScript = preload("res://scripts/debug/DebugSystemTab.gd")
+
 # UI要素
 var _panel: Panel
 var _tab_container: TabContainer
-var _param_tab: DebugParamTab
-var _cheat_tab: DebugCheatTab
-var _system_tab: DebugSystemTab
+var _param_tab: DebugParamTabScript
+var _cheat_tab: DebugCheatTabScript
+var _system_tab: DebugSystemTabScript
 
 var _visible: bool = false
 
@@ -65,15 +69,15 @@ func _build_ui() -> void:
 	_panel.add_child(_tab_container)
 	
 	# タブ作成
-	_param_tab = DebugParamTab.new()
+	_param_tab = DebugParamTabScript.new()
 	_param_tab.name = "パラメータ"
 	_tab_container.add_child(_param_tab)
 	
-	_cheat_tab = DebugCheatTab.new()
+	_cheat_tab = DebugCheatTabScript.new()
 	_cheat_tab.name = "チート"
 	_tab_container.add_child(_cheat_tab)
 	
-	_system_tab = DebugSystemTab.new()
+	_system_tab = DebugSystemTabScript.new()
 	_system_tab.name = "システム"
 	_tab_container.add_child(_system_tab)
 
