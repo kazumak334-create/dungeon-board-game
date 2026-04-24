@@ -1,7 +1,9 @@
 {
   "permissions": {
     "allow": [
-      "Bash(git:*)",
+      "Write",
+      "Edit",
+      "Bash(*)",
       "Read(//c/Users/kazum/.claude/**)",
       "Bash(echo \"---EXIT_CODE:$?---\")",
       "Bash(python3:*)",
@@ -102,6 +104,8 @@
       "Bash(\"C:\\\\Godot\\\\Godot_v4.3-stable_win64.exe\" --headless --quit --path .)",
       "mcp__godot__godot_screenshot",
       "Bash(bash:*)",
+      "Bash(cp:*)",
+      "Bash(mkdir:*)",
       "Bash(\"/c/Users/kazum/OneDrive/デスクトップ/プライベート/Godot/Godot_v4.6.2-stable_win64.exe\" --headless --path . -s scripts/RunTests.gd)",
       "Bash(/c/Users/kazum/Godot_v4.6.2-stable_win64.exe/Godot_v4.6.2-stable_win64_console.exe --headless --path /c/Users/kazum/dungeon-board-game --check-only --script scripts/DeckPrepBoard.gd)",
       "Bash(C:/Program Files/Godot/Godot_v4.6.2-stable_win64.exe:*)",
@@ -167,11 +171,40 @@
       "Bash(awk '/^\\\\t\"units\": \\\\{/,/^\\\\t\\\\}/' \"C:\\\\Users\\\\kazum\\\\dungeon-board-game\\\\data\\\\cards.json\")",
       "Bash(awk '/^\\\\s+\"[a-z_]+\": \\\\{$/ {print NR\": \"$0}' data/cards.json)",
       "Bash(awk 'NR>=601 && NR<=800 && /^\\\\s+},?$/ {print NR\": \"$0}' data/cards.json)",
-      "Bash(awk *)"
+      "Bash(awk *)",
+      "Bash(timeout 60 \"/c/Users/kazum/OneDrive/デスクトップ/プライベート/Godot/Godot_v4.6.2-stable_win64.exe\" --path . --editor --quit --headless)",
+      "Bash(cp debug/watcher/rules.py /c/Users/kazum/dungeon-board-game/debug/watcher/)",
+      "Bash(cp debug/watcher/prompt.py /c/Users/kazum/dungeon-board-game/debug/watcher/)",
+      "Bash(cp debug/watcher/apply.py /c/Users/kazum/dungeon-board-game/debug/watcher/)",
+      "Bash(mkdir -p /c/Users/kazum/dungeon-board-game/.claude/hooks)",
+      "Bash(cp .claude/hooks/start-watcher.sh /c/Users/kazum/dungeon-board-game/.claude/hooks/)"
     ]
   },
   "enableAllProjectMcpServers": true,
   "enabledMcpjsonServers": [
     "godot"
-  ]
+  ],
+  "hooks": {
+    "SubagentStop": [
+      {
+        "matcher": "implementer",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/implementer-post-check.sh\""
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/start-watcher.sh\""
+          }
+        ]
+      }
+    ]
+  }
 }
