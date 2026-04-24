@@ -4,17 +4,6 @@ extends Control
 
 const TaskbarClass = preload("res://scripts/CommonTaskbar.gd")
 
-# Phase A: 呪文手動発動UI色定義
-const COLOR_SLOT_EMPTY       = Color(0.08, 0.10, 0.14, 0.8)  # 空きスロット
-const COLOR_SLOT_LOADED_OFF  = Color(0.12, 0.15, 0.22)       # 装填・発動不可
-const COLOR_SLOT_READY_BG    = Color(0.18, 0.32, 0.22)       # 発動可能（緑がかった活性色）
-const COLOR_SLOT_GLOW        = Color(0.6, 1.0, 0.7, 0.85)    # 発動可能の縁取り発光
-const COLOR_LABEL_READY      = Color(1.0, 1.0, 1.0)          # 発動可能時ラベル
-const COLOR_LABEL_DISABLED   = Color(0.5, 0.5, 0.5)          # 発動不可時ラベル
-const COLOR_LABEL_EMPTY      = Color(0.5, 0.5, 0.5)          # 空きスロットラベル
-const COLOR_READY_ACCENT     = Color(0.4, 1.0, 0.5)          # 「▶ 発動可」テキスト
-const COLOR_FAIL_ACCENT      = Color(1.0, 0.35, 0.35)        # 「× 失敗」テキスト・フラッシュ
-
 var main: Node = null
 var _EDB = null  # EffectDBキャッシュ
 var _queue: Node = null   # GameUIQueue
@@ -30,8 +19,6 @@ var _mana_gauge_label: Label = null       # マナ数値ラベル
 var _pause_button: Button = null          # 一時停止ボタン
 var _speed_buttons: Array = []            # 速度ボタン配列（ハイライト用）
 var _env_label: Label = null              # 環境表示ラベル
-var _spell_slot_panels: Array = []        # 呪文スロット表示パネル（3つ）
-var _spell_slot_title: Label = null       # 呪文スロットタイトルラベル
 
 func setup(p_main: Node) -> void:
 	add_to_group("game_ui")
@@ -221,9 +208,6 @@ func build_ui() -> void:
 	# ---- 次カードパネル+キューUI+マナバー ----
 	_queue.build()
 
-	# ---- 呪文スロットUI ----
-	_build_spell_slots()
-
 	# Wave進行バー（上部中央）
 	var progress_bar = preload("res://scripts/ProgressBar.gd").new()
 	progress_bar.position = Vector2(300, 10)
@@ -377,7 +361,6 @@ func update_ui() -> void:
 	update_base_hp()
 	_update_mana()
 	_queue.update()
-	update_spell_slots()
 
 func _update_cells() -> void:
 	for side in range(2):
@@ -572,203 +555,6 @@ func _refresh_equipment_ui() -> void:
 func update_battle_timer(remaining: float, delta: float = 0.016) -> void:
 	_overlay.update_battle_timer(remaining, delta)
 
-func _build_spell_slots() -> void:
-	"""呪文スロット表示UI（Phase A: 手動発動対応・8コンポーネント構成）"""
-	var slot_w: float = 90.0
-	var slot_h: float = 130.0
-	var slot_gap: float = 10.0
-	var base_x: float = main.CENTER_X - main.GAP / 2.0 - 3 * main.CELL_W + 10
-	var base_y: float = main.BOARD_TOP + 3 * main.CELL_H + 260
-
-	var title := Label.new()
-	title.text = "呪文スロット（左クリック発動／右クリック破棄）"
-	title.position = Vector2(base_x, base_y - 18)
-	title.add_theme_font_size_override("font_size", 11)
-	title.add_theme_color_override("font_color", Color(0.6, 0.7, 0.8))
-	main.add_child(title)
-	_spell_slot_title = title
-
-	_spell_slot_panels.clear()
-	for i in range(3):
-		var slot_x = base_x + i * (slot_w + slot_gap)
-
-		# 1. 縁取り発光（発動可能時のみ表示）
-		var glow_rect = ColorRect.new()
-		glow_rect.position = Vector2(slot_x - 2, base_y - 2)
-		glow_rect.size = Vector2(slot_w + 4, slot_h + 4)
-		glow_rect.color = COLOR_SLOT_GLOW
-		glow_rect.z_index = -1
-		glow_rect.visible = false
-		main.add_child(glow_rect)
-
-		# 2. 背景Panel（状態ごとに色変更）
-		var panel = ColorRect.new()
-		panel.position = Vector2(slot_x, base_y)
-		panel.size = Vector2(slot_w, slot_h)
-		panel.color = COLOR_SLOT_EMPTY
-		panel.gui_input.connect(_on_spell_slot_input.bind(i))
-		main.add_child(panel)
-
-		# 3. 状態アイコンLabel
-		var status_icon = Label.new()
-		status_icon.position = Vector2(slot_x + 5, base_y + 3)
-		status_icon.size = Vector2(20, 14)
-		status_icon.add_theme_font_size_override("font_size", 12)
-		status_icon.add_theme_color_override("font_color", COLOR_LABEL_DISABLED)
-		status_icon.text = "·"
-		main.add_child(status_icon)
-
-		# 4. 呪文名ラベル
-		var spell_name_label = Label.new()
-		spell_name_label.position = Vector2(slot_x + 5, base_y + 18)
-		spell_name_label.size = Vector2(slot_w - 10, 32)
-		spell_name_label.add_theme_font_size_override("font_size", 10)
-		spell_name_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		spell_name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		spell_name_label.add_theme_color_override("font_color", COLOR_LABEL_DISABLED)
-		main.add_child(spell_name_label)
-
-		# 5. 条件タグLabel
-		var condition_label = Label.new()
-		condition_label.position = Vector2(slot_x + 5, base_y + 52)
-		condition_label.size = Vector2(slot_w - 10, 16)
-		condition_label.add_theme_font_size_override("font_size", 9)
-		condition_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		condition_label.add_theme_color_override("font_color", COLOR_LABEL_DISABLED)
-		main.add_child(condition_label)
-
-		# 6. コストラベル
-		var cost_label = Label.new()
-		cost_label.position = Vector2(slot_x + 5, base_y + 72)
-		cost_label.size = Vector2(slot_w - 10, 14)
-		cost_label.add_theme_font_size_override("font_size", 9)
-		cost_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		cost_label.add_theme_color_override("font_color", COLOR_LABEL_DISABLED)
-		main.add_child(cost_label)
-
-		# 7. 発動可否行Label
-		var status_label = Label.new()
-		status_label.position = Vector2(slot_x + 5, base_y + 92)
-		status_label.size = Vector2(slot_w - 10, 16)
-		status_label.add_theme_font_size_override("font_size", 9)
-		status_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		status_label.add_theme_color_override("font_color", COLOR_LABEL_DISABLED)
-		main.add_child(status_label)
-
-		# 8. クールダウンオーバーレイ（発動直後0.3秒のみ表示）
-		var cooldown_overlay = ColorRect.new()
-		cooldown_overlay.position = Vector2(slot_x, base_y)
-		cooldown_overlay.size = Vector2(slot_w, slot_h)
-		cooldown_overlay.color = Color(0, 0, 0, 0.5)
-		cooldown_overlay.z_index = 1
-		cooldown_overlay.visible = false
-		main.add_child(cooldown_overlay)
-
-		_spell_slot_panels.append({
-			"panel": panel,
-			"glow_rect": glow_rect,
-			"status_icon": status_icon,
-			"spell_name_label": spell_name_label,
-			"condition_label": condition_label,
-			"cost_label": cost_label,
-			"status_label": status_label,
-			"cooldown_overlay": cooldown_overlay,
-			"base_x": slot_x,
-			"tween": null
-		})
-
-func _on_spell_slot_input(event: InputEvent, slot_index: int) -> void:
-	"""呪文スロット入力処理（左クリック発動・右クリック破棄）"""
-	if event is InputEventMouseButton and event.pressed:
-		if event.button_index == MOUSE_BUTTON_LEFT:
-			# 左クリック: 発動
-			if main.spell_slot_system != null:
-				if main.spell_slot_system.cast_spell(slot_index):
-					# 発動成功
-					_play_cast_animation(slot_index)
-					update_spell_slots()
-				else:
-					# 発動失敗
-					var reason = main.spell_slot_system.get_cast_block_reason(slot_index)
-					_play_error_feedback(slot_index, reason)
-		elif event.button_index == MOUSE_BUTTON_RIGHT:
-			# 右クリック: 破棄
-			if main.spell_slot_system != null:
-				var success = main.spell_slot_system.discard_slot(slot_index)
-				if success:
-					update_spell_slots()
-
-func update_spell_slots() -> void:
-	"""呪文スロット表示更新（Phase A: 4状態表示）"""
-	if main.spell_slot_system == null:
-		return
-	var slots = main.spell_slot_system.slots
-	for i in range(3):
-		if i >= _spell_slot_panels.size():
-			break
-		var slot_dict = _spell_slot_panels[i]
-		var panel: ColorRect = slot_dict["panel"]
-		var glow_rect: ColorRect = slot_dict["glow_rect"]
-		var status_icon: Label = slot_dict["status_icon"]
-		var spell_name_label: Label = slot_dict["spell_name_label"]
-		var condition_label: Label = slot_dict["condition_label"]
-		var cost_label: Label = slot_dict["cost_label"]
-		var status_label: Label = slot_dict["status_label"]
-
-		if slots[i]["spell"] == null:
-			# 状態: 空き
-			panel.color = COLOR_SLOT_EMPTY
-			glow_rect.visible = false
-			status_icon.text = "·"
-			status_icon.add_theme_color_override("font_color", COLOR_LABEL_EMPTY)
-			spell_name_label.text = "空き"
-			spell_name_label.add_theme_color_override("font_color", COLOR_LABEL_EMPTY)
-			condition_label.text = ""
-			cost_label.text = ""
-			status_label.text = ""
-			_stop_pulse_animation(i)
-		else:
-			var spell = slots[i]["spell"]
-			var condition_display = main.spell_slot_system.get_condition_display_name(slots[i]["condition"])
-			var can_cast = main.spell_slot_system.can_cast(i)
-			var reason = main.spell_slot_system.get_cast_block_reason(i)
-
-			spell_name_label.text = spell.unit_name
-			condition_label.text = "[%s]" % condition_display
-			cost_label.text = "コスト: %d" % slots[i]["mana_cost"]
-
-			if can_cast:
-				# 状態: 発動可能
-				panel.color = COLOR_SLOT_READY_BG
-				glow_rect.visible = true
-				status_icon.text = "▶"
-				status_icon.add_theme_color_override("font_color", COLOR_READY_ACCENT)
-				spell_name_label.add_theme_color_override("font_color", COLOR_LABEL_READY)
-				condition_label.add_theme_color_override("font_color", COLOR_LABEL_READY)
-				cost_label.add_theme_color_override("font_color", COLOR_LABEL_READY)
-				status_label.text = "▶ 発動可"
-				status_label.add_theme_color_override("font_color", COLOR_READY_ACCENT)
-				_start_pulse_animation(i)
-			else:
-				# 状態: 発動不可
-				panel.color = COLOR_SLOT_LOADED_OFF
-				glow_rect.visible = false
-				status_icon.text = "×"
-				status_icon.add_theme_color_override("font_color", COLOR_LABEL_DISABLED)
-				spell_name_label.add_theme_color_override("font_color", COLOR_LABEL_DISABLED)
-				condition_label.add_theme_color_override("font_color", COLOR_LABEL_DISABLED)
-				cost_label.add_theme_color_override("font_color", COLOR_LABEL_DISABLED)
-				var fail_color = COLOR_FAIL_ACCENT * 0.3
-				if reason == "mana":
-					status_label.text = "× マナ不足"
-					status_label.add_theme_color_override("font_color", fail_color)
-				elif reason == "condition":
-					status_label.text = "× 条件未達"
-					status_label.add_theme_color_override("font_color", fail_color)
-				else:
-					status_label.text = ""
-				_stop_pulse_animation(i)
-
 func _on_wave_started(big_wave: int, small_wave: int, scale: float) -> void:
 	if main._progress_bar != null:
 		main._progress_bar.update_progress(big_wave, small_wave)
@@ -776,112 +562,3 @@ func _on_wave_started(big_wave: int, small_wave: int, scale: float) -> void:
 func _on_intermission_requested(shop_config: Dictionary) -> void:
 	if main._progress_bar != null:
 		main._progress_bar.on_intermission(shop_config)
-
-# ---- Phase A: 呪文スロットアニメーション関数 ----
-
-func _start_pulse_animation(slot_index: int) -> void:
-	"""発動可能スロットのパルス発光開始（1.2秒周期）"""
-	if slot_index >= _spell_slot_panels.size():
-		return
-	var slot_dict = _spell_slot_panels[slot_index]
-	var glow_rect: ColorRect = slot_dict["glow_rect"]
-
-	# 既存Tweenを削除
-	if slot_dict["tween"] != null:
-		slot_dict["tween"].kill()
-
-	var tween = create_tween()
-	tween.set_loops()
-	tween.tween_property(glow_rect, "modulate:a", 0.95, 0.6).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
-	tween.tween_property(glow_rect, "modulate:a", 0.55, 0.6).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
-	slot_dict["tween"] = tween
-
-func _stop_pulse_animation(slot_index: int) -> void:
-	"""パルス発光停止"""
-	if slot_index >= _spell_slot_panels.size():
-		return
-	var slot_dict = _spell_slot_panels[slot_index]
-	if slot_dict["tween"] != null:
-		slot_dict["tween"].kill()
-		slot_dict["tween"] = null
-
-func _play_cast_animation(slot_index: int) -> void:
-	"""発動成功演出（白フラッシュ + クールダウンオーバーレイ0.3秒）"""
-	if slot_index >= _spell_slot_panels.size():
-		return
-	var slot_dict = _spell_slot_panels[slot_index]
-	var cooldown_overlay: ColorRect = slot_dict["cooldown_overlay"]
-	var spell_name_label: Label = slot_dict["spell_name_label"]
-	var glow_rect: ColorRect = slot_dict["glow_rect"]
-
-	# クールダウンオーバーレイ表示
-	cooldown_overlay.visible = true
-
-	# 呪文名ラベル白フラッシュ
-	var tween_flash = create_tween()
-	tween_flash.tween_property(spell_name_label, "modulate", Color(2, 2, 2), 0.0)
-	tween_flash.tween_property(spell_name_label, "modulate", Color(1, 1, 1), 0.15)
-
-	# 縁取り発光強調
-	var tween_glow = create_tween()
-	tween_glow.tween_property(glow_rect, "modulate:a", 1.0, 0.0)
-	tween_glow.tween_property(glow_rect, "modulate:a", 0.85, 0.15)
-
-	# 0.3秒後にオーバーレイを消す
-	var timer = Timer.new()
-	timer.wait_time = 0.3
-	timer.one_shot = true
-	timer.timeout.connect(func():
-		cooldown_overlay.visible = false
-		timer.queue_free()
-	)
-	main.add_child(timer)
-	timer.start()
-
-func _play_error_feedback(slot_index: int, reason: String) -> void:
-	"""発動失敗演出（振動 + 赤フラッシュ）"""
-	if slot_index >= _spell_slot_panels.size():
-		return
-	var slot_dict = _spell_slot_panels[slot_index]
-	var panel: ColorRect = slot_dict["panel"]
-	var status_label: Label = slot_dict["status_label"]
-	var condition_label: Label = slot_dict["condition_label"]
-	var cost_label: Label = slot_dict["cost_label"]
-	var base_x: float = slot_dict["base_x"]
-
-	# 振動アニメーション（±3px × 4回、0.15秒）
-	var tween_shake = create_tween()
-	tween_shake.tween_property(panel, "position:x", base_x + 3, 0.0375).set_trans(Tween.TRANS_SINE)
-	tween_shake.tween_property(panel, "position:x", base_x - 3, 0.0375).set_trans(Tween.TRANS_SINE)
-	tween_shake.tween_property(panel, "position:x", base_x + 3, 0.0375).set_trans(Tween.TRANS_SINE)
-	tween_shake.tween_property(panel, "position:x", base_x, 0.0375).set_trans(Tween.TRANS_SINE)
-
-	# 赤フラッシュ（失敗理由に応じて対象を変える）
-	if reason == "mana":
-		# マナ不足 → コストラベル赤フラッシュ
-		var tween_flash = create_tween()
-		tween_flash.tween_property(cost_label, "modulate", COLOR_FAIL_ACCENT, 0.0)
-		tween_flash.tween_property(cost_label, "modulate", COLOR_LABEL_DISABLED, 0.2)
-	elif reason == "condition":
-		# 条件未達 → 条件ラベル赤フラッシュ
-		var tween_flash = create_tween()
-		tween_flash.tween_property(condition_label, "modulate", COLOR_FAIL_ACCENT, 0.0)
-		tween_flash.tween_property(condition_label, "modulate", COLOR_LABEL_DISABLED, 0.2)
-	else:
-		# その他（empty等）→ ステータスラベル赤フラッシュ
-		var tween_flash = create_tween()
-		tween_flash.tween_property(status_label, "modulate", COLOR_FAIL_ACCENT, 0.0)
-		tween_flash.tween_property(status_label, "modulate", Color(COLOR_FAIL_ACCENT.r * 0.3, COLOR_FAIL_ACCENT.g * 0.3, COLOR_FAIL_ACCENT.b * 0.3), 0.2)
-
-func set_spell_slots_visible(visible: bool) -> void:
-	if _spell_slot_title != null:
-		_spell_slot_title.visible = visible
-	for slot_dict in _spell_slot_panels:
-		slot_dict["panel"].visible = visible
-		slot_dict["glow_rect"].visible = false if not visible else slot_dict["glow_rect"].visible
-		slot_dict["status_icon"].visible = visible
-		slot_dict["spell_name_label"].visible = visible
-		slot_dict["condition_label"].visible = visible
-		slot_dict["cost_label"].visible = visible
-		slot_dict["status_label"].visible = visible
-		slot_dict["cooldown_overlay"].visible = false if not visible else slot_dict["cooldown_overlay"].visible
