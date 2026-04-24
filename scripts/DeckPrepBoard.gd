@@ -1182,3 +1182,18 @@ func _on_chip_input(event: InputEvent, idx: int, all_indices: Array, chip: Contr
 	if on_card_pinned.is_valid():
 		on_card_pinned.call(idx)
 	start_drag_group(idx, [idx], chip, event.global_position)
+
+func _group_cards_by_name(cards: Array) -> Array:
+	var groups: Dictionary = {}
+	var order: Array = []
+	for card in cards:
+		if not groups.has(card["name"]):
+			groups[card["name"]] = {"count": 0, "idx_first": card["idx"], "indices": []}
+			order.append(card["name"])
+		groups[card["name"]]["count"] += 1
+		groups[card["name"]]["indices"].append(card["idx"])
+	var out: Array = []
+	for gname in order:
+		var g = groups[gname]
+		out.append([g["idx_first"], gname, g["count"], g["indices"]])
+	return out

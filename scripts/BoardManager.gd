@@ -609,13 +609,6 @@ func hide_battle_ui() -> void:
 	if main.game_ui and main.game_ui._env_label:
 		main.game_ui._env_label.visible = false
 
-	# 4. 呪文スロットパネル
-	if main.game_ui:
-		for panel in main.game_ui._spell_slot_panels:
-			if panel:
-				panel.visible = false
-		print("[BoardManager] 呪文スロット非表示")
-
 	# 5. Overlay（HP, マナ, キャスト）
 	if main.game_ui and main.game_ui._overlay:
 		main.game_ui._overlay.visible = false
