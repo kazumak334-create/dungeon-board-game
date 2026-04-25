@@ -4,6 +4,9 @@ extends RefCounted
 
 # スロット構造: {spell: Object, condition: String, mana_cost: int, enabled: bool}
 var slots: Array = []
+# キャストゲージ（グローバルクールダウン、全スロット共有）
+var cast_timer: float = 0.0
+var cast_interval: float = 5.0
 var board_manager: Node = null
 var deck_manager: Node = null
 var enemy_ai: Node = null
@@ -98,9 +101,9 @@ func clear_slot(index: int) -> void:
 	slots[index]["enabled"] = false
 
 func process_slots(delta: float) -> void:
-	# Phase A: 自動発動を廃止。手動発動（cast_spell）のみ。
-	# この関数は呼び出し元から削除される。
-	pass
+	# キャストタイマー減算（0で下限クランプ）
+	if cast_timer > 0.0:
+		cast_timer = max(0.0, cast_timer - delta)
 
 func _check_condition(condition: String) -> bool:
 	# v2設計: 発動条件チェック
@@ -257,6 +260,9 @@ func can_cast(index: int) -> bool:
 	# 条件チェック（既存 _check_condition を流用）
 	if not _check_condition(slot["condition"]):
 		return false
+	# キャストゲージチェック（クールダウン中は発動不可）
+	if cast_timer > 0.0:
+		return false
 	return true
 
 func get_cast_block_reason(index: int) -> String:
@@ -270,6 +276,8 @@ func get_cast_block_reason(index: int) -> String:
 		return "mana"
 	if not _check_condition(slot["condition"]):
 		return "condition"
+	if cast_timer > 0.0:
+		return "cooldown"
 	return ""
 
 func cast_spell(index: int) -> bool:
@@ -287,6 +295,8 @@ func _trigger_spell(index: int, slot: Dictionary) -> void:
 	# マナ消費
 	deck_manager.mana -= slot["mana_cost"]
 	deck_manager.mana = max(0.0, deck_manager.mana)
+	# キャストタイマーをリセット（次の発動はinterval秒後）
+	cast_timer = cast_interval
 
 	# 呪文実行
 	spell_executor.execute(spell, 0, board_manager, deck_manager, enemy_ai)
@@ -298,9 +308,12 @@ func _trigger_spell(index: int, slot: Dictionary) -> void:
 	else:
 		print("[SpellSlot] " + log_text)
 
-	# 消費型呪文ならスロットをクリア
-	if spell.get("is_consumable", false):
+	# 消費型呪文ならスロットをクリアして次をドロー
+	if spell.is_consumable:
+		GameSession.spell_discard.append(spell.unit_name)
+		GameSession.spell_hand.erase(spell.unit_name)
 		clear_slot(index)
+		draw_to_fill_slots()
 
 func _build_activation_log(spell_name: String, condition: String, display_name: String) -> String:
 	"""発動ログを構築（条件達成時の詳細情報を含む）"""
@@ -333,5 +346,29 @@ func discard_slot(index: int) -> bool:
 	var spell = slots[index]["spell"]
 	deck_manager.discard.append(spell)
 	print("[SpellSlot] スロット%d破棄: %s" % [index, spell.unit_name])
+	GameSession.spell_discard.append(spell.unit_name)
+	GameSession.spell_hand.erase(spell.unit_name)
 	clear_slot(index)
+	draw_to_fill_slots()
 	return true
+
+func draw_to_fill_slots() -> void:
+	for i in range(3):
+		if slots[i]["spell"] != null:
+			continue
+		if GameSession.spell_deck.is_empty():
+			if GameSession.spell_discard.is_empty():
+				continue
+			GameSession.spell_deck = GameSession.spell_discard.duplicate()
+			GameSession.spell_discard.clear()
+			GameSession.spell_deck.shuffle()
+			print("[SpellSlot] 捨て札%d枚をデッキに戻す" % GameSession.spell_deck.size())
+		if GameSession.spell_deck.is_empty():
+			continue
+		var spell_name: String = GameSession.spell_deck.pop_front()
+		GameSession.spell_hand.append(spell_name)
+		if deck_manager != null:
+			var spell_obj = deck_manager.get_spell_card_by_name(spell_name)
+			if spell_obj != null:
+				set_slot(i, spell_obj, "always")
+				print("[SpellSlot] スロット%dドロー: %s" % [i, spell_name])

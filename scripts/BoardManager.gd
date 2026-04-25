@@ -37,6 +37,7 @@ signal status_cleared(unit_name: String, status: String)
 signal draw_cards_requested(side: int, count: int)
 signal spell_cast(side: int, spell_name: String)
 signal synthesis_done(side: int, row: int, col: int, base_name: String, result_name: String)
+signal material_dropped(material_id: String, count: int, side: int, row: int, col: int)
 
 func _ready() -> void:
 	_setup()
@@ -307,7 +308,7 @@ func remove_unit(side: int, row: int, col: int) -> void:
 		return  # 既に削除済み（EventQueue の二重処理対策）
 	# 死亡ユニット記録（Phase 4 #0a）
 	var initial_slot: int = row * 3 + col
-	GameSession.record_dead_unit(unit.unit_name, unit.rarity, GameSession.wave_current_small, initial_slot)
+	GameSession.record_dead_unit(unit.unit_name, CardDB.UNITS.get(unit.unit_name, {}).get("rarity", "common"), GameSession.wave_current_small, initial_slot)
 	# 撃破時スキル（on_death）処理
 	if unit != null:
 		for skill in unit.skills:
@@ -577,8 +578,51 @@ func on_rest_drop(card_data: Object, row: int, col: int) -> bool:
 		"col": col
 	}
 
+	# board配列を更新（render_cell参照用）
+	board[side][row][col] = card_data
+
 	print("[BoardManager] RestDrop成功: %s → row=%d col=%d" % [card_data.unit_name, row, col])
 	return true
+
+func swap_rest_cells(from_r: int, from_c: int, to_r: int, to_c: int) -> void:
+	# board[0]のデータを入れ替える
+	var tmp = board[0][from_r][from_c]
+	board[0][from_r][from_c] = board[0][to_r][to_c]
+	board[0][to_r][to_c] = tmp
+
+	# GameSession.initial_unitsも同様に入れ替える
+	var session = get_node_or_null("/root/GameSession")
+	if not session:
+		return
+	if session.initial_units.size() < 9:
+		session.initial_units.resize(9)
+	var from_idx: int = from_r * 3 + from_c
+	var to_idx: int = to_r * 3 + to_c
+	var tmp_entry = session.initial_units[from_idx]
+	session.initial_units[from_idx] = session.initial_units[to_idx]
+	session.initial_units[to_idx] = tmp_entry
+	# row/col情報を更新
+	if session.initial_units[from_idx] is Dictionary:
+		session.initial_units[from_idx]["row"] = from_r
+		session.initial_units[from_idx]["col"] = from_c
+	if session.initial_units[to_idx] is Dictionary:
+		session.initial_units[to_idx]["row"] = to_r
+		session.initial_units[to_idx]["col"] = to_c
+	print("[BoardManager] swap_rest_cells: (%d,%d)<->(%d,%d)" % [from_r, from_c, to_r, to_c])
+
+func remove_rest_unit(row: int, col: int) -> void:
+	# board[0][row][col]をnullにする
+	board[0][row][col] = null
+
+	# GameSession.initial_unitsから該当エントリを削除する
+	var session = get_node_or_null("/root/GameSession")
+	if not session:
+		return
+	if session.initial_units.size() < 9:
+		session.initial_units.resize(9)
+	var index: int = row * 3 + col
+	session.initial_units[index] = null
+	print("[BoardManager] remove_rest_unit: row=%d col=%d" % [row, col])
 
 func hide_battle_ui() -> void:
 	print("[BoardManager] hide_battle_ui開始")

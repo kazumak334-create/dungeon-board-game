@@ -43,6 +43,10 @@ var placement_config: Array = []  # デッキインデックス→{col_priority,
 var initial_units: Array = []  # 9個の要素 [{name, row, col}, ...] or null
 # v2設計: 呪文3スロット設定
 var spell_slots: Array = []  # 3個の要素 [{spell_name, condition}, ...] or null
+var spell_available: Array = []  # 入手済み呪文リスト（今回は空スタート）
+var spell_deck: Array = []  # 選択済み呪文デッキ（マナ制約あり・枚数上限なし）
+var spell_hand: Array = []   # スロット表示中の呪文名（最大3）
+var spell_discard: Array = [] # 使用・破棄した呪文名
 var artifacts: Array = []  # 所持アーティファクト（バトル報酬・ショップ・イベントで取得）
 var gold: int = 0          # 通貨
 var skill_points: int = 0  # スキルポイント
@@ -56,6 +60,7 @@ var battle_seed: int = 0       # リプレイ用ランダムシード
 var battle_log: Array = []     # リプレイ用イベントログ
 var current_battle_gold: int = 0  # バトル中に獲得した累積通貨（敵撃破ドロップ）
 var battle_drops: Array = []      # バトル中に獲得したアイテムドロップ（Phase 3で実装）
+var materials: Dictionary = {}  # {素材ID(String): 個数(int)} - ラン中累積、Game Over/完走でリセット
 # Phase 3: マップシステム
 var map_data: Dictionary = {}        # MapGenerator.generate()の結果
 var race_theme: String = ""          # "slime"/"beast"/"undead" - ラン開始時に決定
@@ -112,6 +117,10 @@ func reset() -> void:
 	placement_config = []
 	initial_units = []
 	spell_slots = []
+	spell_available = []
+	spell_deck = []
+	spell_hand = []
+	spell_discard = []
 	artifacts = []
 	gold = 0
 	skill_points = 0

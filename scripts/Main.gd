@@ -43,15 +43,14 @@ var next_card_name_label: Label
 var next_card_detail_label: Label
 var next_card_cost_label: Label
 var next_card_timer_label: Label
-var enemy_next_label: Label
 
 var player_base_label: Label
 var enemy_base_label:  Label
 var log_label:         Label
 var game_over_label:   Label
+var wave_label: Label = null  # WAVE表示ラベル（バトル開始・SW遷移時に使用）
 var deck_count_label:  Label
 var discard_count_label: Label
-var enemy_deck_count_label: Label
 
 var _equip_slots: Array = []         # 装備スロットラベル（GameUIが設定）
 var _equip_tooltip_panel: PanelContainer = null
@@ -235,6 +234,8 @@ func _build_mode_select() -> void:
 	elif GameSession.initial_deck_prep_pending:
 		# 初回デッキ編集: RestScreen表示（ショップ非表示）
 		GameSession.initial_deck_prep_pending = false
+		# 初期呪文プールから3枚自動ピック
+		_pick_initial_spells()
 		start_rest_screen({}, true)  # hide_shop=true
 		game_started = false
 		return  # RestScreen閉じるまで待機
@@ -259,7 +260,9 @@ func _start_battle() -> void:
 	_place_initial_units()
 	# 警戒システム: 配置前に敵デッキ加工・盤面効果付与
 	_apply_alert_modifiers()
-	_place_enemy_initial_units()
+	# WaveMode時は _on_wave_started() 内で敵配置するため二重呼び出しを避ける
+	if wave_manager == null:
+		_place_enemy_initial_units()
 	# v2設計: マナ上限をユニット総コストで初期化
 	deck_manager.initialize_mana_from_deck()
 	enemy_ai.initialize_mana_from_deck()
@@ -267,6 +270,9 @@ func _start_battle() -> void:
 	# アーティファクト効果適用（ユニット配置後）
 	_apply_artifact_effects_on_units()
 	_add_log("=== バトル開始 (seed: %d) ===" % GameSession.battle_seed)
+	# Phase 4 #0a: WaveMode開始
+	if wave_manager != null:
+		wave_manager.start_wave_mode()
 
 func _apply_battle_config() -> void:
 	var cfg: Dictionary = GameSession.battle_config
@@ -278,7 +284,7 @@ func _apply_battle_config() -> void:
 	enemy_ai.check_interval   = cfg.get("enemy_check_interval", 1.0)
 	var tl: float = cfg.get("time_limit", 60.0)
 	_battle_timer = tl
-	_battle_timer_active = (tl > 0.0) and not dev_mode
+	_battle_timer_active = false  # 制限時間廃止
 	# enemy_atk_scale, enemy_hp_scale: place_unit時にBoardManagerで適用（将来）
 	# mana_max_override: 将来実装
 	# initial_units, summon_race_filter, placement_restriction: 将来実装
@@ -373,7 +379,7 @@ func _place_enemy_initial_units() -> void:
 
 		# 配置実行
 		if row != -1:
-			board_manager.place_unit(1, unit, {"row": row, "col": col})
+			board_manager.place_unit(1, unit, {"row": row, "col": col, "side": 1})
 			print("[Main] 敵初期配置: %s → (%d, %d)" % [unit.unit_name, row, col])
 			placed_count += 1
 			total_cost += float(unit.mana)
@@ -579,8 +585,9 @@ func _process(delta: float) -> void:
 		deck_manager.process_deck(effective_delta, board_manager)
 		enemy_ai.process_ai(effective_delta, board_manager)
 		board_manager.process_combat(effective_delta, base_hp)
-		# Phase A: 呪文手動発動のため自動発動呼び出し削除
-		# spell_slot_system.process_slots() は削除
+		# キャストゲージ更新（speed_scale非適用、リアル時間ベース）
+		if spell_slot_system != null:
+			spell_slot_system.process_slots(delta)
 		if not dev_mode:
 			_check_game_over()
 		# 開発者モード: デッキ表示を更新（サイズ変化時のみ）
@@ -597,6 +604,9 @@ func _process(delta: float) -> void:
 		game_ui.update_ui()
 
 func _check_game_over() -> void:
+	# アニメーション中は勝敗判定をスキップ（二重呼び出し防止）
+	if is_animating:
+		return
 	# 企画通り勝敗条件: 前列・中列全滅 OR 1行全滅
 	var player_front_mid_dead = _check_front_mid_dead(0)
 	var player_row_wiped = _check_any_row_wiped(0)
@@ -616,10 +626,11 @@ func _check_game_over() -> void:
 		_transition_to_result_timer()
 		return
 
-	# 勝利条件
-	if enemy_front_mid_dead or enemy_row_wiped:
+	# 勝利条件（敵が1体も配置されていない場合は判定しない）
+	var enemy_has_units = _count_units(1) > 0
+	if enemy_has_units and (enemy_front_mid_dead or enemy_row_wiped):
 		# Phase 4 #0a: WaveManager経由の勝利処理（通常モード）
-		if wave_manager != null and wave_manager.state == wave_manager.WaveState.COMBAT:
+		if wave_manager != null:
 			_on_battle_victory()
 			return
 
@@ -676,6 +687,17 @@ func _check_any_row_wiped(side: int) -> bool:
 			return true
 
 	return false
+
+func _count_units(side: int) -> int:
+	"""指定サイドのユニット総数を返す"""
+	if not board_manager:
+		return 0
+	var count: int = 0
+	for r in range(3):
+		for c in range(3):
+			if board_manager.board[side][r][c] != null:
+				count += 1
+	return count
 
 func _start_boss_phase2() -> void:
 	"""ボス連戦: 第2戦開始"""
@@ -951,7 +973,7 @@ func _apply_stat_buff_to_units(artifact_name: String, target: String, stat: Stri
 	for side in range(2):
 		for row in range(3):
 			for col in range(3):
-				var unit = board_manager.units[side][row][col]
+				var unit = board_manager.board[side][row][col]
 				if unit == null:
 					continue
 
@@ -1004,8 +1026,19 @@ func _on_draw_cards_requested(side: int, count: int) -> void:
 		else:
 			enemy_ai.force_play_card(board_manager)
 
+func _pick_initial_spells() -> void:
+	var pool: Array = CardDB.INITIAL_SPELL_POOL
+	if pool.is_empty():
+		return
+	var picked: Array = []
+	for i in range(3):
+		var idx: int = randi() % pool.size()
+		picked.append(pool[idx])
+		GameSession.spell_available.append({"name": pool[idx]})
+	print("[Main] 初期呪文ピック: %s" % str(picked))
+
 # RestScreen遷移（Phase 1基盤構築用）
-func start_rest_screen(shop_config: Dictionary = {}, hide_shop: bool = false) -> void:
+func start_rest_screen(shop_config: Dictionary = {}, hide_shop: bool = false, after_wave: bool = false) -> void:
 	# バトルUI全体を非表示
 	board_manager.hide_battle_ui()
 
@@ -1018,10 +1051,12 @@ func start_rest_screen(shop_config: Dictionary = {}, hide_shop: bool = false) ->
 	var RestScreenManagerScript = load("res://scripts/RestScreenManager.gd")
 	var rest_manager = RestScreenManagerScript.new()
 	rest_manager.initialize(GameSession, board_manager, shop_config, hide_shop)
+	if after_wave:
+		rest_manager.trigger_scratch_phase()
 	rest_manager.rest_screen_closed.connect(_on_rest_screen_closed.bind(popup_layer))
 	popup_layer.add_child(rest_manager)
 
-func _on_rest_screen_closed(popup_layer: CanvasLayer) -> void:
+func _on_rest_screen_closed(popup_layer: Control) -> void:
 	print("[Main] RestScreen終了")
 	# バトルUI全体を復元
 	if game_ui:
@@ -1046,7 +1081,33 @@ func _on_rest_screen_closed(popup_layer: CanvasLayer) -> void:
 # Phase 4 #0a: WaveManagerシグナルハンドラ
 func _on_wave_started(big: int, small: int, scale: float) -> void:
 	_add_log("=== Wave %d-%d 開始（敵強化×%.1f）===" % [big, small, scale])
-	await _animate_wave_start()
+	if small == 1:
+		# SW1: 新規バトル開始（DeckPrep直後）
+		_place_enemy_initial_units()
+		await _animate_battle_start(big, small)
+	else:
+		# SW2以降: SW内遷移（cell_rectsリセット → 敵配置 → スライドイン）
+		await _animate_sw_transition(big, small)
+
+func _animate_battle_start(big: int, small: int) -> void:
+	"""バトル新規開始演出: フェードイン → WAVE X-X → 戦闘開始"""
+	is_animating = true
+	await _animate_fade_to_black()
+	_position_enemies_offscreen()
+	await _animate_fade_from_black()
+	await _animate_enemy_slidein()
+	await _show_wave_label(big, small, 1.5)
+	is_animating = false
+
+func _animate_sw_transition(big: int, small: int) -> void:
+	"""SW内遷移演出: cell_rectsリセット → WAVE X-X → 敵スライドイン"""
+	is_animating = true
+	_reset_cell_rects_to_canonical()
+	_place_enemy_initial_units()  # 新敵を board[1] に配置
+	_position_enemies_offscreen()  # 配置後すぐ画面外へ
+	await _show_wave_label(big, small, 1.0)
+	await _animate_enemy_slidein()  # 0.4秒スライドイン
+	is_animating = false
 
 func _on_wave_ended(big: int, small: int, victory: bool) -> void:
 	var result_text: String = "勝利" if victory else "敗北"
@@ -1054,79 +1115,42 @@ func _on_wave_ended(big: int, small: int, victory: bool) -> void:
 
 func _on_intermission_requested(shop_config: Dictionary) -> void:
 	print("[Main] Intermission呼び出し shop_config=%s" % shop_config)
-	start_rest_screen(shop_config)
+	start_rest_screen(shop_config, false, true)
 
 func _on_big_wave_completed(next_act: int) -> void:
-	print("[Main] BW完了、次Act %d へ（Phase 4 未実装）" % next_act)
-	# TODO: 次Act直行（MapSelect経由なし）
+	print("[Main] BW完了、次Act %d へ（Phase 5 で実装予定）" % next_act)
+	# TODO(Phase5): Actクリア演出 → DeckPrep → 次Act SW1バトル
+	# 暫定: 仮にDeckPrepへ直行
+	pass
 
 func _on_battle_victory() -> void:
 	is_animating = true
+	game_over = true  # 戦闘ループ停止
 
-	# Step 1: 敵ユニットスライドアウト
-	await _animate_enemy_slideout()
+	# Step 1: 敵ユニット フェードアウト（0.5秒）
+	await _animate_enemy_fadeout(0.5)
 
-	# Step 2: 自軍前進
-	await _animate_player_advance()
+	# Step 2: VICTORY! 表示（1.5秒）
+	game_over_label.text     = "VICTORY!"
+	game_over_label.modulate = Color(0.3, 1.0, 0.5)
+	game_over_label.visible  = true
+	await get_tree().create_timer(1.5).timeout
+	game_over_label.visible = false
 
-	# 後続のアニメーションは次のステップで実装
-
-	# 最後にWaveManager経由の処理を呼び出す
+	game_over = false  # 遷移処理のためフラグ戻す
 	is_animating = false
 	if wave_manager != null:
 		wave_manager.on_wave_victory()
 
-func _animate_enemy_slideout() -> void:
-	# 敵ユニット（cell_rects[1]）を右方向にスライドアウト
-	# 1体ずつ時間差で実行
-	var delay_per_unit := 0.05  # 1体あたり50msの遅延
-	var slide_duration := 0.3   # スライド所要時間
-	var slide_distance := 200.0 # 右方向への移動距離
-
-	for row in range(3):
-		for col in range(3):
-			var rect = cell_rects[1][row][col]
-			if rect and rect.visible:
-				var tween := create_tween()
-				tween.tween_property(rect, "position:x", rect.position.x + slide_distance, slide_duration)
-				await get_tree().create_timer(delay_per_unit).timeout
-
-	# 全体の完了待機
-	await get_tree().create_timer(slide_duration).timeout
-
-func _animate_player_advance() -> void:
-	# 自軍ユニット（cell_rects[0]）を右方向に少し前進
-	var advance_duration := 0.3   # 前進所要時間
-	var advance_distance := 30.0  # 右方向への移動距離（敵より少ない）
-
-	var tween := create_tween()
-	for row in range(3):
-		for col in range(3):
-			var rect = cell_rects[0][row][col]
-			if rect and rect.visible:
-				tween.parallel().tween_property(rect, "position:x", rect.position.x + advance_distance, advance_duration)
-
+func _animate_enemy_fadeout(duration: float) -> void:
+	"""敵ユニット（cell_rects[1]）をフェードアウト（modulate.aを1→0）"""
+	var tween := create_tween().set_parallel(true)
+	for r in range(3):
+		for c in range(3):
+			var rect = cell_rects[1][r][c]
+			if rect != null and rect.visible:
+				tween.tween_property(rect, "modulate:a", 0.0, duration)
 	await tween.finished
-
-func _animate_wave_start() -> void:
-	is_animating = true
-
-	# Step 1: 暗転
-	await _animate_fade_to_black()
-
-	# Step 2: 暗転中に敵ユニットを画面外に配置
-	_position_enemies_offscreen()
-
-	# Step 3: 暗転明け
-	await _animate_fade_from_black()
-
-	# Step 4: 敵隊列スライドイン
-	await _animate_enemy_slidein()
-
-	# Step 5: 睨み合い
-	await get_tree().create_timer(1.5).timeout
-
-	is_animating = false
 
 func _animate_fade_to_black() -> void:
 	# TODO: 暗転アニメーション（ColorRect使用）
@@ -1148,24 +1172,55 @@ func _position_enemies_offscreen() -> void:
 				rect.position.x = offscreen_x
 
 func _animate_enemy_slidein() -> void:
-	# 敵ユニットを右から1体ずつスライドイン
+	"""敵ユニットを右から1体ずつスライドイン（正規座標: GameUI._cell_x相当）"""
 	var delay_per_unit := 0.1   # 1体あたり100msの遅延
 	var slide_duration := 0.4   # スライド所要時間
-
-	# 元の位置を計算（GameUI.gdの初期配置ロジックから計算）
-	# ここでは簡易的に、敵側の基準位置を使用
-	var base_x := 800.0  # 敵側の基準X座標（GameUI.gdから取得が望ましい）
-	var cell_size := 60.0
-	var gap := 10.0
 
 	for row in range(3):
 		for col in range(3):
 			var rect = cell_rects[1][row][col]
 			if rect and rect.visible:
-				var target_x := base_x + col * (cell_size + gap)
+				# 正規X座標: CENTER_X + GAP/2 + col * CELL_W（敵側side=1）
+				var target_x: int = game_ui._cell_x(1, col) if game_ui != null else (CENTER_X + GAP / 2 + col * CELL_W)
 				var tween := create_tween()
-				tween.tween_property(rect, "position:x", target_x, slide_duration)
+				tween.tween_property(rect, "position:x", float(target_x) + 2.0, slide_duration)
 				await get_tree().create_timer(delay_per_unit).timeout
 
 	# 全体の完了待機
 	await get_tree().create_timer(slide_duration).timeout
+
+func _reset_cell_rects_to_canonical() -> void:
+	"""cell_rects位置・visible・敵盤面を初期状態に戻す（SW遷移バグ修正）"""
+	# 全Tweenをkill（残ったTweenがpositionを書き戻すのを防ぐ）
+	for side in range(2):
+		for r in range(3):
+			for c in range(3):
+				var rect: ColorRect = cell_rects[side][r][c]
+				if rect == null:
+					continue
+				# 進行中Tweenを全停止（GameUI._cell_x()で再計算）
+				var x: int = game_ui._cell_x(side, c) if game_ui != null else 0
+				var y: int = BOARD_TOP + r * CELL_H + 2
+				rect.position = Vector2(x + 2, y)
+				rect.size = Vector2(CELL_W - 4, CELL_H - 4)
+				rect.modulate = Color(1, 1, 1, 1)  # フェードで残った透明度をリセット
+				rect.visible = true
+	# 敵盤面クリア（次SWの敵を新規配置するため）
+	for r in range(3):
+		for c in range(3):
+			board_manager.board[1][r][c] = null
+			board_manager.attack_timers[1][r][c] = 0.0
+	board_manager.on_board_changed()
+
+func _show_wave_label(big: int, small: int, duration: float) -> void:
+	"""WAVE X-X を画面中央に duration 秒表示してフェードアウト"""
+	wave_label.text = "WAVE %d-%d" % [big, small]
+	wave_label.visible = true
+	var fade_in := create_tween()
+	fade_in.tween_property(wave_label, "modulate:a", 1.0, 0.2)
+	await fade_in.finished
+	await get_tree().create_timer(duration - 0.4).timeout
+	var fade_out := create_tween()
+	fade_out.tween_property(wave_label, "modulate:a", 0.0, 0.2)
+	await fade_out.finished
+	wave_label.visible = false

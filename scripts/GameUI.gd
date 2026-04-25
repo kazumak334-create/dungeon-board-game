@@ -19,7 +19,6 @@ var _mana_gauge_label: Label = null       # マナ数値ラベル
 var _pause_button: Button = null          # 一時停止ボタン
 var _speed_buttons: Array = []            # 速度ボタン配列（ハイライト用）
 var _env_label: Label = null              # 環境表示ラベル
-
 func setup(p_main: Node) -> void:
 	add_to_group("game_ui")
 	main = p_main
@@ -165,21 +164,7 @@ func build_ui() -> void:
 
 	# ---- プレイヤー/敵キャラ立絵+HPバー ----
 
-	# 本体HP表示（行突破カウンター）
-	var base_y: int = main.BOARD_TOP + 3 * main.CELL_H + 12
-	main.player_base_label = Label.new()
-	main.player_base_label.position = Vector2(_cell_x(0, 0), base_y)
-	main.player_base_label.add_theme_font_size_override("font_size", 14)
-	main.player_base_label.modulate = Color(0.4, 0.9, 0.4)
-	main.player_base_label.visible = true
-	main.add_child(main.player_base_label)
-
-	main.enemy_base_label = Label.new()
-	main.enemy_base_label.position = Vector2(_cell_x(1, 0), base_y)
-	main.enemy_base_label.add_theme_font_size_override("font_size", 14)
-	main.enemy_base_label.modulate = Color(1.0, 0.45, 0.45)
-	main.enemy_base_label.visible = true
-	main.add_child(main.enemy_base_label)
+	# 本体HP表示は廃止（REQ-A）
 
 	# 盤面セルホバー用ツールチップ
 	main._cell_tooltip_panel = PanelContainer.new()
@@ -248,6 +233,18 @@ func build_ui() -> void:
 	main.game_over_label.visible  = false
 	main.add_child(main.game_over_label)
 
+	# WAVE表示ラベル（バトル開始・SW遷移時に使用）
+	main.wave_label = Label.new()
+	main.wave_label.position = Vector2(0, 230)
+	main.wave_label.size = Vector2(1280, 60)
+	main.wave_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	main.wave_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	main.wave_label.add_theme_font_size_override("font_size", 48)
+	main.wave_label.add_theme_color_override("font_color", Color(1.0, 0.85, 0.3))  # ゴールド系
+	main.wave_label.modulate = Color(1, 1, 1, 0)
+	main.wave_label.visible = false
+	main.add_child(main.wave_label)
+
 # ゲームスピード調整
 	_build_speed_buttons()
 
@@ -307,17 +304,17 @@ func _on_pause_pressed() -> void:
 		_pause_button.text = "▶ 再開" if main.game_paused else "⏸ 一時停止"
 
 func _build_mana_bar() -> void:
-	var bar_y: int = main.BOARD_TOP + 3 * main.CELL_H + 42
-	var bar_x: int = _cell_x(0, 0)
-	var bar_w: int = 220
-	var bar_h: int = 16
+	# ヘッダーエリア（y=46付近）に表示
+	var bar_x: int = 440
+	var bar_y: int = 52
+	var bar_w: int = 360
+	var bar_h: int = 14
 
 	var bar_title := Label.new()
 	bar_title.text     = "Mana"
-	bar_title.position = Vector2(bar_x, bar_y - 18)
-	bar_title.add_theme_font_size_override("font_size", 12)
+	bar_title.position = Vector2(bar_x, bar_y - 16)
+	bar_title.add_theme_font_size_override("font_size", 11)
 	bar_title.modulate = Color(1.0, 0.85, 0.2)
-	bar_title.visible = false  # キューエリアに移動
 	main.add_child(bar_title)
 
 	# ゲージ背景
@@ -325,26 +322,22 @@ func _build_mana_bar() -> void:
 	gauge_bg.size     = Vector2(bar_w, bar_h)
 	gauge_bg.position = Vector2(bar_x, bar_y)
 	gauge_bg.color    = Color(0.1, 0.1, 0.07)
-	gauge_bg.visible = false  # キューエリアに移動
 	main.add_child(gauge_bg)
 
-	# ゲージ前景（互換のため参照は維持するが非表示）
+	# ゲージ前景
 	_mana_gauge_bar = ColorRect.new()
 	_mana_gauge_bar.size     = Vector2(0, bar_h)
 	_mana_gauge_bar.position = Vector2(bar_x, bar_y)
 	_mana_gauge_bar.color    = Color(0.2, 0.5, 1.0)
-	_mana_gauge_bar.visible = false  # キューエリアに移動
 	main.add_child(_mana_gauge_bar)
 
-	# 数値ラベル（互換のため参照は維持するが非表示）
+	# 数値ラベル
 	_mana_gauge_label = Label.new()
 	_mana_gauge_label.position = Vector2(bar_x + bar_w + 8, bar_y - 1)
-	_mana_gauge_label.add_theme_font_size_override("font_size", 13)
+	_mana_gauge_label.add_theme_font_size_override("font_size", 12)
 	_mana_gauge_label.modulate = Color(1.0, 0.9, 0.3)
-	_mana_gauge_label.visible = false  # キューエリアに移動
 	main.add_child(_mana_gauge_label)
 
-	# 互換用（参照先が壊れないよう空配列を設定）
 	main.mana_bar_cells = []
 	main.mana_value_label = _mana_gauge_label
 
@@ -493,14 +486,13 @@ func render_cell(side: int, r: int, c: int) -> void:
 
 
 func update_base_hp() -> void:
-	main.player_base_label.text = "自陣 本体HP: %d / 30" % main.base_hp[0]
-	main.enemy_base_label.text  = "敵陣 本体HP: %d / 30" % main.base_hp[1]
+	pass  # REQ-A: 本体HP廃止
 
 func _update_mana() -> void:
 	var mana: float = main.deck_manager.mana
 	var mana_max: float = main.deck_manager.MANA_MAX
 	var ratio: float = clamp(mana / max(1.0, mana_max), 0.0, 1.0)
-	var bar_w: int = 220
+	var bar_w: int = 360
 	if _mana_gauge_bar != null:
 		_mana_gauge_bar.size.x = int(bar_w * ratio)
 		var gauge_color: Color = Color(0.2, 0.5, 1.0).lerp(Color(1.0, 0.85, 0.1), ratio)
@@ -558,6 +550,9 @@ func update_battle_timer(remaining: float, delta: float = 0.016) -> void:
 func _on_wave_started(big_wave: int, small_wave: int, scale: float) -> void:
 	if main._progress_bar != null:
 		main._progress_bar.update_progress(big_wave, small_wave)
+	if main.spell_slot_system != null:
+		main.spell_slot_system.draw_to_fill_slots()
+		_queue.update_spell_slots()
 
 func _on_intermission_requested(shop_config: Dictionary) -> void:
 	if main._progress_bar != null:
