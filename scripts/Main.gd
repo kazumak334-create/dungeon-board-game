@@ -1050,11 +1050,29 @@ func start_rest_screen(shop_config: Dictionary = {}, hide_shop: bool = false, af
 	# RestScreenManager
 	var RestScreenManagerScript = load("res://scripts/RestScreenManager.gd")
 	var rest_manager = RestScreenManagerScript.new()
-	rest_manager.initialize(GameSession, board_manager, shop_config, hide_shop)
+	rest_manager.initialize(GameSession, board_manager, shop_config, hide_shop, wave_manager)
 	if after_wave:
 		rest_manager.trigger_scratch_phase()
 	rest_manager.rest_screen_closed.connect(_on_rest_screen_closed.bind(popup_layer))
 	popup_layer.add_child(rest_manager)
+
+	# Qスロット シグナルワイヤリング（疎結合: EnemyPanelManager ↔ SpellSlotSystem）
+	# REQ-QPA-11b: Main.gd がブリッジ役
+	if rest_manager._enemy_panel != null and spell_slot_system != null:
+		rest_manager._enemy_panel.phase_actions_ready.connect(
+			func(actions: Array): spell_slot_system.set_phase_actions(actions)
+		)
+		spell_slot_system.slot_action_triggered.connect(
+			func(_slot_idx: int, action_id: String):
+				rest_manager._enemy_panel.execute_action(action_id)
+		)
+		print("[Main] Qスロットワイヤリング完了")
+	else:
+		print("[Main] Qスロットワイヤリング: enemy_panel または spell_slot_system が null")
+
+	# REQ-QPA-02: バトル終了→RestScreen開始時にスロット表示をクリア
+	if spell_slot_system != null:
+		spell_slot_system.clear_spell_display()
 
 func _on_rest_screen_closed(popup_layer: Control) -> void:
 	print("[Main] RestScreen終了")
@@ -1069,6 +1087,10 @@ func _on_rest_screen_closed(popup_layer: Control) -> void:
 	# CanvasLayerを削除
 	if popup_layer:
 		popup_layer.queue_free()
+
+	# REQ-QPA-02: バトル開始時に呪文スロットをBATTLEモードへ復帰
+	if spell_slot_system != null:
+		spell_slot_system.restore_battle_mode()
 
 	# 初回デッキ編集の場合はバトル開始、通常の休憩の場合は次Wave開始
 	if not game_started:

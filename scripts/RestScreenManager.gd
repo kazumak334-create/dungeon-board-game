@@ -10,9 +10,9 @@ const UIColors = preload("res://scripts/ui/UIColors.gd")
 # 座標定義
 const LAYOUT = {
 	"header": {"x": 0, "y": 0, "w": 1280, "h": 36},
-	"card_list": {"x": 0, "y": 36, "w": 200, "h": 684},
-	"card_detail": {"x": 1080, "y": 36, "w": 200, "h": 684},
-	"footer": {"x": 200, "y": 680, "w": 780, "h": 40}
+	"card_list": {"x": 0, "y": 36, "w": 230, "h": 684},
+	"card_detail": {"x": 1048, "y": 36, "w": 232, "h": 684},
+	"footer": {"x": 230, "y": 680, "w": 820, "h": 40}
 }
 
 const CARD_MINI = {"w": 60, "h": 95}  # 小カードサイズ
@@ -102,12 +102,7 @@ func build_ui() -> void:
 	if board_manager:
 		board_manager.enable_rest_mode()
 
-	# 3.5. ショップ盤面（hide_shop=trueの場合は非表示）
-	if not _hide_shop:
-		shop = preload("res://scripts/RestScreenShop.gd").new()
-		add_child(shop)
-		shop.initialize(game_session, ui_root, _shop_config)
-		shop.purchase_completed.connect(_on_shop_purchase_completed)
+	# 3.5. ショップ盤面はEnemyPanelManager（敵陣9マス）で担当するため、ここでは生成しない
 
 	# 3.6. ユニット復帰
 	revive = preload("res://scripts/RestScreenRevive.gd").new()
@@ -190,63 +185,46 @@ func build_ui() -> void:
 	_enemy_panel.game_session = game_session
 	_enemy_panel.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	add_child(_enemy_panel)
-	_enemy_panel.set_phase(EnemyPanelManager.EnemyPanelPhase.NEXT_EI)
+	_enemy_panel.ready_to_battle.connect(_on_ready_to_battle)
+	_enemy_panel.set_phase(EnemyPanelManager.EnemyPanelPhase.NEXT_EI, {"show_ready_button": not _hide_shop})
 
 	# 7. フッター（次へ/スキップボタン）
 	var footer = create_footer()
 	ui_root.add_child(footer)
 
-	# 8. マナ表示ラベル（フッター左端付近）
+	# 8. マナ表示ラベル（左パネル下部・フッターボタンと重ならないようx=5）
 	_mana_label_unit = Label.new()
-	_mana_label_unit.set_position(Vector2(LAYOUT.footer.x + 5, LAYOUT.footer.y))
-	_mana_label_unit.set_size(Vector2(160, 20))
-	_mana_label_unit.add_theme_font_size_override("font_size", 12)
-	_mana_label_unit.add_theme_color_override("font_color", Color(0.4, 0.7, 1.0))
+	_mana_label_unit.set_position(Vector2(5, LAYOUT.footer.y + 2))
+	_mana_label_unit.set_size(Vector2(220, 20))
+	_mana_label_unit.add_theme_font_size_override("font_size", 14)
+	_mana_label_unit.add_theme_color_override("font_color", Color(0.4, 0.85, 1.0))
 	ui_root.add_child(_mana_label_unit)
 
 	_mana_label_spell = Label.new()
-	_mana_label_spell.set_position(Vector2(LAYOUT.footer.x + 5, LAYOUT.footer.y + 20))
-	_mana_label_spell.set_size(Vector2(160, 20))
-	_mana_label_spell.add_theme_font_size_override("font_size", 12)
-	_mana_label_spell.add_theme_color_override("font_color", Color(0.7, 0.5, 1.0))
+	_mana_label_spell.set_position(Vector2(5, LAYOUT.footer.y + 22))
+	_mana_label_spell.set_size(Vector2(220, 20))
+	_mana_label_spell.add_theme_font_size_override("font_size", 14)
+	_mana_label_spell.add_theme_color_override("font_color", Color(0.9, 0.6, 1.0))
 	ui_root.add_child(_mana_label_spell)
 
 	_refresh_mana_labels()
 
-# フッター作成
+# フッター作成（REQ-QPA-07: 次へ進む/スキップボタン廃止。error_label のみ残す）
 func create_footer() -> HBoxContainer:
 	var footer = HBoxContainer.new()
 	footer.set_position(Vector2(LAYOUT.footer.x, LAYOUT.footer.y))
 	footer.set_size(Vector2(LAYOUT.footer.w, LAYOUT.footer.h))
 
-	var next_button = Button.new()
-	next_button.text = "次へ進む"
-	next_button.pressed.connect(on_next_button_clicked)
-	footer.add_child(next_button)
-
-	var skip_button = Button.new()
-	skip_button.text = "スキップ"
-	skip_button.pressed.connect(on_skip_button_clicked)
-	footer.add_child(skip_button)
-
-	# エラーラベル追加
+	# エラーラベル（バリデーション表示用として残す）
 	error_label = Label.new()
 	error_label.text = ""
 	error_label.add_theme_color_override("font_color", Color(0.8, 0.2, 0.2))
-	error_label.set_position(Vector2(200, 0))
+	error_label.set_position(Vector2(4, 0))
 	footer.add_child(error_label)
 
 	return footer
 
-# 次へ進むボタン処理
-func on_next_button_clicked() -> void:
-	# 最低1枚配置チェック（0マス配置では進行不可）
-	if not _has_at_least_one_unit():
-		_show_validation_error("最低1枚は配置してください")
-		return
-	_transition_to_next_wave()
-
-# 最低1枚配置チェック
+# 最低1枚配置チェック（NEXT_EI Q1「出撃」の押下可否判定に流用）
 func _has_at_least_one_unit() -> bool:
 	if not board_manager:
 		return false
@@ -256,11 +234,6 @@ func _has_at_least_one_unit() -> bool:
 			if unit != null:
 				return true
 	return false
-
-# スキップボタン処理
-func on_skip_button_clicked() -> void:
-	print("[RestScreenManager] スキップ（バリデーション省略）")
-	_transition_to_next_wave()
 
 # タブ切り替えハンドラ
 func _on_tab_changed(tab: int) -> void:
@@ -286,6 +259,7 @@ func build_hand_area() -> void:
 		var tab_bar = TabBar.new()
 		tab_bar.add_tab("ユニット")
 		tab_bar.add_tab("呪文")
+		tab_bar.add_tab("素材")
 		tab_bar.current_tab = _tab_index
 		tab_bar.tab_changed.connect(_on_tab_changed)
 		# TabBarをScrollContainerの親(card_list_bar)に追加
@@ -300,6 +274,7 @@ func build_hand_area() -> void:
 
 	# タブに応じてコンテンツを切り替え
 	if _tab_index == 0:
+		hand_area.columns = 3
 		# ユニットタブ: 従来の手持ちカード表示
 		var deck: Array = game_session.selected_deck
 		for i in range(deck.size()):
@@ -331,24 +306,9 @@ func build_hand_area() -> void:
 				hand_area.add_child(card_view)
 
 		print("[RestScreenManager] 手持ちカード %d枚 + 死亡ユニット %d体表示" % [deck.size(), revive.revivable_units.size() if revive else 0])
-	else:
-		# 呪文タブ（REQ-6b）
-		# マナ制約表示ラベル
-		var mana_constraint_label = Label.new()
-		var spell_mana_disp: int = _calc_spell_deck_mana()
-		var board_mana_disp: int = _calc_board_mana()
-		mana_constraint_label.text = "呪文Mana: %d / 盤面Mana: %d" % [spell_mana_disp, board_mana_disp]
-		mana_constraint_label.add_theme_font_size_override("font_size", 11)
-		mana_constraint_label.add_theme_color_override("font_color", Color(0.7, 0.5, 1.0))
-		hand_area.add_child(mana_constraint_label)
-
-		# ── 入手済み呪文 ──
-		var avail_section_label = Label.new()
-		avail_section_label.text = "── 入手済み呪文 ──"
-		avail_section_label.add_theme_font_size_override("font_size", 11)
-		avail_section_label.add_theme_color_override("font_color", Color(0.8, 0.8, 0.8))
-		hand_area.add_child(avail_section_label)
-
+	elif _tab_index == 1:
+		# 呪文タブ: 3列グリッドで入手済み呪文を表示
+		hand_area.columns = 3
 		if game_session.spell_available.is_empty():
 			var no_spell_label = Label.new()
 			no_spell_label.text = "入手済み呪文なし"
@@ -356,59 +316,139 @@ func build_hand_area() -> void:
 			no_spell_label.add_theme_color_override("font_color", Color(0.5, 0.5, 0.5))
 			hand_area.add_child(no_spell_label)
 		else:
-			var avail_scroll = ScrollContainer.new()
-			avail_scroll.set_custom_minimum_size(Vector2(0, 120))
-			hand_area.add_child(avail_scroll)
-			var avail_flow = HFlowContainer.new()
-			avail_flow.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-			avail_scroll.add_child(avail_flow)
-			for spell_name in game_session.spell_available:
-				var spell_data: Dictionary = {}
-				if CardDB.SPELLS.has(spell_name):
-					spell_data = CardDB.SPELLS[spell_name]
-				var card_view = create_card_view(spell_data, spell_name, -1)
-				# ダブルクリック検知
+			for spell_entry in game_session.spell_available:
+				var spell_name: String = spell_entry.get("name", "") if spell_entry is Dictionary else str(spell_entry)
+				var spell_data: Dictionary = CardDB.SPELLS.get(spell_name, {})
+				var spell_card = _create_spell_mini_card(spell_name, spell_data)
+				# デッキ内ならゴールドボーダーで強調
+				if game_session.spell_deck.has(spell_name):
+					var hl_style = StyleBoxFlat.new()
+					hl_style.bg_color = Color(0.10, 0.12, 0.22)
+					hl_style.border_color = Color(1.0, 0.85, 0.1)
+					hl_style.set_border_width_all(3)
+					spell_card.add_theme_stylebox_override("panel", hl_style)
 				var captured_name = spell_name
-				card_view.gui_input.connect(func(event: InputEvent):
+				spell_card.gui_input.connect(func(event: InputEvent):
 					if event is InputEventMouseButton and event.double_click and event.button_index == MOUSE_BUTTON_LEFT:
 						_on_spell_available_double_click(captured_name)
+					elif event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_RIGHT and event.pressed:
+						var di: int = game_session.spell_deck.find(captured_name)
+						if di >= 0:
+							_on_spell_deck_right_click(di)
 				)
-				avail_flow.add_child(card_view)
+				hand_area.add_child(spell_card)
+		print("[RestScreenManager] 呪文タブ表示（3列）")
 
-		# ── 選択済み呪文デッキ ──
-		var deck_section_label = Label.new()
-		deck_section_label.text = "選択済み呪文デッキ"
-		deck_section_label.add_theme_font_size_override("font_size", 11)
-		deck_section_label.add_theme_color_override("font_color", Color(0.8, 0.8, 0.8))
-		hand_area.add_child(deck_section_label)
-
-		if game_session.spell_deck.is_empty():
-			var no_deck_label = Label.new()
-			no_deck_label.text = "なし"
-			no_deck_label.add_theme_font_size_override("font_size", 10)
-			no_deck_label.add_theme_color_override("font_color", Color(0.5, 0.5, 0.5))
-			hand_area.add_child(no_deck_label)
+	else:
+		# 素材タブ: 5列グリッドで素材アイコン表示
+		hand_area.columns = 5
+		var materials: Dictionary = GameSession.materials if GameSession else {}
+		if materials.is_empty():
+			var no_mat = Label.new()
+			no_mat.text = "素材なし\n（敵を倒すと\n自動取得）"
+			no_mat.add_theme_font_size_override("font_size", 10)
+			no_mat.add_theme_color_override("font_color", Color(0.5, 0.5, 0.5))
+			hand_area.add_child(no_mat)
 		else:
-			var deck_scroll = ScrollContainer.new()
-			deck_scroll.set_custom_minimum_size(Vector2(0, 120))
-			hand_area.add_child(deck_scroll)
-			var deck_flow = HFlowContainer.new()
-			deck_flow.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-			deck_scroll.add_child(deck_flow)
-			for di in range(game_session.spell_deck.size()):
-				var spell_name_d = game_session.spell_deck[di]
-				var spell_data_d: Dictionary = {}
-				if CardDB.SPELLS.has(spell_name_d):
-					spell_data_d = CardDB.SPELLS[spell_name_d]
-				var card_view_d = create_card_view(spell_data_d, spell_name_d, -1)
-				var captured_index = di
-				card_view_d.gui_input.connect(func(event: InputEvent):
-					if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_RIGHT and event.pressed:
-						_on_spell_deck_right_click(captured_index)
-				)
-				deck_flow.add_child(card_view_d)
+			for mat_id in materials.keys():
+				var mat_count: int = materials[mat_id]
+				var mat_cell = _create_material_cell(mat_id, mat_count)
+				hand_area.add_child(mat_cell)
+		print("[RestScreenManager] 素材タブ表示")
 
-		print("[RestScreenManager] 呪文タブ表示（REQ-6b）")
+# 呪文ミニカード作成（3列用）
+func _create_spell_mini_card(spell_name: String, spell_data: Dictionary) -> Control:
+	var card_panel = Panel.new()
+	card_panel.set_custom_minimum_size(Vector2(CARD_MINI.w, CARD_MINI.h))
+
+	var rarity: String = spell_data.get("rarity", "common")
+	var style = StyleBoxFlat.new()
+	match rarity:
+		"uncommon": style.bg_color = Color(0.10, 0.12, 0.22)
+		"rare":     style.bg_color = Color(0.08, 0.10, 0.28)
+		"epic":     style.bg_color = Color(0.18, 0.08, 0.28)
+		_:          style.bg_color = Color(0.12, 0.10, 0.22)
+	style.border_color = Color(0.5, 0.4, 0.8)
+	style.set_border_width_all(1)
+	card_panel.add_theme_stylebox_override("panel", style)
+
+	# 呪文名
+	var name_lbl = Label.new()
+	name_lbl.text = spell_name
+	name_lbl.set_position(Vector2(2, 2))
+	name_lbl.set_size(Vector2(56, 30))
+	name_lbl.add_theme_font_size_override("font_size", 9)
+	name_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD
+	name_lbl.add_theme_color_override("font_color", Color(0.85, 0.7, 1.0))
+	card_panel.add_child(name_lbl)
+
+	# 「呪文」タグ
+	var type_lbl = Label.new()
+	type_lbl.text = "呪文"
+	type_lbl.set_position(Vector2(2, 34))
+	type_lbl.add_theme_font_size_override("font_size", 8)
+	type_lbl.add_theme_color_override("font_color", Color(0.6, 0.5, 0.9))
+	card_panel.add_child(type_lbl)
+
+	# コスト
+	var cost: int = spell_data.get("mana_cost", spell_data.get("cost", 0))
+	var cost_lbl = Label.new()
+	cost_lbl.text = "コスト:%d" % cost
+	cost_lbl.set_position(Vector2(2, 48))
+	cost_lbl.add_theme_font_size_override("font_size", 8)
+	cost_lbl.add_theme_color_override("font_color", Color(0.4, 0.7, 1.0))
+	card_panel.add_child(cost_lbl)
+
+	# デッキ内フラグ
+	if game_session and game_session.spell_deck.has(spell_name):
+		var in_deck_lbl = Label.new()
+		in_deck_lbl.text = "★デッキ"
+		in_deck_lbl.set_position(Vector2(2, 72))
+		in_deck_lbl.add_theme_font_size_override("font_size", 8)
+		in_deck_lbl.add_theme_color_override("font_color", Color(1.0, 0.85, 0.1))
+		card_panel.add_child(in_deck_lbl)
+
+	return card_panel
+
+# 素材セル作成（5列グリッド用・正方形アイコン）
+func _create_material_cell(mat_id: String, count: int) -> Control:
+	var ICON_SIZE = 44
+	var cell = Panel.new()
+	cell.set_custom_minimum_size(Vector2(ICON_SIZE, ICON_SIZE))
+
+	var style = StyleBoxFlat.new()
+	style.bg_color = Color(0.12, 0.10, 0.08)
+	style.border_color = Color(0.6, 0.5, 0.3)
+	style.set_border_width_all(1)
+	style.corner_radius_top_left = 4
+	style.corner_radius_top_right = 4
+	style.corner_radius_bottom_left = 4
+	style.corner_radius_bottom_right = 4
+	cell.add_theme_stylebox_override("panel", style)
+
+	# 素材名（短縮）
+	var id_short: String = mat_id.substr(0, 6) if mat_id.length() > 6 else mat_id
+	var name_lbl = Label.new()
+	name_lbl.text = id_short
+	name_lbl.set_position(Vector2(2, 4))
+	name_lbl.set_size(Vector2(ICON_SIZE - 4, 20))
+	name_lbl.add_theme_font_size_override("font_size", 8)
+	name_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	name_lbl.add_theme_color_override("font_color", Color(0.9, 0.8, 0.6))
+	name_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD
+	cell.add_child(name_lbl)
+
+	# 個数
+	var count_lbl = Label.new()
+	count_lbl.text = "×%d" % count
+	count_lbl.set_position(Vector2(2, 28))
+	count_lbl.set_size(Vector2(ICON_SIZE - 4, 14))
+	count_lbl.add_theme_font_size_override("font_size", 9)
+	count_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	count_lbl.add_theme_color_override("font_color", Color(1.0, 0.9, 0.5))
+	cell.add_child(count_lbl)
+
+	return cell
 
 # CardView作成（小カード表示）
 func create_card_view(card_data_dict: Dictionary, card_name: String, index: int = -1) -> Control:
@@ -607,6 +647,10 @@ func _clear_card_detail() -> void:
 		return
 	for child in card_detail_container.get_children():
 		child.queue_free()
+
+func _on_ready_to_battle() -> void:
+	rest_screen_closed.emit()
+	cleanup()
 
 # バトル終了後にSCRATCHフェーズへ切り替える（外部から呼び出し）
 func trigger_scratch_phase() -> void:
@@ -911,9 +955,9 @@ func _refresh_mana_labels() -> void:
 	var spell_mana: int = _calc_spell_deck_mana()
 
 	if _mana_label_unit:
-		_mana_label_unit.text = "盤面Mana: %d" % unit_mana
+		_mana_label_unit.text = "⚡ 盤面マナ: %d" % unit_mana
 	if _mana_label_spell:
-		_mana_label_spell.text = "呪文Mana: %d" % spell_mana
+		_mana_label_spell.text = "✨ 呪文マナ合計: %d" % spell_mana
 
 # ---- 呪文デッキ編成（REQ-6c） ----
 

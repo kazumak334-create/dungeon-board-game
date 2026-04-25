@@ -85,6 +85,15 @@ var wave_unit_states: Array = []       # 各ユニットの状態 [{row, col, un
 var wave_dead_units: Array = []        # BW中に死亡したユニット記録 [{unit_name, rarity, death_wave, initial_slot}, ...]
 var wave_rest_pending: bool = false    # 次の遷移先がRestScreenかどうか
 
+# フェーズアクション状態管理（REQ-QPA-11）
+var shop_reroll_count: int = 0          # 現ショップ内リロール回数
+var shop_negotiated: bool = false       # 現ショップで交渉済みか
+var next_shop_rarity_penalty: bool = false  # 次回ショップのレア度ペナルティフラグ
+var scratch_peeked: Array = []          # 覗き見済みインデックス
+var scratch_sacrificed_index: int = -1  # 強欲犠牲マスインデックス
+var scratch_action_used: String = ""    # 使用済みSCRATCHアクション ID
+var scout_use_count: int = 0            # 同一NEXT_EIフェーズ内の偵察回数
+
 # Godモードフラグ（デバッグUI専用）
 var god_mode_invincible: bool = false     # 無敵モード
 var god_mode_infinite_mana: bool = false  # マナ無限
@@ -155,6 +164,14 @@ func reset() -> void:
 	wave_unit_states = []
 	wave_dead_units = []
 	wave_rest_pending = false
+	# フェーズアクション状態リセット
+	shop_reroll_count = 0
+	shop_negotiated = false
+	next_shop_rarity_penalty = false
+	scratch_peeked = []
+	scratch_sacrificed_index = -1
+	scratch_action_used = ""
+	scout_use_count = 0
 	# Godモードフラグはreset時にクリア
 	god_mode_invincible = false
 	god_mode_infinite_mana = false

@@ -13,6 +13,10 @@ var _overlay = null  # GameUIOverlayへの参照（デッキカウント更新�
 # 呪文スロットUI（Q1/Q2/Q3に配置）
 var _spell_slot_panels: Array = []  # 3スロット分のUIノード辞書配列
 
+# D&D状態管理
+var _drag_slot: int = -1
+var _is_dragging: bool = false
+
 # Phase A: 呪文スロット色定義
 const COLOR_SLOT_EMPTY       = Color(0.08, 0.10, 0.14, 0.8)
 const COLOR_SLOT_LOADED_OFF  = Color(0.12, 0.15, 0.22)
@@ -226,13 +230,36 @@ func _build_one_spell_slot(slot_index: int, sx: float, sy: float, sw: float, sh:
 	status_lbl.add_theme_color_override("font_color", COLOR_LABEL_DISABLED)
 	main.add_child(status_lbl)
 
+	# 合成レベルバッジ（右上）
+	var synth_badge := Label.new()
+	synth_badge.position = Vector2(sx + sw - 36, sy + 4)
+	synth_badge.size = Vector2(34, 16)
+	synth_badge.add_theme_font_size_override("font_size", 11)
+	synth_badge.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	synth_badge.add_theme_color_override("font_color", Color(1.0, 0.85, 0.2))
+	synth_badge.visible = false
+	main.add_child(synth_badge)
+
+	# 範囲バリアントラベル（下部）
+	var range_lbl := Label.new()
+	range_lbl.position = Vector2(sx + 5, sy + sh - 18)
+	range_lbl.size = Vector2(sw - 10, 16)
+	range_lbl.add_theme_font_size_override("font_size", 9)
+	range_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	range_lbl.add_theme_color_override("font_color", Color(0.9, 0.6, 0.2))
+	range_lbl.visible = false
+	main.add_child(range_lbl)
+
 	_spell_slot_panels.append({
 		"panel": panel,
 		"glow_rect": glow_rect,
+		"header_lbl": header_lbl,
 		"name_lbl": name_lbl,
 		"cond_lbl": cond_lbl,
 		"cost_lbl": cost_lbl,
 		"status_lbl": status_lbl,
+		"synth_badge": synth_badge,
+		"range_lbl": range_lbl,
 		"base_x": sx,
 		"tween": null,
 		"gauge_bg": gauge_bg,
@@ -240,27 +267,108 @@ func _build_one_spell_slot(slot_index: int, sx: float, sy: float, sw: float, sh:
 	})
 
 func _on_spell_slot_input(event: InputEvent, slot_index: int) -> void:
-	"""呪文スロット入力処理（左クリック発動・右クリック破棄）"""
-	if not (event is InputEventMouseButton and event.pressed):
-		return
+	"""呪文スロット入力処理（左クリック発動・右クリック破棄・D&D合成）"""
 	if main.spell_slot_system == null:
 		return
-	if event.button_index == MOUSE_BUTTON_LEFT:
-		if main.spell_slot_system.cast_spell(slot_index):
-			print("[SpellSlotUI] スロット%d発動成功" % slot_index)
+
+	# PHASE_ACTIONモード: 左クリックのみ有効（右クリック・D&Dは無効）
+	if main.spell_slot_system.mode == main.spell_slot_system.SlotMode.PHASE_ACTION:
+		if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
+			if main.spell_slot_system.cast_action(slot_index):
+				update_spell_slots()
+			else:
+				print("[SpellSlotUI] フェーズアクション%d: 押下不可" % slot_index)
+		return  # D&D・右クリックを無効化
+
+	if event is InputEventMouseButton:
+		if event.button_index == MOUSE_BUTTON_LEFT:
+			if event.pressed:
+				_drag_slot = slot_index
+				_is_dragging = false
+			else:
+				if _is_dragging and _drag_slot >= 0:
+					# D&D終了: ドロップ先スロットを検出して合成試行
+					var drop = _get_slot_at_global(main.get_global_mouse_position())
+					if drop >= 0 and drop != _drag_slot:
+						_try_synthesize(_drag_slot, drop)
+					_reset_all_highlights()
+				elif _drag_slot == slot_index and not _is_dragging:
+					# 通常クリック → キャスト
+					if main.spell_slot_system.cast_spell(slot_index):
+						print("[SpellSlotUI] スロット%d発動成功" % slot_index)
+						update_spell_slots()
+					else:
+						var reason = main.spell_slot_system.get_cast_block_reason(slot_index)
+						print("[SpellSlotUI] スロット%d発動失敗: %s" % [slot_index, reason])
+				_drag_slot = -1
+				_is_dragging = false
+
+		elif event.button_index == MOUSE_BUTTON_RIGHT and event.pressed:
+			if main.spell_slot_system.discard_slot(slot_index):
+				print("[SpellSlotUI] スロット%d破棄" % slot_index)
+				update_spell_slots()
+
+	elif event is InputEventMouseMotion and _drag_slot == slot_index:
+		if not _is_dragging:
+			_is_dragging = true
+		# ホバー中のスロットをハイライト
+		var hover = _get_slot_at_global(main.get_global_mouse_position())
+		_update_synth_highlights(_drag_slot, hover)
+
+func _get_slot_at_global(gpos: Vector2) -> int:
+	for i in range(_spell_slot_panels.size()):
+		var panel: ColorRect = _spell_slot_panels[i]["panel"]
+		if Rect2(panel.global_position, panel.size).has_point(gpos):
+			return i
+	return -1
+
+func _try_synthesize(from: int, to: int) -> void:
+	var sys = main.spell_slot_system
+	if sys.can_synthesize(from, to):
+		if sys.synthesize(from, to):
+			print("[SpellSlotUI] 合成成功: %d → %d" % [from, to])
 			update_spell_slots()
+	else:
+		var reason = sys.get_synth_reason(from, to)
+		print("[SpellSlotUI] 合成不可: %s" % reason)
+
+func _update_synth_highlights(drag_src: int, hover_tgt: int) -> void:
+	var sys = main.spell_slot_system
+	for i in range(_spell_slot_panels.size()):
+		if i == drag_src:
+			continue
+		var panel: ColorRect = _spell_slot_panels[i]["panel"]
+		if i == hover_tgt and hover_tgt >= 0:
+			if sys.can_synthesize(drag_src, i):
+				panel.color = Color(0.1, 0.35, 0.15)  # 緑: 合成可
+			else:
+				panel.color = Color(0.35, 0.1, 0.1)   # 赤: 合成不可
 		else:
-			var reason = main.spell_slot_system.get_cast_block_reason(slot_index)
-			print("[SpellSlotUI] スロット%d発動失敗: %s" % [slot_index, reason])
-	elif event.button_index == MOUSE_BUTTON_RIGHT:
-		if main.spell_slot_system.discard_slot(slot_index):
-			print("[SpellSlotUI] スロット%d破棄" % slot_index)
-			update_spell_slots()
+			# 通常色に戻す（spell有無で判定）
+			var slot = sys.slots[i]
+			panel.color = COLOR_SLOT_LOADED_OFF if slot["spell"] != null else COLOR_SLOT_EMPTY
+
+func _reset_all_highlights() -> void:
+	if main.spell_slot_system == null:
+		return
+	for i in range(_spell_slot_panels.size()):
+		var panel: ColorRect = _spell_slot_panels[i]["panel"]
+		var slot = main.spell_slot_system.slots[i]
+		if slot["spell"] != null:
+			panel.color = COLOR_SLOT_READY_BG if main.spell_slot_system.can_cast(i) else COLOR_SLOT_LOADED_OFF
+		else:
+			panel.color = COLOR_SLOT_EMPTY
 
 func update_spell_slots() -> void:
 	"""呪文スロット表示更新（毎フレームまたはシグナルで呼ぶ）"""
 	if main.spell_slot_system == null:
 		return
+
+	# フェーズアクションモードの場合は専用更新
+	if main.spell_slot_system.mode == main.spell_slot_system.SlotMode.PHASE_ACTION:
+		_update_phase_action_slots()
+		return
+
 	var slots = main.spell_slot_system.slots
 	for i in range(3):
 		if i >= _spell_slot_panels.size():
@@ -268,10 +376,19 @@ func update_spell_slots() -> void:
 		var sd = _spell_slot_panels[i]
 		var panel: ColorRect = sd["panel"]
 		var glow_rect: ColorRect = sd["glow_rect"]
+		var header_lbl: Label = sd["header_lbl"]
 		var name_lbl: Label = sd["name_lbl"]
 		var cond_lbl: Label = sd["cond_lbl"]
 		var cost_lbl: Label = sd["cost_lbl"]
 		var status_lbl: Label = sd["status_lbl"]
+
+		var synth_badge: Label = sd["synth_badge"]
+		var range_lbl:   Label = sd["range_lbl"]
+
+		# BATTLEモードのヘッダー: 緑系
+		header_lbl.add_theme_color_override("font_color", Color(0.5, 0.7, 0.5))
+		var slot_labels: Array = ["Q1 (前列)", "Q2 (中列)", "Q3 (後列)"]
+		header_lbl.text = slot_labels[i]
 
 		if slots[i]["spell"] == null:
 			# 空スロット
@@ -282,16 +399,34 @@ func update_spell_slots() -> void:
 			cond_lbl.text = ""
 			cost_lbl.text = ""
 			status_lbl.text = ""
+			synth_badge.visible = false
+			range_lbl.visible = false
 			_stop_pulse(i)
 		else:
-			var spell = slots[i]["spell"]
-			var cond_display = main.spell_slot_system.get_condition_display_name(slots[i]["condition"])
+			var slot = slots[i]
+			var spell = slot["spell"]
+			var cond_display = main.spell_slot_system.get_condition_display_name(slot["condition"])
 			var can_cast: bool = main.spell_slot_system.can_cast(i)
 			var reason: String = main.spell_slot_system.get_cast_block_reason(i)
+			var synth_lv: int  = slot.get("synth_level", 1)
 
 			name_lbl.text = spell.unit_name
 			cond_lbl.text = "[%s]" % cond_display
-			cost_lbl.text = "コスト: %d" % slots[i]["mana_cost"]
+			cost_lbl.text = "コスト: %d" % slot["mana_cost"]
+
+			# 合成バッジ
+			if synth_lv > 1:
+				synth_badge.text = "Lv%d" % synth_lv
+				synth_badge.visible = true
+				var rv: String = slot.get("range_variant", "default")
+				if rv != "default":
+					range_lbl.text = main.spell_slot_system.RANGE_DISPLAY.get(rv, "")
+					range_lbl.visible = true
+				else:
+					range_lbl.visible = false
+			else:
+				synth_badge.visible = false
+				range_lbl.visible = false
 
 			if can_cast:
 				panel.color = COLOR_SLOT_READY_BG
@@ -312,6 +447,8 @@ func update_spell_slots() -> void:
 					status_lbl.text = "× マナ不足"
 				elif reason == "condition":
 					status_lbl.text = "× 条件未達"
+				elif reason == "cooldown":
+					status_lbl.text = "⏳ CD中"
 				else:
 					status_lbl.text = ""
 				status_lbl.add_theme_color_override("font_color", COLOR_LABEL_DISABLED)
@@ -325,6 +462,96 @@ func update_spell_slots() -> void:
 		gauge_fill.size.x = sd["gauge_bg"].size.x * ratio
 		# 満タンならシアン、進行中はやや暗め
 		gauge_fill.color = Color(0.4, 0.7, 1.0) if ratio >= 1.0 else Color(0.3, 0.5, 0.8)
+
+# ---- フェーズアクションモード表示（REQ-QPA-08） ----
+
+# フェーズ名→ヘッダー色マッピング
+const PHASE_HEADER_COLORS: Dictionary = {
+	"SCRATCH": Color(0.85, 0.75, 0.4),
+	"SHOP":    Color(1.0, 0.85, 0.2),
+	"NEXT_EI": Color(0.85, 0.4, 0.4),
+}
+
+func _update_phase_action_slots() -> void:
+	"""PHASE_ACTIONモードのスロット表示更新"""
+	var sys = main.spell_slot_system
+	var slots = sys.slots
+	var phase_name: String = sys.current_phase_name.to_upper()
+	var header_color: Color = PHASE_HEADER_COLORS.get(phase_name, Color(0.7, 0.7, 0.7))
+
+	for i in range(3):
+		if i >= _spell_slot_panels.size():
+			break
+		var sd = _spell_slot_panels[i]
+		var panel: ColorRect = sd["panel"]
+		var glow_rect: ColorRect = sd["glow_rect"]
+		var header_lbl: Label = sd["header_lbl"]
+		var name_lbl: Label = sd["name_lbl"]
+		var cond_lbl: Label = sd["cond_lbl"]
+		var cost_lbl: Label = sd["cost_lbl"]
+		var status_lbl: Label = sd["status_lbl"]
+		var synth_badge: Label = sd["synth_badge"]
+		var range_lbl:   Label = sd["range_lbl"]
+
+		# ヘッダーをフェーズ名表示に変更
+		var phase_display: String = phase_name if phase_name != "" else "PHASE"
+		header_lbl.text = "Q%d / %s" % [i + 1, phase_display]
+		header_lbl.add_theme_color_override("font_color", header_color)
+
+		# synth_badge / range_lbl は非表示
+		synth_badge.visible = false
+		range_lbl.visible = false
+
+		# キャストゲージ非表示（フェーズアクション中はゲージ不要）
+		var gauge_fill: ColorRect = sd["gauge_fill"]
+		gauge_fill.size.x = 0.0
+
+		var slot = slots[i]
+		if not slot.get("is_action", false):
+			# 空スロット扱い
+			panel.color = COLOR_SLOT_EMPTY
+			glow_rect.visible = false
+			name_lbl.text = "─"
+			name_lbl.add_theme_color_override("font_color", COLOR_LABEL_EMPTY)
+			cond_lbl.text = ""
+			cost_lbl.text = ""
+			status_lbl.text = ""
+			_stop_pulse(i)
+			continue
+
+		var enabled: bool = slot.get("enabled", false)
+		var label: String = slot.get("action_label", "")
+		var desc: String = slot.get("action_desc", "")
+		var cost_text: String = slot.get("action_cost_text", "")
+
+		name_lbl.text = label
+		cond_lbl.text = desc
+		cond_lbl.add_theme_font_size_override("font_size", 11)
+		cond_lbl.size.y = 36  # 3行分の高さ
+		cost_lbl.text = cost_text
+
+		if enabled:
+			panel.color = COLOR_SLOT_READY_BG
+			glow_rect.visible = false  # フェーズアクションはglow不要
+			name_lbl.add_theme_color_override("font_color", COLOR_LABEL_READY)
+			cond_lbl.add_theme_color_override("font_color", COLOR_LABEL_READY)
+			cost_lbl.add_theme_color_override("font_color", COLOR_LABEL_READY)
+			status_lbl.text = "▶ タップ可"
+			status_lbl.add_theme_color_override("font_color", COLOR_READY_ACCENT)
+		else:
+			# 押下不可: action_id が "" か "next_ei_dark" は完全暗転
+			var aid: String = slot.get("action_id", "")
+			if aid == "next_ei_dark" or label == "":
+				panel.color = COLOR_SLOT_EMPTY
+			else:
+				panel.color = COLOR_SLOT_LOADED_OFF
+			glow_rect.visible = false
+			name_lbl.add_theme_color_override("font_color", COLOR_LABEL_DISABLED)
+			cond_lbl.add_theme_color_override("font_color", COLOR_LABEL_DISABLED)
+			cost_lbl.add_theme_color_override("font_color", COLOR_LABEL_DISABLED)
+			status_lbl.text = "× 押下不可"
+			status_lbl.add_theme_color_override("font_color", COLOR_LABEL_DISABLED)
+		_stop_pulse(i)
 
 func _start_pulse(slot_index: int) -> void:
 	if slot_index >= _spell_slot_panels.size():
