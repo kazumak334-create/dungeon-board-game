@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+### 2026-04-26 バトル画面: 負けそう状態の行グロー表示実装
+
+**変更ファイル:**
+- `scripts/Main.gd`: プレイヤー側で前列(col=0)に1体・中列/後列が空の行を危機状態とみなし、赤グローColorRectをSINEパルスアニメーションで点滅表示。`_init_row_danger_glows()` / `_refresh_row_danger_glows()` / `_start_row_danger_glow()` / `_stop_row_danger_glow()` を追加。ユニット死亡時・WAVE開始時・ゲームオーバー時に状態を更新
+
 ### 2026-04-26 データ更新: gold_drop をレアリティ別値に一括更新
 
 **変更ファイル:**

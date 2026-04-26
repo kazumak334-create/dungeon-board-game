@@ -13,6 +13,11 @@ const CELL_W    := 130
 const CELL_H    := 95
 const BOARD_TOP := 88    # 盤面上端Y（速度ボタン+環境表示の下、セル半分下げ）
 
+# ---- 危機グロー定数 ----
+const COLOR_DANGER_GLOW_BASE := Color(0.85, 0.12, 0.18, 0.0)
+const COLOR_DANGER_GLOW_MIN  := Color(0.85, 0.12, 0.18, 0.18)
+const COLOR_DANGER_GLOW_MAX  := Color(0.95, 0.20, 0.25, 0.45)
+
 # 中央GAP: 自陣前列と敵陣前列の間隔
 const CENTER_X  := 640
 const GAP       := 20
@@ -62,6 +67,11 @@ var _equip_tooltip_label: Label = null
 
 var game_ui: Node = null  # GameUI インスタンス
 var _EDB = null  # EffectDBキャッシュ
+
+# ---- 行危機グロー状態 ----
+var _row_danger_glows: Array = []
+var _row_danger_tweens: Array = [null, null, null]
+var _row_danger_active: Array = [false, false, false]
 
 var dev_mode: bool = false
 var dev_ui: RefCounted = null  # DevUI インスタンス
@@ -193,6 +203,7 @@ func _ready() -> void:
 	game_ui = GameUIScript.new()
 	game_ui.setup(self)
 	game_ui.build_ui()
+	_init_row_danger_glows()
 	_build_mode_select()
 	_add_log("=== Dungeon Board Game 起動 ===")
 
@@ -626,6 +637,7 @@ func _check_game_over() -> void:
 	# 敗北条件
 	if player_front_mid_dead or player_row_wiped:
 		game_over = true
+		_refresh_row_danger_glows()
 		game_over_label.text     = "GAME OVER"
 		game_over_label.modulate = Color(1.0, 0.3, 0.3)
 		game_over_label.visible  = true
@@ -650,6 +662,7 @@ func _check_game_over() -> void:
 			return
 
 		game_over = true
+		_refresh_row_danger_glows()
 		game_over_label.text     = "YOU WIN!"
 		game_over_label.modulate = Color(0.3, 1.0, 0.5)
 		game_over_label.visible  = true
@@ -783,15 +796,6 @@ func _on_unit_died(side: int, row: int, col: int, died_unit: Object) -> void:
 	# v2設計: 行突破判定（その行が全滅したら本体HPを削る）
 	_check_row_breach(side, row)
 
-	# 敵ユニット撃破時: cost × 5G を累積（reward_multiplierで倍率調整可能）
-	if side == 1 and died_unit != null:
-		var unit_cost: int = died_unit.mana if "cost" in died_unit else 1
-		var reward_mult: float = GameSession.battle_config.get("reward_multiplier", 1.0)
-		var gold_gained: int = max(1, int(unit_cost * 5 * reward_mult))
-		GameSession.current_battle_gold += gold_gained
-		print("[Drop] 敵撃破 gold+%d (cost:%d, 累計:%d)" % [gold_gained, unit_cost, GameSession.current_battle_gold])
-		if game_ui != null and game_ui._overlay != null:
-			game_ui._overlay.update_battle_gold_label(GameSession.current_battle_gold)
 	if side == 0 and board_manager.player_data != null:
 		for skill in board_manager.player_data.skills:
 			if skill.get("trigger", "") == "on_unit_died_ally":
@@ -802,6 +806,7 @@ func _on_unit_died(side: int, row: int, col: int, died_unit: Object) -> void:
 					deck_manager.mana = min(deck_manager.MANA_MAX, deck_manager.mana + amount)
 					_add_log("[死霊術師] 味方死亡: マナ+%d (累計%d/%d)" % [amount, board_manager.player_data._death_mana_count, max_count])
 	_mark_all_cells_dirty()
+	_refresh_row_danger_glows()
 
 func _check_row_breach(side: int, row: int) -> void:
 	"""行突破判定（本体HP廃止のためコメントアウト）"""
@@ -889,6 +894,8 @@ func _on_material_dropped(material_id: String, count: int, side: int, row: int, 
 
 func _on_gold_dropped(amount: int, side: int, row: int, col: int) -> void:
 	game_ui.spawn_gold_drop(amount, side, row, col)
+	if game_ui != null and game_ui._overlay != null:
+		game_ui._overlay.update_battle_gold_label(GameSession.current_battle_gold)
 
 func _apply_equipment_effects(pdata: RefCounted) -> void:
 	if pdata == null:
@@ -1145,6 +1152,7 @@ func _on_wave_started(big: int, small: int, scale: float) -> void:
 	else:
 		# SW2以降: SW内遷移（cell_rectsリセット → 敵配置 → スライドイン）
 		await _animate_sw_transition(big, small)
+	_refresh_row_danger_glows()
 
 func _animate_battle_start(big: int, small: int) -> void:
 	"""バトル新規開始演出: フェードイン → WAVE X-X → 戦闘開始"""
@@ -1287,3 +1295,79 @@ func _show_wave_label(big: int, small: int, duration: float) -> void:
 	fade_out.tween_property(wave_label, "modulate:a", 0.0, 0.2)
 	await fade_out.finished
 	wave_label.visible = false
+
+# ---- 行危機グロー ----
+func _init_row_danger_glows() -> void:
+	"""プレイヤー側3行分のグローColorRectを生成・追加する"""
+	for row in range(3):
+		var glow := ColorRect.new()
+		# cell_rectsが利用可能な場合は実際の位置・サイズを使用
+		if cell_rects.size() >= 1 and cell_rects[0].size() > row and cell_rects[0][row].size() == 3:
+			var left_rect: ColorRect = cell_rects[0][row][0]
+			var right_rect: ColorRect = cell_rects[0][row][2]
+			var x: float = left_rect.position.x - 2.0
+			var y: float = left_rect.position.y - 2.0
+			var w: float = right_rect.position.x + right_rect.size.x + 2.0 - x
+			var h: float = left_rect.size.y + 4.0
+			glow.position = Vector2(x, y)
+			glow.size     = Vector2(w, h)
+		else:
+			# フォールバック: 定数から計算
+			var x: float = float(CENTER_X - GAP / 2 - 3 * CELL_W)
+			var y: float = float(BOARD_TOP + row * CELL_H)
+			glow.position = Vector2(x, y)
+			glow.size     = Vector2(float(3 * CELL_W), float(CELL_H))
+		glow.color = COLOR_DANGER_GLOW_BASE
+		glow.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		glow.show_behind_parent = true
+		add_child(glow)
+		_row_danger_glows.append(glow)
+	print("[Main] _init_row_danger_glows: %d個生成" % _row_danger_glows.size())
+
+func _has_player_unit_at(row: int, col: int) -> bool:
+	if board_manager == null:
+		return false
+	return board_manager.board[0][row][col] != null
+
+func _is_row_in_danger(row: int) -> bool:
+	return _has_player_unit_at(row, 0) and not _has_player_unit_at(row, 1) and not _has_player_unit_at(row, 2)
+
+func _start_row_danger_glow(row: int) -> void:
+	if _row_danger_active[row] or row >= _row_danger_glows.size():
+		return
+	_row_danger_active[row] = true
+	var glow: ColorRect = _row_danger_glows[row]
+	glow.color = COLOR_DANGER_GLOW_MIN
+	var tween := create_tween()
+	tween.set_loops()
+	tween.set_trans(Tween.TRANS_SINE)
+	tween.set_ease(Tween.EASE_IN_OUT)
+	tween.tween_property(glow, "color", COLOR_DANGER_GLOW_MAX, 1.2)
+	tween.tween_property(glow, "color", COLOR_DANGER_GLOW_MIN, 1.2)
+	_row_danger_tweens[row] = tween
+	print("[Main] _start_row_danger_glow: row=%d" % row)
+
+func _stop_row_danger_glow(row: int) -> void:
+	if not _row_danger_active[row] or row >= _row_danger_glows.size():
+		return
+	_row_danger_active[row] = false
+	if _row_danger_tweens[row] != null:
+		_row_danger_tweens[row].kill()
+		_row_danger_tweens[row] = null
+	var glow: ColorRect = _row_danger_glows[row]
+	var fade := create_tween()
+	fade.set_trans(Tween.TRANS_SINE)
+	fade.set_ease(Tween.EASE_OUT)
+	fade.tween_property(glow, "color", COLOR_DANGER_GLOW_BASE, 0.3)
+	print("[Main] _stop_row_danger_glow: row=%d" % row)
+
+func _refresh_row_danger_glows() -> void:
+	if game_over:
+		for row in range(3):
+			_stop_row_danger_glow(row)
+		return
+	for row in range(3):
+		if _is_row_in_danger(row):
+			_start_row_danger_glow(row)
+		else:
+			_stop_row_danger_glow(row)
