@@ -88,20 +88,29 @@ func place_unit(side: int, unit_data: Object, config_entry: Dictionary = {}) -> 
 	var row: int = -1
 	var col: int = -1
 	if config_entry.size() > 0:
-		# PlacementLogicで空きマスを探す
-		var PL = load("res://scripts/PlacementLogic.gd")
-		var result = PL.resolve_placement(config_entry, board, board)
-		if result[0] >= 0:
-			row = result[0]
-			col = result[1]
+		if config_entry.get("force_placement", false):
+			# force_placementフラグ: PlacementLogicを使わず指定座標をそのまま使う
+			row = config_entry.get("row", -1)
+			col = config_entry.get("col", -1)
+			print("[BoardManager] force_placement: row=%d col=%d" % [row, col])
+			if row < 0 or col < 0:
+				print("[BoardManager] force_placement: 座標不正 row=%d col=%d" % [row, col])
+				return false
 		else:
-			# 空きマスなし → 合成候補を探す（優先列の全マス）
-			var pref_col = config_entry.get("col", -1)
-			var synthesis_found = _try_synthesis_in_area(side, pref_col, unit_data)
-			if synthesis_found:
-				return true
-			print("[BoardManager] PlacementLogic: 配置・合成先なし")
-			return false
+			# PlacementLogicで空きマスを探す
+			var PL = load("res://scripts/PlacementLogic.gd")
+			var result = PL.resolve_placement(config_entry, board, board)
+			if result[0] >= 0:
+				row = result[0]
+				col = result[1]
+			else:
+				# 空きマスなし → 合成候補を探す（優先列の全マス）
+				var pref_col = config_entry.get("col", -1)
+				var synthesis_found = _try_synthesis_in_area(side, pref_col, unit_data)
+				if synthesis_found:
+					return true
+				print("[BoardManager] PlacementLogic: 配置・合成先なし")
+				return false
 	else:
 		# 従来ロジック（後方互換：DevUI等）
 		col = unit_data.assigned_col
@@ -306,9 +315,10 @@ func remove_unit(side: int, row: int, col: int) -> void:
 	var unit = board[side][row][col]
 	if unit == null:
 		return  # 既に削除済み（EventQueue の二重処理対策）
-	# 死亡ユニット記録（Phase 4 #0a）
+	# 死亡ユニット記録（Phase 4 #0a）: 自陣(side=0)のみ。敵ユニットは手持ちに入らない
 	var initial_slot: int = row * 3 + col
-	GameSession.record_dead_unit(unit.unit_name, CardDB.UNITS.get(unit.unit_name, {}).get("rarity", "common"), GameSession.wave_current_small, initial_slot)
+	if side == 0:
+		GameSession.record_dead_unit(unit.unit_name, CardDB.UNITS.get(unit.unit_name, {}).get("rarity", "common"), GameSession.wave_current_small, initial_slot)
 	# 撃破時スキル（on_death）処理
 	if unit != null:
 		for skill in unit.skills:

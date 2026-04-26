@@ -37,7 +37,11 @@ var _cell_tooltip_panel: PanelContainer = null
 var _cell_tooltip_label: Label = null
 
 var mana_bar_cells: Array = []  # マナバー格子
-var mana_value_label: Label
+var mana_value_label: Label = null
+var mana_gauge_fill: ColorRect = null
+var mana_gauge_fill_max_w: float = 110.0
+var cast_gauge_fill: ColorRect = null
+var cast_gauge_fill_max_w: float = 110.0
 var next_card_panel: ColorRect
 var next_card_name_label: Label
 var next_card_detail_label: Label
@@ -379,7 +383,7 @@ func _place_enemy_initial_units() -> void:
 
 		# 配置実行
 		if row != -1:
-			board_manager.place_unit(1, unit, {"row": row, "col": col, "side": 1, "fallback_same_col": false})
+			board_manager.place_unit(1, unit, {"row": row, "col": col, "side": 1, "fallback_same_col": false, "force_placement": true})
 			print("[Main] 敵初期配置: %s → (%d, %d)" % [unit.unit_name, row, col])
 			placed_count += 1
 			total_cost += float(unit.mana)

@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+### 2026-04-26 バグ修正: 敵配置重複バグ（force_placementフラグ追加）
+
+**変更ファイル:**
+- `scripts/BoardManager.gd`: `place_unit()` に `force_placement: true` フラグを追加。このフラグがある場合 `PlacementLogic.resolve_placement` を呼ばず `config_entry["row"]` / `config_entry["col"]` をそのまま使う
+- `scripts/Main.gd`: `_place_enemy_initial_units()` の `place_unit` 呼び出しに `force_placement: true` を追加。空きセル探索後の座標が `PlacementLogic` に上書きされ同セルに重複するバグを根本解決
+
 ### 2026-04-26 バグ修正: 敵中列のみ配置バグ（前列保証）
 
 **変更ファイル:**
