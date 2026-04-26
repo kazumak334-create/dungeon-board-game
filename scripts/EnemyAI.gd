@@ -30,6 +30,7 @@ func _ready() -> void:
 	_pick_next_card()
 
 func _build_enemy_deck() -> void:
+	enemy_deck.clear()
 	# ボス戦の場合
 	if GameSession.battle_type == "boss":
 		_build_boss_deck()
@@ -56,6 +57,8 @@ func _build_enemy_deck() -> void:
 		enemy_deck.append(u)
 	enemy_deck.shuffle()
 	print("[EnemyAI] 敵デッキ構築: Act%d alert_lv=%d pool_key=%s %d枚" % [GameSession.current_act, GameSession.alert_level, pool_key, enemy_deck.size()])
+	for u in enemy_deck:
+		print("[EnemyAI] デッキ内ユニット: name=%s assigned_col=%d card_type=%s" % [u.unit_name, u.assigned_col, u.card_type])
 
 func _select_pool_key(act: int, alert: int) -> String:
 	# Act・警戒レベルに応じた敵プールキーを決定
@@ -83,6 +86,7 @@ func _select_pool_key(act: int, alert: int) -> String:
 			return "act1_weak"  # フォールバック
 
 func _build_boss_deck() -> void:
+	enemy_deck.clear()
 	# ボス専用デッキ構築
 	if GameSession.boss_id == "":
 		print("[EnemyAI] ERROR: boss_idが未設定")
@@ -134,22 +138,7 @@ func _build_boss_deck() -> void:
 	print("[EnemyAI] ボスデッキ構築完了: %d枚 (HP+%d, ATK+%d)" % [enemy_deck.size(), hp_bonus, atk_bonus])
 
 func ensure_shuffle_card() -> void:
-	for i in range(enemy_deck.size() - 1, -1, -1):
-		if enemy_deck[i].unit_name == "呪文回収":
-			enemy_deck.remove_at(i)
-	if not CardDB.SYSTEM_SPELLS.has("呪文回収"):
-		return
-	var sd = CardDB.SYSTEM_SPELLS["呪文回収"]
-	var card = _UnitDataScript.new()
-	card.unit_name = "呪文回収"
-	card.card_type = "spell"
-	card.spell_id = "呪文回収"
-	card.mana = 0
-	card.is_consumable = true
-	card.spell_target = sd["target"]
-	card.spell_effect = sd["effect"]
-	card.skills = sd.get("skills", []).duplicate(true)
-	enemy_deck.append(card)
+	pass  # REQ-D: 呪文回収廃止
 
 func initialize_mana_from_deck() -> void:
 	# v2設計: 敵の初期配置ユニット総コストをMANA_MAXに設定
@@ -164,7 +153,7 @@ func initialize_mana_from_deck() -> void:
 
 func _pick_next_card() -> void:
 	if enemy_deck.is_empty():
-		# フォールバック：シャッフルカード発動前にデッキが空になった場合
+		# フォールバック：デッキが空になった場合
 		if enemy_discard.is_empty():
 			next_card = null
 			return
@@ -172,7 +161,6 @@ func _pick_next_card() -> void:
 			enemy_deck.append(card)
 		enemy_discard.clear()
 		enemy_deck.shuffle()
-		ensure_shuffle_card()
 	next_card = enemy_deck[0]
 
 func force_play_card(board: Node) -> void:
@@ -181,7 +169,7 @@ func force_play_card(board: Node) -> void:
 	var top = enemy_deck[0]
 	enemy_deck.remove_at(0)
 	if top.card_type == "unit":
-		board.place_unit(1, top)
+		# 初期配置のみ。バトル中の召喚は禁止
 		enemy_discard.append(top)
 	elif top.card_type == "spell" and spell_executor != null:
 		var to_discard: bool = spell_executor.execute(top, 1, board, deck_manager_ref, self)
@@ -239,7 +227,7 @@ func process_ai(delta: float, board: Node) -> void:
 	enemy_deck.remove_at(0)
 	_check_timer = check_interval  # 発動後にクールダウン開始
 	if next_card.card_type == "unit":
-		board.place_unit(1, next_card)
+		# 初期配置のみ。バトル中の召喚は禁止
 		enemy_discard.append(next_card)
 	elif next_card.card_type in ["spell", "status_spell"] and spell_executor != null:
 		if _try_spell_synthesis(1, next_card, board):
@@ -279,12 +267,12 @@ func apply_wave_scaling(unit: Object, scaling: float) -> void:
 		return
 	# HP・ATKのみに係数適用（SPDは固定）
 	var original_max_hp: int = unit.max_hp
-	var original_atk: int = unit.atk
+	var original_atk: int = unit.attack
 	unit.max_hp = int(round(original_max_hp * scaling))
 	unit.current_hp = int(round(unit.current_hp * scaling))
-	unit.atk = int(round(original_atk * scaling))
+	unit.attack = int(round(original_atk * scaling))
 	print("[EnemyAI] Wave強化: %s HP %d→%d ATK %d→%d (x%.1f)" %
-		[unit.unit_name, original_max_hp, unit.max_hp, original_atk, unit.atk, scaling])
+		[unit.unit_name, original_max_hp, unit.max_hp, original_atk, unit.attack, scaling])
 
 # Phase 4 #0a: WaveManagerからのスケール適用（enemy_deck全体に適用）
 func apply_wave_scale(hp_scale: float, atk_scale: float) -> void:

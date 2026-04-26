@@ -72,6 +72,9 @@ var game_speed: float = 1.0
 var skill_flash_timers: Array = []  # [side][row][col] -> float
 var skill_flash_names:  Array = []  # [side][row][col] -> String
 var _cell_dirty:        Array = []  # [side][row][col] -> bool（UI更新フラグ）
+
+# RestScreen Qスロット シグナル管理（二重接続防止・クリーンアップ用）
+var _rest_slot_triggered_callable: Callable = Callable()
 var _support_log_timer: float = 5.0
 
 # ---- バトルタイマー ----
@@ -352,6 +355,12 @@ func _place_enemy_initial_units() -> void:
 		else:
 			remaining_cards.append(card)
 
+	print("[Main] 敵初期配置開始: デッキ%d枚 / ユニット%d体" % [enemy_ai.enemy_deck.size(), units_to_place.size()])
+	for u in units_to_place:
+		print("[Main] place_unit予定: name=%s assigned_col=%d" % [u.unit_name, u.assigned_col])
+
+	# 前列(col=0)から順に配置するためにcol昇順ソート
+	units_to_place.sort_custom(func(a, b): return a.assigned_col < b.assigned_col)
 	# ユニットを盤面に配置
 	var placed_count = 0
 	var total_cost = 0.0
@@ -569,6 +578,9 @@ func _process(delta: float) -> void:
 							_cell_dirty[s][r][c] = true  # フラッシュ終了→通常色に戻す
 
 	if not game_started or game_over:
+		# game_started=false（初回DeckPrep等）でもQスロットは更新する
+		if game_ui != null:
+			game_ui.update_queue_only()
 		return
 	if not game_paused:
 		# バトルタイマー（リアル経過時間、speed_scale非適用）
@@ -1039,6 +1051,7 @@ func _pick_initial_spells() -> void:
 
 # RestScreen遷移（Phase 1基盤構築用）
 func start_rest_screen(shop_config: Dictionary = {}, hide_shop: bool = false, after_wave: bool = false) -> void:
+	game_paused = true
 	# バトルUI全体を非表示
 	board_manager.hide_battle_ui()
 
@@ -1058,24 +1071,42 @@ func start_rest_screen(shop_config: Dictionary = {}, hide_shop: bool = false, af
 
 	# Qスロット シグナルワイヤリング（疎結合: EnemyPanelManager ↔ SpellSlotSystem）
 	# REQ-QPA-11b: Main.gd がブリッジ役
+	# 順序: clear → wire → refresh（clearがrefreshを上書きしないよう先に実行）
+	if spell_slot_system != null:
+		spell_slot_system.clear_spell_display()
+
 	if rest_manager._enemy_panel != null and spell_slot_system != null:
-		rest_manager._enemy_panel.phase_actions_ready.connect(
+		# ep を直接キャプチャ（rest_manager が queue_free 後 null になる問題を回避）
+		var ep = rest_manager._enemy_panel
+
+		ep.phase_actions_ready.connect(
 			func(actions: Array): spell_slot_system.set_phase_actions(actions)
 		)
-		spell_slot_system.slot_action_triggered.connect(
-			func(_slot_idx: int, action_id: String):
-				rest_manager._enemy_panel.execute_action(action_id)
-		)
+
+		# slot_action_triggered は spell_slot_system 側のシグナル → 手動切断が必要
+		# Callable を保存して _on_rest_screen_closed で切断する（二重接続防止）
+		_rest_slot_triggered_callable = func(_slot_idx: int, action_id: String):
+			if is_instance_valid(ep):
+				ep.execute_action(action_id)
+		spell_slot_system.slot_action_triggered.connect(_rest_slot_triggered_callable)
+
+		# ワイヤリング完了後に現在フェーズのアクションを即時反映（最後に実行）
+		ep.refresh_phase_actions()
 		print("[Main] Qスロットワイヤリング完了")
 	else:
 		print("[Main] Qスロットワイヤリング: enemy_panel または spell_slot_system が null")
 
-	# REQ-QPA-02: バトル終了→RestScreen開始時にスロット表示をクリア
-	if spell_slot_system != null:
-		spell_slot_system.clear_spell_display()
-
 func _on_rest_screen_closed(popup_layer: Control) -> void:
 	print("[Main] RestScreen終了")
+
+	# slot_action_triggered 二重接続防止: 古い Callable を切断
+	if spell_slot_system != null and not _rest_slot_triggered_callable.is_null():
+		if spell_slot_system.slot_action_triggered.is_connected(_rest_slot_triggered_callable):
+			spell_slot_system.slot_action_triggered.disconnect(_rest_slot_triggered_callable)
+		_rest_slot_triggered_callable = Callable()
+		print("[Main] slot_action_triggered 切断完了")
+
+	game_paused = false
 	# バトルUI全体を復元
 	if game_ui:
 		game_ui.visible = true

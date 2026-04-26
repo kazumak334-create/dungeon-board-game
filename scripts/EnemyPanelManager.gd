@@ -12,16 +12,22 @@ signal ready_to_battle()
 # Qスロット連動シグナル（疎結合: EnemyPanelManagerはSpellSlotSystemを知らない）
 signal phase_actions_ready(actions: Array)
 signal action_execute_requested(action_id: String, params: Dictionary)
+signal shop_item_detail_requested(item: Dictionary)  # ショップアイテムクリック→右詳細バー
 
 var _phase: EnemyPanelPhase = EnemyPanelPhase.NEXT_EI
 var _current_container: Control = null
-var _scratch_rewards: Array = []  # 9件の報酬カードデータ
 var _show_ready_button: bool = true
+
+# SCRATCHフェーズ状態管理
+var _scratch_cells: Array = []      # 9要素: {type:"reward"/"miss"/"out", data:Dict, revealed:bool, cell:Panel}
+var _scratch_collected: Array = []  # ダブルクリックで獲得済み報酬リスト（確定前）
+var _scratch_peek_used: bool = false  # 覗き見済みフラグ
 
 # 外部参照（RestScreenManagerからセット）
 var wave_manager: Node = null
 var game_session: Node = null
 var card_db: Node = null
+var board_manager: Node = null  # 回復処理・ユニット参照用
 
 # 盤面セルと同じ座標・サイズを使用
 const BOARD_X: float = 650.0
@@ -71,146 +77,206 @@ func set_phase(phase: EnemyPanelPhase, _context: Dictionary = {}) -> void:
 # ---- NEXT_EIフェーズ ----
 
 func _build_next_ei_ui() -> void:
-	var layout = _get_next_enemy_layout()
+	# 設計: 偵察（Q2アクション・金20G）で1マスずつ公開。初期状態は空セル表示。
 	for row in range(ROWS):
 		for col in range(COLS):
-			var cell = _create_ei_cell(layout[row][col], row, col)
+			var cell = _create_ei_cell(row, col)
 			_current_container.add_child(cell)
 	# REQ-QPA-07: 準備完了ボタン廃止（Qスロット「出撃」に移行）
 
-func _create_ei_cell(has_enemy: bool, row: int, col: int) -> Control:
+func _create_ei_cell(row: int, col: int) -> Control:
 	var cell = Panel.new()
 	cell.set_position(Vector2(BOARD_X + col * CELL_W, BOARD_Y + row * CELL_H))
 	cell.set_size(Vector2(CELL_W, CELL_H))
-
 	var style = StyleBoxFlat.new()
-	if has_enemy:
-		style.bg_color = Color(0.12, 0.12, 0.18)
-		style.border_color = Color(0.3, 0.3, 0.4)
-	else:
-		style.bg_color = Color(0.08, 0.08, 0.1)
-		style.border_color = Color(0.2, 0.2, 0.25)
+	style.bg_color = Color(0.08, 0.08, 0.10)
+	style.border_color = Color(0.2, 0.2, 0.25)
 	style.set_border_width_all(1)
 	cell.add_theme_stylebox_override("panel", style)
-
 	return cell
 
-func _get_next_enemy_layout() -> Array:
-	# wave_manager が null または情報取得不可の場合: 全false配列を返す
-	if wave_manager == null:
-		return _make_empty_layout()
-	# フォールバック: 全シルエット非表示
-	return _make_empty_layout()
-
-func _make_empty_layout() -> Array:
-	var layout: Array = []
-	for _r in range(ROWS):
-		var row_arr: Array = []
-		for _c in range(COLS):
-			row_arr.append(false)
-		layout.append(row_arr)
-	return layout
-
 # ---- SCRATCHフェーズ ----
+# 設計: 9マス = 2 OUT + 2 外れ + 5 報酬カード（シャッフル配置）
+# ダブルクリックでスクラッチ。OUT引き→全報酬没収+SHOP遷移。Q1確定→収集分をデッキへ
 
 func _build_scratch_ui() -> void:
-	_scratch_rewards = _generate_rewards(9)
-	var active_index: int = randi() % 9
+	# 状態リセット
+	_scratch_cells = []
+	_scratch_collected = []
+	_scratch_peek_used = false
+
+	# 9マスデータ生成: 2 OUT + 2 外れ + 5 報酬
+	var rewards: Array = _generate_rewards(5)
+	var cell_defs: Array = []
+	for r in rewards:
+		cell_defs.append({"type": "reward", "data": r})
+	cell_defs.append({"type": "miss", "data": {}})
+	cell_defs.append({"type": "miss", "data": {}})
+	cell_defs.append({"type": "out", "data": {}})
+	cell_defs.append({"type": "out", "data": {}})
+	cell_defs.shuffle()
 
 	for i in range(9):
 		var row: int = i / COLS
-		var col: int = i % COLS
-		var card_data: Dictionary = _scratch_rewards[i]
-		var cell = _create_scratch_cell(card_data, i == active_index)
-		cell.set_position(Vector2(BOARD_X + col * CELL_W, BOARD_Y + row * CELL_H))
+		var col_idx: int = i % COLS
+		var def: Dictionary = cell_defs[i]
+		var cell = _create_scratch_cell_v2(def, i)
+		cell.set_position(Vector2(BOARD_X + col_idx * CELL_W, BOARD_Y + row * CELL_H))
 		_current_container.add_child(cell)
+		_scratch_cells.append({
+			"type": def["type"],
+			"data": def["data"],
+			"revealed": false,
+			"cell": cell
+		})
 
-func _create_scratch_cell(card_data: Dictionary, is_active: bool) -> Panel:
+func _create_scratch_cell_v2(_def: Dictionary, cell_idx: int) -> Panel:
 	var cell = Panel.new()
 	cell.set_size(Vector2(CELL_W, CELL_H))
 
+	# スクラッチ可マスは黄色縁取り（後で変更しやすいよう StyleBox 独立）
 	var style = StyleBoxFlat.new()
-	style.bg_color = Color(0.2, 0.2, 0.25)
-	style.border_color = Color(0.4, 0.4, 0.5)
-	style.set_border_width_all(1)
-	cell.add_theme_stylebox_override("panel", style)
-
-	var label = Label.new()
-	label.text = "???"
-	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	label.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	label.add_theme_font_size_override("font_size", 18)
-	label.add_theme_color_override("font_color", Color(0.7, 0.7, 0.8))
-	cell.add_child(label)
-
-	if is_active:
-		var captured_data = card_data
-		cell.gui_input.connect(func(event: InputEvent):
-			_on_scratch_input(event, captured_data, cell)
-		)
-	else:
-		cell.mouse_filter = Control.MOUSE_FILTER_IGNORE
-
-	return cell
-
-func _on_scratch_input(event: InputEvent, card_data: Dictionary, cell: Panel) -> void:
-	if event is InputEventMouseButton \
-			and event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
-		_on_scratch_selected(card_data, cell)
-
-func _on_scratch_selected(card_data: Dictionary, cell: Panel) -> void:
-	# セルにカード名・種別を表示
-	for child in cell.get_children():
-		child.queue_free()
-
-	var rarity: String = card_data.get("rarity", "common")
-	var style = StyleBoxFlat.new()
-	style.bg_color = _get_rarity_color(rarity)
-	style.border_color = Color(0.6, 0.6, 0.7)
+	style.bg_color = Color(0.18, 0.18, 0.24)
+	style.border_color = Color(0.9, 0.8, 0.2)  # 黄色縁（スクラッチ可インジケータ）
 	style.set_border_width_all(2)
 	cell.add_theme_stylebox_override("panel", style)
 
-	var name_label = Label.new()
-	name_label.text = card_data.get("name", "???")
-	name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	name_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	name_label.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	name_label.add_theme_font_size_override("font_size", 12)
-	name_label.add_theme_color_override("font_color", Color(0.9, 0.9, 1.0))
-	name_label.autowrap_mode = TextServer.AUTOWRAP_WORD
-	cell.add_child(name_label)
+	var lbl = Label.new()
+	lbl.text = "???"
+	lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	lbl.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	lbl.add_theme_font_size_override("font_size", 18)
+	lbl.add_theme_color_override("font_color", Color(0.8, 0.8, 0.9))
+	cell.add_child(lbl)
 
-	var type_label = Label.new()
-	type_label.text = card_data.get("type", "unit")
-	type_label.set_position(Vector2(5, CELL_H - 18))
-	type_label.set_size(Vector2(CELL_W - 10, 16))
-	type_label.add_theme_font_size_override("font_size", 10)
-	type_label.add_theme_color_override("font_color", Color(0.7, 0.7, 0.8))
-	cell.add_child(type_label)
-
-	# 他セルを無効化（念のため）
-	if _current_container:
-		for other_cell in _current_container.get_children():
-			other_cell.mouse_filter = Control.MOUSE_FILTER_IGNORE
-
-	# カードをgame_sessionに追加
-	if game_session:
-		var card_type: String = card_data.get("type", "unit")
-		var card_name: String = card_data.get("name", "")
-		if card_type == "unit":
-			game_session.selected_deck.append({"name": card_name})
-			print("[EnemyPanelManager] ユニット獲得: %s" % card_name)
-		elif card_type == "spell":
-			game_session.spell_available.append({"name": card_name})
-			print("[EnemyPanelManager] 呪文獲得: %s" % card_name)
-
-	scratch_completed.emit(card_data)
-
-	# 0.5秒後にSHOPフェーズへ
-	get_tree().create_timer(0.5).timeout.connect(func():
-		set_phase(EnemyPanelPhase.SHOP)
+	# ダブルクリック検出
+	var idx = cell_idx
+	cell.gui_input.connect(func(event: InputEvent):
+		_on_scratch_cell_input(event, idx)
 	)
+	return cell
+
+func _on_scratch_cell_input(event: InputEvent, cell_idx: int) -> void:
+	if not (event is InputEventMouseButton):
+		return
+	if event.button_index != MOUSE_BUTTON_LEFT or not event.pressed:
+		return
+	if cell_idx >= _scratch_cells.size():
+		return
+	var entry = _scratch_cells[cell_idx]
+	# 開示済み: シングルクリックで詳細表示
+	if entry["revealed"]:
+		if entry["type"] == "reward" and entry["data"] is Dictionary:
+			shop_item_detail_requested.emit(entry["data"])
+		return
+	# 未開示: ダブルクリックでスクラッチ
+	if not event.double_click:
+		return
+	_reveal_scratch_cell(cell_idx)
+
+func _reveal_scratch_cell(cell_idx: int) -> void:
+	var entry = _scratch_cells[cell_idx]
+	entry["revealed"] = true
+	var cell: Panel = entry["cell"]
+	var cell_type: String = entry["type"]
+	var card_data: Dictionary = entry["data"]
+
+	# 既存子を全クリア
+	for child in cell.get_children():
+		child.queue_free()
+
+	match cell_type:
+		"out":
+			_show_scratch_cell_out(cell)
+			# 全報酬没収 + SHOP遷移（残念アニメーションプレースホルダー）
+			_execute_scratch_out()
+		"miss":
+			_show_scratch_cell_miss(cell)
+		"reward":
+			_show_scratch_cell_reward(cell, card_data)
+			_scratch_collected.append(card_data)
+			print("[EnemyPanelManager] 報酬収集: %s" % card_data.get("name", "?"))
+			# Qスロット更新（確定ボタン状態変更）
+			var actions: Array = _build_phase_actions(EnemyPanelPhase.SCRATCH)
+			phase_actions_ready.emit(actions)
+
+func _show_scratch_cell_out(cell: Panel) -> void:
+	var style = StyleBoxFlat.new()
+	style.bg_color = Color(0.35, 0.08, 0.08)
+	style.border_color = Color(1.0, 0.2, 0.2)
+	style.set_border_width_all(3)
+	cell.add_theme_stylebox_override("panel", style)
+
+	var lbl = Label.new()
+	lbl.text = "OUT"
+	lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	lbl.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	lbl.add_theme_font_size_override("font_size", 22)
+	lbl.add_theme_color_override("font_color", Color(1.0, 0.3, 0.3))
+	cell.add_child(lbl)
+
+func _show_scratch_cell_miss(cell: Panel) -> void:
+	var style = StyleBoxFlat.new()
+	style.bg_color = Color(0.12, 0.12, 0.16)
+	style.border_color = Color(0.3, 0.3, 0.35)
+	style.set_border_width_all(1)
+	cell.add_theme_stylebox_override("panel", style)
+
+	var lbl = Label.new()
+	lbl.text = "外れ"
+	lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	lbl.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	lbl.add_theme_font_size_override("font_size", 16)
+	lbl.add_theme_color_override("font_color", Color(0.5, 0.5, 0.55))
+	cell.add_child(lbl)
+
+func _show_scratch_cell_reward(cell: Panel, card_data: Dictionary) -> void:
+	var rarity: String = card_data.get("rarity", "common")
+	var style = StyleBoxFlat.new()
+	style.bg_color = _get_rarity_color(rarity)
+	style.border_color = Color(0.6, 0.9, 0.6)
+	style.set_border_width_all(2)
+	cell.add_theme_stylebox_override("panel", style)
+
+	var name_lbl = Label.new()
+	name_lbl.text = card_data.get("name", "???")
+	name_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	name_lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	name_lbl.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	name_lbl.add_theme_font_size_override("font_size", 11)
+	name_lbl.add_theme_color_override("font_color", Color(0.9, 0.9, 1.0))
+	name_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD
+	cell.add_child(name_lbl)
+
+	var type_lbl = Label.new()
+	type_lbl.text = card_data.get("type", "unit")
+	type_lbl.set_position(Vector2(5, CELL_H - 18))
+	type_lbl.set_size(Vector2(CELL_W - 10, 16))
+	type_lbl.add_theme_font_size_override("font_size", 9)
+	type_lbl.add_theme_color_override("font_color", Color(0.7, 0.7, 0.8))
+	cell.add_child(type_lbl)
+
+func _execute_scratch_out() -> void:
+	"""OUT: 全収集報酬を没収して SHOP へ遷移（残念アニメーションプレースホルダー）"""
+	print("[EnemyPanelManager] SCRATCH OUT: 報酬%d件没収" % _scratch_collected.size())
+	_scratch_collected.clear()
+	# 残りのスクラッチ可マスを無効化（クリック受付しない）
+	_disable_all_scratch_cells()
+	# 残念表示プレースホルダー（0.8秒後にSHOPへ）
+	if get_tree():
+		get_tree().create_timer(0.8).timeout.connect(func():
+			if is_instance_valid(self):
+				set_phase(EnemyPanelPhase.SHOP)
+		)
+
+func _disable_all_scratch_cells() -> void:
+	for entry in _scratch_cells:
+		var cell: Panel = entry["cell"]
+		if is_instance_valid(cell) and not entry["revealed"]:
+			cell.mouse_filter = Control.MOUSE_FILTER_IGNORE
 
 func _get_rarity_color(rarity: String) -> Color:
 	match rarity:
@@ -365,6 +431,7 @@ func _create_shop_cell(item: Dictionary, session) -> Panel:
 	cell.gui_input.connect(func(event: InputEvent):
 		if not (event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT):
 			return
+		shop_item_detail_requested.emit(captured_item)
 		if captured_item.get("sold", false):
 			return
 		var price: int = captured_item.get("price", 0)
@@ -410,7 +477,8 @@ func _build_phase_actions(phase: EnemyPanelPhase) -> Array:
 			phase_name = "SCRATCH"
 			actions = PhaseActionDefs.build_scratch(
 				session.gold,
-				session.scratch_action_used
+				_scratch_peek_used,
+				_scratch_collected.size()
 			)
 		EnemyPanelPhase.SHOP:
 			phase_name = "SHOP"
@@ -425,7 +493,8 @@ func _build_phase_actions(phase: EnemyPanelPhase) -> Array:
 			actions = PhaseActionDefs.build_next_ei(
 				session.gold,
 				act,
-				session.scout_use_count
+				session.scout_use_count,
+				session.heal_use_count
 			)
 	# phase_name フィールドを全アクションに付加（SpellSlotSystem.current_phase_name 設定用）
 	if not actions.is_empty():
@@ -438,46 +507,82 @@ func execute_action(action_id: String, _params: Dictionary = {}) -> void:
 	match action_id:
 		"scratch_confirm":  _execute_scratch_confirm()
 		"scratch_peek":     _execute_scratch_peek()
-		"scratch_greed":    _execute_scratch_greed()
 		"shop_leave":       set_phase(EnemyPanelPhase.NEXT_EI)
 		"shop_reroll":      _execute_shop_reroll()
 		"shop_negotiate":   _execute_shop_negotiate()
 		"next_ei_launch":   ready_to_battle.emit()
 		"next_ei_scout":    _execute_next_ei_scout()
+		"next_ei_heal":     _execute_next_ei_heal()
 
 func _execute_scratch_confirm() -> void:
-	"""SCRATCH Q1: 確定（既存の_on_scratch_selected経路に委譲）"""
-	# アクティブセルは_build_scratch_ui内で選択済み→現状はSCRATCH画面内部で完結
-	# 既存フロー: SCRATCHセルをクリック → _on_scratch_selected → SHOPへ遷移
-	# Q1「確定」はアクティブセルがある場合にSHOPフェーズへ即遷移
-	print("[EnemyPanelManager] SCRATCH確定（Q1）")
+	"""SCRATCH Q1: 確定 - 収集済み報酬をデッキへ追加してSHOPへ"""
+	var session = game_session if game_session != null else GameSession
+	for card_data in _scratch_collected:
+		var card_type: String = card_data.get("type", "unit")
+		var card_name: String = card_data.get("name", "")
+		if card_name.is_empty():
+			continue
+		if card_type == "unit":
+			session.selected_deck.append({"name": card_name})
+			print("[EnemyPanelManager] ユニット確定追加: %s" % card_name)
+		elif card_type == "spell":
+			session.spell_available.append({"name": card_name})
+			print("[EnemyPanelManager] 呪文確定追加: %s" % card_name)
+	_scratch_collected.clear()
+	print("[EnemyPanelManager] SCRATCH確定（Q1）→ SHOPへ")
 	set_phase(EnemyPanelPhase.SHOP)
 
 func _execute_scratch_peek() -> void:
-	"""SCRATCH Q2: 覗き見"""
+	"""SCRATCH Q2: 覗き見 - ランダムな未開示マスの内容を表示（収集はしない）"""
 	var session = game_session if game_session != null else GameSession
 	if session.gold < PhaseActionConfig.PEEK_COST:
 		print("[EnemyPanelManager] 覗き見: 金不足")
 		return
+	if _scratch_peek_used:
+		print("[EnemyPanelManager] 覗き見: 使用済み")
+		return
+	# 未開示マスを探す
+	var unrevealed: Array = []
+	for i in range(_scratch_cells.size()):
+		if not _scratch_cells[i]["revealed"]:
+			unrevealed.append(i)
+	if unrevealed.is_empty():
+		print("[EnemyPanelManager] 覗き見: 未開示マスなし")
+		return
 	session.gold -= PhaseActionConfig.PEEK_COST
+	_scratch_peek_used = true
 	session.scratch_action_used = "peek"
-	print("[EnemyPanelManager] SCRATCH覗き見: -%dG" % PhaseActionConfig.PEEK_COST)
-	# Qスロット表示を更新（コスト消費後にenabledが変わる可能性があるため再emit）
+	# ランダムに1マス内容を表示（収集はしない）
+	var peek_idx: int = unrevealed[randi() % unrevealed.size()]
+	var entry = _scratch_cells[peek_idx]
+	var cell: Panel = entry["cell"]
+	_show_scratch_cell_peek(cell, entry["type"], entry["data"])
+	print("[EnemyPanelManager] SCRATCH覗き見: マス%d → %s | -%dG" % [peek_idx, entry["type"], PhaseActionConfig.PEEK_COST])
+	# Qスロット更新（コスト消費後）
 	var actions: Array = _build_phase_actions(EnemyPanelPhase.SCRATCH)
 	phase_actions_ready.emit(actions)
 
-func _execute_scratch_greed() -> void:
-	"""SCRATCH Q3: 強欲（1マス犠牲→2マス取得）"""
-	var session = game_session if game_session != null else GameSession
-	if session.scratch_action_used != "":
-		print("[EnemyPanelManager] 強欲: 既にアクション使用済み")
-		return
-	session.scratch_action_used = "greed"
-	session.scratch_sacrificed_index = -1  # 犠牲マス選択待ち
-	print("[EnemyPanelManager] SCRATCH強欲: 犠牲マス選択モード")
-	# アクション更新
-	var actions: Array = _build_phase_actions(EnemyPanelPhase.SCRATCH)
-	phase_actions_ready.emit(actions)
+func _show_scratch_cell_peek(cell: Panel, cell_type: String, card_data: Dictionary) -> void:
+	"""覗き見: セル内容を薄表示（スクラッチせず収集もしない）"""
+	for child in cell.get_children():
+		child.queue_free()
+	var lbl = Label.new()
+	match cell_type:
+		"out":
+			lbl.text = "OUT?"
+			lbl.add_theme_color_override("font_color", Color(1.0, 0.4, 0.4, 0.6))
+		"miss":
+			lbl.text = "外れ?"
+			lbl.add_theme_color_override("font_color", Color(0.6, 0.6, 0.6, 0.6))
+		"reward":
+			lbl.text = card_data.get("name", "?") + "?"
+			lbl.add_theme_color_override("font_color", Color(0.8, 0.8, 0.5, 0.6))
+	lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	lbl.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	lbl.add_theme_font_size_override("font_size", 11)
+	lbl.autowrap_mode = TextServer.AUTOWRAP_WORD
+	cell.add_child(lbl)
 
 func _execute_shop_reroll() -> void:
 	"""SHOP Q2: リロール"""
@@ -565,4 +670,38 @@ func _execute_next_ei_scout() -> void:
 	print("[EnemyPanelManager] 偵察実行: -%dG (合計%d回)" % [cost, session.scout_use_count])
 	# Qスロット更新（偵察コスト変化のため）
 	var actions: Array = _build_phase_actions(EnemyPanelPhase.NEXT_EI)
+	phase_actions_ready.emit(actions)
+
+func _execute_next_ei_heal() -> void:
+	"""NEXT_EI Q3: 回復 - 全自陣ユニットのHP30%回復、使用のたびにコスト増加"""
+	var session = game_session if game_session != null else GameSession
+	var cost: int = PhaseActionConfig.get_heal_cost(session.heal_use_count)
+	if session.gold < cost:
+		print("[EnemyPanelManager] 回復: 金不足")
+		return
+	if board_manager == null:
+		print("[EnemyPanelManager] 回復: board_manager未設定")
+		return
+	session.gold -= cost
+	session.heal_use_count += 1
+	# 自陣ユニット（side=0）を全回復
+	var healed_count: int = 0
+	for row in range(3):
+		for col in range(3):
+			var unit = board_manager.board[0][row][col]
+			if unit == null:
+				continue
+			var heal_amount: int = int(unit.max_hp * PhaseActionConfig.HEAL_RATIO)
+			var old_hp: int = unit.current_hp
+			unit.current_hp = min(unit.max_hp, unit.current_hp + heal_amount)
+			healed_count += 1
+			print("[EnemyPanelManager] 回復: %s HP %d→%d (+%d)" % [unit.unit_name, old_hp, unit.current_hp, unit.current_hp - old_hp])
+	print("[EnemyPanelManager] NEXT_EI回復: %dユニット / -%dG (合計%d回)" % [healed_count, cost, session.heal_use_count])
+	# Qスロット更新（コスト変化のため）
+	var actions: Array = _build_phase_actions(EnemyPanelPhase.NEXT_EI)
+	phase_actions_ready.emit(actions)
+
+# ワイヤリング後に現在フェーズのアクションを再通知する（Main.gd から呼ぶ）
+func refresh_phase_actions() -> void:
+	var actions: Array = _build_phase_actions(_phase)
 	phase_actions_ready.emit(actions)

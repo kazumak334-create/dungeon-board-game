@@ -63,10 +63,10 @@ func start_wave_mode(big_wave: int = 1, small_wave: int = 1) -> void:
 
 func _start_wave(big: int, small: int) -> void:
 	print("[WaveManager] Wave開始: BW%d-SW%d" % [big, small])
-	# WaveState更新
-	if small == BOSS_WAVE_PHASE1:
+	# WaveState更新（BW4専用ボス判定）
+	if _current_big == TOTAL_BIG_WAVES and small == BOSS_WAVE_PHASE1:
 		state = WaveState.BOSS_PHASE1
-	elif small == BOSS_WAVE_PHASE2:
+	elif _current_big == TOTAL_BIG_WAVES and small == BOSS_WAVE_PHASE2:
 		state = WaveState.BOSS_PHASE2
 	else:
 		state = WaveState.SMALL_WAVE
@@ -113,15 +113,18 @@ func _build_shop_config() -> Dictionary:
 	}
 
 func _advance_to_next_wave() -> void:
-	if _current_small == BOSS_WAVE_PHASE2:
-		# ボス第二形態突破 → BW完了
-		if _current_big >= TOTAL_BIG_WAVES:
-			print("[WaveManager] 全Wave突破")
-			_is_running = false
-			big_wave_completed.emit(4)
-			return
-		else:
-			print("[WaveManager] BW%d突破 → 休憩画面へ" % _current_big)
+	if _current_big == TOTAL_BIG_WAVES and _current_small == BOSS_WAVE_PHASE2:
+		# ボス第二形態突破 → 全Wave完了
+		print("[WaveManager] 全Wave突破（BW4ボス撃破）")
+		_is_running = false
+		big_wave_completed.emit(4)
+		return
+
+	# 通常Wave突破後のショップ判定
+	if _current_small in SHOP_TRIGGER_WAVES:
+		if _current_small == SMALL_WAVES_PER_BIG_WAVE and _current_big < TOTAL_BIG_WAVES:
+			# 通常BW完了 → 次BWへ
+			print("[WaveManager] BW%d通常Wave完了 → 次BWへ" % _current_big)
 			_current_big += 1
 			_current_small = 1
 			state = WaveState.SMALL_WAVE
@@ -129,13 +132,12 @@ func _advance_to_next_wave() -> void:
 			GameSession.wave_board_snapshot = {}
 			intermission_requested.emit(_build_shop_config())
 			return
-
-	# 通常Wave突破後のショップ判定
-	if _current_small in SHOP_TRIGGER_WAVES:
-		print("[WaveManager] SW%d突破 → ショップへ" % _current_small)
-		_current_small += 1
-		intermission_requested.emit(_build_shop_config())
-		return
+		else:
+			# 最終BW（BW4）またはSW4/6のショップ
+			print("[WaveManager] SW%d突破 → ショップへ" % _current_small)
+			_current_small += 1
+			intermission_requested.emit(_build_shop_config())
+			return
 
 	_current_small += 1
 	print("[WaveManager] 次Wave: BW%d-SW%d" % [_current_big, _current_small])
@@ -163,7 +165,7 @@ func _build_enemy_for_wave(big: int, small: int) -> void:
 	if enemy_ai == null:
 		print("[WaveManager] WARNING: enemy_ai未設定")
 		return
-	if small == BOSS_WAVE_PHASE1 or small == BOSS_WAVE_PHASE2:
+	if _current_big == TOTAL_BIG_WAVES and (small == BOSS_WAVE_PHASE1 or small == BOSS_WAVE_PHASE2):
 		GameSession.battle_type = "boss"
 		print("[WaveManager] ボスWave構築: boss_id=%s (Phase %d)" % [GameSession.boss_id, 1 if small == BOSS_WAVE_PHASE1 else 2])
 	else:
@@ -179,7 +181,7 @@ func _save_board_snapshot() -> void:
 		print("[WaveManager] WARNING: board_manager未設定")
 		return
 	var snapshot: Dictionary = {}
-	var player_side: int = board_manager.PLAYER_SIDE
+	var player_side: int = 0  # プレイヤー側は常に0
 	for r in range(3):
 		for c in range(3):
 			var unit = board_manager.board[player_side][r][c]
@@ -196,7 +198,7 @@ func _restore_board_from_snapshot() -> void:
 	if snapshot.is_empty():
 		print("[WaveManager] スナップショット空")
 		return
-	var player_side: int = board_manager.PLAYER_SIDE
+	var player_side: int = 0  # プレイヤー側は常に0
 	var UnitDataScript = load("res://scripts/UnitData.gd")
 	for r in range(3):
 		for c in range(3):
@@ -220,16 +222,12 @@ func _serialize_unit(unit: Object) -> Dictionary:
 		"unit_name": unit.unit_name,
 		"max_hp": unit.max_hp,
 		"current_hp": unit.current_hp,
-		"atk": unit.atk,
+		"attack": unit.attack,
 		"spd": unit.spd,
-		"interval": unit.interval,
 		"mana": unit.mana,
 		"race": unit.race,
-		"col": unit.col,
-		"range": unit.range,
-		"rarity": unit.rarity,
-		"cost": unit.cost,
-		"_attack_timer": unit._attack_timer,
+		"assigned_col": unit.assigned_col,
+		"attack_range": unit.attack_range,
 		"_atk_bonus": unit._atk_bonus,
 		"_interval_bonus": unit._interval_bonus,
 		"_regen": unit._regen,
@@ -239,26 +237,19 @@ func _serialize_unit(unit: Object) -> Dictionary:
 		"regen_stacks": unit.regen_stacks,
 		"boots_stacks": unit.boots_stacks,
 		"power_stacks": unit.power_stacks,
-		"effects": unit.effects.duplicate(true),
-		"is_support": unit.is_support,
-		"is_boss": unit.is_boss,
-		"is_elited": unit.is_elited,
+		"skills": unit.skills.duplicate(true),
 	}
 
 func _deserialize_unit(unit: Object, data: Dictionary) -> void:
 	unit.unit_name = data.get("unit_name", "")
 	unit.max_hp = data.get("max_hp", 1)
 	unit.current_hp = data.get("current_hp", 1)
-	unit.atk = data.get("atk", 1)
+	unit.attack = data.get("attack", 1)
 	unit.spd = data.get("spd", 1.0)
-	unit.interval = data.get("interval", 1.0)
 	unit.mana = data.get("mana", 1)
 	unit.race = data.get("race", "")
-	unit.col = data.get("col", 0)
-	unit.range = data.get("range", "1行")
-	unit.rarity = data.get("rarity", "Common")
-	unit.cost = data.get("cost", 1)
-	unit._attack_timer = data.get("_attack_timer", 0.0)
+	unit.assigned_col = data.get("assigned_col", 0)
+	unit.attack_range = data.get("attack_range", "1行")
 	unit._atk_bonus = data.get("_atk_bonus", 0)
 	unit._interval_bonus = data.get("_interval_bonus", 0.0)
 	unit._regen = data.get("_regen", 0)
@@ -268,7 +259,4 @@ func _deserialize_unit(unit: Object, data: Dictionary) -> void:
 	unit.regen_stacks = data.get("regen_stacks", 0)
 	unit.boots_stacks = data.get("boots_stacks", 0)
 	unit.power_stacks = data.get("power_stacks", 0)
-	unit.effects = data.get("effects", []).duplicate(true)
-	unit.is_support = data.get("is_support", false)
-	unit.is_boss = data.get("is_boss", false)
-	unit.is_elited = data.get("is_elited", false)
+	unit.skills = data.get("skills", []).duplicate(true)

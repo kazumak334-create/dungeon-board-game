@@ -2,6 +2,14 @@
 
 ## [Unreleased]
 
+### 2026-04-26 バグ修正: SW3ボスWave誤判定・NEXT_EI全表示・9体バグ調査printログ
+
+**変更ファイル:**
+- `scripts/WaveManager.gd`: `_start_wave()` / `_build_enemy_for_wave()` のボス判定を `_current_big == TOTAL_BIG_WAVES` 条件付きに修正（BW4専用）。`_advance_to_next_wave()` に通常BW完了（SW2突破→次BWへ）処理を追加
+- `scripts/EnemyPanelManager.gd`: `_build_next_ei_ui()` / `_create_ei_cell()` を空セル表示に戻す（偵察で1マスずつ公開する設計に復元）
+- `scripts/EnemyAI.gd`: `_build_enemy_deck()` 完了時に各ユニットのassigned_colをログ出力（9体バグ調査用）
+- `scripts/Main.gd`: 敵初期配置前にデッキ枚数・ユニット数・各ユニットassigned_colをログ出力（9体バグ調査用）
+
 ### 2026-04-26 Qスロット・フェーズアクションバー実装（REQ-QPA）
 
 **変更ファイル:**
