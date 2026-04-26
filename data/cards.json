@@ -2448,7 +2448,7 @@
 			],
 			"spd": 7,
 			"en_name": "Wolf",
-			"gold_drop": 4
+			"gold_drop": 25
 		},
 		"キングスライム": {
 			"anim": "",
@@ -2467,7 +2467,7 @@
 			],
 			"spd": 2,
 			"en_name": "Kinglob",
-			"gold_drop": 30
+			"gold_drop": 200
 		},
 		"スライム": {
 			"anim": "",
@@ -2483,7 +2483,7 @@
 			"texture": "",
 			"spd": 2,
 			"en_name": "Slime",
-			"gold_drop": 2
+			"gold_drop": 10
 		},
 		"バンシー": {
 			"anim": "",
@@ -2508,7 +2508,7 @@
 			"texture": "",
 			"spd": 5,
 			"en_name": "Banshee",
-			"gold_drop": 7
+			"gold_drop": 50
 		},
 		"リッチ": {
 			"anim": "",
@@ -2533,7 +2533,7 @@
 			"texture": "",
 			"spd": 3,
 			"en_name": "Lich",
-			"gold_drop": 30
+			"gold_drop": 200
 		},
 		"ワイルドホーク": {
 			"anim": "",
@@ -2549,7 +2549,7 @@
 			"texture": "",
 			"spd": 7,
 			"en_name": "WildHawk",
-			"gold_drop": 4
+			"gold_drop": 25
 		},
 		"ワイト": {
 			"anim": "",
@@ -2574,7 +2574,7 @@
 			"texture": "",
 			"spd": 3,
 			"en_name": "Wight",
-			"gold_drop": 7
+			"gold_drop": 50
 		},
 		"デュラハン": {
 			"anim": "",
@@ -2590,7 +2590,7 @@
 			"texture": "",
 			"spd": 3,
 			"en_name": "Dullahan",
-			"gold_drop": 12
+			"gold_drop": 100
 		},
 		"デスナイト": {
 			"anim": "",
@@ -2623,7 +2623,7 @@
 			"texture": "",
 			"spd": 3,
 			"en_name": "デスナイト",
-			"gold_drop": 30
+			"gold_drop": 200
 		},
 		"ケットシー": {
 			"anim": "",
@@ -2639,7 +2639,7 @@
 			"texture": "",
 			"spd": 10,
 			"en_name": "CaitSith",
-			"gold_drop": 4
+			"gold_drop": 25
 		},
 		"マンティコア": {
 			"anim": "",
@@ -2664,7 +2664,7 @@
 			"texture": "",
 			"spd": 5,
 			"en_name": "Manticore",
-			"gold_drop": 7
+			"gold_drop": 50
 		},
 		"フェンリル": {
 			"anim": "",
@@ -2689,7 +2689,7 @@
 			"texture": "",
 			"spd": 7,
 			"en_name": "Fenrir",
-			"gold_drop": 30
+			"gold_drop": 200
 		},
 		"リッチキング": {
 			"anim": "",
@@ -2714,7 +2714,7 @@
 			"texture": "",
 			"spd": 3,
 			"en_name": "LichKing",
-			"gold_drop": 30
+			"gold_drop": 200
 		},
 		"Granob": {
 			"anim": "",
@@ -2751,7 +2751,7 @@
 			],
 			"spd": 3,
 			"en_name": "Granob",
-			"gold_drop": 7
+			"gold_drop": 50
 		},
 		"Amoeba": {
 			"anim": "",
@@ -2787,7 +2787,7 @@
 			],
 			"spd": 5,
 			"en_name": "Amoeba",
-			"gold_drop": 2
+			"gold_drop": 10
 		},
 		"Barbzel": {
 			"anim": "",
@@ -2824,7 +2824,7 @@
 			],
 			"spd": 10,
 			"en_name": "Barbzel",
-			"gold_drop": 4
+			"gold_drop": 25
 		},
 		"Jelfix": {
 			"anim": "",
@@ -2861,7 +2861,7 @@
 			],
 			"spd": 10,
 			"en_name": "Jelfix",
-			"gold_drop": 2
+			"gold_drop": 10
 		},
 		"Mudblob": {
 			"anim": "",
@@ -2899,7 +2899,7 @@
 			],
 			"spd": 5,
 			"en_name": "Mudblob",
-			"gold_drop": 4
+			"gold_drop": 25
 		},
 		"Venpool": {
 			"anim": "",
@@ -2935,7 +2935,7 @@
 			],
 			"spd": 2,
 			"en_name": "Venpool",
-			"gold_drop": 7
+			"gold_drop": 50
 		},
 		"Hexshift": {
 			"anim": "",
@@ -2968,7 +2968,7 @@
 			],
 			"spd": 5,
 			"en_name": "Hexshift",
-			"gold_drop": 7
+			"gold_drop": 50
 		},
 		"Hexbreak": {
 			"anim": "",
@@ -3001,7 +3001,7 @@
 			],
 			"spd": 5,
 			"en_name": "Hexbreak",
-			"gold_drop": 12
+			"gold_drop": 100
 		},
 		"Hexruin": {
 			"anim": "",
@@ -3043,7 +3043,7 @@
 			],
 			"spd": 5,
 			"en_name": "Hexruin",
-			"gold_drop": 30
+			"gold_drop": 200
 		},
 		"Hexdrift": {
 			"anim": "",
@@ -3075,7 +3075,7 @@
 			],
 			"spd": 5,
 			"en_name": "Hexdrift",
-			"gold_drop": 7
+			"gold_drop": 50
 		},
 		"Hexswap": {
 			"anim": "",
@@ -3107,7 +3107,7 @@
 			],
 			"spd": 5,
 			"en_name": "Hexswap",
-			"gold_drop": 12
+			"gold_drop": 100
 		},
 		"Hexlord": {
 			"anim": "",
@@ -3139,7 +3139,7 @@
 			],
 			"spd": 5,
 			"en_name": "Hexlord",
-			"gold_drop": 30
+			"gold_drop": 200
 		},
 		"Spinwall": {
 			"anim": "",
@@ -3191,7 +3191,7 @@
 			],
 			"spd": 5.0,
 			"en_name": "Spinwall",
-			"gold_drop": 12
+			"gold_drop": 100
 		},
 		"Thornblast": {
 			"anim": "",
@@ -3241,7 +3241,7 @@
 			],
 			"spd": 5.0,
 			"en_name": "Thornblast",
-			"gold_drop": 30
+			"gold_drop": 200
 		},
 		"Shieldblast": {
 			"anim": "",
@@ -3283,7 +3283,7 @@
 			],
 			"spd": 5.0,
 			"en_name": "Shieldblast",
-			"gold_drop": 12
+			"gold_drop": 100
 		},
 		"Crystalblast": {
 			"anim": "",
@@ -3317,7 +3317,7 @@
 			],
 			"spd": 5.0,
 			"en_name": "Crystalblast",
-			"gold_drop": 30
+			"gold_drop": 200
 		},
 		"Spellock": {
 			"anim": "",
@@ -3346,7 +3346,7 @@
 			],
 			"spd": 3.33,
 			"en_name": "Spellock",
-			"gold_drop": 12
+			"gold_drop": 100
 		},
 		"Nullock": {
 			"anim": "",
@@ -3375,7 +3375,7 @@
 			],
 			"spd": 3.33,
 			"en_name": "Nullock",
-			"gold_drop": 30
+			"gold_drop": 200
 		},
 		"Plagzel": {
 			"anim": "",
@@ -3412,7 +3412,7 @@
 			],
 			"spd": 10,
 			"en_name": "Plagzel",
-			"gold_drop": 4
+			"gold_drop": 25
 		},
 		"Sparkblob": {
 			"anim": "",
@@ -3441,7 +3441,7 @@
 			],
 			"spd": 20,
 			"en_name": "Sparkblob",
-			"gold_drop": 4
+			"gold_drop": 25
 		},
 		"Crystel": {
 			"anim": "",
@@ -3478,7 +3478,7 @@
 			],
 			"spd": 5,
 			"en_name": "Crystel",
-			"gold_drop": 7
+			"gold_drop": 50
 		},
 		"Voidblob": {
 			"anim": "",
@@ -3526,7 +3526,7 @@
 			],
 			"spd": 5,
 			"en_name": "Voidblob",
-			"gold_drop": 12
+			"gold_drop": 100
 		},
 		"Glitzel": {
 			"anim": "",
@@ -3554,7 +3554,7 @@
 			],
 			"spd": 3,
 			"en_name": "Glitzel",
-			"gold_drop": 7
+			"gold_drop": 50
 		},
 		"Silenzel": {
 			"anim": "",
@@ -3582,7 +3582,7 @@
 			],
 			"spd": 3,
 			"en_name": "Silenzel",
-			"gold_drop": 12
+			"gold_drop": 100
 		},
 		"Frostblob": {
 			"anim": "",
@@ -3634,7 +3634,7 @@
 			],
 			"spd": 5.0,
 			"en_name": "Frostblob",
-			"gold_drop": 7
+			"gold_drop": 50
 		},
 		"Blightzel": {
 			"anim": "",
@@ -3686,7 +3686,7 @@
 			],
 			"spd": 5.0,
 			"en_name": "Blightzel",
-			"gold_drop": 12
+			"gold_drop": 100
 		},
 		"Ruinzel": {
 			"anim": "",
@@ -3746,7 +3746,7 @@
 			],
 			"spd": 5.0,
 			"en_name": "Ruinzel",
-			"gold_drop": 30
+			"gold_drop": 200
 		},
 		"Miasmagod": {
 			"anim": "",
@@ -3817,7 +3817,7 @@
 			],
 			"spd": 3.33,
 			"en_name": "Miasmagod",
-			"gold_drop": 30
+			"gold_drop": 200
 		},
 		"Manawall": {
 			"anim": "",
@@ -3859,7 +3859,7 @@
 			],
 			"spd": 3.33,
 			"en_name": "Manawall",
-			"gold_drop": 30
+			"gold_drop": 200
 		},
 		"Aegisblob": {
 			"anim": "",
@@ -3911,7 +3911,7 @@
 			],
 			"spd": 3.33,
 			"en_name": "Aegisblob",
-			"gold_drop": 30
+			"gold_drop": 200
 		},
 		"Fangos": {
 			"anim": "",
@@ -3949,7 +3949,7 @@
 			],
 			"spd": 20,
 			"en_name": "Fangos",
-			"gold_drop": 2
+			"gold_drop": 10
 		},
 		"Piercor": {
 			"anim": "",
@@ -3978,7 +3978,7 @@
 			],
 			"spd": 10,
 			"en_name": "Piercor",
-			"gold_drop": 2
+			"gold_drop": 10
 		},
 		"Hawkis": {
 			"anim": "",
@@ -4023,7 +4023,7 @@
 			],
 			"spd": 7,
 			"en_name": "Hawkis",
-			"gold_drop": 2
+			"gold_drop": 10
 		},
 		"Stalkor": {
 			"anim": "",
@@ -4052,7 +4052,7 @@
 			],
 			"spd": 7,
 			"en_name": "Stalkor",
-			"gold_drop": 4
+			"gold_drop": 25
 		},
 		"Venomaw": {
 			"anim": "",
@@ -4090,7 +4090,7 @@
 			],
 			"spd": 10,
 			"en_name": "Venomaw",
-			"gold_drop": 4
+			"gold_drop": 25
 		},
 		"Voidclaw": {
 			"anim": "",
@@ -4125,7 +4125,7 @@
 			],
 			"spd": 7,
 			"en_name": "Voidclaw",
-			"gold_drop": 4
+			"gold_drop": 25
 		},
 		"Thornbeast": {
 			"anim": "",
@@ -4161,7 +4161,7 @@
 			],
 			"spd": 7,
 			"en_name": "Thornbeast",
-			"gold_drop": 4
+			"gold_drop": 25
 		},
 		"Rageveil": {
 			"anim": "",
@@ -4194,7 +4194,7 @@
 			],
 			"spd": 7,
 			"en_name": "Rageveil",
-			"gold_drop": 7
+			"gold_drop": 50
 		},
 		"Wolfpack": {
 			"anim": "",
@@ -4235,7 +4235,7 @@
 			],
 			"spd": 10,
 			"en_name": "Wolfpack",
-			"gold_drop": 2
+			"gold_drop": 10
 		},
 		"グレイヴシフト": {
 			"anim": "",
@@ -4271,7 +4271,7 @@
 			"texture": "",
 			"spd": 2.0,
 			"en_name": "Gravshift",
-			"gold_drop": 7
+			"gold_drop": 50
 		},
 		"ソウルスティール": {
 			"anim": "",
@@ -4314,7 +4314,7 @@
 			"texture": "",
 			"spd": 2.0,
 			"en_name": "Soulsteal",
-			"gold_drop": 7
+			"gold_drop": 50
 		},
 		"ヘクスヴァート": {
 			"anim": "",
@@ -4339,7 +4339,7 @@
 			"texture": "",
 			"spd": 3.0,
 			"en_name": "Hexvert",
-			"gold_drop": 4
+			"gold_drop": 25
 		},
 		"カースシード": {
 			"anim": "",
@@ -4373,7 +4373,7 @@
 			"texture": "",
 			"spd": 1.0,
 			"en_name": "Curseed",
-			"gold_drop": 2
+			"gold_drop": 10
 		},
 		"マレアンプ": {
 			"anim": "",
@@ -4398,7 +4398,7 @@
 			"texture": "",
 			"spd": 2.0,
 			"en_name": "Maleamp",
-			"gold_drop": 4
+			"gold_drop": 25
 		},
 		"レイスダンス": {
 			"anim": "",
@@ -4432,7 +4432,7 @@
 			"texture": "",
 			"spd": 3.0,
 			"en_name": "Wraithdance",
-			"gold_drop": 7
+			"gold_drop": 50
 		},
 		"グリムハウル": {
 			"anim": "",
@@ -4466,7 +4466,7 @@
 			"texture": "",
 			"spd": 2.0,
 			"en_name": "Grimhowl",
-			"gold_drop": 4
+			"gold_drop": 25
 		},
 		"カーシール": {
 			"anim": "",
@@ -4501,7 +4501,7 @@
 			"texture": "",
 			"spd": 3.0,
 			"en_name": "Curseal",
-			"gold_drop": 4
+			"gold_drop": 25
 		},
 		"トレイトベイン": {
 			"anim": "",
@@ -4534,7 +4534,7 @@
 			"texture": "",
 			"spd": 2.0,
 			"en_name": "Traitbane",
-			"gold_drop": 12
+			"gold_drop": 100
 		},
 		"ヘクススポーン": {
 			"anim": "",
@@ -4577,7 +4577,7 @@
 			"texture": "",
 			"spd": 2.0,
 			"en_name": "Hexspawn",
-			"gold_drop": 2
+			"gold_drop": 10
 		},
 		"ドゥームカース": {
 			"anim": "",
@@ -4612,7 +4612,7 @@
 			"texture": "",
 			"spd": 3.0,
 			"en_name": "Doomcurse",
-			"gold_drop": 30
+			"gold_drop": 200
 		},
 		"ベインウォール": {
 			"anim": "",
@@ -4653,7 +4653,7 @@
 			"texture": "",
 			"spd": 5.0,
 			"en_name": "Banewall",
-			"gold_drop": 7
+			"gold_drop": 50
 		},
 		"Hexamp": {
 			"anim": "",
@@ -4687,7 +4687,7 @@
 			"texture": "",
 			"spd": 5.0,
 			"en_name": "Hexamp",
-			"gold_drop": 7
+			"gold_drop": 50
 		},
 		"Hexburst": {
 			"anim": "",
@@ -4729,7 +4729,7 @@
 			"texture": "",
 			"spd": 5.0,
 			"en_name": "Hexburst",
-			"gold_drop": 12
+			"gold_drop": 100
 		},
 		"Hexblast": {
 			"anim": "",
@@ -4779,7 +4779,7 @@
 			"texture": "",
 			"spd": 5.0,
 			"en_name": "Hexblast",
-			"gold_drop": 30
+			"gold_drop": 200
 		},
 		"Curswall": {
 			"anim": "",
@@ -4831,7 +4831,7 @@
 			"texture": "",
 			"spd": 3.33,
 			"en_name": "Curswall",
-			"gold_drop": 4
+			"gold_drop": 25
 		},
 		"Hexguard": {
 			"anim": "",
@@ -4881,7 +4881,7 @@
 			"texture": "",
 			"spd": 2.5,
 			"en_name": "Hexguard",
-			"gold_drop": 12
+			"gold_drop": 100
 		},
 		"Hexflow": {
 			"anim": "",
@@ -4933,7 +4933,7 @@
 			"texture": "",
 			"spd": 2.5,
 			"en_name": "Hexflow",
-			"gold_drop": 12
+			"gold_drop": 100
 		},
 		"Hexwave": {
 			"anim": "",
@@ -4985,7 +4985,7 @@
 			"texture": "",
 			"spd": 2.5,
 			"en_name": "Hexwave",
-			"gold_drop": 30
+			"gold_drop": 200
 		},
 		"Fangod": {
 			"anim": "",
@@ -5016,7 +5016,7 @@
 			"texture": "",
 			"spd": 20.0,
 			"en_name": "Fangod",
-			"gold_drop": 30
+			"gold_drop": 200
 		},
 		"Plaguecurse": {
 			"anim": "",
@@ -5055,7 +5055,7 @@
 			"texture": "",
 			"spd": 10.0,
 			"en_name": "Plaguecurse",
-			"gold_drop": 30
+			"gold_drop": 200
 		},
 		"Frostcurse": {
 			"anim": "",
@@ -5094,7 +5094,7 @@
 			"texture": "",
 			"spd": 3.33,
 			"en_name": "Frostcurse",
-			"gold_drop": 30
+			"gold_drop": 200
 		},
 		"Deathmark": {
 			"anim": "",
@@ -5129,7 +5129,7 @@
 			"texture": "",
 			"spd": 5.0,
 			"en_name": "Deathmark",
-			"gold_drop": 30
+			"gold_drop": 200
 		},
 		"Ragegod": {
 			"anim": "",
@@ -5152,7 +5152,7 @@
 			"texture": "",
 			"spd": 10.0,
 			"en_name": "Ragegod",
-			"gold_drop": 30
+			"gold_drop": 200
 		},
 		"Nullblade": {
 			"anim": "",
@@ -5185,7 +5185,7 @@
 			"texture": "",
 			"spd": 6.67,
 			"en_name": "Nullblade",
-			"gold_drop": 30
+			"gold_drop": 200
 		},
 		"Voidswap": {
 			"anim": "",
@@ -5214,7 +5214,7 @@
 			"texture": "",
 			"spd": 5.0,
 			"en_name": "Voidswap",
-			"gold_drop": 30
+			"gold_drop": 200
 		},
 		"Cursechaos": {
 			"anim": "",
@@ -5245,7 +5245,7 @@
 			"texture": "",
 			"spd": 6.67,
 			"en_name": "Cursechaos",
-			"gold_drop": 30
+			"gold_drop": 200
 		},
 		"Brandlord": {
 			"anim": "",
@@ -5284,7 +5284,7 @@
 			"texture": "",
 			"spd": 3.33,
 			"en_name": "Brandlord",
-			"gold_drop": 30
+			"gold_drop": 200
 		},
 		"Healcore": {
 			"anim": "",
@@ -5325,7 +5325,7 @@
 			"texture": "",
 			"spd": 20.0,
 			"en_name": "Healcore",
-			"gold_drop": 30
+			"gold_drop": 200
 		},
 		"Manasly": {
 			"anim": "",
@@ -5365,7 +5365,7 @@
 			],
 			"spd": 1.0,
 			"en_name": "Manasly",
-			"gold_drop": 30
+			"gold_drop": 200
 		},
 		"Shieldblob": {
 			"anim": "",
@@ -5398,7 +5398,7 @@
 			"texture": "",
 			"spd": 5.0,
 			"en_name": "Shieldblob",
-			"gold_drop": 30
+			"gold_drop": 200
 		},
 		"Equalizer": {
 			"anim": "",
@@ -5435,7 +5435,7 @@
 			"texture": "",
 			"spd": 10.0,
 			"en_name": "Equalizer",
-			"gold_drop": 30
+			"gold_drop": 200
 		},
 		"Berserkfang": {
 			"anim": "",
@@ -5472,7 +5472,7 @@
 			"texture": "",
 			"spd": 20.0,
 			"en_name": "Berserkfang",
-			"gold_drop": 30
+			"gold_drop": 200
 		},
 		"Cursewarden": {
 			"anim": "",
@@ -5517,7 +5517,7 @@
 			"texture": "",
 			"spd": 3.33,
 			"en_name": "Cursewarden",
-			"gold_drop": 30
+			"gold_drop": 200
 		},
 		"Cursegod": {
 			"anim": "",
@@ -5562,7 +5562,7 @@
 			"texture": "",
 			"spd": 2.5,
 			"en_name": "Cursegod",
-			"gold_drop": 30
+			"gold_drop": 200
 		},
 		"マナスラ": {
 			"anim": "",
@@ -5599,7 +5599,7 @@
 			"texture": "",
 			"spd": 1.0,
 			"en_name": "Manaslime",
-			"gold_drop": 30
+			"gold_drop": 200
 		},
 		"Toxzel": {
 			"anim": "",
@@ -5635,7 +5635,7 @@
 			],
 			"spd": 10.0,
 			"en_name": "Toxzel",
-			"gold_drop": 7
+			"gold_drop": 50
 		},
 		"Pestzel": {
 			"anim": "",
@@ -5671,7 +5671,7 @@
 			],
 			"spd": 10.0,
 			"en_name": "Pestzel",
-			"gold_drop": 12
+			"gold_drop": 100
 		},
 		"Deathzel": {
 			"anim": "",
@@ -5705,7 +5705,7 @@
 			],
 			"spd": 6.67,
 			"en_name": "Deathzel",
-			"gold_drop": 30
+			"gold_drop": 200
 		},
 		"Amplzel": {
 			"anim": "",
@@ -5741,7 +5741,7 @@
 			],
 			"spd": 6.67,
 			"en_name": "Amplzel",
-			"gold_drop": 12
+			"gold_drop": 100
 		},
 		"Voidpool": {
 			"anim": "",
@@ -5777,7 +5777,7 @@
 			],
 			"spd": 6.67,
 			"en_name": "Voidpool",
-			"gold_drop": 30
+			"gold_drop": 200
 		},
 		"Thornwall": {
 			"anim": "",
@@ -5813,7 +5813,7 @@
 			],
 			"spd": 6.67,
 			"en_name": "Thornwall",
-			"gold_drop": 7
+			"gold_drop": 50
 		},
 		"Brandpaw": {
 			"anim": "",
@@ -5849,7 +5849,7 @@
 			],
 			"spd": 10.0,
 			"en_name": "Brandpaw",
-			"gold_drop": 7
+			"gold_drop": 50
 		},
 		"Brandfang": {
 			"anim": "",
@@ -5885,7 +5885,7 @@
 			],
 			"spd": 10.0,
 			"en_name": "Brandfang",
-			"gold_drop": 12
+			"gold_drop": 100
 		},
 		"Brandstrike": {
 			"anim": "",
@@ -5921,7 +5921,7 @@
 			],
 			"spd": 10.0,
 			"en_name": "Brandstrike",
-			"gold_drop": 30
+			"gold_drop": 200
 		},
 		"Sharpfang": {
 			"anim": "",
@@ -5957,7 +5957,7 @@
 			],
 			"spd": 20.0,
 			"en_name": "Sharpfang",
-			"gold_drop": 7
+			"gold_drop": 50
 		},
 		"Critclaw": {
 			"anim": "",
@@ -6002,7 +6002,7 @@
 			],
 			"spd": 20.0,
 			"en_name": "Critclaw",
-			"gold_drop": 12
+			"gold_drop": 100
 		},
 		"Deadeye": {
 			"anim": "",
@@ -6045,7 +6045,7 @@
 			],
 			"spd": 20.0,
 			"en_name": "Deadeye",
-			"gold_drop": 30
+			"gold_drop": 200
 		},
 		"Thornrage": {
 			"anim": "",
@@ -6090,7 +6090,7 @@
 			],
 			"spd": 6.67,
 			"en_name": "Thornrage",
-			"gold_drop": 12
+			"gold_drop": 100
 		},
 		"Ironpelt": {
 			"anim": "",
@@ -6139,7 +6139,7 @@
 			],
 			"spd": 10.0,
 			"en_name": "Ironpelt",
-			"gold_drop": 30
+			"gold_drop": 200
 		},
 		"Keenfang": {
 			"anim": "",
@@ -6175,7 +6175,7 @@
 			],
 			"spd": 10.0,
 			"en_name": "Keenfang",
-			"gold_drop": 7
+			"gold_drop": 50
 		},
 		"Blazefang": {
 			"anim": "",
@@ -6219,7 +6219,7 @@
 			],
 			"spd": 10.0,
 			"en_name": "Blazefang",
-			"gold_drop": 12
+			"gold_drop": 100
 		},
 		"Deadfang": {
 			"anim": "",
@@ -6266,7 +6266,7 @@
 			],
 			"spd": 10.0,
 			"en_name": "Deadfang",
-			"gold_drop": 30
+			"gold_drop": 200
 		},
 		"Fugaku": {
 			"anim": "",
@@ -6304,7 +6304,7 @@
 			],
 			"spd": 3.33,
 			"en_name": "Fugaku",
-			"gold_drop": 30
+			"gold_drop": 200
 		}
 	},
 	"boss_decks": {

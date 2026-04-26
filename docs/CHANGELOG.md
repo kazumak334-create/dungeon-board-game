@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+### 2026-04-26 データ更新: gold_drop をレアリティ別値に一括更新
+
+**変更ファイル:**
+- `data/cards.json`: units セクション全106件の `gold_drop` をレアリティ別値（common:10 / uncommon:25 / rare:50 / epic:100 / legend:200 / god:200）に更新
+
 ### 2026-04-26 バグ修正: 敵配置重複バグ（force_placementフラグ追加）
 
 **変更ファイル:**
