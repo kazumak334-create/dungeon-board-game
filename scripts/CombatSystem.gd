@@ -111,26 +111,40 @@ func _do_attack(side: int, row: int, col: int, attacker: Object, enemy_side: int
 			effective_atk += attacker._accumulated_damage
 			attacker._accumulated_damage = 0
 			break
-	var target_rows: Array = _get_target_rows(row, attacker.attack_range)
 	var hit_any: bool = false
-	# extended_range: 攻撃範囲拡張（最大4マス先まで）
-	var has_extended_range: bool = false
-	var extended_range_value: int = 4
-	for skill in attacker.skills:
-		if skill.get("effect_id", "") == "extended_range":
-			has_extended_range = true
-			extended_range_value = skill.get("params", {}).get("range", 4)
-			break
-	for target_row in target_rows:
-		# ターゲット選択：最後列優先 or 最前列優先
-		var target_col: int = _get_rearmost_col(enemy_side, target_row) if target_rear else get_frontmost_col(enemy_side, target_row)
-		# extended_range: 最前列から順番にスキャン
-		if target_col == -1 and has_extended_range:
-			var scan_order: Array = [2, 1, 0] if enemy_side == 0 else [0, 1, 2]
-			for scan_col in scan_order:
-				if bm.board[enemy_side][target_row][scan_col] != null:
-					target_col = scan_col
+	var e_front_col: int = 0 if enemy_side == 1 else 2
+	var e_mid_col: int = 1
+	var e_back_col: int = 2 if enemy_side == 1 else 0
+	# 単一ターゲット選択（最大1要素配列で既存ダメージブロックと互換維持）
+	var _sel_target: Array = []
+	if target_rear:
+		var _tc: int = _get_rearmost_col(enemy_side, row)
+		if _tc != -1:
+			_sel_target = [{"row": row, "col": _tc}]
+	else:
+		# 優先度1: 同行の前列
+		var _fc: int = get_frontmost_col(enemy_side, row)
+		if _fc == e_front_col and bm.board[enemy_side][row][_fc] != null:
+			_sel_target = [{"row": row, "col": _fc}]
+		else:
+			# 優先度2: 他行の前列（ランダム順）
+			var _other_rows: Array = [0, 1, 2]
+			_other_rows.erase(row)
+			_other_rows.shuffle()
+			for _r in _other_rows:
+				var _oc: int = get_frontmost_col(enemy_side, _r)
+				if _oc == e_front_col and bm.board[enemy_side][_r][_oc] != null:
+					_sel_target = [{"row": _r, "col": _oc}]
 					break
+		# 優先度3: 同行の中列
+		if _sel_target.is_empty() and bm.board[enemy_side][row][e_mid_col] != null:
+			_sel_target = [{"row": row, "col": e_mid_col}]
+		# 優先度4: 同行の後列
+		if _sel_target.is_empty() and bm.board[enemy_side][row][e_back_col] != null:
+			_sel_target = [{"row": row, "col": e_back_col}]
+	for _sel in _sel_target:
+		var target_row: int = _sel["row"]
+		var target_col: int = _sel["col"]
 		if target_col != -1:
 			hit_any = true
 			var target = bm.board[enemy_side][target_row][target_col]
@@ -171,13 +185,15 @@ func _do_attack(side: int, row: int, col: int, attacker: Object, enemy_side: int
 				# 大貫通：前列攻撃時に中列・後列にも同じダメージ
 				# 衝撃：後ろ1マス50%
 				if attacker._has_big_penetrate:
-					# 大貫通：前列攻撃時に中列・後列にも100%ダメージ
+					# 大貫通：前列攻撃時に中列100%・後列50%ダメージ
 					if target_col == (0 if enemy_side == 0 else 2):
+						var rear_col: int = 2 if enemy_side == 0 else 0
 						for extra_col in [1, 2] if enemy_side == 0 else [1, 0]:
 							var extra_target = bm.board[enemy_side][target_row][extra_col]
 							if extra_target != null:
+								var dmg_mult: float = 0.5 if extra_col == rear_col else 1.0
 								var extra_armor: float = min(1.0, extra_target._damage_reduction * 0.1)
-								var extra_dmg: int = max(0, int(float(actual_damage) * (1.0 - extra_armor)))
+								var extra_dmg: int = max(0, int(float(actual_damage) * dmg_mult * (1.0 - extra_armor)))
 								if extra_dmg > 0:
 									bm.event_queue.push(
 										1,
@@ -267,20 +283,7 @@ func _push_on_hit_effects(side: int, row: int, col: int, attacker: Object, targe
 				})
 	# 旧方式は削除済み。全てskills配列で処理。
 
-func _get_target_rows(attacker_row: int, attack_range: String) -> Array:
-	match attack_range:
-		"上含む2行":
-			if attacker_row > 0:
-				return [attacker_row - 1, attacker_row]
-			return [attacker_row]
-		"下含む2行":
-			if attacker_row < 2:
-				return [attacker_row, attacker_row + 1]
-			return [attacker_row]
-		"上下含む3行":
-			return [0, 1, 2]
-		_:
-			return [attacker_row]
+# _get_target_rows は REQ-B で廃止（多行攻撃廃止・単一ターゲット方式に移行）
 
 func _process_support_effects(delta: float) -> void:
 	# v2設計: 中列・後列のサポート効果をSPD依存で発動

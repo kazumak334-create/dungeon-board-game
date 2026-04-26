@@ -10,6 +10,12 @@ var _queue_mana_bar: ColorRect = null     # キューエリア内マナゲージ
 var _queue_mana_label: Label = null       # キューエリア内マナ数値
 var _overlay = null  # GameUIOverlayへの参照（デッキカウント更新用）
 
+var _mana_gauge_fill: ColorRect = null
+var _mana_value_lbl: Label = null
+
+var _cast_gauge_fill: ColorRect = null
+var _cast_value_lbl: Label = null
+
 # 呪文スロットUI（Q1/Q2/Q3に配置）
 var _spell_slot_panels: Array = []  # 3スロット分のUIノード辞書配列
 
@@ -129,6 +135,79 @@ func _build_card_queue_ui() -> void:
 	var enemy_q2_x: float = cx + gap / 2.0 + 1 * cell_w  # col1: 中列
 	var enemy_q3_x: float = cx + gap / 2.0 + 2 * cell_w  # col2: 後列
 
+	# ---- スロット下部横並びゲージ（CAST / MANA） ----
+	var gauge_row_y: float = queue_y + card_h + 4.0
+	var slots_total_w: float = cell_w * 3.0
+	var gauge_origin_x: float = self_q3_x  # Q3（後列）が最左端
+	var half_w: float = slots_total_w / 2.0
+	var bar_h: float = 8.0
+	var lbl_w: float = 40.0
+	var bar_margin: float = 4.0
+
+	# CAST ゲージ（左半分）
+	var cast_lbl := Label.new()
+	cast_lbl.text = "CAST"
+	cast_lbl.position = Vector2(gauge_origin_x, gauge_row_y + 4)
+	cast_lbl.size = Vector2(lbl_w, 16)
+	cast_lbl.add_theme_font_size_override("font_size", 10)
+	cast_lbl.add_theme_color_override("font_color", Color(0.5, 0.5, 0.5))
+	main.add_child(cast_lbl)
+
+	var cast_bar_x: float = gauge_origin_x + lbl_w + bar_margin
+	var cast_bar_w: float = half_w - lbl_w - bar_margin * 2.0
+
+	var cast_gauge_bg := ColorRect.new()
+	cast_gauge_bg.position = Vector2(cast_bar_x, gauge_row_y + 8)
+	cast_gauge_bg.size = Vector2(cast_bar_w, bar_h)
+	cast_gauge_bg.color = Color(0.12, 0.12, 0.16)
+	main.add_child(cast_gauge_bg)
+
+	_cast_gauge_fill = ColorRect.new()
+	_cast_gauge_fill.position = Vector2(cast_bar_x, gauge_row_y + 8)
+	_cast_gauge_fill.size = Vector2(0, bar_h)
+	_cast_gauge_fill.color = Color(0.35, 0.65, 0.35)
+	main.add_child(_cast_gauge_fill)
+
+	main.cast_gauge_fill = _cast_gauge_fill
+	main.cast_gauge_fill_max_w = cast_bar_w
+
+	# MANA ゲージ（右半分）
+	var mana_half_x: float = gauge_origin_x + half_w
+	var mana_bar_x: float = mana_half_x + lbl_w + bar_margin
+	var mana_bar_w: float = half_w - lbl_w - bar_margin * 2.0 - 50.0  # 数値ラベル分を引く
+
+	var mana_lbl := Label.new()
+	mana_lbl.text = "MANA"
+	mana_lbl.position = Vector2(mana_half_x, gauge_row_y + 4)
+	mana_lbl.size = Vector2(lbl_w, 16)
+	mana_lbl.add_theme_font_size_override("font_size", 10)
+	mana_lbl.add_theme_color_override("font_color", Color(0.5, 0.6, 0.5))
+	main.add_child(mana_lbl)
+
+	var mana_gauge_bg := ColorRect.new()
+	mana_gauge_bg.position = Vector2(mana_bar_x, gauge_row_y + 8)
+	mana_gauge_bg.size = Vector2(mana_bar_w, bar_h)
+	mana_gauge_bg.color = Color(0.12, 0.12, 0.16)
+	main.add_child(mana_gauge_bg)
+
+	_mana_gauge_fill = ColorRect.new()
+	_mana_gauge_fill.position = Vector2(mana_bar_x, gauge_row_y + 8)
+	_mana_gauge_fill.size = Vector2(0, bar_h)
+	_mana_gauge_fill.color = Color(0.35, 0.35, 0.55)
+	main.add_child(_mana_gauge_fill)
+
+	_mana_value_lbl = Label.new()
+	_mana_value_lbl.text = "0 / 0"
+	_mana_value_lbl.position = Vector2(mana_bar_x + mana_bar_w + 4, gauge_row_y + 2)
+	_mana_value_lbl.size = Vector2(46, 20)
+	_mana_value_lbl.add_theme_font_size_override("font_size", 11)
+	_mana_value_lbl.add_theme_color_override("font_color", Color(0.65, 0.65, 0.70))
+	main.add_child(_mana_value_lbl)
+
+	main.mana_value_label = _mana_value_lbl
+	main.mana_gauge_fill = _mana_gauge_fill
+	main.mana_gauge_fill_max_w = mana_bar_w
+
 	# ---- 自陣Q1/Q2/Q3: 呪文スロットUI ----
 	var slot_xs: Array = [self_q1_x, self_q2_x, self_q3_x]
 	var slot_labels: Array = ["Q1 (前列)", "Q2 (中列)", "Q3 (後列)"]
@@ -159,20 +238,6 @@ func _build_one_spell_slot(slot_index: int, sx: float, sy: float, sw: float, sh:
 	header_lbl.add_theme_font_size_override("font_size", 10)
 	header_lbl.add_theme_color_override("font_color", Color(0.5, 0.7, 0.5))
 	main.add_child(header_lbl)
-
-	# キャストゲージ（呪文スロット上部の横棒）
-	# 配置: ヘッダーラベルとパネル間（sy - 4 のY座標）
-	var gauge_bg := ColorRect.new()
-	gauge_bg.position = Vector2(sx, sy - 4)
-	gauge_bg.size = Vector2(sw, 3)
-	gauge_bg.color = Color(0.15, 0.15, 0.2)
-	main.add_child(gauge_bg)
-
-	var gauge_fill := ColorRect.new()
-	gauge_fill.position = Vector2(sx, sy - 4)
-	gauge_fill.size = Vector2(sw, 3)
-	gauge_fill.color = Color(0.4, 0.7, 1.0)  # シアン系（マナと区別）
-	main.add_child(gauge_fill)
 
 	# 発光縁取り（発動可能時のみvisible=true）
 	var glow_rect := ColorRect.new()
@@ -210,6 +275,7 @@ func _build_one_spell_slot(slot_index: int, sx: float, sy: float, sw: float, sh:
 	cond_lbl.add_theme_font_size_override("font_size", 9)
 	cond_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	cond_lbl.add_theme_color_override("font_color", COLOR_LABEL_DISABLED)
+	cond_lbl.clip_text = true
 	main.add_child(cond_lbl)
 
 	# マナコストラベル
@@ -221,9 +287,19 @@ func _build_one_spell_slot(slot_index: int, sx: float, sy: float, sw: float, sh:
 	cost_lbl.add_theme_color_override("font_color", COLOR_LABEL_DISABLED)
 	main.add_child(cost_lbl)
 
+	# 効果テキストラベル
+	var effect_lbl := Label.new()
+	effect_lbl.position = Vector2(sx + 5, sy + 100)
+	effect_lbl.size = Vector2(sw - 10, 54)
+	effect_lbl.add_theme_font_size_override("font_size", 10)
+	effect_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	effect_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	effect_lbl.add_theme_color_override("font_color", Color(0.75, 0.75, 0.8))
+	main.add_child(effect_lbl)
+
 	# 発動可否ラベル
 	var status_lbl := Label.new()
-	status_lbl.position = Vector2(sx + 5, sy + 100)
+	status_lbl.position = Vector2(sx + 5, sy + 158)
 	status_lbl.size = Vector2(sw - 10, 14)
 	status_lbl.add_theme_font_size_override("font_size", 9)
 	status_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -257,13 +333,12 @@ func _build_one_spell_slot(slot_index: int, sx: float, sy: float, sw: float, sh:
 		"name_lbl": name_lbl,
 		"cond_lbl": cond_lbl,
 		"cost_lbl": cost_lbl,
+		"effect_lbl": effect_lbl,
 		"status_lbl": status_lbl,
 		"synth_badge": synth_badge,
 		"range_lbl": range_lbl,
 		"base_x": sx,
 		"tween": null,
-		"gauge_bg": gauge_bg,
-		"gauge_fill": gauge_fill,
 	})
 
 func _on_spell_slot_input(event: InputEvent, slot_index: int) -> void:
@@ -384,6 +459,7 @@ func update_spell_slots() -> void:
 
 		var synth_badge: Label = sd["synth_badge"]
 		var range_lbl:   Label = sd["range_lbl"]
+		var effect_lbl:  Label = sd["effect_lbl"]
 
 		# BATTLEモードのヘッダー: 緑系
 		header_lbl.add_theme_color_override("font_color", Color(0.5, 0.7, 0.5))
@@ -398,6 +474,7 @@ func update_spell_slots() -> void:
 			name_lbl.add_theme_color_override("font_color", COLOR_LABEL_EMPTY)
 			cond_lbl.text = ""
 			cost_lbl.text = ""
+			effect_lbl.text = ""
 			status_lbl.text = ""
 			synth_badge.visible = false
 			range_lbl.visible = false
@@ -413,6 +490,7 @@ func update_spell_slots() -> void:
 			name_lbl.text = spell.unit_name
 			cond_lbl.text = "[%s]" % cond_display
 			cost_lbl.text = "コスト: %d" % slot["mana_cost"]
+			effect_lbl.text = spell.spell_effect if spell is UnitData else spell.get("effect", "")
 
 			# 合成バッジ
 			if synth_lv > 1:
@@ -434,6 +512,7 @@ func update_spell_slots() -> void:
 				name_lbl.add_theme_color_override("font_color", COLOR_LABEL_READY)
 				cond_lbl.add_theme_color_override("font_color", COLOR_LABEL_READY)
 				cost_lbl.add_theme_color_override("font_color", COLOR_LABEL_READY)
+				effect_lbl.add_theme_color_override("font_color", Color(0.75, 0.75, 0.8))
 				status_lbl.text = "▶ 発動可"
 				status_lbl.add_theme_color_override("font_color", COLOR_READY_ACCENT)
 				_start_pulse(i)
@@ -443,6 +522,7 @@ func update_spell_slots() -> void:
 				name_lbl.add_theme_color_override("font_color", COLOR_LABEL_DISABLED)
 				cond_lbl.add_theme_color_override("font_color", COLOR_LABEL_DISABLED)
 				cost_lbl.add_theme_color_override("font_color", COLOR_LABEL_DISABLED)
+				effect_lbl.add_theme_color_override("font_color", Color(0.5, 0.5, 0.55))
 				if reason == "mana":
 					status_lbl.text = "× マナ不足"
 				elif reason == "condition":
@@ -454,14 +534,15 @@ func update_spell_slots() -> void:
 				status_lbl.add_theme_color_override("font_color", COLOR_LABEL_DISABLED)
 				_stop_pulse(i)
 
-		# キャストゲージ更新（全スロット共通のratio）
+	# キャストゲージ更新
+	if main.cast_gauge_fill != null:
 		var sys = main.spell_slot_system
-		var ratio: float = 1.0 - (sys.cast_timer / max(0.01, sys.cast_interval))
-		ratio = clamp(ratio, 0.0, 1.0)
-		var gauge_fill: ColorRect = sd["gauge_fill"]
-		gauge_fill.size.x = sd["gauge_bg"].size.x * ratio
-		# 満タンならシアン、進行中はやや暗め
-		gauge_fill.color = Color(0.4, 0.7, 1.0) if ratio >= 1.0 else Color(0.3, 0.5, 0.8)
+		if sys != null:
+			var ratio: float = clamp(sys.cast_timer / max(0.01, sys.cast_interval), 0.0, 1.0)
+			main.cast_gauge_fill.size.x = main.cast_gauge_fill_max_w * ratio
+			if _cast_value_lbl != null:
+				_cast_value_lbl.text = "%d / %d" % [int(sys.cast_timer * 10), int(sys.cast_interval * 10)]
+
 
 # ---- フェーズアクションモード表示（REQ-QPA-08） ----
 
@@ -502,10 +583,6 @@ func _update_phase_action_slots() -> void:
 		synth_badge.visible = false
 		range_lbl.visible = false
 
-		# キャストゲージ非表示（フェーズアクション中はゲージ不要）
-		var gauge_fill: ColorRect = sd["gauge_fill"]
-		gauge_fill.size.x = 0.0
-
 		var slot = slots[i]
 		if not slot.get("is_action", false):
 			# 空スロット扱い
@@ -526,8 +603,7 @@ func _update_phase_action_slots() -> void:
 
 		name_lbl.text = label
 		cond_lbl.text = desc
-		cond_lbl.add_theme_font_size_override("font_size", 11)
-		cond_lbl.size.y = 36  # 3行分の高さ
+		cond_lbl.add_theme_font_size_override("font_size", 9)
 		cost_lbl.text = cost_text
 
 		if enabled:

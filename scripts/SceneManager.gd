@@ -25,7 +25,7 @@ const REST_SCREEN    = "rest_screen"  # Wave間休憩画面（Phase 4 #0-0a）
 var _scenes: Dictionary = {
 	"title": "res://scenes/Title.tscn",
 	"material_select": "res://scenes/InitialCardPick.tscn",
-	"deck_prep": "res://scenes/DeckPrep.tscn",
+	# "deck_prep": "res://scenes/DeckPrep.tscn",  # シーンファイル未作成・go_to未使用
 	"map_select": "res://scenes/MapSelect.tscn",
 	"battle": "res://scenes/Main.tscn",
 	"result": "res://scenes/Result.tscn",
@@ -39,7 +39,7 @@ var _scenes: Dictionary = {
 	"skill_tree": "res://scenes/SkillTree.tscn",
 	"settings": "res://scenes/Settings.tscn",
 	"deck_test_tool": "res://scenes/tools/DeckTestTool.tscn",
-	"rest_screen": "res://scenes/RestScreen.tscn",  # Wave間休憩画面
+	# "rest_screen": "res://scenes/RestScreen.tscn",  # シーンファイル未作成・Main.gdが直接生成
 }
 
 func go_to(scene_name: String) -> void:

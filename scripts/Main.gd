@@ -112,6 +112,7 @@ func _ready() -> void:
 	board_manager.spell_cast.connect(_on_spell_cast)
 	board_manager.synthesis_done.connect(_on_synthesis_done)
 	board_manager.material_dropped.connect(_on_material_dropped)
+	board_manager.gold_dropped.connect(_on_gold_dropped)
 
 	deck_manager = Node.new()
 	deck_manager.set_script(DeckManagerScript)
@@ -336,7 +337,7 @@ func _place_initial_units() -> void:
 		unit.skills = unit_data.get("skills", []).duplicate(true)
 		unit.card_type = "unit"
 
-		board_manager.place_unit(0, unit, {"row": row, "col": col})
+		board_manager.place_unit(0, unit, {"row": row, "col": col, "fallback_same_col": false})
 		print("[Main] 初期配置: %s → (%d, %d)" % [unit_name, row, col])
 
 func _place_enemy_initial_units() -> void:
@@ -885,6 +886,9 @@ func _on_synthesis_done(side: int, row: int, col: int, base_name: String, result
 
 func _on_material_dropped(material_id: String, count: int, side: int, row: int, col: int) -> void:
 	game_ui.spawn_material_drop(material_id, count, side, row, col)
+
+func _on_gold_dropped(amount: int, side: int, row: int, col: int) -> void:
+	game_ui.spawn_gold_drop(amount, side, row, col)
 
 func _apply_equipment_effects(pdata: RefCounted) -> void:
 	if pdata == null:

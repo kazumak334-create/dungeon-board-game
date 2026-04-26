@@ -112,6 +112,12 @@ func _build_ui() -> void:
 	_board.tab_container = _tab_container
 	_board.build_placement_tab(_tab_container, _PL)
 
+	# DebugParamTabへのboard参照を設定（遠近法スライダー接続）
+	if has_node("/root/DebugPanel"):
+		var debug_panel = get_node("/root/DebugPanel")
+		if debug_panel._param_tab != null:
+			debug_panel._param_tab.setup_board_ref(_board)
+
 	# DeckPrepInfoにinfo_containerを渡してセットアップ
 	_info.setup(self, _info_container, INFO_W, _PL)
 	_info.show_empty()

@@ -121,6 +121,43 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
           required: ['node_path', 'property', 'value'],
         },
       },
+      {
+        name: 'godot_call_method',
+        description: '指定したノードのメソッドを呼び出します。ボタンクリック・シーン遷移などのゲーム操作ができます。',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            node_path: {
+              type: 'string',
+              description: 'ノードのパス（例: "StartButton"、"SceneManager"）',
+            },
+            method: {
+              type: 'string',
+              description: 'メソッド名（例: "pressed"、"change_scene"）',
+            },
+            args: {
+              type: 'array',
+              description: 'メソッドの引数（配列形式、省略可）',
+              items: {},
+            },
+          },
+          required: ['node_path', 'method'],
+        },
+      },
+      {
+        name: 'godot_open_scene',
+        description: '指定したシーンファイルをGodot Editorで開きます。複数シーンの評価時に使用します。',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            scene_path: {
+              type: 'string',
+              description: 'シーンファイルのパス（例: "res://scenes/Main.tscn"）',
+            },
+          },
+          required: ['scene_path'],
+        },
+      },
     ],
   };
 });
@@ -230,6 +267,58 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
             {
               type: 'text',
               text: `Property "${property}" of node "${node_path}" has been updated to: ${JSON.stringify(value)}`,
+            },
+          ],
+        };
+      }
+
+      case 'godot_call_method': {
+        const { node_path, method, args: method_args = [] } = args;
+
+        if (!node_path || !method) {
+          throw new Error('node_path and method are required');
+        }
+
+        const result = await httpRequest('POST', '/call_method', {
+          path: node_path,
+          method,
+          args: method_args,
+        });
+
+        if (!result.success) {
+          throw new Error(`Failed to call method: ${result.error || 'Unknown error'}`);
+        }
+
+        return {
+          content: [
+            {
+              type: 'text',
+              text: `Method "${method}" called successfully on node "${node_path}". Result: ${JSON.stringify(result.result)}`,
+            },
+          ],
+        };
+      }
+
+      case 'godot_open_scene': {
+        const { scene_path } = args;
+
+        if (!scene_path) {
+          throw new Error('scene_path parameter is required');
+        }
+
+        const result = await httpRequest('POST', '/open_scene', {
+          scene_path,
+        });
+
+        if (!result.success) {
+          throw new Error(`Failed to open scene: ${result.error || 'Unknown error'}`);
+        }
+
+        return {
+          content: [
+            {
+              type: 'text',
+              text: `Scene "${scene_path}" has been opened in Godot Editor`,
             },
           ],
         };

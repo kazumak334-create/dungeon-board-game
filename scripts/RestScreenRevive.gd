@@ -116,7 +116,7 @@ func revive_unit(index: int) -> bool:
 	
 	game_session.gold -= revive_cost
 	
-	game_session.selected_deck.append(unit_name)
+	game_session.selected_deck.append({"name": unit_name})
 	
 	var removed: bool = false
 	for i in range(game_session.wave_dead_units.size() - 1, -1, -1):

@@ -232,7 +232,7 @@ func flush(board_manager: Node, base_hp: Array) -> void:
 				board_manager.remove_unit(s, r, c)
 				# 素材ドロップ処理（敵側ユニットのみ）
 				if s == 1 and victim != null:
-					_drop_materials_from_unit(victim, s, r, c)
+					_drop_materials_from_unit(victim, s, r, c, board_manager)
 				if board_manager.effect_executor != null:
 					for r2 in range(3):
 						for c2 in range(3):
@@ -274,7 +274,7 @@ func flush(board_manager: Node, base_hp: Array) -> void:
 
 	_damaged_ids.clear()
 
-func _drop_materials_from_unit(unit: Object, side: int, row: int, col: int) -> void:
+func _drop_materials_from_unit(unit: Object, side: int, row: int, col: int, board_manager: Node) -> void:
 	"""敵ユニット死亡時の素材自動取得（全量・選択不要）"""
 	# 素材テーブル参照（別設計書 drop_table_system.md で定義）
 	# 当面はスタブ: ユニット名から素材ID推定（暫定実装）
@@ -285,11 +285,33 @@ func _drop_materials_from_unit(unit: Object, side: int, row: int, col: int) -> v
 	GameSession.materials[material_id] = GameSession.materials.get(material_id, 0) + count
 	board_manager.material_dropped.emit(material_id, count, side, row, col)
 	print("[Drop] 素材獲得: %s x%d (累計:%d)" % [material_id, count, GameSession.materials[material_id]])
+	# 通貨ドロップ
+	var gold_amount: int = _resolve_gold_drop(unit)
+	if gold_amount > 0:
+		GameSession.current_battle_gold += gold_amount
+		board_manager.gold_dropped.emit(gold_amount, side, row, col)
+		print("[Drop] ゴールド獲得: %d (累計:%d)" % [gold_amount, GameSession.current_battle_gold])
 
 func _resolve_material_id(unit: Object) -> String:
-	"""ユニットから素材IDを解決（暫定実装・テーブル化は別タスク）"""
+	"""ユニットから素材IDを解決（種族ベースマッピング）"""
 	if unit == null:
 		return ""
-	# 暫定: unit.unit_name の先頭から推測（例: "スライム" → "slime_core"）
-	# 正式実装は drop_table_system.md 確定後に別タスクで置換
-	return ""  # スタブ: テーブル未定義のため空文字を返す（ドロップなし）
+	match unit.race:
+		"スライム":
+			return "slime_core"
+		"獣":
+			return "beast_fang"
+		"アンデッド":
+			return "old_bone"
+		_:
+			return "magic_stone"
+
+func _resolve_gold_drop(unit: Object) -> int:
+	"""ユニットのgold_dropをcards.jsonから解決（レアリティ別デフォルト付き）"""
+	if unit == null:
+		return 0
+	var cards_res = load("res://data/cards.json")
+	if cards_res == null:
+		return 2
+	var unit_data: Dictionary = cards_res.data.get("units", {}).get(unit.unit_name, {})
+	return unit_data.get("gold_drop", 2)

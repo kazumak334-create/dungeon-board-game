@@ -14,11 +14,11 @@ var _log_bg: ColorRect = null              # ログ背景
 var _log_title: Label = null               # ログタイトル
 var _cell_hp_bars: Array = []             # [side][r][c] -> ColorRect（セル内HPバー）
 var _cell_hp_labels: Array = []           # [side][r][c] -> Label（セル内HP数値）
-var _mana_gauge_bar: ColorRect = null     # マナゲージバー
-var _mana_gauge_label: Label = null       # マナ数値ラベル
 var _pause_button: Button = null          # 一時停止ボタン
 var _speed_buttons: Array = []            # 速度ボタン配列（ハイライト用）
 var _env_label: Label = null              # 環境表示ラベル
+var _active_drop_effects: Array = []
+const MAX_DROP_EFFECTS = 3
 func setup(p_main: Node) -> void:
 	add_to_group("game_ui")
 	main = p_main
@@ -304,42 +304,8 @@ func _on_pause_pressed() -> void:
 		_pause_button.text = "▶ 再開" if main.game_paused else "⏸ 一時停止"
 
 func _build_mana_bar() -> void:
-	# ヘッダーエリア（y=46付近）に表示
-	var bar_x: int = 440
-	var bar_y: int = 52
-	var bar_w: int = 360
-	var bar_h: int = 14
-
-	var bar_title := Label.new()
-	bar_title.text     = "Mana"
-	bar_title.position = Vector2(bar_x, bar_y - 16)
-	bar_title.add_theme_font_size_override("font_size", 11)
-	bar_title.modulate = Color(1.0, 0.85, 0.2)
-	main.add_child(bar_title)
-
-	# ゲージ背景
-	var gauge_bg := ColorRect.new()
-	gauge_bg.size     = Vector2(bar_w, bar_h)
-	gauge_bg.position = Vector2(bar_x, bar_y)
-	gauge_bg.color    = Color(0.1, 0.1, 0.07)
-	main.add_child(gauge_bg)
-
-	# ゲージ前景
-	_mana_gauge_bar = ColorRect.new()
-	_mana_gauge_bar.size     = Vector2(0, bar_h)
-	_mana_gauge_bar.position = Vector2(bar_x, bar_y)
-	_mana_gauge_bar.color    = Color(0.2, 0.5, 1.0)
-	main.add_child(_mana_gauge_bar)
-
-	# 数値ラベル
-	_mana_gauge_label = Label.new()
-	_mana_gauge_label.position = Vector2(bar_x + bar_w + 8, bar_y - 1)
-	_mana_gauge_label.add_theme_font_size_override("font_size", 12)
-	_mana_gauge_label.modulate = Color(1.0, 0.9, 0.3)
-	main.add_child(_mana_gauge_label)
-
-	main.mana_bar_cells = []
-	main.mana_value_label = _mana_gauge_label
+	# マナゲージはGameUIQueueのスロット行に統合
+	main.mana_value_label = null
 
 # ---- セルのX座標計算 ----
 func _cell_x(side: int, col: int) -> int:
@@ -354,6 +320,10 @@ func update_ui() -> void:
 	update_base_hp()
 	_update_mana()
 	_queue.update()
+
+func update_queue_only() -> void:
+	"""game_started=falseでも呼べるQスロット単独更新"""
+	_queue.update_spell_slots()
 
 func _update_cells() -> void:
 	for side in range(2):
@@ -492,13 +462,11 @@ func _update_mana() -> void:
 	var mana: float = main.deck_manager.mana
 	var mana_max: float = main.deck_manager.MANA_MAX
 	var ratio: float = clamp(mana / max(1.0, mana_max), 0.0, 1.0)
-	var bar_w: int = 360
-	if _mana_gauge_bar != null:
-		_mana_gauge_bar.size.x = int(bar_w * ratio)
-		var gauge_color: Color = Color(0.2, 0.5, 1.0).lerp(Color(1.0, 0.85, 0.1), ratio)
-		_mana_gauge_bar.color = gauge_color
-	if _mana_gauge_label != null:
-		_mana_gauge_label.text = "%.1f / %d（上限%d）" % [mana, int(mana_max), int(mana_max)]
+	if main.mana_gauge_fill != null:
+		var fill_max_w: float = main.mana_gauge_fill_max_w if "mana_gauge_fill_max_w" in main else 110.0
+		main.mana_gauge_fill.size.x = fill_max_w * ratio
+	if main.mana_value_label != null:
+		main.mana_value_label.text = "%.0f / %d" % [mana, int(mana_max)]
 
 func mark_all_cells_dirty() -> void:
 	for s in range(2):
@@ -557,3 +525,77 @@ func _on_wave_started(big_wave: int, small_wave: int, scale: float) -> void:
 func _on_intermission_requested(shop_config: Dictionary) -> void:
 	if main._progress_bar != null:
 		main._progress_bar.on_intermission(shop_config)
+
+func spawn_material_drop(material_id: String, _count: int, side: int, row: int, col: int) -> void:
+	if _active_drop_effects.size() >= MAX_DROP_EFFECTS:
+		return
+	var cell_x = _cell_x(side, col) + 59
+	var cell_y = 80 + row * 108 + 52
+	var icon_node = TextureRect.new()
+	icon_node.size = Vector2(16, 16)
+	icon_node.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	var path = "res://assets/materials/%s.png" % material_id
+	if ResourceLoader.exists(path):
+		icon_node.texture = load(path)
+	icon_node.position = Vector2(cell_x - 8, cell_y - 8)
+	main.add_child(icon_node)
+	_active_drop_effects.append({
+		"node": icon_node,
+		"timer": 1.0,
+		"start_x": float(cell_x - 8),
+		"start_y": float(cell_y - 8),
+		"vel_x": randf_range(-60.0, 60.0),
+		"vel_y": randf_range(-120.0, -60.0),
+		"bounce_count": 0,
+	})
+
+func spawn_gold_drop(_amount: int, side: int, row: int, col: int) -> void:
+	if _active_drop_effects.size() >= MAX_DROP_EFFECTS:
+		return
+	var cell_x = _cell_x(side, col) + 59
+	var cell_y = 80 + row * 108 + 52
+	var icon_node = TextureRect.new()
+	icon_node.size = Vector2(16, 16)
+	icon_node.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	var path = "res://assets/materials/gold_coin.png"
+	if ResourceLoader.exists(path):
+		icon_node.texture = load(path)
+	icon_node.position = Vector2(cell_x - 8, cell_y - 8)
+	main.add_child(icon_node)
+	_active_drop_effects.append({
+		"node": icon_node,
+		"timer": 1.0,
+		"start_x": float(cell_x - 8),
+		"start_y": float(cell_y - 8),
+		"vel_x": randf_range(-60.0, 60.0),
+		"vel_y": randf_range(-120.0, -60.0),
+		"bounce_count": 0,
+	})
+
+func update_drop_effects(delta: float) -> void:
+	var finished: Array = []
+	for effect in _active_drop_effects:
+		effect["timer"] -= delta
+		var node = effect["node"]
+		if not is_instance_valid(node):
+			finished.append(effect)
+			continue
+		# 重力加速
+		effect["vel_y"] += 300.0 * delta
+		# 位置更新
+		node.position.x += effect["vel_x"] * delta
+		node.position.y += effect["vel_y"] * delta
+		# バウンド: 上昇から下降に転じてstart_yを超えたら跳ね返り（最大2回）
+		if effect["vel_y"] > 0.0 and node.position.y > effect["start_y"] and effect["bounce_count"] < 2:
+			effect["vel_y"] *= -0.4
+			effect["bounce_count"] += 1
+			node.position.y = effect["start_y"]
+		# 後半0.4秒でフェードアウト
+		var elapsed = 1.0 - effect["timer"]
+		if elapsed > 0.6:
+			node.modulate.a = 1.0 - (elapsed - 0.6) / 0.4
+		if effect["timer"] <= 0.0:
+			node.queue_free()
+			finished.append(effect)
+	for done in finished:
+		_active_drop_effects.erase(done)

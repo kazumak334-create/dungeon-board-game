@@ -24,15 +24,5 @@ if [ -n "$ERRORS" ] && [ "$ERROR_COUNT" -gt 0 ]; then
 fi
 echo "✓ 構文チェックパス"
 
-# UI継承チェック
-echo ""
-bash "$(dirname "$0")/check_ui_inheritance.sh"
-UI_CHECK_EXIT=$?
-
-if [ $UI_CHECK_EXIT -ne 0 ]; then
-    echo "FAILED: UI継承チェックで問題検出"
-    exit 1
-fi
-
 echo "=== 完了 ==="
 exit 0

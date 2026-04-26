@@ -81,6 +81,8 @@ func initialize(session: Node, board: Node, shop_config: Dictionary = {}, hide_s
 
 	if game_session:
 		rest_state.gold = game_session.gold
+		game_session.heal_use_count = 0
+		game_session.scout_use_count = 0
 
 	build_ui()
 
@@ -183,29 +185,53 @@ func build_ui() -> void:
 	_enemy_panel = EnemyPanelManager.new()
 	_enemy_panel.wave_manager = wave_manager
 	_enemy_panel.game_session = game_session
+	_enemy_panel.board_manager = board_manager
 	_enemy_panel.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	add_child(_enemy_panel)
 	_enemy_panel.ready_to_battle.connect(_on_ready_to_battle)
+	_enemy_panel.shop_item_detail_requested.connect(_on_shop_item_detail_requested)
 	_enemy_panel.set_phase(EnemyPanelManager.EnemyPanelPhase.NEXT_EI, {"show_ready_button": not _hide_shop})
 
 	# 7. フッター（次へ/スキップボタン）
 	var footer = create_footer()
 	ui_root.add_child(footer)
 
-	# 8. マナ表示ラベル（左パネル下部・フッターボタンと重ならないようx=5）
+	# 8. マナ表示（左パネル・タブ直下に配置）
+	# TabBar は y=25, h=24 → 下端 y=49。Scroll は y=55→y=90 にずらす（build_hand_areaで対応）
+	var mana_bg = StyleBoxFlat.new()
+	mana_bg.bg_color = Color(0.10, 0.10, 0.14)
+	mana_bg.border_color = Color(0.25, 0.25, 0.30)
+	mana_bg.set_border_width_all(1)
+
+	# 盤面マナ行（TabBar実高さ考慮: y=25+36=61相当 → y=68で余裕を持たせる）
+	var unit_row = Panel.new()
+	unit_row.set_position(Vector2(4, 68))
+	unit_row.set_size(Vector2(LAYOUT.card_list.w - 8, 18))
+	unit_row.add_theme_stylebox_override("panel", mana_bg)
+	card_list_bar.add_child(unit_row)
+
 	_mana_label_unit = Label.new()
-	_mana_label_unit.set_position(Vector2(5, LAYOUT.footer.y + 2))
-	_mana_label_unit.set_size(Vector2(220, 20))
-	_mana_label_unit.add_theme_font_size_override("font_size", 14)
+	_mana_label_unit.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_mana_label_unit.add_theme_font_size_override("font_size", 11)
 	_mana_label_unit.add_theme_color_override("font_color", Color(0.4, 0.85, 1.0))
-	ui_root.add_child(_mana_label_unit)
+	_mana_label_unit.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	_mana_label_unit.set_offset(SIDE_LEFT, 4)
+	unit_row.add_child(_mana_label_unit)
+
+	# 呪文マナ行
+	var spell_row = Panel.new()
+	spell_row.set_position(Vector2(4, 88))
+	spell_row.set_size(Vector2(LAYOUT.card_list.w - 8, 18))
+	spell_row.add_theme_stylebox_override("panel", mana_bg)
+	card_list_bar.add_child(spell_row)
 
 	_mana_label_spell = Label.new()
-	_mana_label_spell.set_position(Vector2(5, LAYOUT.footer.y + 22))
-	_mana_label_spell.set_size(Vector2(220, 20))
-	_mana_label_spell.add_theme_font_size_override("font_size", 14)
+	_mana_label_spell.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_mana_label_spell.add_theme_font_size_override("font_size", 11)
 	_mana_label_spell.add_theme_color_override("font_color", Color(0.9, 0.6, 1.0))
-	ui_root.add_child(_mana_label_spell)
+	_mana_label_spell.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	_mana_label_spell.set_offset(SIDE_LEFT, 4)
+	spell_row.add_child(_mana_label_spell)
 
 	_refresh_mana_labels()
 
@@ -268,9 +294,9 @@ func build_hand_area() -> void:
 		list_bar.add_child(tab_bar)
 		tab_bar.set_position(Vector2(5, 25))
 		tab_bar.set_size(Vector2(LAYOUT.card_list.w - 10, 24))
-		# ScrollContainerをTabBarの下にずらす
-		scroll.set_position(Vector2(5, 55))
-		scroll.set_size(Vector2(LAYOUT.card_list.w - 10, LAYOUT.card_list.h - 60))
+		# ScrollContainerをマナ表示の下にずらす（TabBar実高+マナ2行分）
+		scroll.set_position(Vector2(5, 110))
+		scroll.set_size(Vector2(LAYOUT.card_list.w - 10, LAYOUT.card_list.h - 115))
 
 	# タブに応じてコンテンツを切り替え
 	if _tab_index == 0:
@@ -316,12 +342,18 @@ func build_hand_area() -> void:
 			no_spell_label.add_theme_color_override("font_color", Color(0.5, 0.5, 0.5))
 			hand_area.add_child(no_spell_label)
 		else:
+			# 同名カード重複ハイライト防止: デッキ内残枚数カウンター
+			var deck_remain: Dictionary = {}
+			for sn in game_session.spell_deck:
+				deck_remain[sn] = deck_remain.get(sn, 0) + 1
 			for spell_entry in game_session.spell_available:
 				var spell_name: String = spell_entry.get("name", "") if spell_entry is Dictionary else str(spell_entry)
 				var spell_data: Dictionary = CardDB.SPELLS.get(spell_name, {})
-				var spell_card = _create_spell_mini_card(spell_name, spell_data)
-				# デッキ内ならゴールドボーダーで強調
-				if game_session.spell_deck.has(spell_name):
+				var in_deck: bool = deck_remain.get(spell_name, 0) > 0
+				if in_deck:
+					deck_remain[spell_name] -= 1
+				var spell_card = _create_spell_mini_card(spell_name, spell_data, in_deck)
+				if in_deck:
 					var hl_style = StyleBoxFlat.new()
 					hl_style.bg_color = Color(0.10, 0.12, 0.22)
 					hl_style.border_color = Color(1.0, 0.85, 0.1)
@@ -357,7 +389,7 @@ func build_hand_area() -> void:
 		print("[RestScreenManager] 素材タブ表示")
 
 # 呪文ミニカード作成（3列用）
-func _create_spell_mini_card(spell_name: String, spell_data: Dictionary) -> Control:
+func _create_spell_mini_card(spell_name: String, spell_data: Dictionary, in_deck: bool = false) -> Control:
 	var card_panel = Panel.new()
 	card_panel.set_custom_minimum_size(Vector2(CARD_MINI.w, CARD_MINI.h))
 
@@ -391,7 +423,7 @@ func _create_spell_mini_card(spell_name: String, spell_data: Dictionary) -> Cont
 	card_panel.add_child(type_lbl)
 
 	# コスト
-	var cost: int = spell_data.get("mana_cost", spell_data.get("cost", 0))
+	var cost: int = spell_data.get("mana", spell_data.get("mana_cost", spell_data.get("cost", 0)))
 	var cost_lbl = Label.new()
 	cost_lbl.text = "コスト:%d" % cost
 	cost_lbl.set_position(Vector2(2, 48))
@@ -399,14 +431,22 @@ func _create_spell_mini_card(spell_name: String, spell_data: Dictionary) -> Cont
 	cost_lbl.add_theme_color_override("font_color", Color(0.4, 0.7, 1.0))
 	card_panel.add_child(cost_lbl)
 
-	# デッキ内フラグ
-	if game_session and game_session.spell_deck.has(spell_name):
+	# デッキ内フラグ（呼び出し元から渡されたカウンター判定を使用）
+	if in_deck:
 		var in_deck_lbl = Label.new()
 		in_deck_lbl.text = "★デッキ"
 		in_deck_lbl.set_position(Vector2(2, 72))
 		in_deck_lbl.add_theme_font_size_override("font_size", 8)
 		in_deck_lbl.add_theme_color_override("font_color", Color(1.0, 0.85, 0.1))
 		card_panel.add_child(in_deck_lbl)
+
+	# クリック → 右詳細表示
+	var cap_name = spell_name
+	var cap_data = spell_data
+	card_panel.gui_input.connect(func(ev: InputEvent):
+		if ev is InputEventMouseButton and ev.button_index == MOUSE_BUTTON_LEFT and ev.pressed:
+			_show_spell_detail(cap_name, cap_data)
+	)
 
 	return card_panel
 
@@ -447,6 +487,14 @@ func _create_material_cell(mat_id: String, count: int) -> Control:
 	count_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	count_lbl.add_theme_color_override("font_color", Color(1.0, 0.9, 0.5))
 	cell.add_child(count_lbl)
+
+	# クリック → 右詳細表示
+	var cap_id = mat_id
+	var cap_count = count
+	cell.gui_input.connect(func(ev: InputEvent):
+		if ev is InputEventMouseButton and ev.button_index == MOUSE_BUTTON_LEFT and ev.pressed:
+			_show_material_detail(cap_id, cap_count)
+	)
 
 	return cell
 
@@ -624,11 +672,27 @@ func _show_card_detail(card_name: String, card_data: Dictionary) -> void:
 		skills_label.add_theme_font_size_override("font_size", 12)
 		card_detail_container.add_child(skills_label)
 
+		var _edb = load("res://scripts/EffectDB.gd")
+		var TRIGGER_NAMES: Dictionary = {
+			"on_hit": "命中時",
+			"on_kill": "撃破時",
+			"on_summon": "召喚時",
+			"on_death": "撃破された時",
+			"on_play": "使用時",
+			"on_hp_threshold": "HP閾値",
+			"always": "常時",
+			"timer": "定期",
+			"on_front_attack": "前列攻撃時",
+			"on_support": "サポート時",
+		}
 		for skill in skills:
 			if skill is Dictionary:
 				var trigger = skill.get("trigger", "")
 				var effect_id = skill.get("effect_id", "")
-				var skill_text = "%s: %s" % [trigger, effect_id]
+				var trigger_disp = TRIGGER_NAMES.get(trigger, trigger)
+				var edef = _edb.EFFECTS.get(effect_id, {})
+				var effect_disp = edef.get("display", effect_id)
+				var skill_text = "%s: %s" % [trigger_disp, effect_disp]
 				var skill_label = Label.new()
 				skill_label.text = "・%s" % skill_text
 				skill_label.add_theme_font_size_override("font_size", 10)
@@ -641,12 +705,72 @@ func _show_card_detail(card_name: String, card_data: Dictionary) -> void:
 				skill_label.autowrap_mode = TextServer.AUTOWRAP_WORD
 				card_detail_container.add_child(skill_label)
 
+# 呪文詳細表示
+func _show_spell_detail(spell_name: String, spell_data: Dictionary) -> void:
+	_clear_card_detail()
+	var cost: int = spell_data.get("mana", spell_data.get("mana_cost", spell_data.get("cost", 0)))
+
+	var _add = func(text: String, size: int = 12, color: Color = Color(0.85, 0.85, 0.9)) -> void:
+		var lbl = Label.new()
+		lbl.text = text
+		lbl.add_theme_font_size_override("font_size", size)
+		lbl.add_theme_color_override("font_color", color)
+		lbl.autowrap_mode = TextServer.AUTOWRAP_WORD
+		card_detail_container.add_child(lbl)
+
+	_add.call(spell_name, 16, Color(0.85, 0.7, 1.0))
+	_add.call("呪文", 11, Color(0.6, 0.5, 0.9))
+	_add.call("マナコスト: %d" % cost, 12, Color(0.4, 0.7, 1.0))
+	var target = spell_data.get("target", spell_data.get("spell_target", ""))
+	if target != "":
+		_add.call("対象: %s" % target, 11, Color(0.7, 0.7, 0.8))
+	var effect = spell_data.get("effect", spell_data.get("spell_effect", ""))
+	if effect != "":
+		_add.call("\n効果:\n%s" % effect, 11, Color(0.75, 0.9, 0.75))
+	var rarity = spell_data.get("rarity", "common")
+	_add.call("レアリティ: %s" % rarity, 10, Color(0.6, 0.6, 0.7))
+
+# 素材詳細表示
+func _show_material_detail(mat_id: String, count: int) -> void:
+	_clear_card_detail()
+	var mat_data: Dictionary = {}
+	for m in CardDB.MATERIALS:
+		if m.get("id", m.get("name", "")) == mat_id:
+			mat_data = m
+			break
+
+	var _add = func(text: String, size: int = 12, color: Color = Color(0.85, 0.85, 0.9)) -> void:
+		var lbl = Label.new()
+		lbl.text = text
+		lbl.add_theme_font_size_override("font_size", size)
+		lbl.add_theme_color_override("font_color", color)
+		lbl.autowrap_mode = TextServer.AUTOWRAP_WORD
+		card_detail_container.add_child(lbl)
+
+	_add.call(mat_id, 16, Color(0.9, 0.8, 0.6))
+	_add.call("素材", 11, Color(0.7, 0.6, 0.4))
+	_add.call("所持数: %d" % count, 12, Color(1.0, 0.9, 0.5))
+	if not mat_data.is_empty():
+		var desc = mat_data.get("description", mat_data.get("desc", ""))
+		if desc != "":
+			_add.call("\n%s" % desc, 11, Color(0.75, 0.85, 0.75))
+
 # 右側カード詳細クリア
 func _clear_card_detail() -> void:
 	if not card_detail_container:
 		return
 	for child in card_detail_container.get_children():
 		child.queue_free()
+
+func _on_shop_item_detail_requested(item: Dictionary) -> void:
+	var item_name: String = item.get("name", "")
+	var item_type: String = item.get("type", "unit")
+	if item_type == "spell":
+		var spell_data: Dictionary = CardDB.SPELLS.get(item_name, {})
+		_show_spell_detail(item_name, spell_data)
+	else:
+		var card_data: Dictionary = CardDB.UNITS.get(item_name, {})
+		_show_card_detail(item_name, card_data)
 
 func _on_ready_to_battle() -> void:
 	rest_screen_closed.emit()

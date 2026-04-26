@@ -93,6 +93,7 @@ var scratch_peeked: Array = []          # 覗き見済みインデックス
 var scratch_sacrificed_index: int = -1  # 強欲犠牲マスインデックス
 var scratch_action_used: String = ""    # 使用済みSCRATCHアクション ID
 var scout_use_count: int = 0            # 同一NEXT_EIフェーズ内の偵察回数
+var heal_use_count: int = 0             # 同一RESTセッション内の回復回数
 
 # Godモードフラグ（デバッグUI専用）
 var god_mode_invincible: bool = false     # 無敵モード
@@ -172,6 +173,7 @@ func reset() -> void:
 	scratch_sacrificed_index = -1
 	scratch_action_used = ""
 	scout_use_count = 0
+	heal_use_count = 0
 	# Godモードフラグはreset時にクリア
 	god_mode_invincible = false
 	god_mode_infinite_mana = false

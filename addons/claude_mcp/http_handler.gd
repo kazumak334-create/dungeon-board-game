@@ -29,6 +29,14 @@ func handle_request(method: String, path: String, query_params: Dictionary, body
 	elif method == "POST" and path == "/property":
 		return _handle_set_property(body)
 
+	# メソッド呼び出し
+	elif method == "POST" and path == "/call_method":
+		return _handle_call_method(body)
+
+	# シーン切り替え
+	elif method == "POST" and path == "/open_scene":
+		return _handle_open_scene(body)
+
 	# 未対応のエンドポイント
 	else:
 		return {
@@ -240,6 +248,96 @@ func _handle_set_property(body: String) -> Dictionary:
 		"body": JSON.stringify({
 			"success": true,
 			"message": "Property updated successfully"
+		})
+	}
+
+func _handle_call_method(body: String) -> Dictionary:
+	"""指定ノードのメソッドを呼び出す"""
+	if editor_interface == null:
+		return _error_response(500, "EditorInterface not available")
+
+	# JSONボディをパース
+	var json = JSON.new()
+	var parse_result = json.parse(body)
+	if parse_result != OK:
+		return _error_response(400, "Invalid JSON body")
+
+	var data = json.data
+	if not data is Dictionary:
+		return _error_response(400, "Body must be a JSON object")
+
+	var node_path = data.get("path", "")
+	var method_name = data.get("method", "")
+	var args = data.get("args", [])
+
+	if node_path == "" or method_name == "":
+		return _error_response(400, "path and method are required")
+
+	var edited_scene = editor_interface.get_edited_scene_root()
+	if edited_scene == null:
+		return _error_response(404, "No scene is currently open")
+
+	# NodePathからノードを取得
+	var node = edited_scene.get_node_or_null(NodePath(node_path))
+	if node == null:
+		return _error_response(404, "Node not found: %s" % node_path)
+
+	# メソッドが存在するか確認
+	if not node.has_method(method_name):
+		return _error_response(400, "Method not found: %s" % method_name)
+
+	# メソッドを呼び出し
+	var result = null
+	if args is Array and args.size() > 0:
+		result = node.callv(method_name, args)
+	else:
+		result = node.call(method_name)
+
+	return {
+		"status": 200,
+		"content_type": "application/json",
+		"body": JSON.stringify({
+			"success": true,
+			"result": _serialize_value(result),
+			"message": "Method called successfully"
+		})
+	}
+
+func _handle_open_scene(body: String) -> Dictionary:
+	"""指定したシーンファイルをエディタで開く"""
+	if editor_interface == null:
+		return _error_response(500, "EditorInterface not available")
+
+	# JSONボディをパース
+	var json = JSON.new()
+	var parse_result = json.parse(body)
+	if parse_result != OK:
+		return _error_response(400, "Invalid JSON body")
+
+	var data = json.data
+	if not data is Dictionary:
+		return _error_response(400, "Body must be a JSON object")
+
+	var scene_path = data.get("scene_path", "")
+	if scene_path == "":
+		return _error_response(400, "scene_path is required")
+
+	# シーンファイルの存在確認
+	if not FileAccess.file_exists(scene_path):
+		return _error_response(404, "Scene file not found: %s" % scene_path)
+
+	# シーンを開く
+	var result = editor_interface.open_scene_from_path(scene_path)
+	if result != OK:
+		return _error_response(500, "Failed to open scene: error code %d" % result)
+
+	return {
+		"status": 200,
+		"content_type": "application/json",
+		"body": JSON.stringify({
+			"success": true,
+			"message": "Scene opened successfully",
+			"scene_path": scene_path
 		})
 	}
 

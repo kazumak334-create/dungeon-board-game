@@ -7,32 +7,32 @@ extends RefCounted
 # 戻り値: Array 3要素
 # 各要素: {action_id, action_label, action_desc, action_cost_text, enabled}
 
-static func build_scratch(gold: int, action_used: String) -> Array:
-	"""SCRATCHフェーズ: 確定/覗き見/強欲"""
-	var can_peek: bool = (gold >= PhaseActionConfig.PEEK_COST) and (action_used == "")
-	var can_greed: bool = (action_used == "")
+static func build_scratch(gold: int, peek_used: bool, collected_count: int) -> Array:
+	"""SCRATCHフェーズ: 確定/覗き見/廃止"""
+	var can_peek: bool = (gold >= PhaseActionConfig.PEEK_COST) and (not peek_used)
+	var confirm_desc: String = "報酬%d件確定→SHOP" % collected_count if collected_count > 0 else "SHOPへ進む"
 
 	return [
 		{
 			"action_id": "scratch_confirm",
 			"action_label": "確定",
-			"action_desc": "選択中マスを確定して報酬獲得",
+			"action_desc": confirm_desc,
 			"action_cost_text": "なし",
 			"enabled": true
 		},
 		{
 			"action_id": "scratch_peek",
 			"action_label": "覗き見",
-			"action_desc": "隣接3マスの中身を公開",
+			"action_desc": "1マス公開(収集なし)",
 			"action_cost_text": "金%dG" % PhaseActionConfig.PEEK_COST,
 			"enabled": can_peek
 		},
 		{
-			"action_id": "scratch_greed",
-			"action_label": "強欲",
-			"action_desc": "1マス犠牲にして2マス獲得",
-			"action_cost_text": "1マス無効化",
-			"enabled": can_greed
+			"action_id": "scratch_disabled",
+			"action_label": "---",
+			"action_desc": "",
+			"action_cost_text": "ー",
+			"enabled": false
 		}
 	]
 
@@ -62,16 +62,18 @@ static func build_shop(gold: int, reroll_count: int, negotiated: bool) -> Array:
 		{
 			"action_id": "shop_negotiate",
 			"action_label": "交渉",
-			"action_desc": "成功60%:全商品-30% / 失敗:即退店+ペナルティ",
+			"action_desc": "成功→-30% / 失敗→即退店",
 			"action_cost_text": "なし",
 			"enabled": can_negotiate
 		}
 	]
 
-static func build_next_ei(gold: int, act: int, scout_count: int) -> Array:
-	"""NEXT_EIフェーズ: 出撃/偵察/暗転"""
+static func build_next_ei(gold: int, act: int, scout_count: int, heal_count: int) -> Array:
+	"""NEXT_EIフェーズ: 出撃/偵察/回復"""
 	var scout_cost: int = PhaseActionConfig.get_scout_cost(act, scout_count)
+	var heal_cost: int = PhaseActionConfig.get_heal_cost(heal_count)
 	var can_scout: bool = (gold >= scout_cost)
+	var can_heal: bool = (gold >= heal_cost)
 
 	return [
 		{
@@ -84,15 +86,15 @@ static func build_next_ei(gold: int, act: int, scout_count: int) -> Array:
 		{
 			"action_id": "next_ei_scout",
 			"action_label": "偵察",
-			"action_desc": "敵1マスのHP/ATKを公開",
+			"action_desc": "敵1マス公開",
 			"action_cost_text": "金%dG" % scout_cost,
 			"enabled": can_scout
 		},
 		{
-			"action_id": "next_ei_dark",
-			"action_label": "未使用",
-			"action_desc": "",
-			"action_cost_text": "ー",
-			"enabled": false
+			"action_id": "next_ei_heal",
+			"action_label": "回復",
+			"action_desc": "全ユニット30%回復",
+			"action_cost_text": "金%dG" % heal_cost,
+			"enabled": can_heal
 		}
 	]

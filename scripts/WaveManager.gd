@@ -130,12 +130,14 @@ func _advance_to_next_wave() -> void:
 			state = WaveState.SMALL_WAVE
 			GameSession.wave_mana_carryover = 0.0
 			GameSession.wave_board_snapshot = {}
+			_build_enemy_for_wave(_current_big, _current_small)  # NEXT_EI表示用プレビュー
 			intermission_requested.emit(_build_shop_config())
 			return
 		else:
 			# 最終BW（BW4）またはSW4/6のショップ
 			print("[WaveManager] SW%d突破 → ショップへ" % _current_small)
 			_current_small += 1
+			_build_enemy_for_wave(_current_big, _current_small)  # NEXT_EI表示用プレビュー
 			intermission_requested.emit(_build_shop_config())
 			return
 
@@ -180,6 +182,13 @@ func _save_board_snapshot() -> void:
 	if board_manager == null:
 		print("[WaveManager] WARNING: board_manager未設定")
 		return
+	# [診断] 保存前に全セルを出力
+	print("[WaveManager] 盤面保存前ダンプ:")
+	for r in range(3):
+		for c in range(3):
+			var u = board_manager.board[0][r][c]
+			if u != null:
+				print("  board[0][%d][%d] = %s" % [r, c, u.unit_name])
 	var snapshot: Dictionary = {}
 	var player_side: int = 0  # プレイヤー側は常に0
 	for r in range(3):

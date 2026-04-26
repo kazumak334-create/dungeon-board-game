@@ -3,9 +3,12 @@
 class_name DebugParamTab
 extends ScrollContainer
 
+signal perspective_changed(depth: float, scale_h: float)
+
 # UI要素保持用
 var _sliders: Dictionary = {}  # key: "section.key", value: HSlider
 var _labels: Dictionary = {}   # key: "section.key", value: Label
+var _board_ref = null
 
 func _ready() -> void:
 	_build_ui()
@@ -133,6 +136,10 @@ func _add_perspective_slider(parent: VBoxContainer, key: String, label_text: Str
 
 func _apply_perspective_to_board(changed_key: String, value: float) -> void:
 	ConfigLoader.set_runtime_value("deckprep_view", changed_key, value)
+	var depth = ConfigLoader.get_value("deckprep_view", "perspective_depth_offset", 18.0)
+	var scale_h = ConfigLoader.get_value("deckprep_view", "perspective_height_scale", 0.12)
+	if _board_ref != null:
+		_board_ref.apply_perspective(depth, scale_h)
 
 func _get_config_value(section: String, key: String) -> float:
 	# ドロップテーブルは階層が深いので特別処理
@@ -174,3 +181,6 @@ func _on_reset_pressed() -> void:
 		_labels[dict_key].text = str(default_value)
 	
 	print("[DebugParamTab] 全パラメータをデフォルト値にリセット")
+
+func setup_board_ref(board: Node) -> void:
+	_board_ref = board

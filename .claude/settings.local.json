@@ -205,6 +205,16 @@
           }
         ]
       }
+    ],
+    "PreCompact": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash -c 'echo \"# Compact Snapshot $(date +%Y-%m-%dT%H:%M:%S)\" > /c/Users/kazum/.claude/projects/C--Users-kazum-dungeon-board-game/memory/session_compact_snapshot.md && echo \"## Working Branch\" >> /c/Users/kazum/.claude/projects/C--Users-kazum-dungeon-board-game/memory/session_compact_snapshot.md && git -C \"$CLAUDE_PROJECT_DIR\" log --oneline -5 >> /c/Users/kazum/.claude/projects/C--Users-kazum-dungeon-board-game/memory/session_compact_snapshot.md 2>/dev/null || true'"
+          }
+        ]
+      }
     ]
   }
 }

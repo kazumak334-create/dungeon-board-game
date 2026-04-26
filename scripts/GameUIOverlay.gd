@@ -26,11 +26,7 @@ func build() -> void:
 	_battle_timer_label = Label.new()
 	_battle_timer_label.position = Vector2(540, 42)
 	_battle_timer_label.size = Vector2(200, 28)
-	_battle_timer_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_battle_timer_label.add_theme_font_size_override("font_size", 20)
-	_battle_timer_label.add_theme_color_override("font_color", Color(0.9, 0.9, 0.9))
-	_battle_timer_label.text = "60"
-	_battle_timer_label.z_index = 10
+	_battle_timer_label.visible = false  # 制限時間廃止
 	main.add_child(_battle_timer_label)
 
 	# 重要イベントフキダシ（画面下部・3秒で消える）

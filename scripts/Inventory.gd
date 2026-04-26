@@ -27,6 +27,7 @@ const SORT_TABS = [
 	{"id": "uncommon",  "label": "Uncommon"},
 	{"id": "rare",      "label": "Rare"},
 	{"id": "boss",      "label": "Boss"},
+	{"id": "materials", "label": "素材"},
 ]
 
 func _ready() -> void:
@@ -58,7 +59,7 @@ func _build_ui() -> void:
 
 func _build_sort_tabs() -> void:
 	# 5タブ × 80幅 + 4ギャップ × 8 = 432。中央揃え: (1280-432)/2=424
-	var x = 424
+	var x = 380
 	for tab in SORT_TABS:
 		var btn = Button.new()
 		btn.text = tab["label"]
@@ -81,26 +82,34 @@ func _set_filter(filter: String) -> void:
 
 func _get_filtered_items() -> Array:
 	var result: Array = []
-	for artifact_id in GameSession.artifacts:
-		var artifact_data = _get_artifact_data(artifact_id)
-		if artifact_data.is_empty():
-			continue
-		var rarity = artifact_data.get("rarity", "common")
-		match _selected_filter:
-			"all":
-				result.append({"type": "artifact", "data": artifact_data})
-			"common":
-				if rarity == "common":
+	if _selected_filter != "materials":
+		for artifact_id in GameSession.artifacts:
+			var artifact_data = _get_artifact_data(artifact_id)
+			if artifact_data.is_empty():
+				continue
+			var rarity = artifact_data.get("rarity", "common")
+			match _selected_filter:
+				"all":
 					result.append({"type": "artifact", "data": artifact_data})
-			"uncommon":
-				if rarity == "uncommon":
-					result.append({"type": "artifact", "data": artifact_data})
-			"rare":
-				if rarity == "rare":
-					result.append({"type": "artifact", "data": artifact_data})
-			"boss":
-				if rarity == "boss":
-					result.append({"type": "artifact", "data": artifact_data})
+				"common":
+					if rarity == "common":
+						result.append({"type": "artifact", "data": artifact_data})
+				"uncommon":
+					if rarity == "uncommon":
+						result.append({"type": "artifact", "data": artifact_data})
+				"rare":
+					if rarity == "rare":
+						result.append({"type": "artifact", "data": artifact_data})
+				"boss":
+					if rarity == "boss":
+						result.append({"type": "artifact", "data": artifact_data})
+	if _selected_filter == "materials":
+		for mat_id in GameSession.materials:
+			var count = GameSession.materials[mat_id]
+			if count <= 0:
+				continue
+			var mat_data = _get_material_data(mat_id)
+			result.append({"type": "material", "data": mat_data, "count": count})
 	return result
 
 func _get_artifact_data(artifact_id: String) -> Dictionary:
@@ -124,6 +133,9 @@ func _build_grid() -> void:
 			_build_empty_cell(x, y)
 
 func _build_item_cell(item: Dictionary, x: int, y: int) -> void:
+	if item["type"] == "material":
+		_build_material_cell(item, x, y)
+		return
 	var panel = Panel.new()
 	panel.position = Vector2(x, y)
 	panel.size = Vector2(CELL_SIZE, CELL_SIZE)
@@ -188,3 +200,64 @@ func _on_back() -> void:
 	if prev == "":
 		prev = SceneManager.MAP_SELECT
 	SceneManager.go_to(prev)
+
+func _get_material_data(material_id: String) -> Dictionary:
+	for mat in CardDB.MATERIALS:
+		if mat.get("id", "") == material_id:
+			return mat
+	return {"id": material_id, "display": material_id}
+
+func _build_material_cell(item: Dictionary, x: int, y: int) -> void:
+	var panel = Panel.new()
+	panel.position = Vector2(x, y)
+	panel.size = Vector2(CELL_SIZE, CELL_SIZE)
+	var style = StyleBoxFlat.new()
+	style.bg_color = Color(0.12, 0.12, 0.18)
+	style.border_color = Color(0.6, 0.5, 0.3)
+	style.set_border_width_all(2)
+	style.set_corner_radius_all(4)
+	panel.add_theme_stylebox_override("panel", style)
+	_content_container.add_child(panel)
+
+	var icon_rect = TextureRect.new()
+	icon_rect.position = Vector2(8, 5)
+	icon_rect.size = Vector2(38, 38)
+	icon_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	var tex = _load_material_icon(item["data"].get("id", ""))
+	if tex:
+		icon_rect.texture = tex
+	else:
+		var fallback = ColorRect.new()
+		fallback.position = Vector2(8, 5)
+		fallback.size = Vector2(38, 38)
+		fallback.color = Color(0.6, 0.5, 0.3, 0.4)
+		panel.add_child(fallback)
+	panel.add_child(icon_rect)
+
+	var name_lbl = Label.new()
+	name_lbl.text = item["data"].get("display", "???")
+	name_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	name_lbl.position = Vector2(2, CELL_SIZE - 16)
+	name_lbl.size = Vector2(CELL_SIZE - 4, 14)
+	name_lbl.add_theme_font_size_override("font_size", 8)
+	name_lbl.add_theme_color_override("font_color", Color(0.9, 0.85, 0.5))
+	name_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	panel.add_child(name_lbl)
+
+	var count_lbl = Label.new()
+	count_lbl.text = "x%d" % item["count"]
+	count_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	count_lbl.position = Vector2(CELL_SIZE - 20, CELL_SIZE - 16)
+	count_lbl.size = Vector2(18, 12)
+	count_lbl.add_theme_font_size_override("font_size", 8)
+	count_lbl.add_theme_color_override("font_color", Color(1.0, 1.0, 0.6))
+	count_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	panel.add_child(count_lbl)
+
+func _load_material_icon(material_id: String) -> Texture2D:
+	if material_id == "":
+		return null
+	var path = "res://assets/materials/%s.png" % material_id
+	if ResourceLoader.exists(path):
+		return load(path)
+	return null

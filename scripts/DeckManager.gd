@@ -11,6 +11,7 @@ var discard: Array = []
 var spell_executor: RefCounted = null  # SpellExecutor（Main.gd が設定）
 var enemy_ai_ref: Node = null          # EnemyAI参照（Main.gd が設定）
 var _cost_reduction_remaining: int = 0 # 連鎖の触媒：残りコスト軽減枚数
+var auto_play_enabled: bool = false    # 自動発動フラグ（廃止済み・常にfalse）
 
 # 発動チェック間隔（初期値1秒。将来ユニット効果で変更可能）
 var check_interval: float = 1.0
@@ -76,30 +77,14 @@ func _build_default_deck() -> void:
 		deck.append(u)
 	deck.shuffle()
 
-# シャッフルカードをデッキ最下部に保証する（バトルルール）
 func ensure_shuffle_card() -> void:
-	# 既存のシャッフルカードを除去（位置リセット）
-	for i in range(deck.size() - 1, -1, -1):
-		if deck[i].unit_name == "呪文回収":
-			deck.remove_at(i)
-	# 最下部に新規追加
-	if not CardDB.SYSTEM_SPELLS.has("呪文回収"):
-		return
-	var sd = CardDB.SYSTEM_SPELLS["呪文回収"]
-	var card = _UnitDataScript.new()
-	card.unit_name = "呪文回収"
-	card.card_type = "spell"
-	card.spell_id = "呪文回収"
-	card.mana = 0
-	card.is_consumable = true
-	card.spell_target = sd["target"]
-	card.spell_effect = sd["effect"]
-	card.skills = sd.get("skills", []).duplicate(true)
-	deck.append(card)
+	pass  # REQ-D: 呪文回収廃止
 
 func process_deck(delta: float, board: Node) -> void:
 	# v2設計: マナ生成は攻撃/スキル発動時にトリガー（BoardManagerで実行）
 	emit_signal("mana_changed", mana)
+	if not auto_play_enabled:
+		return  # 自動発動無効（SpellSlotSystemの手動発動に移行済み）
 
 	# クールダウン中は発動しない
 	if _check_timer > 0.0:
@@ -230,3 +215,30 @@ func get_next_card() -> Object:
 	if deck.is_empty():
 		return null
 	return deck[0]
+
+func get_spell_card_by_name(spell_name: String) -> Object:
+	# spell_nameからUnitDataオブジェクトを生成して返す
+	if CardDB.SPELLS.has(spell_name):
+		var d: Dictionary = CardDB.SPELLS[spell_name]
+		var u = _UnitDataScript.new()
+		u.unit_name = spell_name
+		u.card_type = "spell"
+		u.spell_id = spell_name
+		u.mana = d.get("mana", 0)
+		u.spell_target = d.get("target", "")
+		u.spell_effect = d.get("effect", "")
+		u.skills = d.get("skills", []).duplicate(true)
+		return u
+	elif CardDB.STATUS_SPELLS.has(spell_name):
+		var d: Dictionary = CardDB.STATUS_SPELLS[spell_name]
+		var u = _UnitDataScript.new()
+		u.unit_name = spell_name
+		u.card_type = "status_spell"
+		u.spell_id = spell_name
+		u.mana = d.get("mana", 0)
+		u.is_consumable = d.get("is_consumable", false)
+		u.spell_target = d.get("target", "")
+		u.spell_effect = d.get("effect", "")
+		u.skills = d.get("skills", []).duplicate(true)
+		return u
+	return null

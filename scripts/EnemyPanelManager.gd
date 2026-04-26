@@ -77,22 +77,42 @@ func set_phase(phase: EnemyPanelPhase, _context: Dictionary = {}) -> void:
 # ---- NEXT_EIフェーズ ----
 
 func _build_next_ei_ui() -> void:
-	# 設計: 偵察（Q2アクション・金20G）で1マスずつ公開。初期状態は空セル表示。
+	# 設計: 偵察（Q2アクション）で1マスずつ公開。初期状態は敵がいるマスは「?」表示、いないマスは空。
+	var col_units: Array = [[], [], []]
+	if wave_manager != null and wave_manager.enemy_ai != null:
+		for unit in wave_manager.enemy_ai.enemy_deck:
+			var c: int = unit.assigned_col if "assigned_col" in unit else 0
+			if c >= 0 and c < 3:
+				col_units[c].append(unit)
 	for row in range(ROWS):
 		for col in range(COLS):
-			var cell = _create_ei_cell(row, col)
+			var unit = col_units[col][row] if row < col_units[col].size() else null
+			var cell = _create_ei_cell(row, col, unit)
 			_current_container.add_child(cell)
 	# REQ-QPA-07: 準備完了ボタン廃止（Qスロット「出撃」に移行）
 
-func _create_ei_cell(row: int, col: int) -> Control:
+func _create_ei_cell(row: int, col: int, unit = null) -> Control:
 	var cell = Panel.new()
 	cell.set_position(Vector2(BOARD_X + col * CELL_W, BOARD_Y + row * CELL_H))
 	cell.set_size(Vector2(CELL_W, CELL_H))
 	var style = StyleBoxFlat.new()
-	style.bg_color = Color(0.08, 0.08, 0.10)
-	style.border_color = Color(0.2, 0.2, 0.25)
+	if unit != null:
+		style.bg_color = Color(0.12, 0.08, 0.08)
+		style.border_color = Color(0.5, 0.2, 0.2)
+	else:
+		style.bg_color = Color(0.08, 0.08, 0.10)
+		style.border_color = Color(0.2, 0.2, 0.25)
 	style.set_border_width_all(1)
 	cell.add_theme_stylebox_override("panel", style)
+	if unit != null:
+		var lbl = Label.new()
+		lbl.text = "?"
+		lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		lbl.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		lbl.add_theme_font_size_override("font_size", 24)
+		lbl.add_theme_color_override("font_color", Color(0.7, 0.4, 0.4))
+		cell.add_child(lbl)
 	return cell
 
 # ---- SCRATCHフェーズ ----

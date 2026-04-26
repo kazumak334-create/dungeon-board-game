@@ -222,10 +222,26 @@ Phase 7  ローンチ準備             ░░░░░░░░░░░░░�
 
 | ドキュメント | パス | 状態 |
 |-------------|------|------|
-| 世界観コンセプト | docs/reference/world_concept.md | 確定 |
+| 世界観コンセプト | docs/story/world_setting.md | 確定 |
 | 合成ツリーたたき台 | docs/reference/synthesis_tree_draft.md | 企画✅ |
 | グラフィック要素一覧 | docs/reference/graphics_requirements.md | 確定 |
 | ペルソナ定義 | docs/reference/personas.md | 確定 |
 | ドロップテーブルリサーチ | docs/research/drop_table_research.md | 参考資料 |
 | 合成リサーチ | docs/research/synthesis_system_research.md | 参考資料 |
+
+---
+
+## 技術負債バックログ
+
+### 技術負債: DeckManager → ManaManager リファクタ
+
+- **背景**: 呪文スロット手動発動への移行により、DeckManagerの自動発動機能は `auto_play_enabled=false` で無効化済み。
+  マナ管理（mana / MANA_MAX / mana_changed シグナル）のみ残存している。
+- **作業内容**:
+  - `DeckManager` を `ManaManager` に改名（ファイル・クラス名・参照箇所すべて）
+  - 自動発動コード（deck / discard / process_deck の自動進行部分）を削除
+  - `ensure_shuffle_card()` の空関数を削除
+  - 参照箇所: Main.gd / BoardManager.gd / SpellSlotSystem.gd / CombatSystem.gd / EnemyAI.gd
+- **優先度**: 低（動作上の問題なし・次フェーズ以降で対応）
+- **登録日**: 2026-04-25
 | こわいやさんリサーチ | docs/research/kowai_yasan_research.md | 参考資料 |

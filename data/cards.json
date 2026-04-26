@@ -1672,6 +1672,253 @@
 			"texture": "",
 			"persistence": "permanent",
 			"en_name": "SingleHeal"
+		},
+		"ファイアボルト": {
+			"anim": "",
+			"rarity": "common",
+			"mana": 3,
+			"effect": "敵単体ランダムに6ダメージ",
+			"sfx": "",
+			"texture": "",
+			"skills": [
+				{
+					"effect_id": "single_enemy_damage",
+					"params": {
+						"damage": 6
+					},
+					"target": "random_enemy",
+					"trigger": "on_play"
+				}
+			],
+			"target": "random_enemy"
+		},
+		"ヒールタッチ": {
+			"anim": "",
+			"rarity": "common",
+			"mana": 3,
+			"effect": "味方単体ランダムを8回復",
+			"sfx": "",
+			"texture": "",
+			"skills": [
+				{
+					"effect_id": "heal_pct",
+					"params": {
+						"factor": 0.4
+					},
+					"target": "random_ally",
+					"trigger": "on_play"
+				}
+			],
+			"target": "random_ally"
+		},
+		"ストーンスロー": {
+			"anim": "",
+			"rarity": "common",
+			"mana": 4,
+			"effect": "敵前列ランダム1体に10ダメージ",
+			"sfx": "",
+			"texture": "",
+			"skills": [
+				{
+					"effect_id": "front_enemy_damage",
+					"params": {
+						"damage": 10
+					},
+					"target": "random_front_enemy",
+					"trigger": "on_play"
+				}
+			],
+			"target": "random_front_enemy"
+		},
+		"バックスタブ": {
+			"anim": "",
+			"rarity": "common",
+			"mana": 5,
+			"effect": "敵後列ランダム1体に8ダメージ",
+			"sfx": "",
+			"texture": "",
+			"skills": [
+				{
+					"effect_id": "back_enemy_damage",
+					"params": {
+						"damage": 8
+					},
+					"target": "random_back_enemy",
+					"trigger": "on_play"
+				}
+			],
+			"target": "random_back_enemy"
+		},
+		"ラインブレス": {
+			"anim": "",
+			"rarity": "common",
+			"mana": 5,
+			"effect": "自軍1行全体にリジェネ+3",
+			"sfx": "",
+			"texture": "",
+			"skills": [
+				{
+					"effect_id": "regen_apply",
+					"params": {
+						"stacks": 3
+					},
+					"target": "random_ally_row",
+					"trigger": "on_play"
+				}
+			],
+			"target": "random_ally_row"
+		},
+		"クラムウォール": {
+			"anim": "",
+			"rarity": "common",
+			"mana": 4,
+			"effect": "自前列全体に鎧+2付与",
+			"sfx": "",
+			"texture": "",
+			"skills": [
+				{
+					"effect_id": "armor_apply",
+					"params": {
+						"stacks": 2
+					},
+					"target": "front_allies",
+					"trigger": "on_play"
+				}
+			],
+			"target": "front_allies"
+		},
+		"マナサージ": {
+			"anim": "",
+			"rarity": "common",
+			"mana": 2,
+			"effect": "即座にマナ+5",
+			"sfx": "",
+			"texture": "",
+			"skills": [
+				{
+					"effect_id": "mana_boost",
+					"params": {
+						"amount": 5
+					},
+					"target": "self",
+					"trigger": "on_play"
+				}
+			],
+			"target": "self"
+		},
+		"ウィークネス": {
+			"anim": "",
+			"rarity": "common",
+			"mana": 4,
+			"effect": "敵単体ランダムに呪い+2付与",
+			"sfx": "",
+			"texture": "",
+			"skills": [
+				{
+					"effect_id": "curse_apply",
+					"params": {
+						"stacks": 2
+					},
+					"target": "random_enemy",
+					"trigger": "on_play"
+				}
+			],
+			"target": "random_enemy"
+		},
+		"ホームグラウンド": {
+			"anim": "",
+			"rarity": "uncommon",
+			"mana": 6,
+			"effect": "自陣中央マスの味方にパワー+2付与",
+			"sfx": "",
+			"texture": "",
+			"skills": [
+				{
+					"effect_id": "power_apply",
+					"params": {
+						"stacks": 2
+					},
+					"target": "center_ally",
+					"trigger": "on_play"
+				}
+			],
+			"target": "center_ally"
+		},
+		"スパークチェーン": {
+			"anim": "",
+			"rarity": "common",
+			"mana": 5,
+			"effect": "敵1行全体に3ダメージ",
+			"sfx": "",
+			"texture": "",
+			"skills": [
+				{
+					"effect_id": "column_damage",
+					"params": {
+						"damage": 3
+					},
+					"target": "random_enemy_row",
+					"trigger": "on_play"
+				}
+			],
+			"target": "random_enemy_row"
+		},
+		"ガーディアンコール": {
+			"anim": "",
+			"rarity": "uncommon",
+			"mana": 6,
+			"effect": "自前列で最低HPの味方を大回復",
+			"sfx": "",
+			"texture": "",
+			"skills": [
+				{
+					"effect_id": "heal_pct",
+					"params": {
+						"factor": 1.0
+					},
+					"target": "front_lowest_hp_ally",
+					"trigger": "on_play"
+				}
+			],
+			"target": "front_lowest_hp_ally"
+		},
+		"ハウルウィズダム": {
+			"anim": "",
+			"rarity": "uncommon",
+			"mana": 5,
+			"effect": "自軍の獣全員にATKバフ+2付与",
+			"sfx": "",
+			"texture": "",
+			"skills": [
+				{
+					"effect_id": "atk_buff_apply",
+					"params": {
+						"stacks": 2
+					},
+					"target": "ally_beast_all",
+					"trigger": "on_play"
+				}
+			],
+			"target": "ally_beast_all"
+		},
+		"シフトコール": {
+			"anim": "",
+			"rarity": "uncommon",
+			"mana": 4,
+			"effect": "自軍ランダム1体を1列前に移動",
+			"sfx": "",
+			"texture": "",
+			"skills": [
+				{
+					"effect_id": "mana_gain",
+					"params": {
+						"amount": 2
+					},
+					"target": "random_ally",
+					"trigger": "on_play"
+				}
+			],
+			"target": "random_ally"
 		}
 	},
 	"status_spells": {
@@ -2181,32 +2428,6 @@
 			],
 			"target": "self",
 			"texture": ""
-		},
-		"呪文回収": {
-			"anim": "",
-			"rarity": "common",
-			"mana": 0,
-			"effect": "山札をシャッフル＋自身を山札最下部に追加",
-			"is_consumable": true,
-			"sfx": "",
-			"skills": [
-				{
-					"effect_id": "shuffle_deck",
-					"params": {},
-					"target": "self_deck",
-					"trigger": "on_play"
-				},
-				{
-					"effect_id": "deck_add_self",
-					"params": {
-						"position": "bottom"
-					},
-					"target": "self_deck",
-					"trigger": "on_play"
-				}
-			],
-			"target": "self",
-			"texture": ""
 		}
 	},
 	"units": {
@@ -2226,7 +2447,8 @@
 				"攻撃"
 			],
 			"spd": 7,
-			"en_name": "Wolf"
+			"en_name": "Wolf",
+			"gold_drop": 4
 		},
 		"キングスライム": {
 			"anim": "",
@@ -2244,7 +2466,8 @@
 				"攻撃"
 			],
 			"spd": 2,
-			"en_name": "Kinglob"
+			"en_name": "Kinglob",
+			"gold_drop": 30
 		},
 		"スライム": {
 			"anim": "",
@@ -2259,7 +2482,8 @@
 			"skills": [],
 			"texture": "",
 			"spd": 2,
-			"en_name": "Slime"
+			"en_name": "Slime",
+			"gold_drop": 2
 		},
 		"バンシー": {
 			"anim": "",
@@ -2283,7 +2507,8 @@
 			],
 			"texture": "",
 			"spd": 5,
-			"en_name": "Banshee"
+			"en_name": "Banshee",
+			"gold_drop": 7
 		},
 		"リッチ": {
 			"anim": "",
@@ -2307,7 +2532,8 @@
 			],
 			"texture": "",
 			"spd": 3,
-			"en_name": "Lich"
+			"en_name": "Lich",
+			"gold_drop": 30
 		},
 		"ワイルドホーク": {
 			"anim": "",
@@ -2322,7 +2548,8 @@
 			"skills": [],
 			"texture": "",
 			"spd": 7,
-			"en_name": "WildHawk"
+			"en_name": "WildHawk",
+			"gold_drop": 4
 		},
 		"ワイト": {
 			"anim": "",
@@ -2346,7 +2573,8 @@
 			],
 			"texture": "",
 			"spd": 3,
-			"en_name": "Wight"
+			"en_name": "Wight",
+			"gold_drop": 7
 		},
 		"デュラハン": {
 			"anim": "",
@@ -2361,7 +2589,8 @@
 			"skills": [],
 			"texture": "",
 			"spd": 3,
-			"en_name": "Dullahan"
+			"en_name": "Dullahan",
+			"gold_drop": 12
 		},
 		"デスナイト": {
 			"anim": "",
@@ -2393,7 +2622,8 @@
 			],
 			"texture": "",
 			"spd": 3,
-			"en_name": "デスナイト"
+			"en_name": "デスナイト",
+			"gold_drop": 30
 		},
 		"ケットシー": {
 			"anim": "",
@@ -2408,7 +2638,8 @@
 			"skills": [],
 			"texture": "",
 			"spd": 10,
-			"en_name": "CaitSith"
+			"en_name": "CaitSith",
+			"gold_drop": 4
 		},
 		"マンティコア": {
 			"anim": "",
@@ -2432,7 +2663,8 @@
 			],
 			"texture": "",
 			"spd": 5,
-			"en_name": "Manticore"
+			"en_name": "Manticore",
+			"gold_drop": 7
 		},
 		"フェンリル": {
 			"anim": "",
@@ -2456,7 +2688,8 @@
 			],
 			"texture": "",
 			"spd": 7,
-			"en_name": "Fenrir"
+			"en_name": "Fenrir",
+			"gold_drop": 30
 		},
 		"リッチキング": {
 			"anim": "",
@@ -2480,7 +2713,8 @@
 			],
 			"texture": "",
 			"spd": 3,
-			"en_name": "LichKing"
+			"en_name": "LichKing",
+			"gold_drop": 30
 		},
 		"Granob": {
 			"anim": "",
@@ -2516,7 +2750,8 @@
 				"壁"
 			],
 			"spd": 3,
-			"en_name": "Granob"
+			"en_name": "Granob",
+			"gold_drop": 7
 		},
 		"Amoeba": {
 			"anim": "",
@@ -2551,7 +2786,8 @@
 				"サポート"
 			],
 			"spd": 5,
-			"en_name": "Amoeba"
+			"en_name": "Amoeba",
+			"gold_drop": 2
 		},
 		"Barbzel": {
 			"anim": "",
@@ -2587,7 +2823,8 @@
 				"サポート"
 			],
 			"spd": 10,
-			"en_name": "Barbzel"
+			"en_name": "Barbzel",
+			"gold_drop": 4
 		},
 		"Jelfix": {
 			"anim": "",
@@ -2623,7 +2860,8 @@
 				"サポート"
 			],
 			"spd": 10,
-			"en_name": "Jelfix"
+			"en_name": "Jelfix",
+			"gold_drop": 2
 		},
 		"Mudblob": {
 			"anim": "",
@@ -2660,7 +2898,8 @@
 				"サポート"
 			],
 			"spd": 5,
-			"en_name": "Mudblob"
+			"en_name": "Mudblob",
+			"gold_drop": 4
 		},
 		"Venpool": {
 			"anim": "",
@@ -2695,7 +2934,8 @@
 				"サポート"
 			],
 			"spd": 2,
-			"en_name": "Venpool"
+			"en_name": "Venpool",
+			"gold_drop": 7
 		},
 		"Hexshift": {
 			"anim": "",
@@ -2727,7 +2967,8 @@
 				"midnight_frenzy"
 			],
 			"spd": 5,
-			"en_name": "Hexshift"
+			"en_name": "Hexshift",
+			"gold_drop": 7
 		},
 		"Hexbreak": {
 			"anim": "",
@@ -2759,7 +3000,8 @@
 				"midnight_frenzy"
 			],
 			"spd": 5,
-			"en_name": "Hexbreak"
+			"en_name": "Hexbreak",
+			"gold_drop": 12
 		},
 		"Hexruin": {
 			"anim": "",
@@ -2800,7 +3042,8 @@
 				"midnight_frenzy"
 			],
 			"spd": 5,
-			"en_name": "Hexruin"
+			"en_name": "Hexruin",
+			"gold_drop": 30
 		},
 		"Hexdrift": {
 			"anim": "",
@@ -2831,7 +3074,8 @@
 				"midnight_frenzy"
 			],
 			"spd": 5,
-			"en_name": "Hexdrift"
+			"en_name": "Hexdrift",
+			"gold_drop": 7
 		},
 		"Hexswap": {
 			"anim": "",
@@ -2862,7 +3106,8 @@
 				"midnight_frenzy"
 			],
 			"spd": 5,
-			"en_name": "Hexswap"
+			"en_name": "Hexswap",
+			"gold_drop": 12
 		},
 		"Hexlord": {
 			"anim": "",
@@ -2893,7 +3138,8 @@
 				"midnight_frenzy"
 			],
 			"spd": 5,
-			"en_name": "Hexlord"
+			"en_name": "Hexlord",
+			"gold_drop": 30
 		},
 		"Spinwall": {
 			"anim": "",
@@ -2944,7 +3190,8 @@
 				"守備"
 			],
 			"spd": 5.0,
-			"en_name": "Spinwall"
+			"en_name": "Spinwall",
+			"gold_drop": 12
 		},
 		"Thornblast": {
 			"anim": "",
@@ -2993,7 +3240,8 @@
 				"攻撃"
 			],
 			"spd": 5.0,
-			"en_name": "Thornblast"
+			"en_name": "Thornblast",
+			"gold_drop": 30
 		},
 		"Shieldblast": {
 			"anim": "",
@@ -3034,7 +3282,8 @@
 				"守備"
 			],
 			"spd": 5.0,
-			"en_name": "Shieldblast"
+			"en_name": "Shieldblast",
+			"gold_drop": 12
 		},
 		"Crystalblast": {
 			"anim": "",
@@ -3067,7 +3316,8 @@
 				"攻撃"
 			],
 			"spd": 5.0,
-			"en_name": "Crystalblast"
+			"en_name": "Crystalblast",
+			"gold_drop": 30
 		},
 		"Spellock": {
 			"anim": "",
@@ -3095,7 +3345,8 @@
 				"サポート"
 			],
 			"spd": 3.33,
-			"en_name": "Spellock"
+			"en_name": "Spellock",
+			"gold_drop": 12
 		},
 		"Nullock": {
 			"anim": "",
@@ -3123,7 +3374,8 @@
 				"サポート"
 			],
 			"spd": 3.33,
-			"en_name": "Nullock"
+			"en_name": "Nullock",
+			"gold_drop": 30
 		},
 		"Plagzel": {
 			"anim": "",
@@ -3159,7 +3411,8 @@
 				"サポート"
 			],
 			"spd": 10,
-			"en_name": "Plagzel"
+			"en_name": "Plagzel",
+			"gold_drop": 4
 		},
 		"Sparkblob": {
 			"anim": "",
@@ -3187,7 +3440,8 @@
 				"攻撃"
 			],
 			"spd": 20,
-			"en_name": "Sparkblob"
+			"en_name": "Sparkblob",
+			"gold_drop": 4
 		},
 		"Crystel": {
 			"anim": "",
@@ -3223,7 +3477,8 @@
 				"攻撃"
 			],
 			"spd": 5,
-			"en_name": "Crystel"
+			"en_name": "Crystel",
+			"gold_drop": 7
 		},
 		"Voidblob": {
 			"anim": "",
@@ -3270,7 +3525,8 @@
 				"mana_drain"
 			],
 			"spd": 5,
-			"en_name": "Voidblob"
+			"en_name": "Voidblob",
+			"gold_drop": 12
 		},
 		"Glitzel": {
 			"anim": "",
@@ -3297,7 +3553,8 @@
 				"サポート"
 			],
 			"spd": 3,
-			"en_name": "Glitzel"
+			"en_name": "Glitzel",
+			"gold_drop": 7
 		},
 		"Silenzel": {
 			"anim": "",
@@ -3324,7 +3581,8 @@
 				"サポート"
 			],
 			"spd": 3,
-			"en_name": "Silenzel"
+			"en_name": "Silenzel",
+			"gold_drop": 12
 		},
 		"Frostblob": {
 			"anim": "",
@@ -3375,7 +3633,8 @@
 				"サポート"
 			],
 			"spd": 5.0,
-			"en_name": "Frostblob"
+			"en_name": "Frostblob",
+			"gold_drop": 7
 		},
 		"Blightzel": {
 			"anim": "",
@@ -3426,7 +3685,8 @@
 				"サポート"
 			],
 			"spd": 5.0,
-			"en_name": "Blightzel"
+			"en_name": "Blightzel",
+			"gold_drop": 12
 		},
 		"Ruinzel": {
 			"anim": "",
@@ -3485,7 +3745,8 @@
 				"サポート"
 			],
 			"spd": 5.0,
-			"en_name": "Ruinzel"
+			"en_name": "Ruinzel",
+			"gold_drop": 30
 		},
 		"Miasmagod": {
 			"anim": "",
@@ -3555,7 +3816,8 @@
 				"sturdy"
 			],
 			"spd": 3.33,
-			"en_name": "Miasmagod"
+			"en_name": "Miasmagod",
+			"gold_drop": 30
 		},
 		"Manawall": {
 			"anim": "",
@@ -3596,7 +3858,8 @@
 				"サポート"
 			],
 			"spd": 3.33,
-			"en_name": "Manawall"
+			"en_name": "Manawall",
+			"gold_drop": 30
 		},
 		"Aegisblob": {
 			"anim": "",
@@ -3647,7 +3910,8 @@
 				"サポート"
 			],
 			"spd": 3.33,
-			"en_name": "Aegisblob"
+			"en_name": "Aegisblob",
+			"gold_drop": 30
 		},
 		"Fangos": {
 			"anim": "",
@@ -3684,7 +3948,8 @@
 				"サポート"
 			],
 			"spd": 20,
-			"en_name": "Fangos"
+			"en_name": "Fangos",
+			"gold_drop": 2
 		},
 		"Piercor": {
 			"anim": "",
@@ -3712,7 +3977,8 @@
 				"pierce"
 			],
 			"spd": 10,
-			"en_name": "Piercor"
+			"en_name": "Piercor",
+			"gold_drop": 2
 		},
 		"Hawkis": {
 			"anim": "",
@@ -3756,7 +4022,8 @@
 				"flying"
 			],
 			"spd": 7,
-			"en_name": "Hawkis"
+			"en_name": "Hawkis",
+			"gold_drop": 2
 		},
 		"Stalkor": {
 			"anim": "",
@@ -3784,7 +4051,8 @@
 				"攻撃"
 			],
 			"spd": 7,
-			"en_name": "Stalkor"
+			"en_name": "Stalkor",
+			"gold_drop": 4
 		},
 		"Venomaw": {
 			"anim": "",
@@ -3821,7 +4089,8 @@
 				"攻撃"
 			],
 			"spd": 10,
-			"en_name": "Venomaw"
+			"en_name": "Venomaw",
+			"gold_drop": 4
 		},
 		"Voidclaw": {
 			"anim": "",
@@ -3855,7 +4124,8 @@
 				"サポート"
 			],
 			"spd": 7,
-			"en_name": "Voidclaw"
+			"en_name": "Voidclaw",
+			"gold_drop": 4
 		},
 		"Thornbeast": {
 			"anim": "",
@@ -3890,7 +4160,8 @@
 				"攻撃"
 			],
 			"spd": 7,
-			"en_name": "Thornbeast"
+			"en_name": "Thornbeast",
+			"gold_drop": 4
 		},
 		"Rageveil": {
 			"anim": "",
@@ -3922,7 +4193,8 @@
 				"indomitable"
 			],
 			"spd": 7,
-			"en_name": "Rageveil"
+			"en_name": "Rageveil",
+			"gold_drop": 7
 		},
 		"Wolfpack": {
 			"anim": "",
@@ -3962,7 +4234,8 @@
 				"swarm"
 			],
 			"spd": 10,
-			"en_name": "Wolfpack"
+			"en_name": "Wolfpack",
+			"gold_drop": 2
 		},
 		"グレイヴシフト": {
 			"anim": "",
@@ -3997,7 +4270,8 @@
 			],
 			"texture": "",
 			"spd": 2.0,
-			"en_name": "Gravshift"
+			"en_name": "Gravshift",
+			"gold_drop": 7
 		},
 		"ソウルスティール": {
 			"anim": "",
@@ -4039,7 +4313,8 @@
 			],
 			"texture": "",
 			"spd": 2.0,
-			"en_name": "Soulsteal"
+			"en_name": "Soulsteal",
+			"gold_drop": 7
 		},
 		"ヘクスヴァート": {
 			"anim": "",
@@ -4063,7 +4338,8 @@
 			],
 			"texture": "",
 			"spd": 3.0,
-			"en_name": "Hexvert"
+			"en_name": "Hexvert",
+			"gold_drop": 4
 		},
 		"カースシード": {
 			"anim": "",
@@ -4096,7 +4372,8 @@
 			],
 			"texture": "",
 			"spd": 1.0,
-			"en_name": "Curseed"
+			"en_name": "Curseed",
+			"gold_drop": 2
 		},
 		"マレアンプ": {
 			"anim": "",
@@ -4120,7 +4397,8 @@
 			],
 			"texture": "",
 			"spd": 2.0,
-			"en_name": "Maleamp"
+			"en_name": "Maleamp",
+			"gold_drop": 4
 		},
 		"レイスダンス": {
 			"anim": "",
@@ -4153,7 +4431,8 @@
 			],
 			"texture": "",
 			"spd": 3.0,
-			"en_name": "Wraithdance"
+			"en_name": "Wraithdance",
+			"gold_drop": 7
 		},
 		"グリムハウル": {
 			"anim": "",
@@ -4186,7 +4465,8 @@
 			],
 			"texture": "",
 			"spd": 2.0,
-			"en_name": "Grimhowl"
+			"en_name": "Grimhowl",
+			"gold_drop": 4
 		},
 		"カーシール": {
 			"anim": "",
@@ -4220,7 +4500,8 @@
 			],
 			"texture": "",
 			"spd": 3.0,
-			"en_name": "Curseal"
+			"en_name": "Curseal",
+			"gold_drop": 4
 		},
 		"トレイトベイン": {
 			"anim": "",
@@ -4252,7 +4533,8 @@
 			],
 			"texture": "",
 			"spd": 2.0,
-			"en_name": "Traitbane"
+			"en_name": "Traitbane",
+			"gold_drop": 12
 		},
 		"ヘクススポーン": {
 			"anim": "",
@@ -4294,7 +4576,8 @@
 			],
 			"texture": "",
 			"spd": 2.0,
-			"en_name": "Hexspawn"
+			"en_name": "Hexspawn",
+			"gold_drop": 2
 		},
 		"ドゥームカース": {
 			"anim": "",
@@ -4328,7 +4611,8 @@
 			],
 			"texture": "",
 			"spd": 3.0,
-			"en_name": "Doomcurse"
+			"en_name": "Doomcurse",
+			"gold_drop": 30
 		},
 		"ベインウォール": {
 			"anim": "",
@@ -4368,7 +4652,8 @@
 			],
 			"texture": "",
 			"spd": 5.0,
-			"en_name": "Banewall"
+			"en_name": "Banewall",
+			"gold_drop": 7
 		},
 		"Hexamp": {
 			"anim": "",
@@ -4401,7 +4686,8 @@
 			],
 			"texture": "",
 			"spd": 5.0,
-			"en_name": "Hexamp"
+			"en_name": "Hexamp",
+			"gold_drop": 7
 		},
 		"Hexburst": {
 			"anim": "",
@@ -4442,7 +4728,8 @@
 			],
 			"texture": "",
 			"spd": 5.0,
-			"en_name": "Hexburst"
+			"en_name": "Hexburst",
+			"gold_drop": 12
 		},
 		"Hexblast": {
 			"anim": "",
@@ -4491,7 +4778,8 @@
 			],
 			"texture": "",
 			"spd": 5.0,
-			"en_name": "Hexblast"
+			"en_name": "Hexblast",
+			"gold_drop": 30
 		},
 		"Curswall": {
 			"anim": "",
@@ -4542,7 +4830,8 @@
 			],
 			"texture": "",
 			"spd": 3.33,
-			"en_name": "Curswall"
+			"en_name": "Curswall",
+			"gold_drop": 4
 		},
 		"Hexguard": {
 			"anim": "",
@@ -4591,7 +4880,8 @@
 			],
 			"texture": "",
 			"spd": 2.5,
-			"en_name": "Hexguard"
+			"en_name": "Hexguard",
+			"gold_drop": 12
 		},
 		"Hexflow": {
 			"anim": "",
@@ -4642,7 +4932,8 @@
 			],
 			"texture": "",
 			"spd": 2.5,
-			"en_name": "Hexflow"
+			"en_name": "Hexflow",
+			"gold_drop": 12
 		},
 		"Hexwave": {
 			"anim": "",
@@ -4693,7 +4984,8 @@
 			],
 			"texture": "",
 			"spd": 2.5,
-			"en_name": "Hexwave"
+			"en_name": "Hexwave",
+			"gold_drop": 30
 		},
 		"Fangod": {
 			"anim": "",
@@ -4723,7 +5015,8 @@
 			],
 			"texture": "",
 			"spd": 20.0,
-			"en_name": "Fangod"
+			"en_name": "Fangod",
+			"gold_drop": 30
 		},
 		"Plaguecurse": {
 			"anim": "",
@@ -4761,7 +5054,8 @@
 			],
 			"texture": "",
 			"spd": 10.0,
-			"en_name": "Plaguecurse"
+			"en_name": "Plaguecurse",
+			"gold_drop": 30
 		},
 		"Frostcurse": {
 			"anim": "",
@@ -4799,7 +5093,8 @@
 			],
 			"texture": "",
 			"spd": 3.33,
-			"en_name": "Frostcurse"
+			"en_name": "Frostcurse",
+			"gold_drop": 30
 		},
 		"Deathmark": {
 			"anim": "",
@@ -4833,7 +5128,8 @@
 			],
 			"texture": "",
 			"spd": 5.0,
-			"en_name": "Deathmark"
+			"en_name": "Deathmark",
+			"gold_drop": 30
 		},
 		"Ragegod": {
 			"anim": "",
@@ -4855,7 +5151,8 @@
 			],
 			"texture": "",
 			"spd": 10.0,
-			"en_name": "Ragegod"
+			"en_name": "Ragegod",
+			"gold_drop": 30
 		},
 		"Nullblade": {
 			"anim": "",
@@ -4887,7 +5184,8 @@
 			],
 			"texture": "",
 			"spd": 6.67,
-			"en_name": "Nullblade"
+			"en_name": "Nullblade",
+			"gold_drop": 30
 		},
 		"Voidswap": {
 			"anim": "",
@@ -4915,7 +5213,8 @@
 			],
 			"texture": "",
 			"spd": 5.0,
-			"en_name": "Voidswap"
+			"en_name": "Voidswap",
+			"gold_drop": 30
 		},
 		"Cursechaos": {
 			"anim": "",
@@ -4945,7 +5244,8 @@
 			],
 			"texture": "",
 			"spd": 6.67,
-			"en_name": "Cursechaos"
+			"en_name": "Cursechaos",
+			"gold_drop": 30
 		},
 		"Brandlord": {
 			"anim": "",
@@ -4983,7 +5283,8 @@
 			],
 			"texture": "",
 			"spd": 3.33,
-			"en_name": "Brandlord"
+			"en_name": "Brandlord",
+			"gold_drop": 30
 		},
 		"Healcore": {
 			"anim": "",
@@ -5023,7 +5324,8 @@
 			],
 			"texture": "",
 			"spd": 20.0,
-			"en_name": "Healcore"
+			"en_name": "Healcore",
+			"gold_drop": 30
 		},
 		"Manasly": {
 			"anim": "",
@@ -5062,7 +5364,8 @@
 				"mana_flare"
 			],
 			"spd": 1.0,
-			"en_name": "Manasly"
+			"en_name": "Manasly",
+			"gold_drop": 30
 		},
 		"Shieldblob": {
 			"anim": "",
@@ -5094,7 +5397,8 @@
 			],
 			"texture": "",
 			"spd": 5.0,
-			"en_name": "Shieldblob"
+			"en_name": "Shieldblob",
+			"gold_drop": 30
 		},
 		"Equalizer": {
 			"anim": "",
@@ -5130,7 +5434,8 @@
 			],
 			"texture": "",
 			"spd": 10.0,
-			"en_name": "Equalizer"
+			"en_name": "Equalizer",
+			"gold_drop": 30
 		},
 		"Berserkfang": {
 			"anim": "",
@@ -5166,7 +5471,8 @@
 			],
 			"texture": "",
 			"spd": 20.0,
-			"en_name": "Berserkfang"
+			"en_name": "Berserkfang",
+			"gold_drop": 30
 		},
 		"Cursewarden": {
 			"anim": "",
@@ -5210,7 +5516,8 @@
 			],
 			"texture": "",
 			"spd": 3.33,
-			"en_name": "Cursewarden"
+			"en_name": "Cursewarden",
+			"gold_drop": 30
 		},
 		"Cursegod": {
 			"anim": "",
@@ -5254,7 +5561,8 @@
 			],
 			"texture": "",
 			"spd": 2.5,
-			"en_name": "Cursegod"
+			"en_name": "Cursegod",
+			"gold_drop": 30
 		},
 		"マナスラ": {
 			"anim": "",
@@ -5290,7 +5598,8 @@
 			],
 			"texture": "",
 			"spd": 1.0,
-			"en_name": "Manaslime"
+			"en_name": "Manaslime",
+			"gold_drop": 30
 		},
 		"Toxzel": {
 			"anim": "",
@@ -5321,9 +5630,12 @@
 				}
 			],
 			"texture": "",
-			"roles": ["サポート"],
+			"roles": [
+				"サポート"
+			],
 			"spd": 10.0,
-			"en_name": "Toxzel"
+			"en_name": "Toxzel",
+			"gold_drop": 7
 		},
 		"Pestzel": {
 			"anim": "",
@@ -5354,9 +5666,12 @@
 				}
 			],
 			"texture": "",
-			"roles": ["サポート"],
+			"roles": [
+				"サポート"
+			],
 			"spd": 10.0,
-			"en_name": "Pestzel"
+			"en_name": "Pestzel",
+			"gold_drop": 12
 		},
 		"Deathzel": {
 			"anim": "",
@@ -5385,9 +5700,12 @@
 				}
 			],
 			"texture": "",
-			"roles": ["サポート"],
+			"roles": [
+				"サポート"
+			],
 			"spd": 6.67,
-			"en_name": "Deathzel"
+			"en_name": "Deathzel",
+			"gold_drop": 30
 		},
 		"Amplzel": {
 			"anim": "",
@@ -5418,9 +5736,12 @@
 				}
 			],
 			"texture": "",
-			"roles": ["サポート"],
+			"roles": [
+				"サポート"
+			],
 			"spd": 6.67,
-			"en_name": "Amplzel"
+			"en_name": "Amplzel",
+			"gold_drop": 12
 		},
 		"Voidpool": {
 			"anim": "",
@@ -5451,9 +5772,12 @@
 				}
 			],
 			"texture": "",
-			"roles": ["サポート"],
+			"roles": [
+				"サポート"
+			],
 			"spd": 6.67,
-			"en_name": "Voidpool"
+			"en_name": "Voidpool",
+			"gold_drop": 30
 		},
 		"Thornwall": {
 			"anim": "",
@@ -5484,9 +5808,12 @@
 				}
 			],
 			"texture": "",
-			"roles": ["サポート"],
+			"roles": [
+				"サポート"
+			],
 			"spd": 6.67,
-			"en_name": "Thornwall"
+			"en_name": "Thornwall",
+			"gold_drop": 7
 		},
 		"Brandpaw": {
 			"anim": "",
@@ -5517,9 +5844,12 @@
 				}
 			],
 			"texture": "",
-			"roles": ["攻撃"],
+			"roles": [
+				"攻撃"
+			],
 			"spd": 10.0,
-			"en_name": "Brandpaw"
+			"en_name": "Brandpaw",
+			"gold_drop": 7
 		},
 		"Brandfang": {
 			"anim": "",
@@ -5550,9 +5880,12 @@
 				}
 			],
 			"texture": "",
-			"roles": ["攻撃"],
+			"roles": [
+				"攻撃"
+			],
 			"spd": 10.0,
-			"en_name": "Brandfang"
+			"en_name": "Brandfang",
+			"gold_drop": 12
 		},
 		"Brandstrike": {
 			"anim": "",
@@ -5583,9 +5916,12 @@
 				}
 			],
 			"texture": "",
-			"roles": ["攻撃"],
+			"roles": [
+				"攻撃"
+			],
 			"spd": 10.0,
-			"en_name": "Brandstrike"
+			"en_name": "Brandstrike",
+			"gold_drop": 30
 		},
 		"Sharpfang": {
 			"anim": "",
@@ -5616,9 +5952,12 @@
 				}
 			],
 			"texture": "",
-			"roles": ["攻撃"],
+			"roles": [
+				"攻撃"
+			],
 			"spd": 20.0,
-			"en_name": "Sharpfang"
+			"en_name": "Sharpfang",
+			"gold_drop": 7
 		},
 		"Critclaw": {
 			"anim": "",
@@ -5657,9 +5996,13 @@
 				}
 			],
 			"texture": "",
-			"roles": ["攻撃", "サポート"],
+			"roles": [
+				"攻撃",
+				"サポート"
+			],
 			"spd": 20.0,
-			"en_name": "Critclaw"
+			"en_name": "Critclaw",
+			"gold_drop": 12
 		},
 		"Deadeye": {
 			"anim": "",
@@ -5696,9 +6039,13 @@
 				}
 			],
 			"texture": "",
-			"roles": ["攻撃", "サポート"],
+			"roles": [
+				"攻撃",
+				"サポート"
+			],
 			"spd": 20.0,
-			"en_name": "Deadeye"
+			"en_name": "Deadeye",
+			"gold_drop": 30
 		},
 		"Thornrage": {
 			"anim": "",
@@ -5738,9 +6085,12 @@
 				}
 			],
 			"texture": "",
-			"roles": ["攻撃"],
+			"roles": [
+				"攻撃"
+			],
 			"spd": 6.67,
-			"en_name": "Thornrage"
+			"en_name": "Thornrage",
+			"gold_drop": 12
 		},
 		"Ironpelt": {
 			"anim": "",
@@ -5781,10 +6131,15 @@
 				}
 			],
 			"texture": "",
-			"roles": ["攻撃"],
-			"traits": ["indomitable"],
+			"roles": [
+				"攻撃"
+			],
+			"traits": [
+				"indomitable"
+			],
 			"spd": 10.0,
-			"en_name": "Ironpelt"
+			"en_name": "Ironpelt",
+			"gold_drop": 30
 		},
 		"Keenfang": {
 			"anim": "",
@@ -5815,9 +6170,12 @@
 				}
 			],
 			"texture": "",
-			"roles": ["攻撃"],
+			"roles": [
+				"攻撃"
+			],
 			"spd": 10.0,
-			"en_name": "Keenfang"
+			"en_name": "Keenfang",
+			"gold_drop": 7
 		},
 		"Blazefang": {
 			"anim": "",
@@ -5856,9 +6214,12 @@
 				}
 			],
 			"texture": "",
-			"roles": ["攻撃"],
+			"roles": [
+				"攻撃"
+			],
 			"spd": 10.0,
-			"en_name": "Blazefang"
+			"en_name": "Blazefang",
+			"gold_drop": 12
 		},
 		"Deadfang": {
 			"anim": "",
@@ -5897,10 +6258,15 @@
 				}
 			],
 			"texture": "",
-			"roles": ["攻撃"],
-			"traits": ["weakpoint_hunter"],
+			"roles": [
+				"攻撃"
+			],
+			"traits": [
+				"weakpoint_hunter"
+			],
 			"spd": 10.0,
-			"en_name": "Deadfang"
+			"en_name": "Deadfang",
+			"gold_drop": 30
 		},
 		"Fugaku": {
 			"anim": "",
@@ -5929,10 +6295,16 @@
 				}
 			],
 			"texture": "",
-			"roles": ["攻撃"],
-			"traits": ["weakpoint_hunter", "pierce_large"],
+			"roles": [
+				"攻撃"
+			],
+			"traits": [
+				"weakpoint_hunter",
+				"pierce_large"
+			],
 			"spd": 3.33,
-			"en_name": "Fugaku"
+			"en_name": "Fugaku",
+			"gold_drop": 30
 		}
 	},
 	"boss_decks": {
@@ -8232,5 +8604,20 @@
 				}
 			]
 		}
-	}
+	},
+	"initial_spell_pool": [
+		"ファイアボルト",
+		"ヒールタッチ",
+		"ストーンスロー",
+		"バックスタブ",
+		"ラインブレス",
+		"クラムウォール",
+		"マナサージ",
+		"ウィークネス",
+		"ホームグラウンド",
+		"スパークチェーン",
+		"ガーディアンコール",
+		"ハウルウィズダム",
+		"シフトコール"
+	]
 }

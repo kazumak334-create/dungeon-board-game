@@ -38,6 +38,7 @@ signal draw_cards_requested(side: int, count: int)
 signal spell_cast(side: int, spell_name: String)
 signal synthesis_done(side: int, row: int, col: int, base_name: String, result_name: String)
 signal material_dropped(material_id: String, count: int, side: int, row: int, col: int)
+signal gold_dropped(amount: int, side: int, row: int, col: int)
 
 func _ready() -> void:
 	_setup()
@@ -560,10 +561,11 @@ func on_rest_drop(card_data: Object, row: int, col: int) -> bool:
 		print("[BoardManager] RestDrop失敗: 範囲外 row=%d col=%d" % [row, col])
 		return false
 
-	# 既に配置済みの場合は上書き
+	# 既に配置済みの場合は配置失敗（手持ちに戻す）
 	var side: int = 0  # 自陣
 	if board[side][row][col] != null:
-		print("[BoardManager] RestDrop: 既存ユニット上書き row=%d col=%d" % [row, col])
+		print("[BoardManager] RestDrop失敗: 既存ユニットあり row=%d col=%d" % [row, col])
+		return false
 
 	# GameSession.initial_unitsを更新
 	var session = get_node_or_null("/root/GameSession")

@@ -6,10 +6,16 @@ extends RefCounted
 var effect_executor: RefCounted = null  # EffectExecutor（Main.gd から設定可能）
 
 # 呪文を実行する。戻り値: true=捨て札へ, false=消滅
+# synth_ctx: 合成強化情報 {value_mult, duration_mult, range_variant}
 func execute(spell: Object, side: int, board_manager: Node,
-		deck_manager: Node, enemy_ai: Node) -> bool:
+		deck_manager: Node, enemy_ai: Node, synth_ctx: Dictionary = {}) -> bool:
 	var enemy_side: int = 1 - side
 	var event_queue: Node = board_manager.event_queue
+
+	# 合成コンテキスト展開
+	var val_mult: float = synth_ctx.get("value_mult", 1.0)
+	var dur_mult: float = synth_ctx.get("duration_mult", 1.0)
+	var range_var: String = synth_ctx.get("range_variant", "default")
 
 	# skills配列がある場合は新方式で処理（EffectExecutorを使用）
 	var ee = effect_executor if effect_executor != null else board_manager.get("effect_executor")
@@ -18,11 +24,14 @@ func execute(spell: Object, side: int, board_manager: Node,
 			if skill.get("trigger", "") == "on_play":
 				var _mp: Dictionary = skill.get("params", {}).duplicate()
 				if skill.has("target"): _mp["target"] = skill["target"]
+				# 合成強化: 数値・時間・範囲パラメータに倍率適用
+				_apply_synth_to_params(_mp, val_mult, dur_mult, range_var)
 				ee.execute(skill["effect_id"], _mp, {
 					"trigger": "on_play", "side": side, "row": -1, "col": -1,
 					"source": spell, "target": null, "damage": 0,
 					"board_manager": board_manager, "deck_manager": deck_manager,
-					"enemy_ai": enemy_ai, "event_queue": event_queue
+					"enemy_ai": enemy_ai, "event_queue": event_queue,
+					"synth_ctx": synth_ctx
 				})
 		board_manager.spell_cast.emit(side, spell.spell_id)
 		return not spell.is_consumable
@@ -132,13 +141,14 @@ func execute(spell: Object, side: int, board_manager: Node,
 			_inject_status_card(_get_opponent_deck(side, deck_manager, enemy_ai), "火傷カード")
 
 		"落雷":
-			_apply_front_damage_and_status(side, board_manager, event_queue, 10, "麻痺", 2)
+			_apply_front_damage_and_status(side, board_manager, event_queue, int(round(10.0 * val_mult)), "麻痺", int(round(2.0 * dur_mult)))
 			_inject_status_card(deck_manager, "麻痺カード")
 			_inject_status_card(_get_opponent_deck(side, deck_manager, enemy_ai), "麻痺カード")
 
 		"烈風斬":
+			var dmg_reppuu: float = 8.0 * val_mult
 			for u_info in _get_all_units_with_pos(enemy_side, board_manager):
-				event_queue.push(EventQueue.PRIORITY_IMMEDIATE, null, u_info["unit"], "damage", 8.0,
+				event_queue.push(EventQueue.PRIORITY_IMMEDIATE, null, u_info["unit"], "damage", dmg_reppuu,
 					{"enemy_side": enemy_side, "row": u_info["row"], "col": u_info["col"]})
 
 		"弱体の呪詛":
@@ -346,6 +356,27 @@ func _swap_front_back(enemy_side: int, bm: Node) -> void:
 		bm.attack_timers[enemy_side][r][front] = bm.attack_timers[enemy_side][r][back]
 		bm.attack_timers[enemy_side][r][back] = f_timer
 	bm.on_board_changed()
+
+# 合成強化: paramsに倍率・範囲変更を適用
+func _apply_synth_to_params(mp: Dictionary, val_mult: float, dur_mult: float, range_var: String) -> void:
+	if val_mult != 1.0:
+		for key in ["value", "damage", "stacks", "heal", "amount"]:
+			if mp.has(key):
+				var v = mp[key]
+				if v is int or v is float:
+					mp[key] = int(round(float(v) * val_mult))
+	if dur_mult != 1.0:
+		for key in ["duration", "turns"]:
+			if mp.has(key):
+				var v = mp[key]
+				if v is int or v is float:
+					mp[key] = int(round(float(v) * dur_mult))
+	if range_var != "default" and range_var != "":
+		match range_var:
+			"row":      mp["target"] = "row"
+			"col":      mp["target"] = "col"
+			"all_enemy": mp["target"] = "all_enemy"
+			"all_ally":  mp["target"] = "all_ally"
 
 func _push_front_to_back(enemy_side: int, bm: Node) -> void:
 	var front: int = 0 if enemy_side == 1 else 2

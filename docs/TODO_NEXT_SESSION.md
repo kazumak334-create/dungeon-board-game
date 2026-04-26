@@ -78,7 +78,7 @@ python tools/generate_image.py --prompt "ボスアイコン、ドクロと王冠
 - `docs/GAME_DESIGN.md`: 設計の Single Source of Truth
 - `docs/roadmap.md`: Phase別タスク一覧
 - `tools/README_GENERATE_IMAGE.md`: 画像生成手順
-- `docs/reference/world_concept.md`: 世界観設定
+- `docs/story/world_setting.md`: 世界観設定
 
 ---
 
