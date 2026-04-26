@@ -107,6 +107,7 @@ func _ready() -> void:
 	board_manager.draw_cards_requested.connect(_on_draw_cards_requested)
 	board_manager.spell_cast.connect(_on_spell_cast)
 	board_manager.synthesis_done.connect(_on_synthesis_done)
+	board_manager.material_dropped.connect(_on_material_dropped)
 
 	deck_manager = Node.new()
 	deck_manager.set_script(DeckManagerScript)
@@ -359,36 +360,26 @@ func _place_enemy_initial_units() -> void:
 	for u in units_to_place:
 		print("[Main] place_unit予定: name=%s assigned_col=%d" % [u.unit_name, u.assigned_col])
 
-	# 前列(col=0)から順に配置するためにcol昇順ソート
-	units_to_place.sort_custom(func(a, b): return a.assigned_col < b.assigned_col)
-	# ユニットを盤面に配置
+	# 前列(col=0)から詰めて配置（assigned_colは無視し前列優先で埋める）
+	# 理由: col=1配置時にpromote_checkが発行され前列が空のままになるバグを防ぐ
 	var placed_count = 0
 	var total_cost = 0.0
 	for unit in units_to_place:
-		var col = unit.assigned_col
-		col = clampi(col, 0, 2)
-
-		# 配置可能な行を探す
+		# 前列(col=0)→中列(col=1)→後列(col=2)の順に空きマスを探す
 		var row = -1
-		for r in range(3):
-			if board_manager.board[1][r][col] == null:
-				row = r
-				break
-
-		# その列が埋まっていたら他の列を探す
-		if row == -1:
-			for c in range(3):
-				for r in range(3):
-					if board_manager.board[1][r][c] == null:
-						row = r
-						col = c
-						break
-				if row != -1:
+		var col = -1
+		for c in range(3):
+			for r in range(3):
+				if board_manager.board[1][r][c] == null:
+					row = r
+					col = c
 					break
+			if row != -1:
+				break
 
 		# 配置実行
 		if row != -1:
-			board_manager.place_unit(1, unit, {"row": row, "col": col, "side": 1})
+			board_manager.place_unit(1, unit, {"row": row, "col": col, "side": 1, "fallback_same_col": false})
 			print("[Main] 敵初期配置: %s → (%d, %d)" % [unit.unit_name, row, col])
 			placed_count += 1
 			total_cost += float(unit.mana)
@@ -564,6 +555,7 @@ func _process(delta: float) -> void:
 	if game_ui != null:
 		game_ui.update_damage_floats(delta)
 		game_ui.update_bubble(delta)
+		game_ui.update_drop_effects(delta)
 	# ドラッグ中のラベル追従
 	if dev_mode:
 		_dev_update_drag()
@@ -886,6 +878,10 @@ func _on_synthesis_done(side: int, row: int, col: int, base_name: String, result
 	skill_flash_names[side][row][col] = "合成"
 	_cell_dirty[side][row][col] = true
 
+
+func _on_material_dropped(material_id: String, count: int, side: int, row: int, col: int) -> void:
+	game_ui.spawn_material_drop(material_id, count, side, row, col)
+
 func _apply_equipment_effects(pdata: RefCounted) -> void:
 	if pdata == null:
 		return
@@ -1156,6 +1152,11 @@ func _animate_sw_transition(big: int, small: int) -> void:
 	"""SW内遷移演出: cell_rectsリセット → WAVE X-X → 敵スライドイン"""
 	is_animating = true
 	_reset_cell_rects_to_canonical()
+	# SW遷移前に敵盤面データをクリア
+	for r in range(3):
+		for c in range(3):
+			if board_manager.board[1][r][c] != null:
+				board_manager.remove_unit(1, r, c)
 	_place_enemy_initial_units()  # 新敵を board[1] に配置
 	_position_enemies_offscreen()  # 配置後すぐ画面外へ
 	await _show_wave_label(big, small, 1.0)
@@ -1257,7 +1258,8 @@ func _reset_cell_rects_to_canonical() -> void:
 				rect.position = Vector2(x + 2, y)
 				rect.size = Vector2(CELL_W - 4, CELL_H - 4)
 				rect.modulate = Color(1, 1, 1, 1)  # フェードで残った透明度をリセット
-				rect.visible = true
+				# side=0（プレイヤー）はboard実態に合わせる。side=1（敵）は直後に新規配置するためtrue
+				rect.visible = true if side == 1 else board_manager.board[0][r][c] != null
 	# 敵盤面クリア（次SWの敵を新規配置するため）
 	for r in range(3):
 		for c in range(3):

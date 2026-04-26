@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+### 2026-04-26 バグ修正: 敵中列のみ配置バグ（前列保証）
+
+**変更ファイル:**
+- `scripts/Main.gd`: `_place_enemy_initial_units()` の配置ロジックを `assigned_col` 参照から「前列(col=0)→中列→後列の順に詰める」方式に変更。`promote_check` 副作用による前列空き問題を根本解決
+
 ### 2026-04-26 バグ修正: SW3ボスWave誤判定・NEXT_EI全表示・9体バグ調査printログ
 
 **変更ファイル:**
