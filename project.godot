@@ -26,6 +26,7 @@ DebugPanel="*res://scripts/DebugPanel.gd"
 SceneManager="*res://scripts/SceneManager.gd"
 CardDB="*res://scripts/CardDB.gd"
 UIColors="*res://scripts/ui/UIColors.gd"
+CurrencyManager="*res://scripts/CurrencyManager.gd"
 
 [display]
 
