@@ -255,8 +255,11 @@ func _build_mode_select() -> void:
 	elif GameSession.initial_deck_prep_pending:
 		# 初回デッキ編集: RestScreen表示（ショップ非表示）
 		GameSession.initial_deck_prep_pending = false
-		# 初期呪文プールから3枚自動ピック
-		_pick_initial_spells()
+		# 呪文デッキ初期化（Rest画面表示前）
+		if GameSession.spell_deck.is_empty() and GameSession.spell_hand.is_empty() and GameSession.spell_discard.is_empty():
+			GameSession.spell_deck = ["mana_crystal", "mana_crystal", "mana_crystal", "mana_crystal", "mana_crystal", "fireball", "fireball", "fireball", "guard", "guard", "guard"]
+			GameSession.spell_deck.shuffle()
+			print("[Main] 呪文デッキ初期化: %d枚" % GameSession.spell_deck.size())
 		start_rest_screen({}, true)  # hide_shop=true
 		game_started = false
 		return  # RestScreen閉じるまで待機
@@ -290,6 +293,26 @@ func _start_battle() -> void:
 	_apply_environment()
 	# アーティファクト効果適用（ユニット配置後）
 	_apply_artifact_effects_on_units()
+	# on_battle_start トリガー発火
+	if board_manager.effect_executor != null:
+		for s in range(2):
+			for r in range(3):
+				for c in range(3):
+					var u_obs = board_manager.board[s][r][c]
+					if u_obs == null:
+						continue
+					for skill_obs in u_obs.skills:
+						if skill_obs.get("trigger", "") == "on_battle_start":
+							var merged_obs: Dictionary = skill_obs.get("params", {}).duplicate()
+							if skill_obs.has("target"):
+								merged_obs["target"] = skill_obs["target"]
+							board_manager.effect_executor.execute(skill_obs["effect_id"], merged_obs, {
+								"trigger": "on_battle_start", "side": s, "row": r, "col": c,
+								"source": u_obs, "target": null, "damage": 0,
+								"board_manager": board_manager,
+								"deck_manager": deck_manager, "enemy_ai": enemy_ai,
+								"event_queue": board_manager.event_queue
+							})
 	_add_log("=== バトル開始 (seed: %d) ===" % GameSession.battle_seed)
 	# 呪文デッキ初期化（デッキが空の場合のみ固定11枚セット）
 	if GameSession.spell_deck.is_empty() and GameSession.spell_hand.is_empty() and GameSession.spell_discard.is_empty():
@@ -1080,17 +1103,6 @@ func _on_draw_cards_requested(side: int, count: int) -> void:
 			deck_manager.force_play_card(board_manager)
 		else:
 			enemy_ai.force_play_card(board_manager)
-
-func _pick_initial_spells() -> void:
-	var pool: Array = CardDB.INITIAL_SPELL_POOL.duplicate()
-	if pool.is_empty():
-		return
-	pool.shuffle()
-	var count: int = min(3, pool.size())
-	var picked: Array = pool.slice(0, count)
-	for name in picked:
-		GameSession.spell_available.append({"name": name})
-	print("[Main] 初期呪文ピック: %s" % str(picked))
 
 # RestScreen遷移（Phase 1基盤構築用）
 func start_rest_screen(shop_config: Dictionary = {}, hide_shop: bool = false, after_wave: bool = false) -> void:

@@ -54,8 +54,6 @@ func flush(board_manager: Node, base_hp: Array) -> void:
 					var tgt = event["target"]
 					if tgt == null or not tgt.is_alive():
 						continue
-					if tgt._invincible_timer > 0.0:
-						continue
 					var tid: int = tgt.get_instance_id()
 					if tid in _damaged_ids:
 						continue
@@ -68,8 +66,24 @@ func flush(board_manager: Node, base_hp: Array) -> void:
 							break
 					var ex: Dictionary = event["extra"]
 					board_manager.unit_damaged.emit(
-						ex.get("enemy_side", -1), ex.get("row", -1), ex.get("col", -1)
+						ex.get("enemy_side", -1), ex.get("row", -1), ex.get("col", -1), dmg_value
 					)
+					# on_damaged トリガー発火
+					if dmg_value > 0 and board_manager.effect_executor != null:
+						for skill_od in tgt.skills:
+							if skill_od.get("trigger", "") == "on_damaged":
+								var merged_od: Dictionary = skill_od.get("params", {}).duplicate()
+								if skill_od.has("target"):
+									merged_od["target"] = skill_od["target"]
+								var t_side_od: int = ex.get("enemy_side", 0)
+								var t_row_od: int = ex.get("row", 0)
+								var t_col_od: int = ex.get("col", 0)
+								board_manager.effect_executor.execute(skill_od["effect_id"], merged_od, {
+									"trigger": "on_damaged", "side": t_side_od, "row": t_row_od, "col": t_col_od,
+									"source": event["source"], "target": tgt, "damage": dmg_value,
+									"board_manager": board_manager, "deck_manager": board_manager.deck_manager_ref,
+									"enemy_ai": board_manager.enemy_ai_ref, "event_queue": self
+								})
 					if not tgt.is_alive():
 						death_events.append({"pos": ex, "killer": event["source"]})
 
@@ -81,7 +95,7 @@ func flush(board_manager: Node, base_hp: Array) -> void:
 					tgt.take_damage(dmg)
 					var ex: Dictionary = event["extra"]
 					board_manager.unit_damaged.emit(
-						ex.get("enemy_side", -1), ex.get("row", -1), ex.get("col", -1)
+						ex.get("enemy_side", -1), ex.get("row", -1), ex.get("col", -1), dmg
 					)
 					board_manager.status_damage.emit(
 						ex.get("unit_name", "?"), "毒", dmg, tgt.poison_stacks
@@ -100,7 +114,7 @@ func flush(board_manager: Node, base_hp: Array) -> void:
 								ex["skill_name"]
 							)
 						board_manager.unit_damaged.emit(
-							ex.get("src_side", -1), ex.get("src_row", -1), ex.get("src_col", -1)
+							ex.get("src_side", -1), ex.get("src_row", -1), ex.get("src_col", -1), 0
 						)
 
 				"base_damage":

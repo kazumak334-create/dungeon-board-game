@@ -2,6 +2,39 @@
 
 ## [Unreleased]
 
+### 2026-04-27 スターター・Act1ユニット未実装スキル21件実装
+
+**変更ファイル:**
+- : 9種のターゲット追加（random_enemy, enemy_front_lowest_hp, same_row_allies, enemies_with_curse/cursed_enemies, enemy_highest_curse, adjacent_enemies, attacker, enemy_back, all_units_random）
+- : 10種のhandler追加（do_debuff_apply_periodic, do_temp_buff_race, do_grant_skill_flag, do_atk_by_buff_stacks, do_curse_random, do_curse_front_random, do_curse_adjacent, do_curse_amplify_all, do_rush_damage, do_on_ally_death_trigger） + do_buff_applyにatk_permanent分岐追加
+- : 10種のtypeマッピング追加
+- : passiveトリガーをalwaysと同様に処理
+- : on_battle_startトリガー発火
+- : on_critトリガー + timerスキル処理（_process_timer_skills）
+- : on_damagedトリガー発火
+
+### 2026-04-27 サポート効果パーティクル可視化実装
+
+- feat: サポート効果パーティクル可視化実装（GameUIOverlay/GameUI/SupportSystem）
+  - alwaysトリガー発動時に発動元セル→対象セルへ弧を描くColorRectパーティクル表示
+  - 味方対象: 青緑系 Color(0.3, 0.8, 1.0)、敵対象: 紫系 Color(0.7, 0.2, 1.0)
+  - 2〜3個のパーティクルが放物線軌道で0.4秒かけて飛ぶ。複数対象は各対象マスに独立発火
+
+### 2026-04-27 バグ修正2件（呪文対象選択・on_front_attackトリガー）
+
+- fix: 呪文対象選択（ガード/火球）が動作しないバグを修正（GameUI.gd 36行目: add_child(_queue)追加。GameUIQueueがシーンツリー未登録で_unhandled_input()未発火だった）
+- feat: on_front_attack トリガー実装（CombatSystem.gd 268-288行: 前列ユニット攻撃時に同行の中列・後列ユニットのon_front_attackスキルを発火。_trigger_support()側で重複実行防止の除外処理も追加）
+
+### 2026-04-27 バトル可視化・毒実装・呪文デッキシステム実装
+
+**変更ファイル:**
+- `scripts/Main.gd` / `scripts/CombatSystem.gd`: 攻撃時に攻撃元→攻撃先へLine2Dの線を0.3秒表示。ダメージ数値ポップアップ（実際のダメージ量を画面表示）
+- `scripts/CombatSystem.gd` / 関連スクリプト: スキル・効果発動時にユニット上にテキストフェードアウト表示
+- `scripts/EffectActions.gd`: `.has()`→`in`演算子修正（7箇所）。poison_add_periodic / debuff_conditional / atk_boost_periodic / disable_effects 実装
+- `scripts/RestScreenManager.gd`: 呪文初期プールの重複ピックをシャッフル方式に修正、未登録カードログ抑制
+- `data/cards.json`: マナ結晶・火球・ガード呪文カード追加
+- `scripts/SpellSlotSystem.gd` / `scripts/Main.gd`: バトル開始時に固定11枚デッキセット（マナ結晶×5・火球×3・ガード×3）。1秒インターバルで空きスロット自動補充。火球・ガードのWASDカーソル対象選択・D&D発動。対象選択UI（盤面ハイライト・Enter確定・ESCキャンセル）
+
 ### 2026-04-27 マナ上限廃止・呪文タブspell_deck表示・デッキ削減商品追加
 
 **変更ファイル:**

@@ -43,7 +43,7 @@ func apply_support_effects() -> void:
 					if u == null:
 						continue
 					for skill in u.skills:
-						if skill.get("trigger", "") == "always":
+						if skill.get("trigger", "") in ["always", "passive"]:
 							# 前列チェック: skill_flagはスキル（位置無関係）なので除外
 							var _eid_check = skill.get("effect_id", "")
 							var _edef_check = _EDB.EFFECTS.get(_eid_check, {})
@@ -62,6 +62,22 @@ func apply_support_effects() -> void:
 								"board_manager": bm, "deck_manager": bm.deck_manager_ref, "enemy_ai": bm.enemy_ai_ref,
 								"event_queue": bm.event_queue
 							})
+							# パーティクル可視化
+							var _tgt_str: String = merged_params.get("target", "")
+							if _tgt_str != "" and _tgt_str != "self_deck" and _tgt_str != "enemy_deck":
+								var _tr = load("res://scripts/EffectTargets.gd").new()
+								var _is_ally_tgt: bool = not (_tgt_str.begins_with("enemy") or _tgt_str == "all_enemies")
+								var _ctx_p: Dictionary = {
+									"board_manager": bm, "side": s, "row": r, "col": c,
+									"source": u, "target": null, "damage": 0
+								}
+								var _tgts = _tr.resolve(merged_params, _ctx_p, _is_ally_tgt)
+								var _main_node = bm.get_node_or_null("/root/Main")
+								if _main_node and _main_node.get("game_ui") and _tgts.size() > 0:
+									var _src_pos: Vector2 = _get_cell_center(s, r, c, _main_node)
+									for _tgt_unit in _tgts:
+										var _dst_pos: Vector2 = _get_target_cell_center(_tgt_unit, _is_ally_tgt, _main_node)
+										_main_node.game_ui.spawn_support_particles(_src_pos, _dst_pos, not _is_ally_tgt)
 	# アーティファクトのalwaysスキル処理（位置無関係）
 	if bm.effect_executor != null:
 		for s in range(2):
@@ -71,7 +87,7 @@ func apply_support_effects() -> void:
 					if art == null:
 						continue
 					for skill in art.get("skills", []):
-						if skill.get("trigger", "") == "always":
+						if skill.get("trigger", "") in ["always", "passive"]:
 							var _merged_art: Dictionary = skill.get("params", {}).duplicate()
 							if skill.has("target"):
 								_merged_art["target"] = skill["target"]
@@ -127,6 +143,23 @@ func _apply_midnight_frenzy() -> void:
 						var boots_value: int = int(float(total_curse) * 0.1)
 						if boots_value > 0:
 							u.boots_stacks += boots_value
+
+func _get_cell_center(side: int, row: int, col: int, main_node: Node) -> Vector2:
+	var cell_x: int
+	if side == 0:
+		cell_x = main_node.CENTER_X - main_node.GAP / 2 - (3 - col) * main_node.CELL_W
+	else:
+		cell_x = main_node.CENTER_X + main_node.GAP / 2 + col * main_node.CELL_W
+	var cell_y: int = main_node.BOARD_TOP + row * main_node.CELL_H
+	return Vector2(cell_x + main_node.CELL_W / 2, cell_y + main_node.CELL_H / 2)
+
+func _get_target_cell_center(unit: Object, _is_ally: bool, main_node: Node) -> Vector2:
+	for s in range(2):
+		for r in range(3):
+			for c in range(3):
+				if bm.board[s][r][c] == unit:
+					return _get_cell_center(s, r, c, main_node)
+	return Vector2.ZERO
 
 func _process_unit_support(side: int, row: int, col: int, unit: Object) -> void:
 	var front_col: int = 2 if side == 0 else 0

@@ -77,6 +77,8 @@ func process_combat(delta: float, base_hp: Array) -> void:
 
 	# v2設計: サポート効果発動（中列・後列のみ、SPD依存タイマー）
 	_process_support_effects(delta)
+	# timer スキル処理
+	_process_timer_skills(delta)
 
 	# 全イベントを優先度順に一括処理
 	if bm.event_queue != null:
@@ -105,6 +107,19 @@ func _do_attack(side: int, row: int, col: int, attacker: Object, enemy_side: int
 			effective_atk *= 3
 		else:
 			effective_atk *= 2
+		# on_crit トリガー発火
+		if not skip_on_hit:
+			for skill_oc in attacker.skills:
+				if skill_oc.get("trigger", "") == "on_crit":
+					var merged_oc: Dictionary = skill_oc.get("params", {}).duplicate()
+					if skill_oc.has("target"):
+						merged_oc["target"] = skill_oc["target"]
+					bm.effect_executor.execute(skill_oc["effect_id"], merged_oc, {
+						"trigger": "on_crit", "side": side, "row": row, "col": col,
+						"source": attacker, "target": null, "damage": 0,
+						"board_manager": bm, "deck_manager": null,
+						"enemy_ai": null, "event_queue": bm.event_queue
+					})
 	# damage_accumulate: 蓄積ダメージを追加ダメージとして反映
 	for skill in attacker.skills:
 		if skill.get("effect_id", "") == "damage_accumulate" and attacker._accumulated_damage > 0:
@@ -265,6 +280,37 @@ func _do_attack(side: int, row: int, col: int, attacker: Object, enemy_side: int
 					"board_manager": bm, "deck_manager": bm.deck_manager_ref, "enemy_ai": bm.enemy_ai_ref,
 					"event_queue": bm.event_queue
 				})
+	# on_front_attack トリガー: 攻撃者が前列ユニットの場合、同行の中列・後列ユニットのスキルを発動
+	var attacker_front_col: int = 2 if side == 0 else 0
+	# 被攻撃ユニットを _sel_target から取り出す
+	var _fa_hit_target: Object = null
+	if _sel_target.size() > 0:
+		var _fa_pos = _sel_target[0]
+		_fa_hit_target = bm.board[enemy_side][_fa_pos["row"]][_fa_pos["col"]]
+	if col == attacker_front_col and bm.effect_executor != null:
+		for sup_col in range(3):
+			if sup_col == col:
+				continue
+			var sup_unit = bm.board[side][row][sup_col]
+			if sup_unit == null or sup_unit._is_sealed:
+				continue
+			for skill in sup_unit.skills:
+				if skill.get("trigger", "") == "on_front_attack":
+					var _fa_mp: Dictionary = skill.get("params", {}).duplicate()
+					if skill.has("target"): _fa_mp["target"] = skill["target"]
+					bm.effect_executor.execute(skill["effect_id"], _fa_mp, {
+						"trigger": "on_front_attack",
+						"side": side,
+						"row": row,
+						"col": sup_col,
+						"source": sup_unit,
+						"target": _fa_hit_target,
+						"damage": 0,
+						"board_manager": bm,
+						"deck_manager": bm.deck_manager_ref,
+						"enemy_ai": bm.enemy_ai_ref,
+						"event_queue": bm.event_queue
+					})
 
 func _push_on_hit_effects(side: int, row: int, col: int, attacker: Object, target: Object,
 		enemy_side: int, target_row: int, target_col: int, damage: int) -> void:
@@ -329,9 +375,9 @@ func _trigger_support(side: int, row: int, col: int, unit: Object) -> void:
 	var front_col: int = 2 if side == 0 else 0
 	if col != front_col and bm.effect_executor != null:
 		for skill in unit.skills:
-			# v2設計: on_hit以外のスキルをサポート効果として実行
+			# v2設計: on_hit/on_front_attack以外のスキルをサポート効果として実行
 			var trigger = skill.get("trigger", "")
-			if trigger == "on_hit":
+			if trigger == "on_hit" or trigger == "on_front_attack":
 				continue
 
 			# サポート効果実行（always, on_tick など）
@@ -509,3 +555,30 @@ func process_debuff_spread(killer: Object, victim: Object, victim_side: int, vic
 					"src_side": k_side, "src_row": k_row, "src_col": k_col, "skill_name": "デバフ波及"})
 	if k_side >= 0:
 		bm.skill_triggered.emit(k_side, k_row, k_col, "デバフ波及")
+
+func _process_timer_skills(delta: float) -> void:
+	for side in range(2):
+		for row in range(3):
+			for col in range(3):
+				var u = bm.board[side][row][col]
+				if u == null or not u.is_alive() or u._is_sealed:
+					continue
+				for i in range(u.skills.size()):
+					var skill = u.skills[i]
+					if skill.get("trigger", "") != "timer":
+						continue
+					var interval: float = skill.get("params", {}).get("interval", 3.0)
+					if not u._skill_timers.has(i):
+						u._skill_timers[i] = interval
+					u._skill_timers[i] -= delta
+					if u._skill_timers[i] <= 0.0:
+						u._skill_timers[i] = interval
+						var merged_t: Dictionary = skill.get("params", {}).duplicate()
+						if skill.has("target"):
+							merged_t["target"] = skill["target"]
+						bm.effect_executor.execute(skill["effect_id"], merged_t, {
+							"trigger": "timer", "side": side, "row": row, "col": col,
+							"source": u, "target": null, "damage": 0,
+							"board_manager": bm, "deck_manager": null,
+							"enemy_ai": null, "event_queue": bm.event_queue
+						})

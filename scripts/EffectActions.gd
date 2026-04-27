@@ -62,6 +62,9 @@ func do_buff_apply(merged: Dictionary, ctx: Dictionary) -> void:
 			else:
 				for t in tgt:
 					t._interval_bonus += 0.3 * stacks
+		"atk_permanent":
+			for t in tgt:
+				t.attack += stacks
 
 func do_buff_apply_chance(merged: Dictionary, ctx: Dictionary) -> void:
 	var bm: Node       = ctx.get("bm", null)
@@ -1941,3 +1944,173 @@ func do_spell_target_damage(merged: Dictionary, ctx: Dictionary) -> void:
 		target.take_damage(dmg)
 	print("[SpellTargetDmg] %s -> %s (%d dmg)" % [
 		(source.unit_name if source != null else "?"), target.unit_name, dmg])
+
+func do_debuff_apply_periodic(merged: Dictionary, ctx: Dictionary) -> void:
+	do_debuff_apply(merged, ctx)
+
+func do_temp_buff_race(merged: Dictionary, ctx: Dictionary) -> void:
+	var bm: Node       = ctx.get("bm", null)
+	var side: int      = ctx.get("side", 0)
+	var row: int       = ctx.get("row", 0)
+	var col: int       = ctx.get("col", 0)
+	var source: Object = ctx.get("source", null)
+	var target: Object = ctx.get("target", null)
+	var ctx2: Dictionary = {"board_manager": bm, "side": side, "row": row, "col": col, "source": source, "target": target, "damage": 0}
+	var tgt = targets.resolve(merged, ctx2, true)
+	var buff_type: String = merged.get("buff", "atk")
+	var pct: float = merged.get("pct", 0.02)
+	var duration: float = merged.get("duration", 3.0)
+	for t in tgt:
+		match buff_type:
+			"atk":
+				t._temp_atk_bonus = max(1, int(float(t.attack) * pct))
+				t._temp_atk_timer = duration
+			"spd":
+				t._temp_spd_bonus = t.get_attack_interval() * pct
+				t._temp_spd_timer = duration
+
+func do_grant_skill_flag(merged: Dictionary, ctx: Dictionary) -> void:
+	var bm: Node       = ctx.get("bm", null)
+	var side: int      = ctx.get("side", 0)
+	var row: int       = ctx.get("row", 0)
+	var col: int       = ctx.get("col", 0)
+	var source: Object = ctx.get("source", null)
+	var target: Object = ctx.get("target", null)
+	var ctx2: Dictionary = {"board_manager": bm, "side": side, "row": row, "col": col, "source": source, "target": target, "damage": 0}
+	var tgt = targets.resolve(merged, ctx2, true)
+	var flags: Dictionary = merged.get("flags", {})
+	for t in tgt:
+		for flag_key in flags.keys():
+			if flag_key in t:
+				t.set(flag_key, flags[flag_key])
+
+func do_atk_by_buff_stacks(merged: Dictionary, ctx: Dictionary) -> void:
+	var source: Object = ctx.get("source", null)
+	if source == null:
+		return
+	var buff_name: String = merged.get("buff", "thorn")
+	var factor: float = merged.get("factor", 0.5)
+	var stacks_b: int = 0
+	match buff_name:
+		"thorn":
+			stacks_b = source.thorn_stacks if "thorn_stacks" in source else 0
+		"armor":
+			stacks_b = int(source._damage_reduction) if "_damage_reduction" in source else 0
+		"regen":
+			stacks_b = source.regen_stacks if "regen_stacks" in source else 0
+	source._atk_bonus += int(float(stacks_b) * factor)
+
+func do_curse_random(merged: Dictionary, ctx: Dictionary) -> void:
+	var bm: Node       = ctx.get("bm", null)
+	var eq: Node       = ctx.get("eq", null)
+	var side: int      = ctx.get("side", 0)
+	var row: int       = ctx.get("row", 0)
+	var col: int       = ctx.get("col", 0)
+	var source: Object = ctx.get("source", null)
+	var enemy_side: int = 1 - side
+	var stacks: int = merged.get("stacks", 1)
+	var max_targets: int = merged.get("max_targets", 5)
+	var cands: Array = []
+	for r2 in range(3):
+		for c2 in range(3):
+			var u = bm.board[enemy_side][r2][c2]
+			if u != null and u.is_alive():
+				cands.append({"unit": u, "row": r2, "col": c2})
+	cands.shuffle()
+	for i in range(min(max_targets, cands.size())):
+		var info = cands[i]
+		if eq != null:
+			eq.push(4, source, info["unit"], "status_apply", 0.0,
+				{"status": "åªã", "stacks": stacks, "side": enemy_side,
+				 "row": info["row"], "col": info["col"],
+				 "src_side": side, "src_row": row, "src_col": col, "skill_name": "curse_apply_random"})
+
+func do_curse_front_random(merged: Dictionary, ctx: Dictionary) -> void:
+	var bm: Node       = ctx.get("bm", null)
+	var eq: Node       = ctx.get("eq", null)
+	var side: int      = ctx.get("side", 0)
+	var row: int       = ctx.get("row", 0)
+	var col: int       = ctx.get("col", 0)
+	var source: Object = ctx.get("source", null)
+	var enemy_side: int = 1 - side
+	var stacks: int = merged.get("stacks", 1)
+	var count: int = merged.get("count", 1)
+	var front_cfr: int = 0 if enemy_side == 1 else 2
+	var cands: Array = []
+	for r2 in range(3):
+		var u = bm.board[enemy_side][r2][front_cfr]
+		if u != null and u.is_alive():
+			cands.append({"unit": u, "row": r2, "col": front_cfr})
+	cands.shuffle()
+	for i in range(min(count, cands.size())):
+		var info = cands[i]
+		if eq != null:
+			eq.push(4, source, info["unit"], "status_apply", 0.0,
+				{"status": "åªã", "stacks": stacks, "side": enemy_side,
+				 "row": info["row"], "col": info["col"],
+				 "src_side": side, "src_row": row, "src_col": col, "skill_name": "curse_apply_front_random"})
+
+func do_curse_adjacent(merged: Dictionary, ctx: Dictionary) -> void:
+	var bm: Node       = ctx.get("bm", null)
+	var eq: Node       = ctx.get("eq", null)
+	var side: int      = ctx.get("side", 0)
+	var row: int       = ctx.get("row", 0)
+	var col: int       = ctx.get("col", 0)
+	var source: Object = ctx.get("source", null)
+	var enemy_side: int = 1 - side
+	var stacks: int = merged.get("stacks", 1)
+	for d in [[-1, 0], [1, 0], [0, -1], [0, 1]]:
+		var r2: int = row + d[0]
+		var c2: int = col + d[1]
+		if r2 >= 0 and r2 < 3 and c2 >= 0 and c2 < 3:
+			var u = bm.board[enemy_side][r2][c2]
+			if u != null and u.is_alive() and eq != null:
+				eq.push(4, source, u, "status_apply", 0.0,
+					{"status": "åªã", "stacks": stacks, "side": enemy_side,
+					 "row": r2, "col": c2,
+					 "src_side": side, "src_row": row, "src_col": col, "skill_name": "curse_apply_adjacent"})
+
+func do_curse_amplify_all(merged: Dictionary, ctx: Dictionary) -> void:
+	var bm: Node       = ctx.get("bm", null)
+	var side: int      = ctx.get("side", 0)
+	var enemy_side: int = 1 - side
+	var factor: float = merged.get("factor", 1.5)
+	var min_curse: int = merged.get("min_curse", 5)
+	for r2 in range(3):
+		for c2 in range(3):
+			var u = bm.board[enemy_side][r2][c2]
+			if u != null and u.is_alive():
+				var cs: int = u.curse_stacks if "curse_stacks" in u else 0
+				if cs >= min_curse:
+					u.curse_stacks = int(float(cs) * factor)
+
+func do_rush_damage(merged: Dictionary, ctx: Dictionary) -> void:
+	var bm: Node       = ctx.get("bm", null)
+	var eq: Node       = ctx.get("eq", null)
+	var side: int      = ctx.get("side", 0)
+	var row: int       = ctx.get("row", 0)
+	var col: int       = ctx.get("col", 0)
+	var source: Object = ctx.get("source", null)
+	var target: Object = ctx.get("target", null)
+	var enemy_side: int = 1 - side
+	var ctx2: Dictionary = {"board_manager": bm, "side": side, "row": row, "col": col, "source": source, "target": target, "damage": 0}
+	var tgt = targets.resolve(merged, ctx2, false)
+	var mult: float = merged.get("damage_mult", 1.5)
+	var src_atk: int = (source.attack + source._atk_bonus) if source != null else 1
+	var dmg: int = max(1, int(float(src_atk) * mult))
+	for t in tgt:
+		var t_row: int = targets.get_unit_row(t, bm)
+		var t_col: int = targets.get_unit_col(t, bm)
+		if eq != null:
+			eq.push(1, source, t, "damage", float(dmg), {"enemy_side": enemy_side, "row": t_row, "col": t_col})
+
+func do_on_ally_death_trigger(merged: Dictionary, ctx: Dictionary) -> void:
+	var source: Object = ctx.get("source", null)
+	if source == null:
+		return
+	var heal_pct: float = merged.get("heal_pct", 0.25)
+	var atk_pct: float = merged.get("atk_pct", 0.05)
+	var spd_pct: float = merged.get("spd_pct", 0.05)
+	source.current_hp = min(source.max_hp, source.current_hp + max(1, int(source.max_hp * heal_pct)))
+	source._atk_bonus += max(1, int(float(source.attack) * atk_pct))
+	source._interval_bonus += source.get_attack_interval() * spd_pct

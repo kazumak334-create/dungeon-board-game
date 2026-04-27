@@ -24,6 +24,9 @@ func resolve(merged: Dictionary, context: Dictionary, ally_side: bool) -> Array:
 		return []
 
 	match tgt_str:
+		"target_unit":
+			# 対象選択呪文: ctx["target"]で渡されたユニットをそのまま返す
+			return [target] if target != null else []
 		"self":
 			return [source] if source != null else []
 		"random_front_ally":
@@ -224,7 +227,7 @@ func resolve(merged: Dictionary, context: Dictionary, ally_side: bool) -> Array:
 				for c2 in range(3):
 					var u = bm.board[enemy_side][r2][c2]
 					if u != null and u.is_alive():
-						var stacks: int = u.poison_stacks if u.has("poison_stacks") else 0
+						var stacks: int = u.poison_stacks if "poison_stacks" in u else 0
 						if stacks > best_stacks:
 							best_stacks = stacks
 							best = u
@@ -236,12 +239,125 @@ func resolve(merged: Dictionary, context: Dictionary, ally_side: bool) -> Array:
 			for r2 in range(3):
 				var u = bm.board[enemy_side][r2][front_efrp]
 				if u != null and u.is_alive():
-					var stacks: int = u.poison_stacks if u.has("poison_stacks") else 0
+					var stacks: int = u.poison_stacks if "poison_stacks" in u else 0
 					if stacks > 0:
 						cands_efrp.append(u)
 			if cands_efrp.is_empty():
 				return []
 			return [cands_efrp[randi() % cands_efrp.size()]]
+		"hit_target":
+			# 攻撃で命中した対象ユニット（on_front_attack コンテキストの target）
+			return [target] if target != null else []
+		"enemy_front_random":
+			# 前列の敵ランダム1体（random_front_enemy の別名）
+			var front_efr: int = 0 if enemy_side == 1 else 2
+			var cands_efr: Array = []
+			for r2 in range(3):
+				var u = bm.board[enemy_side][r2][front_efr]
+				if u != null and u.is_alive():
+					cands_efr.append(u)
+			if cands_efr.is_empty():
+				return []
+			return [cands_efr[randi() % cands_efr.size()]]
+		"enemies_with_poison":
+			# 毒スタックを持つ敵全員
+			var result_ewp: Array = []
+			for r2 in range(3):
+				for c2 in range(3):
+					var u = bm.board[enemy_side][r2][c2]
+					if u != null and u.is_alive() and u.poison_stacks > 0:
+						result_ewp.append(u)
+			return result_ewp
+		"random_enemy":
+			# 敵全体からランダム1体
+			var cands_re: Array = []
+			for r2 in range(3):
+				for c2 in range(3):
+					var u = bm.board[enemy_side][r2][c2]
+					if u != null and u.is_alive():
+						cands_re.append(u)
+			if cands_re.is_empty():
+				return []
+			return [cands_re[randi() % cands_re.size()]]
+		"enemy_front_lowest_hp":
+			# 前列の最低HP敝1体
+			var front_eflo: int = 0 if enemy_side == 1 else 2
+			var best_eflo: Object = null
+			var best_hp_eflo: int = 999999
+			for r2 in range(3):
+				var u = bm.board[enemy_side][r2][front_eflo]
+				if u != null and u.is_alive():
+					if u.current_hp < best_hp_eflo:
+						best_hp_eflo = u.current_hp
+						best_eflo = u
+			return [best_eflo] if best_eflo != null else []
+		"same_row_allies":
+			# sourceと同じ行の味方全員（source自身を除く）
+			var result_sra: Array = []
+			for c2 in range(3):
+				var u = bm.board[side][row][c2]
+				if u != null and u.is_alive() and u != source:
+					result_sra.append(u)
+			return result_sra
+		"enemies_with_curse", "cursed_enemies":
+			# curse_stacks > 0 の敝全員
+			var result_ewc: Array = []
+			for r2 in range(3):
+				for c2 in range(3):
+					var u = bm.board[enemy_side][r2][c2]
+					if u != null and u.is_alive():
+						var cs: int = u.curse_stacks if "curse_stacks" in u else 0
+						if cs > 0:
+							result_ewc.append(u)
+			return result_ewc
+		"enemy_highest_curse":
+			# curse_stacks最大の敝1体
+			var best_ehc: Object = null
+			var best_curse_ehc: int = 0
+			for r2 in range(3):
+				for c2 in range(3):
+					var u = bm.board[enemy_side][r2][c2]
+					if u != null and u.is_alive():
+						var cs: int = u.curse_stacks if "curse_stacks" in u else 0
+						if cs > best_curse_ehc:
+							best_curse_ehc = cs
+							best_ehc = u
+			return [best_ehc] if best_ehc != null else []
+		"adjacent_enemies":
+			# source位置の隣接マス（上下左右）の敝
+			var result_aen: Array = []
+			for d in [[-1, 0], [1, 0], [0, -1], [0, 1]]:
+				var r2: int = row + d[0]
+				var c2: int = col + d[1]
+				if r2 >= 0 and r2 < 3 and c2 >= 0 and c2 < 3:
+					var u = bm.board[enemy_side][r2][c2]
+					if u != null and u.is_alive():
+						result_aen.append(u)
+			return result_aen
+		"attacker":
+			# コンテキストのsourceを返す（被ダメージ時の攻撃者）
+			return [source] if source != null else []
+		"enemy_back":
+			# 後列の敝全員
+			var back_col_eb: int = 2 if enemy_side == 1 else 0
+			var result_eb: Array = []
+			for r2 in range(3):
+				var u = bm.board[enemy_side][r2][back_col_eb]
+				if u != null and u.is_alive():
+					result_eb.append(u)
+			return result_eb
+		"all_units_random":
+			# 全ユニット（味方+敝）からランダムmax_targets体
+			var cands_aur: Array = []
+			for s2 in range(2):
+				for r2 in range(3):
+					for c2 in range(3):
+						var u = bm.board[s2][r2][c2]
+						if u != null and u.is_alive():
+							cands_aur.append(u)
+			cands_aur.shuffle()
+			var max_n: int = merged.get("max_targets", 5)
+			return cands_aur.slice(0, min(max_n, cands_aur.size()))
 	return []
 
 func pick_ally_by_strategy(side: int, bm: Node, strategy: String) -> Object:
