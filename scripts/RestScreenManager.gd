@@ -190,6 +190,7 @@ func build_ui() -> void:
 	add_child(_enemy_panel)
 	_enemy_panel.ready_to_battle.connect(_on_ready_to_battle)
 	_enemy_panel.shop_item_detail_requested.connect(_on_shop_item_detail_requested)
+	_enemy_panel.shop_completed.connect(func(): call_deferred("rebuild_hand_area"))
 	_enemy_panel.set_phase(EnemyPanelManager.EnemyPanelPhase.NEXT_EI, {"show_ready_button": not _hide_shop})
 
 	# 7. フッター（次へ/スキップボタン）
@@ -308,8 +309,9 @@ func build_hand_area() -> void:
 			# Dictionary形式 {name: "card_name"} または文字列に対応
 			var card_name: String = card_data.get("name", "") if card_data is Dictionary else str(card_data)
 
+			if CardDB.SPELLS.has(card_name):
+				continue  # 呪文カードはユニットタブに表示しない
 			if not CardDB.UNITS.has(card_name):
-				print("[RestScreenManager] カード未登録: %s" % card_name)
 				continue
 
 			var card_data_dict: Dictionary = CardDB.UNITS[card_name]
@@ -333,43 +335,26 @@ func build_hand_area() -> void:
 
 		print("[RestScreenManager] 手持ちカード %d枚 + 死亡ユニット %d体表示" % [deck.size(), revive.revivable_units.size() if revive else 0])
 	elif _tab_index == 1:
-		# 呪文タブ: 3列グリッドで入手済み呪文を表示
+		# 呪文タブ: spell_deckに入っている呪文を表示（右クリックで除外）
 		hand_area.columns = 3
-		if game_session.spell_available.is_empty():
+		if game_session.spell_deck.is_empty():
 			var no_spell_label = Label.new()
-			no_spell_label.text = "入手済み呪文なし"
+			no_spell_label.text = "デッキに呪文なし"
 			no_spell_label.add_theme_font_size_override("font_size", 10)
 			no_spell_label.add_theme_color_override("font_color", Color(0.5, 0.5, 0.5))
 			hand_area.add_child(no_spell_label)
 		else:
-			# 同名カード重複ハイライト防止: デッキ内残枚数カウンター
-			var deck_remain: Dictionary = {}
-			for sn in game_session.spell_deck:
-				deck_remain[sn] = deck_remain.get(sn, 0) + 1
-			for spell_entry in game_session.spell_available:
-				var spell_name: String = spell_entry.get("name", "") if spell_entry is Dictionary else str(spell_entry)
+			for deck_idx in range(game_session.spell_deck.size()):
+				var spell_name: String = game_session.spell_deck[deck_idx]
 				var spell_data: Dictionary = CardDB.SPELLS.get(spell_name, {})
-				var in_deck: bool = deck_remain.get(spell_name, 0) > 0
-				if in_deck:
-					deck_remain[spell_name] -= 1
-				var spell_card = _create_spell_mini_card(spell_name, spell_data, in_deck)
-				if in_deck:
-					var hl_style = StyleBoxFlat.new()
-					hl_style.bg_color = Color(0.10, 0.12, 0.22)
-					hl_style.border_color = Color(1.0, 0.85, 0.1)
-					hl_style.set_border_width_all(3)
-					spell_card.add_theme_stylebox_override("panel", hl_style)
-				var captured_name = spell_name
+				var spell_card = _create_spell_mini_card(spell_name, spell_data, true)
+				var captured_deck_idx = deck_idx
 				spell_card.gui_input.connect(func(event: InputEvent):
-					if event is InputEventMouseButton and event.double_click and event.button_index == MOUSE_BUTTON_LEFT:
-						_on_spell_available_double_click(captured_name)
-					elif event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_RIGHT and event.pressed:
-						var di: int = game_session.spell_deck.find(captured_name)
-						if di >= 0:
-							_on_spell_deck_right_click(di)
+					if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_RIGHT and event.pressed:
+						_on_spell_deck_right_click(captured_deck_idx)
 				)
 				hand_area.add_child(spell_card)
-		print("[RestScreenManager] 呪文タブ表示（3列）")
+		print("[RestScreenManager] 呪文タブ表示（spell_deck %d枚）" % game_session.spell_deck.size())
 
 	else:
 		# 素材タブ: 5列グリッドで素材アイコン表示
@@ -452,7 +437,7 @@ func _create_spell_mini_card(spell_name: String, spell_data: Dictionary, in_deck
 
 # 素材セル作成（5列グリッド用・正方形アイコン）
 func _create_material_cell(mat_id: String, count: int) -> Control:
-	var ICON_SIZE = 44
+	var ICON_SIZE = 48
 	var cell = Panel.new()
 	cell.set_custom_minimum_size(Vector2(ICON_SIZE, ICON_SIZE))
 
@@ -466,22 +451,21 @@ func _create_material_cell(mat_id: String, count: int) -> Control:
 	style.corner_radius_bottom_right = 4
 	cell.add_theme_stylebox_override("panel", style)
 
-	# 素材名（短縮）
-	var id_short: String = mat_id.substr(0, 6) if mat_id.length() > 6 else mat_id
-	var name_lbl = Label.new()
-	name_lbl.text = id_short
-	name_lbl.set_position(Vector2(2, 4))
-	name_lbl.set_size(Vector2(ICON_SIZE - 4, 20))
-	name_lbl.add_theme_font_size_override("font_size", 8)
-	name_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	name_lbl.add_theme_color_override("font_color", Color(0.9, 0.8, 0.6))
-	name_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD
-	cell.add_child(name_lbl)
+	# アイコン表示
+	var icon_rect = TextureRect.new()
+	icon_rect.set_position(Vector2(4, 4))
+	icon_rect.set_size(Vector2(ICON_SIZE - 8, ICON_SIZE - 18))
+	icon_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	icon_rect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	var icon_path = "res://assets/materials/%s.png" % mat_id
+	if ResourceLoader.exists(icon_path):
+		icon_rect.texture = load(icon_path)
+	cell.add_child(icon_rect)
 
 	# 個数
 	var count_lbl = Label.new()
 	count_lbl.text = "×%d" % count
-	count_lbl.set_position(Vector2(2, 28))
+	count_lbl.set_position(Vector2(0, ICON_SIZE - 16))
 	count_lbl.set_size(Vector2(ICON_SIZE - 4, 14))
 	count_lbl.add_theme_font_size_override("font_size", 9)
 	count_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -684,17 +668,102 @@ func _show_card_detail(card_name: String, card_data: Dictionary) -> void:
 			"timer": "定期",
 			"on_front_attack": "前列攻撃時",
 			"on_support": "サポート時",
+			"on_ally_death": "味方撃破時",
+			"on_attack": "攻撃時",
+			"on_battle_start": "バトル開始時",
+			"on_crit": "クリティカル時",
+			"on_damaged": "被ダメ時",
+			"on_front_attack_poisoned_target": "毒敵への前列攻撃時",
+			"passive": "パッシブ",
+		}
+		var TARGET_NAMES: Dictionary = {
+			"self":                         "自身",
+			"hit_target":                   "命中対象",
+			"attacker":                     "攻撃者",
+			"revived_unit":                 "蘇生ユニット",
+			"enemy":                        "敵1体",
+			"enemy_single":                 "敵1体",
+			"enemy_front":                  "敵前列1体",
+			"enemy_front_one":              "敵前列1体",
+			"enemy_front_random":           "敵前列ランダム1体",
+			"enemy_front_random_one":       "敵前列ランダム1体",
+			"enemy_front_random_poisoned":  "敵前列毒ランダム1体",
+			"enemy_front_lowest_hp":        "敵前列最低HP1体",
+			"enemy_back":                   "敵後列1体",
+			"enemy_backrow":                "敵後列全体",
+			"enemy_column":                 "敵列全体",
+			"enemy_highest_curse":          "敵呪い最多1体",
+			"enemy_max_poison":             "敵毒最多1体",
+			"enemy_all_burned":             "敵火傷全体",
+			"enemy_all_frozen":             "敵凍結全体",
+			"enemy_all_poisoned":           "敵毒全体",
+			"enemy_all_burned_and_frozen":  "敵火傷凍結全体",
+			"enemy_all_with_status":        "敵状態異常全体",
+			"enemy_random_two":             "敵ランダム2体",
+			"enemy_spell_slot_random":      "敵呪文スロットランダム",
+			"enemy_spell_slots":            "敵呪文スロット全体",
+			"enemy_player":                 "敵プレイヤー",
+			"all_enemies":                  "敵全体",
+			"all_cursed_enemies":           "敵呪い全体",
+			"cursed_enemies":               "呪い敵",
+			"enemies_with_curse":           "呪い持ち敵全体",
+			"enemies_with_poison":          "毒持ち敵全体",
+			"adjacent_enemies":             "隣接敵",
+			"front_enemy":                  "前列敵1体",
+			"front_one":                    "前列1体",
+			"random_enemy":                 "ランダム敵1体",
+			"random_enemies":               "ランダム敵",
+			"random_front_enemy":           "前列ランダム敵",
+			"random_back_enemy":            "後列ランダム敵",
+			"random_enemy_row":             "ランダム敵行",
+			"ally_single":                  "味方1体",
+			"single_ally":                  "味方1体",
+			"ally_board":                   "盤面味方",
+			"all_allies":                   "味方全体",
+			"all_units":                    "全ユニット",
+			"all_units_random":             "全ユニットランダム",
+			"all":                          "全体",
+			"front_ally":                   "前列味方1体",
+			"front_ally_all":               "前列味方全体",
+			"front_allies":                 "前列味方",
+			"front_lowest_hp_ally":         "前列最低HP味方",
+			"center_ally":                  "中列味方1体",
+			"ally_highest_curse":           "味方呪い最多1体",
+			"ally_max_atk":                 "味方最大ATK1体",
+			"ally_beast_all":               "味方獣全体",
+			"allies_with_thorn":            "棘持ち味方全体",
+			"same_row_allies":              "同行味方全体",
+			"same_column_allies":           "同列味方全体",
+			"same_row_beast":               "同行獣",
+			"front_beast":                  "前列獣1体",
+			"front_beasts":                 "前列獣全体",
+			"front_random_beast":           "前列ランダム獣",
+			"random_ally":                  "ランダム味方1体",
+			"random_ally_column":           "ランダム味方列",
+			"random_ally_row":              "ランダム味方行",
+			"brand_attackers":              "烙印攻撃者",
+			"front_tile":                   "前列タイル",
 		}
 		for skill in skills:
 			if skill is Dictionary:
 				var trigger = skill.get("trigger", "")
 				var effect_id = skill.get("effect_id", "")
+				var target = skill.get("target", "")
+				var params = skill.get("params", {})
 				var trigger_disp = TRIGGER_NAMES.get(trigger, trigger)
+				var target_disp = TARGET_NAMES.get(target, target)
 				var edef = _edb.EFFECTS.get(effect_id, {})
 				var effect_disp = edef.get("display", effect_id)
-				var skill_text = "%s: %s" % [trigger_disp, effect_disp]
+				var params_disp = _format_skill_params(params, trigger)
+				# フォーマット: trigger：targetにeffect params
+				var desc: String = trigger_disp + "："
+				if target_disp != "":
+					desc += target_disp + "に "
+				desc += effect_disp
+				if params_disp != "":
+					desc += " " + params_disp
 				var skill_label = Label.new()
-				skill_label.text = "・%s" % skill_text
+				skill_label.text = "・" + desc
 				skill_label.add_theme_font_size_override("font_size", 10)
 				skill_label.autowrap_mode = TextServer.AUTOWRAP_WORD
 				card_detail_container.add_child(skill_label)
@@ -704,6 +773,30 @@ func _show_card_detail(card_name: String, card_data: Dictionary) -> void:
 				skill_label.add_theme_font_size_override("font_size", 10)
 				skill_label.autowrap_mode = TextServer.AUTOWRAP_WORD
 				card_detail_container.add_child(skill_label)
+
+
+func _format_skill_params(params: Dictionary, trigger: String) -> String:
+	var parts: Array = []
+	if params.has("stacks"):
+		parts.append("+%s" % str(params["stacks"]))
+	if params.has("factor"):
+		parts.append("x%s" % str(params["factor"]))
+	if params.has("pct"):
+		var pct_val = params["pct"]
+		if pct_val is float and pct_val <= 1.0:
+			parts.append("%d%%" % int(pct_val * 100))
+		else:
+			parts.append("%s%%" % str(pct_val))
+	if trigger == "timer" and params.has("interval"):
+		parts.append("%sごと" % str(params["interval"]))
+	if params.has("threshold"):
+		parts.append("HP閾値%s%%" % str(params["threshold"]))
+	if parts.is_empty():
+		for key in ["damage", "amount", "count"]:
+			if params.has(key):
+				parts.append(str(params[key]))
+				break
+	return " ".join(parts)
 
 # 呪文詳細表示
 func _show_spell_detail(spell_name: String, spell_data: Dictionary) -> void:
@@ -928,6 +1021,11 @@ func on_hand_card_clicked(index: int) -> void:
 # 盤面セルクリック処理（要件定義書 §6.1.5 準拠）
 func on_board_cell_clicked(row: int, col: int) -> void:
 	if _selected_hand_index < 0:
+		# カード未選択時: 占有セルのユニット詳細を表示
+		if board_manager and board_manager.board[0][row][col] != null:
+			var unit = board_manager.board[0][row][col]
+			var card_data: Dictionary = CardDB.UNITS.get(unit.unit_name, {})
+			_show_card_detail(unit.unit_name, card_data)
 		return
 	if not game_session or _selected_hand_index >= game_session.selected_deck.size():
 		return
@@ -955,6 +1053,17 @@ func on_board_cell_clicked(row: int, col: int) -> void:
 	unit_data.attack_range = card_data.get("range", "1行")
 	unit_data.assigned_col = card_data.get("col", 0)
 	unit_data.skills = card_data.get("skills", []).duplicate(true)
+
+	# 既存ユニットがいる場合は手持ちに戻す
+	var existing_unit = board_manager.board[0][row][col]
+	if existing_unit != null:
+		var existing_name: String = existing_unit.unit_name
+		board_manager.remove_unit(0, row, col)
+		# 手持ちに戻す（selected_deckに追加）
+		game_session.selected_deck.append({"name": existing_name})
+		var main = get_node_or_null("/root/Main")
+		if main and main.get("game_ui") != null:
+			main.game_ui.render_cell(0, row, col)
 
 	# BoardManagerに配置（要件定義書 §6.1.5）
 	if board_manager.on_rest_drop(unit_data, row, col):
@@ -1002,13 +1111,7 @@ func _board_cell_get_drag_data(at_position: Vector2, row: int, col: int) -> Vari
 func _board_cell_can_drop(at_position: Vector2, data: Variant, row: int, col: int) -> bool:
 	if not (data is Dictionary):
 		return false
-	# 盤面→盤面スワップは常に許可
-	if data.has("board_row"):
-		return true
-	# 手持ち→盤面は空きマスのみ許可（上書き防止）
-	if data.has("card_index"):
-		if board_manager and board_manager.board[0][row][col] != null:
-			return false
+	if data.has("board_row") or data.has("card_index"):
 		return true
 	return false
 
@@ -1104,7 +1207,7 @@ func _calc_spell_deck_mana() -> int:
 			total += CardDB.SPELLS[spell_name].get("mana", 0)
 	return total
 
-func _on_spell_available_double_click(spell_name: String) -> void:
+func _on_spell_available_double_click(spell_name: String, avail_idx: int) -> void:
 	var spell_mana: int = 0
 	if CardDB.SPELLS.has(spell_name):
 		spell_mana = CardDB.SPELLS[spell_name].get("mana", 0)
@@ -1114,6 +1217,7 @@ func _on_spell_available_double_click(spell_name: String) -> void:
 		_show_spell_mana_error()
 		return
 	game_session.spell_deck.append(spell_name)
+	game_session.spell_deck_available_indices.append(avail_idx)
 	rebuild_hand_area()
 	_refresh_mana_labels()
 
@@ -1121,6 +1225,7 @@ func _on_spell_deck_right_click(index: int) -> void:
 	if index < 0 or index >= game_session.spell_deck.size():
 		return
 	game_session.spell_deck.remove_at(index)
+	game_session.spell_deck_available_indices.remove_at(index)
 	rebuild_hand_area()
 	_refresh_mana_labels()
 

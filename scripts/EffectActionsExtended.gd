@@ -238,9 +238,9 @@ func do_mana_generation_trigger(merged: Dictionary, ctx: Dictionary) -> void:
 	if source.spring_stacks > 0:
 		mana_gain += mana_gain * source.spring_stacks * 0.01
 	if side == 0 and dm != null:
-		dm.mana = min(dm.mana + mana_gain, dm.MANA_MAX)
+		dm.mana += mana_gain
 	elif side == 1 and ai != null:
-		ai.mana = min(ai.mana + mana_gain, ai.MANA_MAX)
+		ai.mana += mana_gain
 
 func do_position_swap_front_back(merged: Dictionary, ctx: Dictionary) -> void:
 	# 呪い閾値以上の敵前列1体を後列と入れ替え

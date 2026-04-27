@@ -125,7 +125,6 @@ func _test_mana_generation(main: Node) -> void:
 		return
 
 	var mana = deck_manager.get("mana")
-	var mana_max = deck_manager.get("MANA_MAX")
 
 	if mana != null:
 		if mana == 0.0:
@@ -134,11 +133,7 @@ func _test_mana_generation(main: Node) -> void:
 			_record_fail("D-1", "バトル開始時マナが0ではない: %.2f" % mana)
 	else:
 		_record_fail("D-1", "manaプロパティが存在しない")
-
-	if mana_max != null:
-		_record_pass("D-2", "MANA_MAXが設定されている: %.2f" % mana_max)
-	else:
-		_record_fail("D-2", "MANA_MAXが設定されていない")
+	# D-2: MANA_MAX廃止済み（上限なしマナ設計）
 
 func _test_row_breach(main: Node) -> void:
 	print("\n[B. 行突破テスト（30秒後）]")

@@ -78,6 +78,7 @@ var dev_ui: RefCounted = null  # DevUI インスタンス
 var game_started: bool = false
 var game_paused: bool = false
 var is_animating: bool = false
+var _initial_row_occupied: Array = [[false,false,false],[false,false,false]]
 
 var game_over: bool = false
 var log_lines: Array  = []
@@ -123,6 +124,7 @@ func _ready() -> void:
 	board_manager.synthesis_done.connect(_on_synthesis_done)
 	board_manager.material_dropped.connect(_on_material_dropped)
 	board_manager.gold_dropped.connect(_on_gold_dropped)
+	board_manager.attack_visual.connect(_on_attack_visual)
 
 	deck_manager = Node.new()
 	deck_manager.set_script(DeckManagerScript)
@@ -173,9 +175,8 @@ func _ready() -> void:
 	player_data.initial_mana = class_def["initial_mana"]
 	player_data.mana_max = class_def["mana_max"]
 	player_data.skills = class_def["skills"].duplicate(true)
-	# DeckManager に反映（マナ上限3固定）
+	# DeckManager マナ初期化（上限なし）
 	deck_manager.mana = 0.0
-	deck_manager.MANA_MAX = 3.0
 
 	# アーティファクト効果適用（バトル開始時）
 	_apply_artifact_effects_battle_start()
@@ -290,6 +291,13 @@ func _start_battle() -> void:
 	# アーティファクト効果適用（ユニット配置後）
 	_apply_artifact_effects_on_units()
 	_add_log("=== バトル開始 (seed: %d) ===" % GameSession.battle_seed)
+	# 呪文デッキ初期化（デッキが空の場合のみ固定11枚セット）
+	if GameSession.spell_deck.is_empty() and GameSession.spell_hand.is_empty() and GameSession.spell_discard.is_empty():
+		GameSession.spell_deck = ["mana_crystal", "mana_crystal", "mana_crystal", "mana_crystal", "mana_crystal", "fireball", "fireball", "fireball", "guard", "guard", "guard"]
+		GameSession.spell_deck.shuffle()
+		print("[Main] 呪文デッキ初期化: %d枚" % GameSession.spell_deck.size())
+	if spell_slot_system != null:
+		spell_slot_system.draw_to_fill_slots()
 	# Phase 4 #0a: WaveMode開始
 	if wave_manager != null:
 		wave_manager.start_wave_mode()
@@ -405,8 +413,6 @@ func _place_enemy_initial_units() -> void:
 
 	# デッキを非ユニットのみに更新
 	enemy_ai.enemy_deck = remaining_cards
-	# MANA_MAXを初期配置ユニット総コストに設定
-	enemy_ai.MANA_MAX = total_cost
 	enemy_ai.mana = 0.0
 	print("[Main] 敵初期配置完了: %d体配置、総コスト%.1f、デッキ残り%d枚" % [placed_count, total_cost, remaining_cards.size()])
 
@@ -572,6 +578,8 @@ func _process(delta: float) -> void:
 		game_ui.update_damage_floats(delta)
 		game_ui.update_bubble(delta)
 		game_ui.update_drop_effects(delta)
+		game_ui.update_attack_lines(delta)
+		game_ui.update_effect_floats(delta)
 	# ドラッグ中のラベル追従
 	if dev_mode:
 		_dev_update_drag()
@@ -677,29 +685,45 @@ func _check_front_mid_dead(side: int) -> bool:
 	if not board_manager:
 		return false
 
-	var front_dead = true  # 前列（col=2）
-	var mid_dead = true    # 中列（col=1）
+	# プレイヤー(side=0): 前列=col2, 中列=col1
+	# 敵(side=1):         前列=col0, 中列=col1
+	var front_col: int = 2 if side == 0 else 0
+	var mid_col: int = 1
 
-	# 前列チェック
+	var front_dead = true
+	var mid_dead = true
+
 	for r in range(3):
-		if board_manager.board[side][r][2] != null:
+		if board_manager.board[side][r][front_col] != null:
 			front_dead = false
 			break
 
-	# 中列チェック
 	for r in range(3):
-		if board_manager.board[side][r][1] != null:
+		if board_manager.board[side][r][mid_col] != null:
 			mid_dead = false
 			break
 
 	return front_dead and mid_dead
 
+func _update_initial_row_occupancy() -> void:
+	"""各行の初期占有状態を記録（Wave開始時に呼ぶ）"""
+	for side in range(2):
+		for r in range(3):
+			var occupied: bool = false
+			for c in range(3):
+				if board_manager.board[side][r][c] != null:
+					occupied = true
+					break
+			_initial_row_occupied[side][r] = occupied
+
 func _check_any_row_wiped(side: int) -> bool:
-	"""1行全滅チェック"""
+	"""1行全滅チェック（初期配置でユニットがいた行のみ判定）"""
 	if not board_manager:
 		return false
 
 	for r in range(3):
+		if not _initial_row_occupied[side][r]:
+			continue  # 最初から空の行は全滅扱いしない
 		var row_wiped = true
 		for c in range(3):
 			if board_manager.board[side][r][c] != null:
@@ -803,10 +827,13 @@ func _on_unit_died(side: int, row: int, col: int, died_unit: Object) -> void:
 				if board_manager.player_data._death_mana_count < max_count:
 					board_manager.player_data._death_mana_count += 1
 					var amount = skill.get("params", {}).get("amount", 1)
-					deck_manager.mana = min(deck_manager.MANA_MAX, deck_manager.mana + amount)
+					deck_manager.mana += amount
 					_add_log("[死霊術師] 味方死亡: マナ+%d (累計%d/%d)" % [amount, board_manager.player_data._death_mana_count, max_count])
 	_mark_all_cells_dirty()
 	_refresh_row_danger_glows()
+	# ユニット死亡時にも即時勝敗チェック
+	if not game_over and not dev_mode:
+		_check_game_over()
 
 func _check_row_breach(side: int, row: int) -> void:
 	"""行突破判定（本体HP廃止のためコメントアウト）"""
@@ -833,13 +860,16 @@ func _check_row_breach(side: int, row: int) -> void:
 		# 	game_ui.spawn_base_damage_float(side, damage)
 		# _update_base_hp()
 
-func _on_unit_damaged(side: int, row: int, col: int) -> void:
+
+func _on_attack_visual(src_side: int, src_row: int, src_col: int, dst_side: int, dst_row: int, dst_col: int) -> void:
+	if game_ui != null:
+		game_ui.spawn_attack_line(src_side, src_row, src_col, dst_side, dst_row, dst_col)
+
+func _on_unit_damaged(side: int, row: int, col: int, amount: int) -> void:
 	if side >= 0 and row >= 0 and col >= 0:
 		_cell_dirty[side][row][col] = true
-		# ダメージフロート（ダメージ量はunitのHP差分から取れないのでシグナル拡張が必要。仮で表示）
-		var unit = board_manager.get_unit(side, row, col)
-		if unit != null and game_ui != null:
-			game_ui.spawn_damage_float(side, row, col, 0, false)  # 仮：量は後で対応
+		if amount > 0 and game_ui != null:
+			game_ui.spawn_damage_float(side, row, col, amount, false)
 
 func _on_unit_revived(side: int, row: int, col: int) -> void:
 	var unit = board_manager.get_unit(side, row, col)
@@ -862,6 +892,8 @@ func _on_skill_triggered(side: int, row: int, col: int, skill_name: String) -> v
 	skill_flash_timers[side][row][col] = 0.6
 	skill_flash_names[side][row][col]  = skill_name
 	_cell_dirty[side][row][col] = true
+	if game_ui != null:
+		game_ui.spawn_effect_text(side, row, col, skill_name)
 
 func _log_support_effects() -> void:
 	pass  # skills配列ベースのサポートはEffectExecutor経由で動作
@@ -880,7 +912,7 @@ func _on_synthesis_done(side: int, row: int, col: int, base_name: String, result
 				var edef: Dictionary = _EDB.EFFECTS.get(eid, {})
 				if edef.get("type", "") == "mana_add":
 					var amount: int = skill.get("params", {}).get("amount", edef.get("amount", 2))
-					deck_manager.mana = min(deck_manager.MANA_MAX, deck_manager.mana + amount)
+					deck_manager.mana += amount
 					_add_log("[合成スキル] マナ+%d" % amount)
 	var side_name: String = "自陣" if side == 0 else "敵陣"
 	_add_log("[合成] %s %s → %s" % [side_name, base_name, result_name])
@@ -1050,14 +1082,14 @@ func _on_draw_cards_requested(side: int, count: int) -> void:
 			enemy_ai.force_play_card(board_manager)
 
 func _pick_initial_spells() -> void:
-	var pool: Array = CardDB.INITIAL_SPELL_POOL
+	var pool: Array = CardDB.INITIAL_SPELL_POOL.duplicate()
 	if pool.is_empty():
 		return
-	var picked: Array = []
-	for i in range(3):
-		var idx: int = randi() % pool.size()
-		picked.append(pool[idx])
-		GameSession.spell_available.append({"name": pool[idx]})
+	pool.shuffle()
+	var count: int = min(3, pool.size())
+	var picked: Array = pool.slice(0, count)
+	for name in picked:
+		GameSession.spell_available.append({"name": name})
 	print("[Main] 初期呪文ピック: %s" % str(picked))
 
 # RestScreen遷移（Phase 1基盤構築用）
@@ -1162,6 +1194,7 @@ func _animate_battle_start(big: int, small: int) -> void:
 	await _animate_fade_from_black()
 	await _animate_enemy_slidein()
 	await _show_wave_label(big, small, 1.5)
+	_update_initial_row_occupancy()
 	is_animating = false
 
 func _animate_sw_transition(big: int, small: int) -> void:
@@ -1177,6 +1210,7 @@ func _animate_sw_transition(big: int, small: int) -> void:
 	_position_enemies_offscreen()  # 配置後すぐ画面外へ
 	await _show_wave_label(big, small, 1.0)
 	await _animate_enemy_slidein()  # 0.4秒スライドイン
+	_update_initial_row_occupancy()
 	is_animating = false
 
 func _on_wave_ended(big: int, small: int, victory: bool) -> void:
@@ -1184,6 +1218,11 @@ func _on_wave_ended(big: int, small: int, victory: bool) -> void:
 	_add_log("=== Wave %d-%d %s ===" % [big, small, result_text])
 
 func _on_intermission_requested(shop_config: Dictionary) -> void:
+	# current_battle_gold を GameSession.gold に移管してからショップへ
+	if GameSession.current_battle_gold > 0:
+		GameSession.gold += GameSession.current_battle_gold
+		GameSession.current_battle_gold = 0
+		print("[Main] インタミッション: gold移管 -> GameSession.gold=%d" % GameSession.gold)
 	print("[Main] Intermission呼び出し shop_config=%s" % shop_config)
 	start_rest_screen(shop_config, false, true)
 
@@ -1209,6 +1248,11 @@ func _on_battle_victory() -> void:
 
 	game_over = false  # 遷移処理のためフラグ戻す
 	is_animating = false
+	# バトル勝利確定: current_battle_gold を GameSession.gold に移管
+	if GameSession.current_battle_gold > 0:
+		GameSession.gold += GameSession.current_battle_gold
+		GameSession.current_battle_gold = 0
+		print("[Main] 勝利gold移管 -> GameSession.gold=%d" % GameSession.gold)
 	if wave_manager != null:
 		wave_manager.on_wave_victory()
 
@@ -1330,7 +1374,9 @@ func _has_player_unit_at(row: int, col: int) -> bool:
 	return board_manager.board[0][row][col] != null
 
 func _is_row_in_danger(row: int) -> bool:
-	return _has_player_unit_at(row, 0) and not _has_player_unit_at(row, 1) and not _has_player_unit_at(row, 2)
+	# player(side=0): col=2が前列、col=0が後列
+	# 危険条件: 前列(col=2)のみにユニットがいる（中列・後列が空）
+	return _has_player_unit_at(row, 2) and not _has_player_unit_at(row, 0) and not _has_player_unit_at(row, 1)
 
 func _start_row_danger_glow(row: int) -> void:
 	if _row_danger_active[row] or row >= _row_danger_glows.size():

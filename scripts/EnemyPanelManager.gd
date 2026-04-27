@@ -366,13 +366,21 @@ func _generate_shop_items(count: int) -> Array:
 	var result: Array = []
 	var db = card_db if card_db != null else CardDB
 
-	# ユニット5枠 + 呪文4枠
+	# ユニット4枠 + 呪文4枠 + デッキ削減1枠（合計9枠）
 	var unit_keys: Array = db.UNITS.keys()
 	var spell_keys: Array = db.SPELLS.keys()
 
 	for i in range(count):
-		var is_spell: bool = (i >= 5)  # 後半4枠を呪文
-		if is_spell and not spell_keys.is_empty():
+		if i == 8:
+			# 最後の1枠: デッキ削減商品（spell_deckから1枚除去）
+			result.append({
+				"name": "デッキ削減",
+				"type": "deck_reduce",
+				"rarity": "common",
+				"price": 75,
+				"sold": false
+			})
+		elif i >= 4 and not spell_keys.is_empty():
 			var spell_name: String = spell_keys[randi() % spell_keys.size()]
 			var spell_data: Dictionary = db.SPELLS[spell_name]
 			result.append({
@@ -420,7 +428,13 @@ func _create_shop_cell(item: Dictionary, session) -> Panel:
 
 	# 種別ラベル
 	var type_lbl = Label.new()
-	type_lbl.text = "ユニット" if item.get("type", "") == "unit" else "呪文"
+	var _item_type: String = item.get("type", "")
+	if _item_type == "unit":
+		type_lbl.text = "ユニット"
+	elif _item_type == "spell":
+		type_lbl.text = "呪文"
+	else:
+		type_lbl.text = "サービス"
 	type_lbl.set_position(Vector2(4, 4))
 	type_lbl.add_theme_font_size_override("font_size", 9)
 	type_lbl.add_theme_color_override("font_color", Color(0.6, 0.6, 0.7))
@@ -467,6 +481,16 @@ func _create_shop_cell(item: Dictionary, session) -> Panel:
 			session.selected_deck.append({"name": card_name})
 		elif card_type == "spell":
 			session.spell_available.append({"name": card_name})
+		elif card_type == "deck_reduce":
+			# デッキ削減: spell_deckから末尾1枚を除去
+			if session.spell_deck.size() > 0:
+				var removed: String = session.spell_deck.pop_back()
+				# spell_deck_available_indicesも同期
+				if session.spell_deck_available_indices.size() > 0:
+					session.spell_deck_available_indices.pop_back()
+				print("[EnemyPanelManager] デッキ削減: %s を除去" % removed)
+			else:
+				print("[EnemyPanelManager] デッキ削減: spell_deckが空のためスキップ")
 		print("[EnemyPanelManager] ショップ購入: %s (%s) -%dG" % [card_name, card_type, price])
 		# セルを売り切れ表示に
 		for child in captured_cell.get_children():

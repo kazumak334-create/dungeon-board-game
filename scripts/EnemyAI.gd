@@ -3,7 +3,6 @@ class_name EnemyAI
 extends Node
 
 var mana: float = 0.0
-var MANA_MAX: float = 0.0    # v2設計: ユニット総コストで初期化
 var MANA_REGEN: float = 1.0
 var check_interval: float = 1.0
 var _check_timer: float = 0.0
@@ -89,8 +88,16 @@ func _build_boss_deck() -> void:
 	enemy_deck.clear()
 	# ボス専用デッキ構築
 	if GameSession.boss_id == "":
-		print("[EnemyAI] ERROR: boss_idが未設定")
-		return
+		# マップ画面未経由時のフォールバック: Act1ボスをランダム選択
+		var act1_bosses: Array = []
+		for bid in CardDB.BOSSES.keys():
+			if CardDB.BOSSES[bid].get("act", 0) == 1:
+				act1_bosses.append(bid)
+		if act1_bosses.is_empty():
+			print("[EnemyAI] ERROR: boss_idが未設定 かつ Act1ボス未定義")
+			return
+		GameSession.boss_id = act1_bosses[randi() % act1_bosses.size()]
+		print("[EnemyAI] boss_id未設定フォールバック: %s" % GameSession.boss_id)
 
 	var boss = CardDB.BOSSES.get(GameSession.boss_id, {})
 	if boss.is_empty():
@@ -141,15 +148,9 @@ func ensure_shuffle_card() -> void:
 	pass  # REQ-D: 呪文回収廃止
 
 func initialize_mana_from_deck() -> void:
-	# v2設計: 敵の初期配置ユニット総コストをMANA_MAXに設定
-	# TODO: 敵側もinitial_unitsを使うように変更（現状は暫定でenemy_deckから）
-	var total_cost: float = 0.0
-	for card in enemy_deck:
-		if card.card_type == "unit" and card.mana >= 0:
-			total_cost += float(card.mana)
-	MANA_MAX = total_cost
+	# v2設計: マナ上限廃止。初期マナを0にリセット（敵は呪文を使わないためMANA_MAX不要）
 	mana = 0.0
-	print("[EnemyAI] マナ上限初期化: %.1f（ユニット総コスト・暫定）" % MANA_MAX)
+	print("[EnemyAI] マナ初期化: 0（上限なし）")
 
 func _pick_next_card() -> void:
 	if enemy_deck.is_empty():
@@ -203,7 +204,7 @@ func process_ai(delta: float, board: Node) -> void:
 			per_unit_ai = _EDB.EFFECTS[eid_da].get("per_unit", -0.1)
 			break
 	var effective_regen: float = max(0.1, MANA_REGEN + drain_count_ai * per_unit_ai)
-	mana = min(MANA_MAX, mana + effective_regen * delta)
+	mana += effective_regen * delta
 
 	# クールダウン中は発動しない
 	if _check_timer > 0.0:
@@ -211,14 +212,6 @@ func process_ai(delta: float, board: Node) -> void:
 		return
 
 	if next_card == null:
-		return
-	# マナ上限超過チェック：コスト > マナ上限 → スキップ（捨て札へ）
-	# スキップも詠唱扱い（クールダウン消費）
-	if next_card.mana > int(MANA_MAX) and next_card.mana != -1:
-		enemy_deck.remove_at(0)
-		enemy_discard.append(next_card)
-		_check_timer = check_interval  # スキップにもクールダウン適用
-		_pick_next_card()
 		return
 	if mana < next_card.mana:
 		return  # マナが足りるまで先頭で待機

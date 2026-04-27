@@ -19,6 +19,7 @@ var _speed_buttons: Array = []            # 速度ボタン配列（ハイライ
 var _env_label: Label = null              # 環境表示ラベル
 var _active_drop_effects: Array = []
 const MAX_DROP_EFFECTS = 3
+var _cell_status_icons: Array = []  # [side][r][c] -> Array[Node]（バフ/デバフアイコン）
 func setup(p_main: Node) -> void:
 	add_to_group("game_ui")
 	main = p_main
@@ -105,6 +106,7 @@ func build_ui() -> void:
 	main.cell_labels = [[], []]
 	_cell_hp_bars  = [[], []]
 	_cell_hp_labels = [[], []]
+	_cell_status_icons = [[], []]
 	var cell_y: int
 	var rect: ColorRect
 	for side in range(2):
@@ -113,6 +115,7 @@ func build_ui() -> void:
 			main.cell_labels[side].append([])
 			_cell_hp_bars[side].append([])
 			_cell_hp_labels[side].append([])
+			_cell_status_icons[side].append([])
 			for c in range(3):
 				x = _cell_x(side, c)
 				cell_y = main.BOARD_TOP + r * main.CELL_H
@@ -161,6 +164,7 @@ func build_ui() -> void:
 				hp_lbl.visible  = true
 				main.add_child(hp_lbl)
 				_cell_hp_labels[side][r].append(hp_lbl)
+				_cell_status_icons[side][r].append([])
 
 	# ---- プレイヤー/敵キャラ立絵+HPバー ----
 
@@ -382,30 +386,12 @@ func render_cell(side: int, r: int, c: int) -> void:
 		if main.skill_flash_timers[side][r][c] > 0.0:
 			flash_line = "★" + main.skill_flash_names[side][r][c] + "!"
 
-		# バフ表示（アイコンのみ・情報密度削減）
-		var buff_icons: Array = []
-		if unit.power_stacks > 0:       buff_icons.append("💪")
-		if unit.boots_stacks > 0:       buff_icons.append("👢")
-		if unit._damage_reduction > 0:  buff_icons.append("🛡")
-		if unit.regen_stacks > 0:       buff_icons.append("💚")
-		if unit._invincible_timer > 0.0: buff_icons.append("✨")
-		var buff_line = "".join(buff_icons) if buff_icons.size() > 0 else ""
-
-		# デバフ表示（アイコンのみ）
-		var debuff_icons: Array = []
-		if unit.burn_turns > 0:         debuff_icons.append("🔥")
-		if unit.frozen_turns > 0:       debuff_icons.append("❄")
-		if unit.poison_stacks > 0:      debuff_icons.append("☠")
-		if unit.curse_stacks > 0:       debuff_icons.append("🌀")
-		if unit.brand_stacks > 0:       debuff_icons.append("🎯")
-		var debuff_line = "".join(debuff_icons) if debuff_icons.size() > 0 else ""
-
-		# セル内表示：ユニット名 + バフ/デバフアイコンのみ
+		# セル内表示：ユニット名 + スキルフラッシュのみ（バフ/デバフはアイコンで別描画）
 		var lines: Array = [unit.unit_name]
-		var status_line = buff_line + debuff_line
-		if status_line != "": lines.append(status_line)
 		if flash_line != "": lines.append(flash_line)
-		lbl.text = "\n".join(lines)
+		lbl.text = "
+".join(lines)
+		_render_status_icons(side, r, c, unit)
 		# ColorRect HPバー更新
 		if _cell_hp_bars.size() > side and _cell_hp_bars[side].size() > r and _cell_hp_bars[side][r].size() > c:
 			hp_dict = _cell_hp_bars[side][r][c]
@@ -433,6 +419,7 @@ func render_cell(side: int, r: int, c: int) -> void:
 			hp_dict["bar"].visible = false
 		if _cell_hp_labels.size() > side and _cell_hp_labels[side].size() > r and _cell_hp_labels[side][r].size() > c:
 			_cell_hp_labels[side][r][c].visible = false
+		_clear_status_icons(side, r, c)
 	# 盤面効果の可視化
 	var te_vis = main.board_manager.board_effects[side][r][c]
 	if te_vis != null:
@@ -460,13 +447,12 @@ func update_base_hp() -> void:
 
 func _update_mana() -> void:
 	var mana: float = main.deck_manager.mana
-	var mana_max: float = main.deck_manager.MANA_MAX
-	var ratio: float = clamp(mana / max(1.0, mana_max), 0.0, 1.0)
+	# マナバー: 上限なしのため比率表示廃止。数値のみ表示
 	if main.mana_gauge_fill != null:
 		var fill_max_w: float = main.mana_gauge_fill_max_w if "mana_gauge_fill_max_w" in main else 110.0
-		main.mana_gauge_fill.size.x = fill_max_w * ratio
+		main.mana_gauge_fill.size.x = fill_max_w  # 常に最大幅（バー非表示相当）
 	if main.mana_value_label != null:
-		main.mana_value_label.text = "%.0f / %d" % [mana, int(mana_max)]
+		main.mana_value_label.text = "%.0f" % mana
 
 func mark_all_cells_dirty() -> void:
 	for s in range(2):
@@ -497,8 +483,20 @@ func spawn_damage_float(side: int, row: int, col: int, amount: int, is_heal: boo
 func spawn_base_damage_float(side: int, amount: int) -> void:
 	_overlay.spawn_base_damage_float(side, amount)
 
+func spawn_attack_line(src_side: int, src_row: int, src_col: int, dst_side: int, dst_row: int, dst_col: int) -> void:
+	_overlay.spawn_attack_line(src_side, src_row, src_col, dst_side, dst_row, dst_col)
+
+func spawn_effect_text(side: int, row: int, col: int, text: String, color: Color = Color(0.9, 0.9, 0.3)) -> void:
+	_overlay.spawn_effect_text(side, row, col, text, color)
+
 func update_damage_floats(delta: float) -> void:
 	_overlay.update_damage_floats(delta)
+
+func update_attack_lines(delta: float) -> void:
+	_overlay.update_attack_lines(delta)
+
+func update_effect_floats(delta: float) -> void:
+	_overlay.update_effect_floats(delta)
 
 func update_bubble(delta: float) -> void:
 	_overlay.update_bubble(delta)
@@ -534,6 +532,8 @@ func spawn_material_drop(material_id: String, _count: int, side: int, row: int, 
 	var icon_node = TextureRect.new()
 	icon_node.size = Vector2(16, 16)
 	icon_node.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	icon_node.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	icon_node.custom_minimum_size = Vector2(16, 16)
 	var path = "res://assets/materials/%s.png" % material_id
 	if ResourceLoader.exists(path):
 		icon_node.texture = load(path)
@@ -557,6 +557,8 @@ func spawn_gold_drop(_amount: int, side: int, row: int, col: int) -> void:
 	var icon_node = TextureRect.new()
 	icon_node.size = Vector2(16, 16)
 	icon_node.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	icon_node.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	icon_node.custom_minimum_size = Vector2(16, 16)
 	var path = "res://assets/materials/gold_coin.png"
 	if ResourceLoader.exists(path):
 		icon_node.texture = load(path)
@@ -599,3 +601,112 @@ func update_drop_effects(delta: float) -> void:
 			finished.append(effect)
 	for done in finished:
 		_active_drop_effects.erase(done)
+
+# ---- バフ/デバフアイコン表示 ----
+const _STATUS_ICON_ORDER: Array = ["freeze", "burn", "poison", "curse", "brand", "shield", "regen", "power", "boots", "sense", "spring"]
+const _STATUS_ICON_FIELDS: Dictionary = {
+	"freeze": "frozen_turns",
+	"burn": "burn_turns",
+	"poison": "poison_stacks",
+	"curse": "curse_stacks",
+	"brand": "brand_stacks",
+	"shield": "_damage_reduction",
+	"regen": "regen_stacks",
+	"power": "power_stacks",
+	"boots": "boots_stacks",
+	"sense": "sense_stacks",
+	"spring": "spring_stacks",
+}
+
+func _clear_status_icons(side: int, r: int, c: int) -> void:
+	if _cell_status_icons.size() <= side: return
+	if _cell_status_icons[side].size() <= r: return
+	if _cell_status_icons[side][r].size() <= c: return
+	for node in _cell_status_icons[side][r][c]:
+		if is_instance_valid(node):
+			node.queue_free()
+	_cell_status_icons[side][r][c] = []
+
+func _render_status_icons(side: int, r: int, c: int, unit) -> void:
+	_clear_status_icons(side, r, c)
+	if unit == null: return
+	if _cell_status_icons.size() <= side: return
+	if _cell_status_icons[side].size() <= r: return
+	if _cell_status_icons[side][r].size() <= c: return
+
+	# アクティブアイコンリスト収集（優先順）
+	var active: Array = []
+	for key in _STATUS_ICON_ORDER:
+		var field: String = _STATUS_ICON_FIELDS[key]
+		var val = unit.get(field)
+		if val != null and val > 0:
+			active.append({"key": key, "val": val})
+
+	if active.size() == 0: return
+
+	var icon_x_base: int = _cell_x(side, c) + 5
+	var icon_y: int = main.BOARD_TOP + r * main.CELL_H + 62
+	var icon_size: int = 16
+	var icon_step: int = 20
+	var max_icons: int = 4
+	var shown: int = min(active.size(), max_icons)
+	var nodes: Array = []
+
+	for i in range(shown):
+		var entry: Dictionary = active[i]
+		var ix: int = icon_x_base + i * icon_step
+
+		# テクスチャアイコン
+		var tex_rect := TextureRect.new()
+		var tex_path: String = "res://assets/icons/status/%s.png" % entry["key"]
+		var tex = load(tex_path) if ResourceLoader.exists(tex_path) else null
+		if tex != null:
+			tex_rect.texture = tex
+		tex_rect.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+		tex_rect.custom_minimum_size = Vector2(icon_size, icon_size)
+		tex_rect.size = Vector2(icon_size, icon_size)
+		tex_rect.position = Vector2(ix, icon_y)
+		tex_rect.stretch_mode = TextureRect.STRETCH_SCALE
+		tex_rect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		main.add_child(tex_rect)
+		nodes.append(tex_rect)
+
+		# スタック数（2以上のみ）
+		var val: int = entry["val"]
+		if val >= 2:
+			var badge_size: int = 9
+			var bx: int = ix + icon_size - badge_size
+			var by: int = icon_y + icon_size - badge_size
+
+			var badge_bg := ColorRect.new()
+			badge_bg.color = Color(0, 0, 0, 0.6)
+			badge_bg.size = Vector2(badge_size, badge_size)
+			badge_bg.position = Vector2(bx, by)
+			main.add_child(badge_bg)
+			nodes.append(badge_bg)
+
+			var badge_lbl := Label.new()
+			badge_lbl.text = str(val)
+			badge_lbl.add_theme_font_size_override("font_size", 8)
+			badge_lbl.add_theme_color_override("font_color", Color(1, 1, 1))
+			badge_lbl.size = Vector2(badge_size, badge_size)
+			badge_lbl.position = Vector2(bx, by)
+			badge_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+			badge_lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+			main.add_child(badge_lbl)
+			nodes.append(badge_lbl)
+
+	# +N ラベル（超過分）
+	if active.size() > max_icons:
+		var remain: int = active.size() - max_icons
+		var extra_lbl := Label.new()
+		extra_lbl.text = "+%d" % remain
+		extra_lbl.add_theme_font_size_override("font_size", 10)
+		extra_lbl.add_theme_color_override("font_color", Color(1, 1, 1))
+		extra_lbl.size = Vector2(20, icon_size)
+		extra_lbl.position = Vector2(icon_x_base + shown * icon_step, icon_y)
+		extra_lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		main.add_child(extra_lbl)
+		nodes.append(extra_lbl)
+
+	_cell_status_icons[side][r][c] = nodes

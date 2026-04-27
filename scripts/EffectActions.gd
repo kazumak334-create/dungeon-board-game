@@ -299,9 +299,9 @@ func do_mana_add(merged: Dictionary, ctx: Dictionary) -> void:
 	var side: int = ctx.get("side", 0)
 	var amount: float = merged.get("amount", 3)
 	if dm != null:
-		dm.mana = min(dm.MANA_MAX, dm.mana + amount)
+		dm.mana += amount
 	elif ai != null and side == 1:
-		ai.mana = min(ai.MANA_MAX, ai.mana + amount)
+		ai.mana += amount
 
 func do_steal_buffs(merged: Dictionary, ctx: Dictionary) -> void:
 	var bm: Node       = ctx.get("bm", null)
@@ -627,22 +627,6 @@ func do_revive_ally(merged: Dictionary, ctx: Dictionary) -> void:
 			else:
 				best.current_hp = min(best.max_hp, best.current_hp + int(hp_val))
 
-func do_crystallize(merged: Dictionary, ctx: Dictionary) -> void:
-	var bm: Node       = ctx.get("bm", null)
-	var side: int      = ctx.get("side", 0)
-	var row: int       = ctx.get("row", 0)
-	var col: int       = ctx.get("col", 0)
-	var source: Object = ctx.get("source", null)
-	var target: Object = ctx.get("target", null)
-	var damage: int    = ctx.get("damage", 0)
-	var context: Dictionary = {
-		"board_manager": bm, "side": side, "row": row, "col": col,
-		"source": source, "target": target, "damage": damage
-	}
-	var tgt = targets.resolve(merged, context, true)
-	for t in tgt:
-		t._invincible_timer = 999.0
-
 func do_race_buff(merged: Dictionary, ctx: Dictionary) -> void:
 	var bm: Node       = ctx.get("bm", null)
 	var side: int      = ctx.get("side", 0)
@@ -821,7 +805,7 @@ func do_skill_disable(merged: Dictionary, ctx: Dictionary) -> void:
 	var tgt = targets.resolve(merged, context, false)
 	var duration: float = merged.get("duration", 5.0)
 	for t in tgt:
-		if not t.has("_skill_timers"):
+		if "_skill_timers" not in t:
 			continue
 		t._skill_timers["skill_disable"] = duration
 
@@ -868,7 +852,7 @@ func do_support_disable(merged: Dictionary, ctx: Dictionary) -> void:
 	}
 	var tgt = targets.resolve(merged, context, false)
 	for t in tgt:
-		if not t.has("_skill_timers"):
+		if "_skill_timers" not in t:
 			continue
 		t._skill_timers["support_disable"] = 999.0
 
@@ -1061,7 +1045,7 @@ func do_heal_to_damage(merged: Dictionary, ctx: Dictionary) -> void:
 	var tgt = targets.resolve(merged, context, false)
 	var duration: float = merged.get("duration", 3.0)
 	for t in tgt:
-		if not t.has("_skill_timers"):
+		if "_skill_timers" not in t:
 			continue
 		t._skill_timers["heal_to_damage"] = duration
 
@@ -1096,8 +1080,8 @@ func do_thorn_damage_all(merged: Dictionary, ctx: Dictionary) -> void:
 			var t = bm.board[enemy_side][r][c]
 			if t != null:
 				var thorn_stacks: int = 0
-				if t.has("thorn_stacks"):
-					thorn_stacks = t.get("thorn_stacks", 0)
+				if "thorn_stacks" in t:
+					thorn_stacks = t.thorn_stacks
 				if thorn_stacks > 0:
 					var dmg: int = thorn_stacks
 					t.current_hp = max(0, t.current_hp - dmg)
@@ -1143,7 +1127,7 @@ func do_poison_amplify(merged: Dictionary, ctx: Dictionary) -> void:
 	var tgt = targets.resolve(merged, context, false)
 	var factor: float = merged.get("factor", 2.0)
 	for t in tgt:
-		if t.has("poison_stacks"):
+		if "poison_stacks" in t:
 			t.poison_stacks = int(t.poison_stacks * factor)
 
 func do_poison_amplify_all(merged: Dictionary, ctx: Dictionary) -> void:
@@ -1162,7 +1146,7 @@ func do_poison_amplify_all(merged: Dictionary, ctx: Dictionary) -> void:
 	var tgt = targets.resolve(merged, context, false)
 	var factor: float = merged.get("factor", 1.5)
 	for t in tgt:
-		if t.has("poison_stacks") and t.poison_stacks > 0:
+		if "poison_stacks" in t and t.poison_stacks > 0:
 			t.poison_stacks = int(t.poison_stacks * factor)
 
 func do_poison_add_conditional(merged: Dictionary, ctx: Dictionary) -> void:
@@ -1181,7 +1165,7 @@ func do_poison_add_conditional(merged: Dictionary, ctx: Dictionary) -> void:
 	var tgt = targets.resolve(merged, context, false)
 	var stacks: int = merged.get("stacks", 5)
 	for t in tgt:
-		if t.has("poison_stacks") and t.poison_stacks > 0:
+		if "poison_stacks" in t and t.poison_stacks > 0:
 			t.poison_stacks += stacks
 
 func do_poison_damage(merged: Dictionary, ctx: Dictionary) -> void:
@@ -1201,7 +1185,7 @@ func do_poison_damage(merged: Dictionary, ctx: Dictionary) -> void:
 	var tgt = targets.resolve(merged, context, false)
 	var consume: bool = merged.get("consume", false)
 	for t in tgt:
-		if t.has("poison_stacks"):
+		if "poison_stacks" in t:
 			var dmg: int = t.poison_stacks
 			if dmg > 0:
 				t.current_hp = max(0, t.current_hp - dmg)
@@ -1268,10 +1252,10 @@ func do_mana_steal(merged: Dictionary, ctx: Dictionary) -> void:
 	var steal_amount: float = float(source.attack) * factor
 	if side == 0 and dm != null and ai != null:
 		ai.mana = max(0.0, ai.mana - steal_amount)
-		dm.mana = min(dm.mana + steal_amount, dm.MANA_MAX)
+		dm.mana += steal_amount
 	elif side == 1 and dm != null and ai != null:
 		dm.mana = max(0.0, dm.mana - steal_amount)
-		ai.mana = min(ai.mana + steal_amount, ai.MANA_MAX)
+		ai.mana += steal_amount
 
 func do_mana_steal_shield(merged: Dictionary, ctx: Dictionary) -> void:
 	# 敵マナ吸収→全味方に盾付与
@@ -1719,9 +1703,9 @@ func do_mana_generation_trigger(merged: Dictionary, ctx: Dictionary) -> void:
 	if source.spring_stacks > 0:
 		mana_gain += mana_gain * source.spring_stacks * 0.01
 	if side == 0 and dm != null:
-		dm.mana = min(dm.mana + mana_gain, dm.MANA_MAX)
+		dm.mana += mana_gain
 	elif side == 1 and ai != null:
-		ai.mana = min(ai.mana + mana_gain, ai.MANA_MAX)
+		ai.mana += mana_gain
 
 func do_position_swap_front_back(merged: Dictionary, ctx: Dictionary) -> void:
 	# 呪い閾値以上の敵前列1体を後列と入れ替え（呪い最大優先）
@@ -1843,3 +1827,117 @@ func do_heal_reduction_cursed(merged: Dictionary, ctx: Dictionary) -> void:
 func do_crit_mult_boost(merged: Dictionary, ctx: Dictionary) -> void:
 	# クリティカル倍率上昇（センス÷10・常時効果・実装はクリティカル判定側で対応）
 	pass
+
+func do_curse_highest(merged: Dictionary, ctx: Dictionary) -> void:
+	# 現在最も呪いスタックが多い敵1体に呪いstacksを追加
+	var bm: Node       = ctx.get("bm", null)
+	var side: int      = ctx.get("side", 0)
+	var stacks: int    = merged.get("stacks", 1)
+	if bm == null:
+		return
+	var enemy_side: int = 1 - side
+	var best_unit: Object = null
+	var best_stacks: int = -1
+	for r in range(3):
+		for c in range(3):
+			var u = bm.board[enemy_side][r][c]
+			if u != null and u.curse_stacks > best_stacks:
+				best_stacks = u.curse_stacks
+				best_unit = u
+	if best_unit != null and best_unit.is_alive():
+		best_unit.curse_stacks = min(best_unit.curse_stacks + stacks, 99)
+
+# ---- 未実装typeの実装 ----
+
+func do_poison_add_periodic(merged: Dictionary, ctx: Dictionary) -> void:
+	# 毎ティック毒スタック追加（on_support + interval で定期発動）
+	var bm: Node       = ctx.get('bm', null)
+	var side: int      = ctx.get('side', 0)
+	var row: int       = ctx.get('row', 0)
+	var col: int       = ctx.get('col', 0)
+	var source: Object = ctx.get('source', null)
+	var target: Object = ctx.get('target', null)
+	var damage: int    = ctx.get('damage', 0)
+	var context: Dictionary = {
+		'board_manager': bm, 'side': side, 'row': row, 'col': col,
+		'source': source, 'target': target, 'damage': damage
+	}
+	var tgt = targets.resolve(merged, context, false)
+	var stacks: int = merged.get('stacks', 5)
+	for t in tgt:
+		if 'poison_stacks' in t:
+			t.poison_stacks += stacks
+
+func do_debuff_conditional(merged: Dictionary, ctx: Dictionary) -> void:
+	# 毒スタックがある場合にSPDデバフを適用（spd_debuff_by_poison用）
+	var bm: Node       = ctx.get('bm', null)
+	var side: int      = ctx.get('side', 0)
+	var row: int       = ctx.get('row', 0)
+	var col: int       = ctx.get('col', 0)
+	var source: Object = ctx.get('source', null)
+	var target: Object = ctx.get('target', null)
+	var damage: int    = ctx.get('damage', 0)
+	var context: Dictionary = {
+		'board_manager': bm, 'side': side, 'row': row, 'col': col,
+		'source': source, 'target': target, 'damage': damage
+	}
+	var tgt = targets.resolve(merged, context, false)
+	var factor: float  = merged.get('factor', 0.1)
+	var duration: float = merged.get('duration', 3.0)
+	for t in tgt:
+		if 'poison_stacks' in t and t.poison_stacks > 0:
+			# poison_stacksに比例したSPDデバフ: frozen_turnsを使用して実装
+			var penalty: int = max(1, int(t.poison_stacks * factor))
+			t.frozen_turns += penalty * int(duration)
+func do_atk_boost_periodic(merged: Dictionary, ctx: Dictionary) -> void:
+	# 毎ティックATKを永続的に増加（on_support + interval で定期発動）
+	var bm: Node       = ctx.get('bm', null)
+	var side: int      = ctx.get('side', 0)
+	var row: int       = ctx.get('row', 0)
+	var col: int       = ctx.get('col', 0)
+	var source: Object = ctx.get('source', null)
+	var target: Object = ctx.get('target', null)
+	var damage: int    = ctx.get('damage', 0)
+	var context: Dictionary = {
+		'board_manager': bm, 'side': side, 'row': row, 'col': col,
+		'source': source, 'target': target, 'damage': damage
+	}
+	var tgt = targets.resolve(merged, context, false)
+	var amount: float = merged.get('amount', 0.5)
+	for t in tgt:
+		if 'attack' in t:
+			t.attack = max(1, t.attack + int(amount))
+
+func do_disable_effects(merged: Dictionary, ctx: Dictionary) -> void:
+	# 攻撃エフェクトを一時的に無効化（_skill_timersにフラグ設定）
+	var bm: Node       = ctx.get('bm', null)
+	var side: int      = ctx.get('side', 0)
+	var row: int       = ctx.get('row', 0)
+	var col: int       = ctx.get('col', 0)
+	var source: Object = ctx.get('source', null)
+	var target: Object = ctx.get('target', null)
+	var damage: int    = ctx.get('damage', 0)
+	var context: Dictionary = {
+		'board_manager': bm, 'side': side, 'row': row, 'col': col,
+		'source': source, 'target': target, 'damage': damage
+	}
+	var tgt = targets.resolve(merged, context, false)
+	var duration: float = merged.get('duration', 1.0)
+	for t in tgt:
+		if '_skill_timers' in t:
+			t._skill_timers['disable_effects'] = duration
+
+func do_spell_target_damage(merged: Dictionary, ctx: Dictionary) -> void:
+	"""対象選択呪文のダメージ（fireball用）: ctx[target]に対してsource.atkダメージ"""
+	var bm: Node       = ctx.get("bm", null)
+	var source: Object = ctx.get("source", null)
+	var target: Object = ctx.get("target", null)
+	if target == null or not target.is_alive():
+		return
+	var dmg: int = merged.get("damage", 8)
+	if bm != null and bm.has_method("apply_damage_to_unit"):
+		bm.apply_damage_to_unit(target, dmg)
+	else:
+		target.take_damage(dmg)
+	print("[SpellTargetDmg] %s -> %s (%d dmg)" % [
+		(source.unit_name if source != null else "?"), target.unit_name, dmg])

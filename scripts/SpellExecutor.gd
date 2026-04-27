@@ -8,7 +8,7 @@ var effect_executor: RefCounted = null  # EffectExecutor（Main.gd から設定�
 # 呪文を実行する。戻り値: true=捨て札へ, false=消滅
 # synth_ctx: 合成強化情報 {value_mult, duration_mult, range_variant}
 func execute(spell: Object, side: int, board_manager: Node,
-		deck_manager: Node, enemy_ai: Node, synth_ctx: Dictionary = {}) -> bool:
+		deck_manager: Node, enemy_ai: Node, synth_ctx: Dictionary = {}, target_unit: Object = null) -> bool:
 	var enemy_side: int = 1 - side
 	var event_queue: Node = board_manager.event_queue
 
@@ -28,7 +28,7 @@ func execute(spell: Object, side: int, board_manager: Node,
 				_apply_synth_to_params(_mp, val_mult, dur_mult, range_var)
 				ee.execute(skill["effect_id"], _mp, {
 					"trigger": "on_play", "side": side, "row": -1, "col": -1,
-					"source": spell, "target": null, "damage": 0,
+					"source": spell, "target": target_unit, "damage": 0,
 					"board_manager": board_manager, "deck_manager": deck_manager,
 					"enemy_ai": enemy_ai, "event_queue": event_queue,
 					"synth_ctx": synth_ctx
@@ -39,7 +39,7 @@ func execute(spell: Object, side: int, board_manager: Node,
 	match spell.spell_id:
 		# ---- 自己強化系 ----
 		"召喚加速":
-			deck_manager.mana = min(deck_manager.MANA_MAX, deck_manager.mana + 3.0)
+			deck_manager.mana += 3.0
 
 		"血の契約":
 			var target = _pick_ally_by(side, board_manager, "max_atk")
@@ -114,11 +114,6 @@ func execute(spell: Object, side: int, board_manager: Node,
 			var target = _pick_ally_by(side, board_manager, "random")
 			if target != null:
 				target._damage_reduction += 1
-
-		"結晶化":
-			var target = _pick_ally_by(side, board_manager, "random")
-			if target != null:
-				target._invincible_timer = 999.0  # 呪文1回分の無敵（呪文ヒット時に解除）
 
 		"毒霧":
 			var col: int = randi() % 3

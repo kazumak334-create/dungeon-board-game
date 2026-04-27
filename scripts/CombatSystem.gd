@@ -147,6 +147,7 @@ func _do_attack(side: int, row: int, col: int, attacker: Object, enemy_side: int
 		var target_col: int = _sel["col"]
 		if target_col != -1:
 			hit_any = true
+			bm.attack_visual.emit(side, row, col, enemy_side, target_row, target_col)
 			var target = bm.board[enemy_side][target_row][target_col]
 			# アーティファクトへの攻撃処理
 			if target == null:
@@ -242,17 +243,16 @@ func _do_attack(side: int, row: int, col: int, attacker: Object, enemy_side: int
 			{"side": enemy_side}
 		)
 	# v2設計: 攻撃発動時にマナ生成（両陣営）
-	var mana_gain: float = float(attacker.mana) if attacker.mana >= 0 else 0.0
+	var mana_gain: float = 0.0
+	if attacker.mana >= 0 and attacker.spd > 0.0:
+		mana_gain = float(attacker.mana) / float(attacker.spd)
 	# springバフ: スタック×1%マナ生成上昇
 	if attacker.spring_stacks > 0:
-		var spring_bonus: float = mana_gain * attacker.spring_stacks * 0.01
-		mana_gain += spring_bonus
+		mana_gain += mana_gain * attacker.spring_stacks * 0.01
 	if side == 0 and bm.deck_manager_ref != null:
 		bm.deck_manager_ref.mana += mana_gain
-		bm.deck_manager_ref.mana = min(bm.deck_manager_ref.mana, bm.deck_manager_ref.MANA_MAX)
 	elif side == 1 and bm.enemy_ai_ref != null:
 		bm.enemy_ai_ref.mana += mana_gain
-		bm.enemy_ai_ref.mana = min(bm.enemy_ai_ref.mana, bm.enemy_ai_ref.MANA_MAX)
 	# on_attack トリガー処理（self_damage_attack等）
 	if bm.effect_executor != null:
 		for skill in attacker.skills:
@@ -354,13 +354,13 @@ func _trigger_support(side: int, row: int, col: int, unit: Object) -> void:
 			})
 
 	# マナ生成（両陣営）
-	var mana_gain: float = float(unit.mana) if unit.mana >= 0 else 0.0
+	var mana_gain: float = 0.0
+	if unit.mana >= 0 and unit.spd > 0.0:
+		mana_gain = float(unit.mana) / float(unit.spd)
 	if side == 0 and bm.deck_manager_ref != null:
 		bm.deck_manager_ref.mana += mana_gain
-		bm.deck_manager_ref.mana = min(bm.deck_manager_ref.mana, bm.deck_manager_ref.MANA_MAX)
 	elif side == 1 and bm.enemy_ai_ref != null:
 		bm.enemy_ai_ref.mana += mana_gain
-		bm.enemy_ai_ref.mana = min(bm.enemy_ai_ref.mana, bm.enemy_ai_ref.MANA_MAX)
 
 func _process_auto_promote() -> void:
 	for side in range(2):

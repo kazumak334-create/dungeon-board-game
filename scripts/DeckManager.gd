@@ -3,8 +3,7 @@ class_name DeckManager
 extends Node
 
 var mana: float = 0.0
-var MANA_MAX: float = 0.0     # v2設計: ユニット総コストで初期化
-# v2設計: マナ生成は攻撃/スキル発動時にトリガー
+# v2設計: マナ生成は攻撃/スキル発動時にトリガー。上限なし（MANA_MAX廃止）
 
 var deck: Array = []
 var discard: Array = []
@@ -118,14 +117,6 @@ func process_deck(delta: float, board: Node) -> void:
 					var amount = sk.get("params", {}).get("amount", edef.get("amount", -1))
 					effective_cost = max(0, effective_cost + amount)
 					print("[DeckManager] 錬金術師コスト軽減: %s %d→%d" % [top.unit_name, top.mana, effective_cost])
-	# マナ上限超過チェック：コスト > マナ上限 → スキップ（捨て札へ）
-	# スキップも詠唱扱い（クールダウン消費）
-	if top.mana > int(MANA_MAX) and top.mana != -1:
-		deck.remove_at(0)
-		discard.append(top)
-		_check_timer = check_interval  # スキップにもクールダウン適用
-		print("[DeckManager] スキップ: %s (コスト%d > マナ上限%d)" % [top.unit_name, top.mana, int(MANA_MAX)])
-		return
 	if mana < effective_cost:
 		return
 	mana -= effective_cost
@@ -196,20 +187,9 @@ func force_play_card(board: Node) -> void:
 		spell_executor.execute(top, 0, board, self, enemy_ai_ref)
 
 func initialize_mana_from_deck() -> void:
-	# v2設計: GameSession.initial_unitsのユニット総コストをMANA_MAXに設定
-	var total_cost: float = 0.0
-	for unit_info in GameSession.initial_units:
-		if unit_info == null:
-			continue
-		var unit_name = unit_info.get("name", "")
-		if CardDB.UNITS.has(unit_name):
-			var unit_data = CardDB.UNITS[unit_name]
-			var cost = unit_data.get("mana", 0)
-			if cost >= 0:
-				total_cost += float(cost)
-	MANA_MAX = total_cost
+	# v2設計: マナ上限廃止。初期マナを0にリセット
 	mana = 0.0
-	print("[DeckManager] マナ上限初期化: %.1f（初期配置ユニット総コスト）" % MANA_MAX)
+	print("[DeckManager] マナ初期化: 0（上限なし）")
 
 func get_next_card() -> Object:
 	if deck.is_empty():

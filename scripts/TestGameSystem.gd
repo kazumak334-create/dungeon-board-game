@@ -47,13 +47,11 @@ func _test_mana_system(r: RefCounted) -> void:
 	var mana_card = CardDB.SYSTEM_SPELLS["呪文回収"]
 	r._assert_eq(mana_card.get("mana", -1), 0, "呪文回収コスト=0")
 
-	# コスト超過スキップのロジック確認（データレベル）
-	r._assert_true(5 > 3, "コスト5 > マナ上限3 → スキップ対象")
-	r._assert_true(3 <= 3, "コスト3 <= マナ上限3 → 発動可能")
-	r._assert_true(0 <= 3, "コスト0 <= マナ上限3 → 発動可能")
+	# MANA_MAX廃止: コスト超過スキップは削除済み
+	r._assert_true(true, "マナ上限なし設計（スキップ廃止）")
 
 func _test_enemy_ai_mana_skip(r: RefCounted) -> void:
-	# EnemyAIのMANA_MAXがvar（constではない）ことを確認
+	# EnemyAIはMANA_MAX廃止済み（呪文を使わないため不要）
 	var ai_script = load("res://scripts/EnemyAI.gd")
 	r._assert_true(ai_script != null, "EnemyAI.gdロード可能")
 

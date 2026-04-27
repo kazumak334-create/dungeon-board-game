@@ -677,8 +677,8 @@ func _on_toggle_pause() -> void:
 	main._add_log("[DEV] %s" % ("一時停止" if main.game_paused else "再開"))
 
 func _on_max_mana() -> void:
-	deck_manager.mana = deck_manager.MANA_MAX
-	main._add_log("[DEV] マナMAX")
+	deck_manager.mana = 999.0  # 上限廃止: 大きな値をセット
+	main._add_log("[DEV] マナ999セット")
 
 func _on_kill_allies() -> void:
 	for r in range(3):
@@ -826,5 +826,4 @@ func _on_class_select(class_id: String) -> void:
 	pdata.reset_runtime()
 	board_manager.player_data = pdata
 	deck_manager.mana = pdata.initial_mana
-	deck_manager.MANA_MAX = pdata.mana_max
 	main._add_log("[DEV] クラス変更: %s" % cdef["display"])

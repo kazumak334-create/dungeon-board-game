@@ -2,6 +2,25 @@
 
 ## [Unreleased]
 
+### 2026-04-27 マナ上限廃止・呪文タブspell_deck表示・デッキ削減商品追加
+
+**変更ファイル:**
+- `scripts/DeckManager.gd`: MANA_MAX変数削除、クランプ削除、コスト>MANA_MAXスキップ削除、initialize_mana_from_deck()をマナ0リセットのみに簡略化
+- `scripts/EnemyAI.gd`: MANA_MAX変数削除、initialize_mana_from_deck()簡略化、process_ai()のクランプ削除、コスト超過スキップ削除
+- `scripts/CombatSystem.gd`: 攻撃時マナ生成のクランプ削除（2箇所）
+- `scripts/EffectActions.gd`: mana_add / mana_steal / do_mana_gain_on_skill のクランプ削除（3箇所）
+- `scripts/EffectActionsExtended.gd`: do_mana_gain_on_skill のクランプ削除
+- `scripts/SpellExecutor.gd`: 召喚加速呪文のクランプ削除
+- `scripts/Main.gd`: deck_manager.MANA_MAX代入削除、enemy_ai.MANA_MAX代入削除、死霊術師/合成スキルのクランプ削除
+- `scripts/GameUI.gd`: マナバー最大値比率表示廃止、数値のみ表示に変更
+- `scripts/DevUI.gd`: MANA_MAX代入2箇所削除、_on_max_mana()を999セットに変更
+- `scripts/AutoTest.gd`: MANA_MAX参照削除（D-2テスト廃止）
+- `scripts/TestGameSystem.gd`: コスト超過スキップテスト削除、MANA_MAX廃止対応
+- `scripts/TestInitialPlacement.gd`: _test_mana_from_initial_units()のMANA_MAX検証削除
+- `scripts/TestManaGeneration.gd`: _test_mana_max_initialization()のMANA_MAX検証削除
+- `scripts/EnemyPanelManager.gd`: ショップ商品にdeck_reduce（デッキ削減75G）を1枠追加、購入時spell_deckから末尾1枚を除去、種別ラベルに「サービス」追加
+- `scripts/RestScreenManager.gd`: 呪文タブ表示をspell_available全体→spell_deck（現在のデッキ内容）に変更、右クリックで除外
+
 ### 2026-04-26 バトル画面: 負けそう状態の行グロー表示実装
 
 **変更ファイル:**

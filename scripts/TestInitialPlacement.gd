@@ -23,11 +23,11 @@ func _test_initial_units_structure() -> void:
 	_runner._assert_eq(GameSession.initial_units[2]["name"], "ゴブリン", "initial_units[2]: ゴブリン")
 
 func _test_mana_from_initial_units() -> void:
-	# マナ上限がinitial_unitsから計算されることを確認
+	# MANA_MAX廃止: 初期マナが0であることを確認
 	GameSession.initial_units.clear()
-	GameSession.initial_units.append({"name": "スライム", "row": 0, "col": 0})  # cost=1
-	GameSession.initial_units.append({"name": "Fangos", "row": 0, "col": 1})  # cost=1
-	GameSession.initial_units.append({"name": "ウルフ", "row": 0, "col": 2})    # cost=2
+	GameSession.initial_units.append({"name": "スライム", "row": 0, "col": 0})
+	GameSession.initial_units.append({"name": "Fangos", "row": 0, "col": 1})
+	GameSession.initial_units.append({"name": "ウルフ", "row": 0, "col": 2})
 	for i in range(6):
 		GameSession.initial_units.append(null)
 
@@ -36,9 +36,7 @@ func _test_mana_from_initial_units() -> void:
 	dm._ready()
 	dm.initialize_mana_from_deck()
 
-	var expected_mana = 1.0 + 1.0 + 2.0
-	_runner._assert_eq(dm.MANA_MAX, expected_mana, "MANA_MAX=初期配置総コスト(1+1+2=4)")
-	_runner._assert_eq(dm.mana, 0.0, "初期マナ=0")
+	_runner._assert_eq(dm.mana, 0.0, "初期マナ=0（上限なし設計）")
 
 func _test_deck_only_spells() -> void:
 	# デッキに呪文のみが入ることを確認
