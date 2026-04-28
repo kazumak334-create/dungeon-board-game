@@ -2,16 +2,26 @@
 
 ## [Unreleased]
 
+### 2026-04-28 PoCスタックルール実装（HexGrid/PoCUnit/PoCBattle/PoCMain）
+
+- feat: 1セル最大3ユニット共存・満杯セルBFS経路ブロック・スタックセル全員攻撃・スタックビジュアル実装
+  - `scripts/poc/HexGrid.gd`: bfs_pathにblocked引数追加（満杯セルをスキップ、goalは到達可）
+  - `scripts/poc/PoCUnit.gd`: update/try_moveにall_units引数追加。try_move内でブロックセル辞書構築してbfs_pathへ渡す。try_attackのelse節でターゲットセル全ユニットへダメージ
+  - `scripts/poc/PoCBattle.gd`: update()でall_unitsを構築してu.update()に渡す
+  - `scripts/poc/PoCMain.gd`: _process()に_update_unit_visuals()追加（スタック時のオフセット表示）
+
 ### 2026-04-27 スターター・Act1ユニット未実装スキル21件実装
 
+**コミット:** f613a77
+
 **変更ファイル:**
-- : 9種のターゲット追加（random_enemy, enemy_front_lowest_hp, same_row_allies, enemies_with_curse/cursed_enemies, enemy_highest_curse, adjacent_enemies, attacker, enemy_back, all_units_random）
-- : 10種のhandler追加（do_debuff_apply_periodic, do_temp_buff_race, do_grant_skill_flag, do_atk_by_buff_stacks, do_curse_random, do_curse_front_random, do_curse_adjacent, do_curse_amplify_all, do_rush_damage, do_on_ally_death_trigger） + do_buff_applyにatk_permanent分岐追加
-- : 10種のtypeマッピング追加
-- : passiveトリガーをalwaysと同様に処理
-- : on_battle_startトリガー発火
-- : on_critトリガー + timerスキル処理（_process_timer_skills）
-- : on_damagedトリガー発火
+- `scripts/EffectTargets.gd`: 9種のターゲット追加（random_enemy, enemy_front_lowest_hp, same_row_allies, enemies_with_curse/cursed_enemies, enemy_highest_curse, adjacent_enemies, attacker, enemy_back, all_units_random）
+- `scripts/EffectActions.gd`: 10種のhandler追加（do_debuff_apply_periodic, do_temp_buff_race, do_grant_skill_flag, do_atk_by_buff_stacks, do_curse_random, do_curse_front_random, do_curse_adjacent, do_curse_amplify_all, do_rush_damage, do_on_ally_death_trigger） + do_buff_applyにatk_permanent分岐追加
+- `scripts/EffectExecutor.gd`: 10種のtypeマッピング追加
+- `scripts/SupportSystem.gd`: passiveトリガーをalwaysと同様に処理
+- `scripts/Main.gd`: on_battle_startトリガー発火
+- `scripts/CombatSystem.gd`: on_critトリガー + timerスキル処理（_process_timer_skills）
+- `scripts/EventQueue.gd`: on_damagedトリガー発火
 
 ### 2026-04-27 サポート効果パーティクル可視化実装
 
