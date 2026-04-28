@@ -2,6 +2,19 @@
 
 ## [Unreleased]
 
+### 2026-04-29 ヘックスグリッド自動戦闘ゲームMVP実装
+
+- feat: hex_mvpシステム全体実装（タスク1〜10完了）
+  - `scripts/hex_mvp/GameState.gd`: オートロードシングルトン。デッキ管理・Wave管理・配置情報保持
+  - `scripts/hex_mvp/WaveConfig.gd`: Wave別敵構成定義（各Wave3バリエーション）・敵ゾーンランダム配置生成
+  - `scripts/hex_mvp/RewardGenerator.gd`: 突守崩3択ランダム順序生成
+  - `scripts/hex_mvp/TitleScreen.gd` + `scenes/hex_mvp/TitleScreen.tscn`: スタート画面
+  - `scripts/hex_mvp/DeploymentScreen.gd` + `.tscn`: 配置画面（ヘックスグリッド・ユニットトレイ・ブルートフォースセル変換）
+  - `scripts/hex_mvp/BattleScreen.gd` + `.tscn`: バトル画面（PoCBattle流用・敵ランダム配置・ログ表示）
+  - `scripts/hex_mvp/RewardScreen.gd` + `.tscn`: リワード3択画面
+  - `scripts/hex_mvp/ResultScreen.gd` + `.tscn`: 勝敗結果画面
+  - `project.godot`: AutoLoad に GameState 追加
+
 ### 2026-04-28 PoCスタックルール実装（HexGrid/PoCUnit/PoCBattle/PoCMain）
 
 - feat: 1セル最大3ユニット共存・満杯セルBFS経路ブロック・スタックセル全員攻撃・スタックビジュアル実装

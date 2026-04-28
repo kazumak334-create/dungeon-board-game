@@ -28,6 +28,7 @@ CardDB="*res://scripts/CardDB.gd"
 UIColors="*res://scripts/ui/UIColors.gd"
 CurrencyManager="*res://scripts/CurrencyManager.gd"
 DebugLogger="*uid://yc5nq23qemfn"
+GameState="*res://scripts/hex_mvp/GameState.gd"
 
 [display]
 
