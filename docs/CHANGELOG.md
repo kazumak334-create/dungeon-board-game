@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+### 2026-04-29 econ_mvp 配分プリセットボタン実装
+
+- feat: EconMain.gd `_create_alloc_bar()` 内に4種プリセットボタン（初心者/突特化/守特化/崩特化）をバーの上部に追加
+- ボタン押下時に `_economy.alloc_*` を即時更新し `handles` を再計算・`queue_redraw()` 呼び出し（275-353行）
+
 ### 2026-04-29 econ_mvp 4機能実装（均等資源配置・建設完了後生産・優先度複数対応・ユニット指示UI）
 
 - feat: EconGrid.gd `_init_resource_cells()` を自陣/敵陣別にシャッフルし各4マスずつWOOD/STONE/SULFURを均等配置（row5は資源なし）

@@ -1,12 +1,15 @@
-class_name EconMain
+﻿class_name EconMain
 extends Node2D
 
 var _grid: EconGrid
 var _economy: EconEconomy
 var _battle: EconBattle
+var _ai: EconAI
 
 var _ui_layer: CanvasLayer
 var _resource_label: Label
+var _ai_resource_label: Label
+var _wheat_eval_label: Label
 var _log_label: Label
 var _status_label: Label
 var _mode_label: Label
@@ -14,7 +17,7 @@ var _mode_label: Label
 var _log_lines: Array = []
 const MAX_LOG_LINES := 10
 
-enum PlaceMode { NONE, BARRACKS, FORTRESS, WORKSHOP, VILLAGE }
+enum PlaceMode { NONE, BARRACKS, FORTRESS, WORKSHOP, VILLAGE, BASE }
 var _place_mode: PlaceMode = PlaceMode.NONE
 var _is_running: bool = false
 var _selected_unit: EconUnit = null
@@ -25,17 +28,23 @@ func _ready() -> void:
 	_setup_grid()
 	_setup_economy()
 	_setup_battle()
-	_setup_initial_entities()
-	_setup_ui()
+	# origin を先に確定 → エンティティ配置はすべてこの後
 	var vp := get_viewport().get_visible_rect().size
 	var hex_w := EconGrid.HEX_SIZE * sqrt(3.0)
-	var grid_w := hex_w * 6.0
+	var grid_w := hex_w * 11.0
 	var grid_h := EconGrid.HEX_SIZE * 2.0 * 0.75 * float(EconGrid.ROWS - 1) + EconGrid.HEX_SIZE * 2.0
 	_grid.origin = Vector2(
 		220.0 + (vp.x - 220.0 - grid_w) * 0.5 + hex_w * 0.5,
 		(vp.y - grid_h) * 0.5 + EconGrid.HEX_SIZE
 	)
 	_grid.queue_redraw()
+	_setup_ai()
+	_setup_initial_entities()
+	_setup_ui(vp)
+	# プレイヤーBASE配置待ち
+	_place_mode = PlaceMode.BASE
+	_mode_label.text = "Mode: Place BASE (row 0-4)"
+	_status_label.text = "Place your BASE first"
 
 func _setup_grid() -> void:
 	_grid = EconGrid.new()
@@ -53,24 +62,32 @@ func _setup_battle() -> void:
 	_battle.battle_ended.connect(_on_battle_ended)
 	add_child(_battle)
 
+func _setup_ai() -> void:
+	_ai = EconAI.new()
+	_battle.ai = _ai
+	add_child(_ai)
+	_ai.setup(_grid, _battle)
+
 func _setup_initial_entities() -> void:
-	var player_base := EconBuilding.new()
-	player_base.setup(EconBuilding.BuildingType.BASE, Vector2i(2, 2), true)
-	player_base.position = _grid.hex_to_pixel(2, 2)
-	_battle.player_buildings.append(player_base)
-	_grid.add_child(player_base)
+	# 敵BASE（固定: 中央）
 	var enemy_base := EconBuilding.new()
-	enemy_base.setup(EconBuilding.BuildingType.BASE, Vector2i(2, 8), false)
-	enemy_base.position = _grid.hex_to_pixel(2, 8)
+	enemy_base.setup(EconBuilding.BuildingType.BASE, Vector2i(5, 8), false)
+	enemy_base.position = _grid.hex_to_pixel(5, 8)
+	enemy_base.unit_produced.connect(_ai.on_unit_produced)
 	_battle.enemy_buildings.append(enemy_base)
 	_grid.add_child(enemy_base)
-	for col in [0, 2, 4]:
-		if _grid.is_valid_cell(col, 8):
-			var enemy := EconUnit.create(EconUnit.UnitType.ATTACKER, EconUnit.Side.ENEMY, col, 8)
-			enemy.position = _grid.hex_to_pixel(col, 8)
-			_battle.enemy_units.append(enemy)
-			_grid.add_child(enemy)
-	_spawn_harvester_at(0, 0)
+	# 敵初期ハーベスター × 2
+	for ei in range(2):
+		var eh := EconHarvester.new()
+		var epos: Vector2i = [Vector2i(4, 9), Vector2i(6, 9)][ei]
+		eh.grid_pos = epos
+		eh.economy = _ai.economy
+		eh.position = _grid.hex_to_pixel(epos.x, epos.y)
+		eh.harvested.connect(func(rtype): _ai.economy.add_resource(rtype))
+		eh.harvester_index = ei
+		_battle.enemy_harvesters.append(eh)
+		_grid.add_child(eh)
+	# プレイヤーBASEはプレイヤーが配置する（_place_mode = BASE で待機）
 
 func _spawn_harvester_at(col: int, row: int) -> void:
 	var h := EconHarvester.new()
@@ -82,15 +99,21 @@ func _spawn_harvester_at(col: int, row: int) -> void:
 	_battle.player_harvesters.append(h)
 	_grid.add_child(h)
 
-func _setup_ui() -> void:
+func _setup_ui(vp: Vector2) -> void:
 	_ui_layer = CanvasLayer.new()
 	add_child(_ui_layer)
 	var panel := PanelContainer.new()
 	panel.position = Vector2(5, 5)
-	panel.custom_minimum_size = Vector2(210, 680)
+	panel.custom_minimum_size = Vector2(215, vp.y - 10)
 	_ui_layer.add_child(panel)
+	var scroll := ScrollContainer.new()
+	scroll.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	scroll.mouse_filter = Control.MOUSE_FILTER_PASS
+	panel.add_child(scroll)
 	var vbox := VBoxContainer.new()
-	panel.add_child(vbox)
+	vbox.custom_minimum_size = Vector2(200, 0)
+	scroll.add_child(vbox)
 	var title := Label.new()
 	title.text = "=== Econ MVP ==="
 	vbox.add_child(title)
@@ -98,48 +121,26 @@ func _setup_ui() -> void:
 	_resource_label.text = "Wood:0 Stone:0 Sulfur:0 Wheat:10"
 	_resource_label.autowrap_mode = TextServer.AUTOWRAP_WORD
 	vbox.add_child(_resource_label)
+	_wheat_eval_label = Label.new()
+	_wheat_eval_label.text = "農村: --"
+	_wheat_eval_label.autowrap_mode = TextServer.AUTOWRAP_WORD
+	vbox.add_child(_wheat_eval_label)
+	var ai_sep := HSeparator.new()
+	ai_sep.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	vbox.add_child(ai_sep)
+	var ai_label_title := Label.new()
+	ai_label_title.text = "-- Enemy AI --"
+	vbox.add_child(ai_label_title)
+	_ai_resource_label = Label.new()
+	_ai_resource_label.text = "W:0 St:0 Su:0 Wh:0"
+	_ai_resource_label.autowrap_mode = TextServer.AUTOWRAP_WORD
+	vbox.add_child(_ai_resource_label)
 	var alloc_title := Label.new()
-	alloc_title.text = "-- Alloc % (sliders) --"
+	alloc_title.text = "-- Alloc (drag handles) --"
 	vbox.add_child(alloc_title)
-	var lbl_w := Label.new()
-	lbl_w.text = "Wood:%d%%" % _economy.alloc_wood
-	vbox.add_child(lbl_w)
-	var slider_w := HSlider.new()
-	slider_w.min_value = 0
-	slider_w.max_value = 100
-	slider_w.step = 5
-	slider_w.value = _economy.alloc_wood
-	vbox.add_child(slider_w)
-	var lbl_st := Label.new()
-	lbl_st.text = "Stone:%d%%" % _economy.alloc_stone
-	vbox.add_child(lbl_st)
-	var slider_st := HSlider.new()
-	slider_st.min_value = 0
-	slider_st.max_value = 100
-	slider_st.step = 5
-	slider_st.value = _economy.alloc_stone
-	vbox.add_child(slider_st)
-	var lbl_su := Label.new()
-	lbl_su.text = "Sulfur:%d%%" % _economy.alloc_sulfur
-	vbox.add_child(lbl_su)
-	var slider_su := HSlider.new()
-	slider_su.min_value = 0
-	slider_su.max_value = 100
-	slider_su.step = 5
-	slider_su.value = _economy.alloc_sulfur
-	vbox.add_child(slider_su)
-	slider_w.value_changed.connect(func(v):
-		_economy.alloc_wood = int(v)
-		lbl_w.text = "Wood:%d%%" % int(v)
-	)
-	slider_st.value_changed.connect(func(v):
-		_economy.alloc_stone = int(v)
-		lbl_st.text = "Stone:%d%%" % int(v)
-	)
-	slider_su.value_changed.connect(func(v):
-		_economy.alloc_sulfur = int(v)
-		lbl_su.text = "Sulfur:%d%%" % int(v)
-	)
+	# 線分配分バー（LineSegmentAllocBar）
+	var alloc_bar := _create_alloc_bar()
+	vbox.add_child(alloc_bar)
 	var prio_title := Label.new()
 	prio_title.text = "-- Priority (1=first) --"
 	vbox.add_child(prio_title)
@@ -151,6 +152,8 @@ func _setup_ui() -> void:
 	btn_pst.text = "St:%d" % _economy.priority_stone
 	var btn_psu := Button.new()
 	btn_psu.text = "Su:%d" % _economy.priority_sulfur
+	var btn_pwh := Button.new()
+	btn_pwh.text = "Wh:%d" % _economy.priority_wheat
 	btn_pw.pressed.connect(func():
 		_economy.priority_wood = (_economy.priority_wood % 3) + 1
 		btn_pw.text = "W:%d" % _economy.priority_wood
@@ -163,9 +166,14 @@ func _setup_ui() -> void:
 		_economy.priority_sulfur = (_economy.priority_sulfur % 3) + 1
 		btn_psu.text = "Su:%d" % _economy.priority_sulfur
 	)
+	btn_pwh.pressed.connect(func():
+		_economy.priority_wheat = (_economy.priority_wheat % 3) + 1
+		btn_pwh.text = "Wh:%d" % _economy.priority_wheat
+	)
 	prio_hbox.add_child(btn_pw)
 	prio_hbox.add_child(btn_pst)
 	prio_hbox.add_child(btn_psu)
+	prio_hbox.add_child(btn_pwh)
 	var build_title := Label.new()
 	build_title.text = "-- Build (click map row0-4) --"
 	vbox.add_child(build_title)
@@ -216,15 +224,13 @@ func _setup_ui() -> void:
 	_status_label = Label.new()
 	_status_label.text = "Setup phase"
 	vbox.add_child(_status_label)
-	var log_panel := PanelContainer.new()
-	log_panel.position = Vector2(5, 690)
-	log_panel.custom_minimum_size = Vector2(210, 150)
-	log_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_ui_layer.add_child(log_panel)
+	var sep := HSeparator.new()
+	sep.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	vbox.add_child(sep)
 	_log_label = Label.new()
 	_log_label.autowrap_mode = TextServer.AUTOWRAP_WORD
 	_log_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	log_panel.add_child(_log_label)
+	vbox.add_child(_log_label)
 	# 個別ユニット指示パネル（初期非表示）
 	_order_panel = PanelContainer.new()
 	_order_panel.custom_minimum_size = Vector2(160, 120)
@@ -262,14 +268,145 @@ func _setup_ui() -> void:
 	var btn_cancel_order := Button.new()
 	btn_cancel_order.text = "Deselect"
 	btn_cancel_order.pressed.connect(func():
-		_selected_unit = null
-		_order_panel.visible = false
-		_guard_select_mode = false
+		_deselect_unit()
 	)
 	order_vbox.add_child(btn_cancel_order)
 
+func _create_alloc_bar() -> Control:
+	# 線分配分バー：幅200px、ハンドル3つで4セクション（WOOD/STONE/SULFUR/WHEAT）
+	var bar_container := VBoxContainer.new()
+	bar_container.custom_minimum_size = Vector2(200, 0)
+	# --- プリセットボタン行 ---
+	var preset_hbox := HBoxContainer.new()
+	bar_container.add_child(preset_hbox)
+	var preset_data := [
+		["初心者", 30, 20, 10, 40],
+		["突特化", 55, 15, 20, 10],
+		["守特化", 20, 50, 10, 20],
+		["崩特化", 25, 10, 55, 10],
+	]
+	# --- 線分バー本体 ---
+	var bar_inner := Control.new()
+	bar_inner.custom_minimum_size = Vector2(200, 60)
+	bar_inner.mouse_filter = Control.MOUSE_FILTER_STOP
+	bar_container.add_child(bar_inner)
+	const BAR_W := 196.0
+	const BAR_H := 18.0
+	const BAR_Y := 10.0
+	const HANDLE_R := 7.0
+	# セクション色
+	var seg_colors := [
+		Color(0.2, 0.6, 0.1),   # WOOD
+		Color(0.5, 0.5, 0.5),   # STONE
+		Color(0.8, 0.7, 0.1),   # SULFUR
+		Color(0.9, 0.9, 0.3),   # WHEAT
+	]
+	var seg_names := ["W", "St", "Su", "Wh"]
+	# 初期alloc値からハンドル位置（0.0〜1.0）を計算
+	var total_alloc: float = float(_economy.alloc_wood + _economy.alloc_stone + _economy.alloc_sulfur + _economy.alloc_wheat)
+	if total_alloc <= 0.0:
+		total_alloc = 100.0
+	var handles: Array = []  # 0.0〜1.0 の境界位置
+	handles.append(float(_economy.alloc_wood) / total_alloc)
+	handles.append(handles[0] + float(_economy.alloc_stone) / total_alloc)
+	handles.append(handles[1] + float(_economy.alloc_sulfur) / total_alloc)
+	var drag_idx: int = -1
+	var bar_draw := Control.new()
+	bar_draw.custom_minimum_size = Vector2(200, 60)
+	bar_draw.mouse_filter = Control.MOUSE_FILTER_STOP
+	bar_inner.add_child(bar_draw)
+	var ratio_label := Label.new()
+	ratio_label.position = Vector2(0, 35)
+	ratio_label.custom_minimum_size = Vector2(200, 20)
+	ratio_label.add_theme_font_size_override("font_size", 10)
+	bar_inner.add_child(ratio_label)
+	# alloc更新関数
+	var update_economy := func():
+		var segs: Array = [handles[0], handles[1] - handles[0], handles[2] - handles[1], 1.0 - handles[2]]
+		const TOTAL := 100
+		_economy.alloc_wood   = int(segs[0] * TOTAL + 0.5)
+		_economy.alloc_stone  = int(segs[1] * TOTAL + 0.5)
+		_economy.alloc_sulfur = int(segs[2] * TOTAL + 0.5)
+		_economy.alloc_wheat  = int(segs[3] * TOTAL + 0.5)
+		ratio_label.text = "W:%d St:%d Su:%d Wh:%d" % [
+			_economy.alloc_wood, _economy.alloc_stone, _economy.alloc_sulfur, _economy.alloc_wheat
+		]
+		bar_draw.queue_redraw()
+	update_economy.call()
+	# プリセットボタンのコールバック登録（update_economy参照のためここで接続）
+	for pd in preset_data:
+		var btn := Button.new()
+		btn.text = pd[0]
+		btn.add_theme_font_size_override("font_size", 9)
+		var w: int = pd[1]; var st: int = pd[2]; var su: int = pd[3]; var wh: int = pd[4]
+		btn.pressed.connect(func():
+			_economy.alloc_wood   = w
+			_economy.alloc_stone  = st
+			_economy.alloc_sulfur = su
+			_economy.alloc_wheat  = wh
+			var t: float = float(w + st + su + wh)
+			handles[0] = float(w) / t
+			handles[1] = float(w + st) / t
+			handles[2] = float(w + st + su) / t
+			update_economy.call()
+		)
+		preset_hbox.add_child(btn)
+	# 描画
+	bar_draw.draw.connect(func():
+		var segs: Array = [handles[0], handles[1] - handles[0], handles[2] - handles[1], 1.0 - handles[2]]
+		var x := 0.0
+		for si in range(4):
+			var sw: float = segs[si] * BAR_W
+			bar_draw.draw_rect(Rect2(x, BAR_Y, sw, BAR_H), seg_colors[si])
+			if sw > 14.0:
+				bar_draw.draw_string(
+					ThemeDB.fallback_font,
+					Vector2(x + sw * 0.5 - 6.0, BAR_Y + 13.0),
+					seg_names[si], HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color.WHITE
+				)
+			x += sw
+		bar_draw.draw_rect(Rect2(0.0, BAR_Y, BAR_W, BAR_H), Color.WHITE, false, 1.0)
+		for hi in range(3):
+			var hx: float = handles[hi] * BAR_W
+			bar_draw.draw_circle(Vector2(hx, BAR_Y + BAR_H * 0.5), HANDLE_R,
+				Color.WHITE if drag_idx != hi else Color.YELLOW)
+	)
+	# マウス入力
+	bar_draw.gui_input.connect(func(ev):
+		if ev is InputEventMouseButton:
+			if ev.button_index == MOUSE_BUTTON_LEFT:
+				if ev.pressed:
+					var mx: float = ev.position.x
+					for hi in range(3):
+						if abs(mx - handles[hi] * BAR_W) <= HANDLE_R + 4.0:
+							drag_idx = hi
+							break
+				else:
+					drag_idx = -1
+		elif ev is InputEventMouseMotion and drag_idx >= 0:
+			var mx: float = clampf(ev.position.x / BAR_W, 0.0, 1.0)
+			# 境界点の順序を守る（最小間隔: 0.02）
+			const MIN_SEG := 0.02
+			if drag_idx == 0:
+				handles[0] = clampf(mx, MIN_SEG, handles[1] - MIN_SEG)
+			elif drag_idx == 1:
+				handles[1] = clampf(mx, handles[0] + MIN_SEG, handles[2] - MIN_SEG)
+			else:
+				handles[2] = clampf(mx, handles[1] + MIN_SEG, 1.0 - MIN_SEG)
+			update_economy.call()
+	)
+	return bar_container
+
 func _on_start_pressed() -> void:
 	if _is_running:
+		return
+	var has_base := false
+	for b in _battle.player_buildings:
+		if b.building_type == EconBuilding.BuildingType.BASE:
+			has_base = true
+			break
+	if not has_base:
+		_add_log("Place your BASE first!")
 		return
 	_is_running = true
 	_battle.start()
@@ -326,20 +463,45 @@ func _input(event: InputEvent) -> void:
 		return
 	# ユニット選択
 	if cell == Vector2i(-1, -1):
-		_selected_unit = null
-		_order_panel.visible = false
+		_deselect_unit()
 		return
 	for u in _battle.player_units:
 		if u.is_alive and u.grid_pos == cell:
+			_deselect_unit()
 			_selected_unit = u
+			u.is_selected = true
+			u.queue_redraw()
 			_order_panel.position = get_viewport().get_visible_rect().size * 0.5 - Vector2(80, 60)
 			_order_panel.visible = true
 			return
 	# 何もない場所をクリック → 選択解除
-	_selected_unit = null
+	_deselect_unit()
+
+func _deselect_unit() -> void:
+	if _selected_unit != null:
+		_selected_unit.is_selected = false
+		_selected_unit.queue_redraw()
+		_selected_unit = null
 	_order_panel.visible = false
+	_guard_select_mode = false
 
 func _place_building(cell: Vector2i, mode: PlaceMode) -> void:
+	# プレイヤーBASE配置
+	if mode == PlaceMode.BASE:
+		var player_base := EconBuilding.new()
+		player_base.setup(EconBuilding.BuildingType.BASE, cell, true)
+		player_base.position = _grid.hex_to_pixel(cell.x, cell.y)
+		player_base.unit_produced.connect(func(pos: Vector2i, utype: int):
+			if utype == -1:
+				_spawn_harvester_at(pos.x, pos.y)
+		)
+		_battle.player_buildings.append(player_base)
+		_grid.add_child(player_base)
+		_spawn_harvester_at(cell.x, cell.y)
+		_spawn_harvester_at(cell.x, cell.y)
+		_add_log("Base placed at (%d,%d)!" % [cell.x, cell.y])
+		_status_label.text = "Setup phase"
+		return
 	var btype_map: Dictionary = {
 		PlaceMode.BARRACKS: EconBuilding.BuildingType.BARRACKS,
 		PlaceMode.FORTRESS: EconBuilding.BuildingType.FORTRESS,
@@ -347,6 +509,34 @@ func _place_building(cell: Vector2i, mode: PlaceMode) -> void:
 		PlaceMode.VILLAGE:  EconBuilding.BuildingType.VILLAGE,
 	}
 	var btype: int = int(btype_map[mode])
+	# #3: Village数が生産棟の上限（兵舎/要塞/工房のみ）
+	if btype in [0, 1, 2]:  # BARRACKS / FORTRESS / WORKSHOP
+		var village_count: int = 0
+		var production_count: int = 0
+		for b in _battle.player_buildings:
+			if not b.is_alive:
+				continue
+			if b.building_type == EconBuilding.BuildingType.VILLAGE:
+				village_count += 1
+			elif b.building_type != EconBuilding.BuildingType.BASE:
+				production_count += 1
+		var max_prod: int = village_count * 2 + 1
+		if production_count >= max_prod:
+			_add_log("Village not enough! (%d/%d)" % [production_count, max_prod])
+			_place_mode = PlaceMode.NONE
+			_mode_label.text = "Mode: None"
+			return
+	# VILLAGE 建設前：隣接小麦チェック
+	if btype == EconBuilding.BuildingType.VILLAGE:
+		var neighbors = _grid.get_neighbors(cell.x, cell.y)
+		var has_wheat := false
+		for nb in neighbors:
+			if _grid.get_resource_type(nb) == EconGrid.ResourceType.WHEAT:
+				has_wheat = true
+				break
+		if not has_wheat:
+			_status_label.text = "農村は小麦マスに隣接して建設してください"
+			return
 	var b := EconBuilding.new()
 	b.setup(btype, cell, true)
 	b.position = _grid.hex_to_pixel(cell.x, cell.y)
@@ -362,19 +552,28 @@ func _place_building(cell: Vector2i, mode: PlaceMode) -> void:
 	var names := ["Barracks", "Fortress", "Workshop", "Village"]
 	_add_log("%s queued at (%d,%d)" % [names[btype], cell.x, cell.y])
 
-func _on_harvester_starved() -> void:
-	var alive := _battle.player_harvesters.filter(func(h): return h.is_alive)
-	if alive.is_empty():
+func _on_harvester_starved(kill_count: int) -> void:
+	var alive_u := _battle.player_units.filter(func(u): return u.is_alive)
+	if alive_u.is_empty():
 		return
-	alive.shuffle()
-	var victim: EconHarvester = alive[0]
-	victim.is_alive = false
-	victim.visible = false
-	_add_log("Wheat shortage! Harvester lost")
+	alive_u.shuffle()
+	var killed: int = 0
+	for i in range(mini(kill_count, alive_u.size())):
+		alive_u[i].is_alive = false
+		alive_u[i].visible = false
+		killed += 1
+	_add_log("Wheat shortage! %d unit(s) lost" % killed)
 
 func _on_battle_ended(player_won: bool) -> void:
 	_status_label.text = "Victory!" if player_won else "Defeat..."
 	_add_log("Victory!" if player_won else "Defeat!")
+	var btn_restart := Button.new()
+	btn_restart.text = "Restart"
+	btn_restart.custom_minimum_size = Vector2(120, 40)
+	btn_restart.pressed.connect(func(): get_tree().reload_current_scene())
+	_ui_layer.add_child(btn_restart)
+	var vp := get_viewport().get_visible_rect().size
+	btn_restart.position = Vector2(vp.x * 0.5 - 60.0, vp.y * 0.5 - 20.0)
 
 func _add_log(text: String) -> void:
 	_log_lines.append(text)
@@ -395,6 +594,36 @@ func _pixel_to_hex(local_pos: Vector2) -> Vector2i:
 				best_cell = Vector2i(col, row)
 	return best_cell
 
+func _get_wheat_eval() -> Dictionary:
+	var village_count: int = 0
+	for b in _battle.player_buildings:
+		if b.is_alive and b.is_built and b.building_type == EconBuilding.BuildingType.VILLAGE:
+			village_count += 1
+	# #7: 戦闘ユニットのみカウント（ハーベスター除外）
+	var unit_count: int = _battle.player_units.filter(func(u): return u.is_alive).size()
+	var income: float = village_count * 0.4
+	var cost: float = unit_count * 0.1
+	var net: float = income - cost
+	var rating: String
+	var color: Color
+	if net >= 0.2:
+		rating = "✓ 余裕"
+		color = Color.LIME_GREEN
+	elif net >= 0.0:
+		rating = "△ 適正"
+		color = Color.YELLOW
+	else:
+		rating = "⚠ 不足"
+		color = Color(1.0, 0.35, 0.35)
+	var text: String = "農村: %s  %+.1f/s\n(村%d, 兵%d)" % [rating, net, village_count, unit_count]
+	return {"text": text, "color": color}
+
 func _process(delta: float) -> void:
 	_battle.update(delta)
 	_resource_label.text = _economy.get_display_text()
+	if _ai != null and _ai.economy != null:
+		var eco := _ai.economy
+		_ai_resource_label.text = "W:%d St:%d Su:%d Wh:%d" % [eco.wood, eco.stone, eco.sulfur, eco.wheat]
+	var eval: Dictionary = _get_wheat_eval()
+	_wheat_eval_label.text = eval["text"]
+	_wheat_eval_label.add_theme_color_override("font_color", eval["color"])
