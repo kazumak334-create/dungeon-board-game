@@ -2,6 +2,21 @@
 
 ## [Unreleased]
 
+### 2026-04-29 econ_mvp 13列・12行グリッド拡張・地形システム実装（req_economy_mvp §3/5/9/15対応）
+
+- feat: EconGrid.gd `HEX_SIZE` 40.0→34.0、`ROWS` 11→12、`get_col_count()` 13/12列対応
+- feat: EconGrid.gd `TileType { PLAIN, MOUNTAIN, DESERT }` enum追加
+- feat: EconGrid.gd `_init_resource_cells()` 自陣 row0-3、敵陣 row8-11 に変更
+- feat: EconGrid.gd `generate_terrain()` / `_ensure_passable_path()` / `_bfs_can_reach_row()` 追加（中央ゾーン地形生成・経路保証）
+- feat: EconGrid.gd `get_tile_type()` / `is_mountain()` 追加
+- feat: EconGrid.gd `bfs_path()` に山岳ブロック追加
+- feat: EconGrid.gd `_draw()` TileType描画・ゾーンハイライト row0-3/8-11 に更新
+- feat: EconMain.gd `PlaceMode.BASE` 削除・プレイヤーBASEを `_setup_initial_entities()` で自動配置（Vector2i(6,0)）
+- feat: EconMain.gd 敵BASE位置 Vector2i(5,8)→Vector2i(6,11)、敵ハーベスター row9→row10
+- feat: EconMain.gd 建設エリア制限 row0-4→row0-2、山岳セル建設禁止追加
+- feat: EconMain.gd Terrainデバッグスライダー（Mountain/Desert/Plain比率）・マップ再生成ボタン追加
+- feat: EconAI.gd ビルドプランを row9/8→row10/9 に更新、VILLAGE探索範囲 row8-11 に変更
+
 ### 2026-04-29 econ_mvp 配分プリセットボタン実装
 
 - feat: EconMain.gd `_create_alloc_bar()` 内に4種プリセットボタン（初心者/突特化/守特化/崩特化）をバーの上部に追加

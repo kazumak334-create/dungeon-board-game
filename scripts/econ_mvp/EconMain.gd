@@ -17,7 +17,7 @@ var _mode_label: Label
 var _log_lines: Array = []
 const MAX_LOG_LINES := 10
 
-enum PlaceMode { NONE, BARRACKS, FORTRESS, WORKSHOP, VILLAGE, BASE }
+enum PlaceMode { NONE, BARRACKS, FORTRESS, WORKSHOP, VILLAGE }
 var _place_mode: PlaceMode = PlaceMode.NONE
 var _is_running: bool = false
 var _selected_unit: EconUnit = null
@@ -31,7 +31,7 @@ func _ready() -> void:
 	# origin を先に確定 → エンティティ配置はすべてこの後
 	var vp := get_viewport().get_visible_rect().size
 	var hex_w := EconGrid.HEX_SIZE * sqrt(3.0)
-	var grid_w := hex_w * 11.0
+	var grid_w := hex_w * 13.0
 	var grid_h := EconGrid.HEX_SIZE * 2.0 * 0.75 * float(EconGrid.ROWS - 1) + EconGrid.HEX_SIZE * 2.0
 	_grid.origin = Vector2(
 		220.0 + (vp.x - 220.0 - grid_w) * 0.5 + hex_w * 0.5,
@@ -41,10 +41,6 @@ func _ready() -> void:
 	_setup_ai()
 	_setup_initial_entities()
 	_setup_ui(vp)
-	# プレイヤーBASE配置待ち
-	_place_mode = PlaceMode.BASE
-	_mode_label.text = "Mode: Place BASE (row 0-4)"
-	_status_label.text = "Place your BASE first"
 
 func _setup_grid() -> void:
 	_grid = EconGrid.new()
@@ -69,17 +65,17 @@ func _setup_ai() -> void:
 	_ai.setup(_grid, _battle)
 
 func _setup_initial_entities() -> void:
-	# 敵BASE（固定: 中央）
+	# 敵BASE（固定: row 11 中央）
 	var enemy_base := EconBuilding.new()
-	enemy_base.setup(EconBuilding.BuildingType.BASE, Vector2i(5, 8), false)
-	enemy_base.position = _grid.hex_to_pixel(5, 8)
+	enemy_base.setup(EconBuilding.BuildingType.BASE, Vector2i(6, 11), false)
+	enemy_base.position = _grid.hex_to_pixel(6, 11)
 	enemy_base.unit_produced.connect(_ai.on_unit_produced)
 	_battle.enemy_buildings.append(enemy_base)
 	_grid.add_child(enemy_base)
 	# 敵初期ハーベスター × 2
 	for ei in range(2):
 		var eh := EconHarvester.new()
-		var epos: Vector2i = [Vector2i(4, 9), Vector2i(6, 9)][ei]
+		var epos: Vector2i = [Vector2i(4, 10), Vector2i(6, 10)][ei]
 		eh.grid_pos = epos
 		eh.economy = _ai.economy
 		eh.position = _grid.hex_to_pixel(epos.x, epos.y)
@@ -87,7 +83,18 @@ func _setup_initial_entities() -> void:
 		eh.harvester_index = ei
 		_battle.enemy_harvesters.append(eh)
 		_grid.add_child(eh)
-	# プレイヤーBASEはプレイヤーが配置する（_place_mode = BASE で待機）
+	# プレイヤーBASE（row 0 中央）自動配置
+	var player_base := EconBuilding.new()
+	player_base.setup(EconBuilding.BuildingType.BASE, Vector2i(6, 0), true)
+	player_base.position = _grid.hex_to_pixel(6, 0)
+	player_base.unit_produced.connect(func(pos: Vector2i, utype: int):
+		if utype == -1:
+			_spawn_harvester_at(pos.x, pos.y)
+	)
+	_battle.player_buildings.append(player_base)
+	_grid.add_child(player_base)
+	_spawn_harvester_at(6, 0)
+	_spawn_harvester_at(6, 0)
 
 func _spawn_harvester_at(col: int, row: int) -> void:
 	var h := EconHarvester.new()
@@ -175,7 +182,7 @@ func _setup_ui(vp: Vector2) -> void:
 	prio_hbox.add_child(btn_psu)
 	prio_hbox.add_child(btn_pwh)
 	var build_title := Label.new()
-	build_title.text = "-- Build (click map row0-4) --"
+	build_title.text = "-- Build (click map row 0-2) --"
 	vbox.add_child(build_title)
 	var build_names := ["Barracks(W8)", "Fortress(St6)", "Workshop(Su6)", "Village(W6)"]
 	var build_modes := [PlaceMode.BARRACKS, PlaceMode.FORTRESS, PlaceMode.WORKSHOP, PlaceMode.VILLAGE]
@@ -224,6 +231,67 @@ func _setup_ui(vp: Vector2) -> void:
 	_status_label = Label.new()
 	_status_label.text = "Setup phase"
 	vbox.add_child(_status_label)
+	var terrain_sep := HSeparator.new()
+	terrain_sep.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	vbox.add_child(terrain_sep)
+	var terrain_title := Label.new()
+	terrain_title.text = "-- Terrain --"
+	vbox.add_child(terrain_title)
+	# Mountain ratio
+	var m_hbox := HBoxContainer.new()
+	vbox.add_child(m_hbox)
+	var m_label := Label.new()
+	m_label.text = "Mountain:"
+	m_hbox.add_child(m_label)
+	var m_slider := HSlider.new()
+	m_slider.min_value = 0
+	m_slider.max_value = 80
+	m_slider.value = 35
+	m_slider.custom_minimum_size = Vector2(100, 20)
+	m_hbox.add_child(m_slider)
+	var m_val_label := Label.new()
+	m_val_label.text = "35%"
+	m_hbox.add_child(m_val_label)
+	# Desert ratio
+	var d_hbox := HBoxContainer.new()
+	vbox.add_child(d_hbox)
+	var d_label := Label.new()
+	d_label.text = "Desert:"
+	d_hbox.add_child(d_label)
+	var d_slider := HSlider.new()
+	d_slider.min_value = 0
+	d_slider.max_value = 80
+	d_slider.value = 25
+	d_slider.custom_minimum_size = Vector2(100, 20)
+	d_hbox.add_child(d_slider)
+	var d_val_label := Label.new()
+	d_val_label.text = "25%"
+	d_hbox.add_child(d_val_label)
+	# Plain display
+	var p_label := Label.new()
+	p_label.text = "Plain: 40%"
+	vbox.add_child(p_label)
+	# Slider callbacks
+	m_slider.value_changed.connect(func(v: float):
+		m_val_label.text = "%d%%" % int(v)
+		# desert をクランプ
+		if int(v) + int(d_slider.value) > 100:
+			d_slider.value = 100 - int(v)
+		p_label.text = "Plain: %d%%" % (100 - int(m_slider.value) - int(d_slider.value))
+	)
+	d_slider.value_changed.connect(func(v: float):
+		d_val_label.text = "%d%%" % int(v)
+		if int(m_slider.value) + int(v) > 100:
+			m_slider.value = 100 - int(v)
+		p_label.text = "Plain: %d%%" % (100 - int(m_slider.value) - int(d_slider.value))
+	)
+	# 再生成ボタン
+	var btn_regen := Button.new()
+	btn_regen.text = "マップ再生成"
+	btn_regen.pressed.connect(func():
+		_grid.generate_terrain(int(m_slider.value), int(d_slider.value))
+	)
+	vbox.add_child(btn_regen)
 	var sep := HSeparator.new()
 	sep.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	vbox.add_child(sep)
@@ -400,14 +468,6 @@ func _create_alloc_bar() -> Control:
 func _on_start_pressed() -> void:
 	if _is_running:
 		return
-	var has_base := false
-	for b in _battle.player_buildings:
-		if b.building_type == EconBuilding.BuildingType.BASE:
-			has_base = true
-			break
-	if not has_base:
-		_add_log("Place your BASE first!")
-		return
 	_is_running = true
 	_battle.start()
 	_status_label.text = "Battle running..."
@@ -446,8 +506,12 @@ func _input(event: InputEvent) -> void:
 			return
 		if not _grid.is_valid_cell(cell.x, cell.y):
 			return
-		if cell.y > 4:
-			_add_log("Player area: row0-4 only")
+		if cell.y > 2:   # 旧: cell.y > 4
+			_add_log("Player area: row 0-2 only")
+			return
+		# 山岳セルへの建設を禁止
+		if _grid.is_mountain(cell):
+			_add_log("Cannot build on mountain")
 			return
 		for h in _battle.player_harvesters:
 			if h.grid_pos == cell:
@@ -486,22 +550,6 @@ func _deselect_unit() -> void:
 	_guard_select_mode = false
 
 func _place_building(cell: Vector2i, mode: PlaceMode) -> void:
-	# プレイヤーBASE配置
-	if mode == PlaceMode.BASE:
-		var player_base := EconBuilding.new()
-		player_base.setup(EconBuilding.BuildingType.BASE, cell, true)
-		player_base.position = _grid.hex_to_pixel(cell.x, cell.y)
-		player_base.unit_produced.connect(func(pos: Vector2i, utype: int):
-			if utype == -1:
-				_spawn_harvester_at(pos.x, pos.y)
-		)
-		_battle.player_buildings.append(player_base)
-		_grid.add_child(player_base)
-		_spawn_harvester_at(cell.x, cell.y)
-		_spawn_harvester_at(cell.x, cell.y)
-		_add_log("Base placed at (%d,%d)!" % [cell.x, cell.y])
-		_status_label.text = "Setup phase"
-		return
 	var btype_map: Dictionary = {
 		PlaceMode.BARRACKS: EconBuilding.BuildingType.BARRACKS,
 		PlaceMode.FORTRESS: EconBuilding.BuildingType.FORTRESS,
