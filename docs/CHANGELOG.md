@@ -2,6 +2,16 @@
 
 ## [Unreleased]
 
+### 2026-04-29 econ_mvp 4機能実装（均等資源配置・建設完了後生産・優先度複数対応・ユニット指示UI）
+
+- feat: EconGrid.gd `_init_resource_cells()` を自陣/敵陣別にシャッフルし各4マスずつWOOD/STONE/SULFURを均等配置（row5は資源なし）
+- feat: EconBuilding.gd `is_built: bool = false` フィールド追加、未建設時は生産停止・半透明描画（alpha 0.4）
+- feat: EconBattle.gd 建設キュー処理後に `is_built = true` を設定して建設完了後にのみ生産開始
+- feat: EconEconomy.gd `get_harvest_target()` を `get_harvest_target_for(idx: int)` にリネームし同一優先度ハーベスターのラウンドロビン採掘に対応
+- feat: EconHarvester.gd `harvester_index` フィールド追加・EconMain/EconBattleでindex設定
+- feat: EconUnit.gd `OrderType` enum追加、`ATTACK_UNITS/ATTACK_HARVESTERS/GUARD` の3モード実装
+- feat: EconMain.gd 個別ユニット指示パネル・全体一括指示ボタン・GUARDモードのクリック対象選択UI実装
+
 ### 2026-04-29 PoC2 経済設計PoC実装
 
 - feat: scripts/poc2/ に6ファイル新規作成
