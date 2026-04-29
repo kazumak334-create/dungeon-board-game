@@ -38,9 +38,9 @@ func _ready() -> void:
 		(vp.y - grid_h) * 0.5 + EconGrid.HEX_SIZE
 	)
 	_grid.queue_redraw()
+	_setup_ui(vp)
 	_setup_ai()
 	_setup_initial_entities()
-	_setup_ui(vp)
 
 func _setup_grid() -> void:
 	_grid = EconGrid.new()
@@ -48,7 +48,7 @@ func _setup_grid() -> void:
 
 func _setup_economy() -> void:
 	_economy = EconEconomy.new()
-	_economy.harvester_starved.connect(_on_harvester_starved)
+
 	add_child(_economy)
 
 func _setup_battle() -> void:
@@ -70,41 +70,76 @@ func _setup_initial_entities() -> void:
 	enemy_base.setup(EconBuilding.BuildingType.BASE, Vector2i(6, 11), false)
 	enemy_base.position = _grid.hex_to_pixel(6, 11)
 	enemy_base.unit_produced.connect(_ai.on_unit_produced)
-	_battle.enemy_buildings.append(enemy_base)
-	_grid.add_child(enemy_base)
+	_battle.register_enemy_building(enemy_base)
 	# 敵初期ハーベスター × 2
 	for ei in range(2):
-		var eh := EconHarvester.new()
 		var epos: Vector2i = [Vector2i(4, 10), Vector2i(6, 10)][ei]
-		eh.grid_pos = epos
-		eh.economy = _ai.economy
-		eh.position = _grid.hex_to_pixel(epos.x, epos.y)
-		eh.harvested.connect(func(rtype): _ai.economy.add_resource(rtype))
-		eh.harvester_index = ei
-		_battle.enemy_harvesters.append(eh)
-		_grid.add_child(eh)
+		_battle.spawn_enemy_harvester(epos, _ai.economy)
+	# AI側の初期農村を自動配置
+	_place_initial_village(false)
 	# プレイヤーBASE（row 0 中央）自動配置
 	var player_base := EconBuilding.new()
 	player_base.setup(EconBuilding.BuildingType.BASE, Vector2i(6, 0), true)
 	player_base.position = _grid.hex_to_pixel(6, 0)
 	player_base.unit_produced.connect(func(pos: Vector2i, utype: int):
-		if utype == -1:
-			_spawn_harvester_at(pos.x, pos.y)
+		if utype == -2:
+			_battle.spawn_player_builder(pos)
 	)
-	_battle.player_buildings.append(player_base)
-	_grid.add_child(player_base)
-	_spawn_harvester_at(6, 0)
-	_spawn_harvester_at(6, 0)
+	_battle.register_player_building(player_base)
+	# 初期農村を小麦隣接タイルに自動配置（is_built=true）
+	_place_initial_village(true)
+	# プレイヤー初期ハーベスター × 2
+	for pi in range(2):
+		var ppos: Vector2i = [Vector2i(5, 0), Vector2i(7, 0)][pi]
+		_battle.spawn_player_harvester(ppos, _economy)
+
+func _place_initial_village(is_player: bool) -> void:
+	# 小麦に隣接するタイルに農村を1棟自動配置（is_built=true）
+	var zone_rows: Array = range(0, 3) if is_player else range(9, 12)
+	for row in zone_rows:
+		for col in range(_grid.get_col_count(row)):
+			var cell := Vector2i(col, row)
+			# 資源タイルや山岳は除外
+			if _grid.get_resource_type(cell) != EconGrid.ResourceType.NONE:
+				continue
+			if _grid.is_mountain(cell):
+				continue
+			# 既存建物と重複しない
+			var occupied := false
+			var check_buildings: Array = _battle.player_buildings if is_player else _battle.enemy_buildings
+			for b in check_buildings:
+				if b.grid_pos == cell:
+					occupied = true
+					break
+			if occupied:
+				continue
+			# 小麦隣接チェック
+			var has_wheat := false
+			for nb in _grid.get_neighbors(col, row):
+				if _grid.get_resource_type(nb) == EconGrid.ResourceType.WHEAT:
+					has_wheat = true
+					break
+			if not has_wheat:
+				continue
+			# 配置
+			var village := EconBuilding.new()
+			village.setup(EconBuilding.BuildingType.VILLAGE, cell, is_player)
+			village.position = _grid.hex_to_pixel(cell.x, cell.y)
+			village.is_built = true
+			if is_player:
+				village.unit_produced.connect(func(pos: Vector2i, utype: int):
+					if utype == -1:
+						_spawn_harvester_at(pos.x, pos.y)
+				)
+				_battle.register_player_building(village)
+			else:
+				village.unit_produced.connect(_ai.on_unit_produced)
+				_battle.register_enemy_building(village)
+			_add_log("Initial Village at (%d,%d)" % [cell.x, cell.y])
+			return
 
 func _spawn_harvester_at(col: int, row: int) -> void:
-	var h := EconHarvester.new()
-	h.grid_pos = Vector2i(col, row)
-	h.economy = _economy
-	h.position = _grid.hex_to_pixel(col, row)
-	h.harvested.connect(func(rtype): _economy.add_resource(rtype))
-	h.harvester_index = _battle.player_harvesters.size()
-	_battle.player_harvesters.append(h)
-	_grid.add_child(h)
+	_battle.spawn_player_harvester(Vector2i(col, row), _economy)
 
 func _setup_ui(vp: Vector2) -> void:
 	_ui_layer = CanvasLayer.new()
@@ -181,6 +216,30 @@ func _setup_ui(vp: Vector2) -> void:
 	prio_hbox.add_child(btn_pst)
 	prio_hbox.add_child(btn_psu)
 	prio_hbox.add_child(btn_pwh)
+	# 建設方針切り替えボタン
+	var builder_sep := HSeparator.new()
+	builder_sep.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	vbox.add_child(builder_sep)
+	var builder_title := Label.new()
+	builder_title.text = "-- Builder Mode --"
+	vbox.add_child(builder_title)
+	var builder_mode_label := Label.new()
+	builder_mode_label.text = "Mode: Focus"
+	vbox.add_child(builder_mode_label)
+	var btn_focus := Button.new()
+	btn_focus.text = "Focus (all->1 building)"
+	btn_focus.pressed.connect(func():
+		_battle.player_focus_mode = true
+		builder_mode_label.text = "Mode: Focus"
+	)
+	vbox.add_child(btn_focus)
+	var btn_parallel := Button.new()
+	btn_parallel.text = "Parallel (split builds)"
+	btn_parallel.pressed.connect(func():
+		_battle.player_focus_mode = false
+		builder_mode_label.text = "Mode: Parallel"
+	)
+	vbox.add_child(btn_parallel)
 	var build_title := Label.new()
 	build_title.text = "-- Build (click map row 0-2) --"
 	vbox.add_child(build_title)
@@ -347,11 +406,12 @@ func _create_alloc_bar() -> Control:
 	# --- プリセットボタン行 ---
 	var preset_hbox := HBoxContainer.new()
 	bar_container.add_child(preset_hbox)
+	# [name, alloc_w, alloc_st, alloc_su, alloc_wh, prio_w, prio_st, prio_su, prio_wh]
 	var preset_data := [
-		["初心者", 30, 20, 10, 40],
-		["突特化", 55, 15, 20, 10],
-		["守特化", 20, 50, 10, 20],
-		["崩特化", 25, 10, 55, 10],
+		["初心者", 30, 20, 10, 40, 1, 1, 1, 2],
+		["突特化", 55, 15, 20, 10, 3, 1, 1, 2],
+		["守特化", 20, 50, 10, 20, 1, 3, 1, 2],
+		["崩特化", 25, 10, 55, 10, 1, 1, 3, 2],
 	]
 	# --- 線分バー本体 ---
 	var bar_inner := Control.new()
@@ -406,18 +466,21 @@ func _create_alloc_bar() -> Control:
 		var btn := Button.new()
 		btn.text = pd[0]
 		btn.add_theme_font_size_override("font_size", 9)
-		var w: int = pd[1]; var st: int = pd[2]; var su: int = pd[3]; var wh: int = pd[4]
-		btn.pressed.connect(func():
-			_economy.alloc_wood   = w
-			_economy.alloc_stone  = st
-			_economy.alloc_sulfur = su
-			_economy.alloc_wheat  = wh
-			var t: float = float(w + st + su + wh)
-			handles[0] = float(w) / t
-			handles[1] = float(w + st) / t
-			handles[2] = float(w + st + su) / t
+		var _apply_preset := func(d: Array):
+			_economy.alloc_wood   = d[1]
+			_economy.alloc_stone  = d[2]
+			_economy.alloc_sulfur = d[3]
+			_economy.alloc_wheat  = d[4]
+			_economy.priority_wood   = d[5]
+			_economy.priority_stone  = d[6]
+			_economy.priority_sulfur = d[7]
+			_economy.priority_wheat  = d[8]
+			var t: float = float(d[1] + d[2] + d[3] + d[4])
+			handles[0] = float(d[1]) / t
+			handles[1] = float(d[1] + d[2]) / t
+			handles[2] = float(d[1] + d[2] + d[3]) / t
 			update_economy.call()
-		)
+		btn.pressed.connect(_apply_preset.bind(pd))
 		preset_hbox.add_child(btn)
 	# 描画
 	bar_draw.draw.connect(func():
@@ -506,9 +569,6 @@ func _input(event: InputEvent) -> void:
 			return
 		if not _grid.is_valid_cell(cell.x, cell.y):
 			return
-		if cell.y > 2:   # 旧: cell.y > 4
-			_add_log("Player area: row 0-2 only")
-			return
 		# 山岳セルへの建設を禁止
 		if _grid.is_mountain(cell):
 			_add_log("Cannot build on mountain")
@@ -574,16 +634,48 @@ func _place_building(cell: Vector2i, mode: PlaceMode) -> void:
 			_place_mode = PlaceMode.NONE
 			_mode_label.text = "Mode: None"
 			return
-	# VILLAGE 建設前：隣接小麦チェック
-	if btype == EconBuilding.BuildingType.VILLAGE:
-		var neighbors = _grid.get_neighbors(cell.x, cell.y)
-		var has_wheat := false
-		for nb in neighbors:
-			if _grid.get_resource_type(nb) == EconGrid.ResourceType.WHEAT:
-				has_wheat = true
+	# 自建物のいずれかから半径3hex以内チェック
+	var in_range := false
+	for pb in _battle.player_buildings:
+		if pb.is_alive and _grid.hex_distance(cell, pb.grid_pos) <= 3:
+			in_range = true
+			break
+	if not in_range:
+		_add_log("自建物から半径3hex以内にのみ建設できます")
+		_place_mode = PlaceMode.NONE
+		_mode_label.text = "Mode: None"
+		return
+	# 各建物の対応資源タイル隣接チェック
+	var required_resource_map: Dictionary = {
+		EconBuilding.BuildingType.BARRACKS: EconGrid.ResourceType.WOOD,
+		EconBuilding.BuildingType.FORTRESS: EconGrid.ResourceType.STONE,
+		EconBuilding.BuildingType.WORKSHOP: EconGrid.ResourceType.SULFUR,
+		EconBuilding.BuildingType.VILLAGE:  EconGrid.ResourceType.WHEAT,
+	}
+	var resource_name_map: Dictionary = {
+		EconBuilding.BuildingType.BARRACKS: "木材",
+		EconBuilding.BuildingType.FORTRESS: "石材",
+		EconBuilding.BuildingType.WORKSHOP: "硫黄",
+		EconBuilding.BuildingType.VILLAGE:  "小麦",
+	}
+	var building_name_map: Dictionary = {
+		EconBuilding.BuildingType.BARRACKS: "兵舎",
+		EconBuilding.BuildingType.FORTRESS: "要塞",
+		EconBuilding.BuildingType.WORKSHOP: "工房",
+		EconBuilding.BuildingType.VILLAGE:  "農村",
+	}
+	if required_resource_map.has(btype):
+		var req_res: int = required_resource_map[btype]
+		var neighbors_res = _grid.get_neighbors(cell.x, cell.y)
+		var has_resource := false
+		for nb in neighbors_res:
+			if _grid.get_resource_type(nb) == req_res:
+				has_resource = true
 				break
-		if not has_wheat:
-			_status_label.text = "農村は小麦マスに隣接して建設してください"
+		if not has_resource:
+			_add_log("%sは%sタイルに隣接して建設してください" % [building_name_map[btype], resource_name_map[btype]])
+			_place_mode = PlaceMode.NONE
+			_mode_label.text = "Mode: None"
 			return
 	var b := EconBuilding.new()
 	b.setup(btype, cell, true)
@@ -594,23 +686,10 @@ func _place_building(cell: Vector2i, mode: PlaceMode) -> void:
 		else:
 			_battle.spawn_player_unit(pos.x, pos.y, utype)
 	)
-	_battle.player_buildings.append(b)
-	_grid.add_child(b)
-	_battle.add_building_to_queue(b)
+	_battle.register_player_building(b)
 	var names := ["Barracks", "Fortress", "Workshop", "Village"]
-	_add_log("%s queued at (%d,%d)" % [names[btype], cell.x, cell.y])
+	_add_log("%s placed at (%d,%d)" % [names[btype], cell.x, cell.y])
 
-func _on_harvester_starved(kill_count: int) -> void:
-	var alive_u := _battle.player_units.filter(func(u): return u.is_alive)
-	if alive_u.is_empty():
-		return
-	alive_u.shuffle()
-	var killed: int = 0
-	for i in range(mini(kill_count, alive_u.size())):
-		alive_u[i].is_alive = false
-		alive_u[i].visible = false
-		killed += 1
-	_add_log("Wheat shortage! %d unit(s) lost" % killed)
 
 func _on_battle_ended(player_won: bool) -> void:
 	_status_label.text = "Victory!" if player_won else "Defeat..."
@@ -675,3 +754,52 @@ func _process(delta: float) -> void:
 	var eval: Dictionary = _get_wheat_eval()
 	_wheat_eval_label.text = eval["text"]
 	_wheat_eval_label.add_theme_color_override("font_color", eval["color"])
+	_update_build_highlight()
+
+func _update_build_highlight() -> void:
+	_grid.highlight_cells.clear()
+	if _place_mode == PlaceMode.NONE:
+		_grid.queue_redraw()
+		return
+	# 選択中の建物種に対応する資源タイプ
+	var required_resource_map: Dictionary = {
+		PlaceMode.BARRACKS: EconGrid.ResourceType.WOOD,
+		PlaceMode.FORTRESS: EconGrid.ResourceType.STONE,
+		PlaceMode.WORKSHOP: EconGrid.ResourceType.SULFUR,
+		PlaceMode.VILLAGE:  EconGrid.ResourceType.WHEAT,
+	}
+	var req_res: int = required_resource_map.get(_place_mode, EconGrid.ResourceType.NONE)
+	# 占有セルを収集
+	var occupied: Dictionary = {}
+	for h in _battle.player_harvesters:
+		if h.is_alive:
+			occupied[h.grid_pos] = true
+	for b in _battle.player_buildings:
+		if b.is_alive:
+			occupied[b.grid_pos] = true
+	for row in range(0, 3):
+		for col in range(_grid.get_col_count(row)):
+			var cell := Vector2i(col, row)
+			if _grid.is_mountain(cell):
+				continue
+			if occupied.has(cell):
+				continue
+			# 自建物から半径3以内チェック
+			var in_range := false
+			for pb in _battle.player_buildings:
+				if pb.is_alive and _grid.hex_distance(cell, pb.grid_pos) <= 3:
+					in_range = true
+					break
+			if not in_range:
+				continue
+			# 資源隣接チェック
+			if req_res != EconGrid.ResourceType.NONE:
+				var has_res := false
+				for nb in _grid.get_neighbors(col, row):
+					if _grid.get_resource_type(nb) == req_res:
+						has_res = true
+						break
+				if not has_res:
+					continue
+			_grid.highlight_cells[cell] = true
+	_grid.queue_redraw()

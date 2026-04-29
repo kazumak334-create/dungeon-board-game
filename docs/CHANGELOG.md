@@ -2,6 +2,27 @@
 
 ## [Unreleased]
 
+## 2026-04-29 fix: 小麦不足時のユニット消滅処理を削除（空腹システムに一本化）
+- EconEconomy.gd: 小麦不足時のharvester_starvedシグナル発火・kill_count計算を削除（wheat=0のみに変更）
+- EconEconomy.gd: harvester_starvedシグナル定義を削除
+- EconMain.gd: _on_harvester_starvedコールバック削除・シグナル接続削除（693-703行）
+- EconAI.gd: _on_economy_starvedコールバック削除・シグナル接続削除
+- 残存：空腹システム（wheat消費→hunger減少→HP減少）はEconUnit.gdに維持
+
+## 2026-04-29
+
+### 方針転換
+- EconMVPベース全面再設計への移行を決定
+- 旧カードデッキビルダー実装はアーカイブとして保持（削除しない）
+- 新スプリント計画を roadmap.md に追加
+
+### 実装完了（EconMVP）
+- EconMain: _ready()初期化順序修正（_setup_ui を _setup_initial_entities より前に移動）
+- 疎結合リファクタリング: EconBattle.spawn/register メソッド一元化
+- coupling lint: check_syntax.sh + session_check.py に自動検出追加
+- ADR-001/002 作成（docs/meta/adr/）
+- KISS原則・疎結合ルールを CLAUDE.md に追加
+
 ### 2026-04-29 疎結合自律維持4施策（設定・ドキュメント・スクリプトのみ）
 
 - feat: check_syntax.sh に coupling lint 追加（EconBattle内部配列の直接操作を検出）
