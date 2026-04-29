@@ -2,6 +2,15 @@
 
 ## [Unreleased]
 
+### 2026-04-29 疎結合自律維持4施策（設定・ドキュメント・スクリプトのみ）
+
+- feat: check_syntax.sh に coupling lint 追加（EconBattle内部配列の直接操作を検出）
+- docs: docs/meta/adr/ ディレクトリ作成
+- docs: ADR-001 EconBattle スポーン・登録処理一元化（001_econ_spawn_centralized.md）
+- docs: ADR-002 TileType と ResourceType の分離（002_tile_resource_separation.md）
+- feat: tools/session_check.py に check_coupling_violations() 追加（チェック6）
+- docs: CLAUDE.md KISS原則セクションに疎結合ルール（Econ MVP）を追加
+
 ### 2026-04-29 econ_mvp 13列・12行グリッド拡張・地形システム実装（req_economy_mvp §3/5/9/15対応）
 
 - feat: EconGrid.gd `HEX_SIZE` 40.0→34.0、`ROWS` 11→12、`get_col_count()` 13/12列対応

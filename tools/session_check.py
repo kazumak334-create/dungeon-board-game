@@ -138,6 +138,47 @@ def check_game_design_update():
     except Exception as e:
         return f"更新日確認エラー: {e}"
 
+def check_auto_proceed_patterns():
+    """自律進行パターン定義ファイルの存在確認"""
+    patterns_path = REPO_ROOT / "docs/meta/auto_proceed_patterns.md"
+
+    if not patterns_path.exists():
+        return ["docs/meta/auto_proceed_patterns.md が存在しません（自律進行パターン定義が未作成）"]
+
+    return []
+
+def check_coupling_violations():
+    """EconBattle 内部配列への直接アクセスがないか確認"""
+    patterns = [
+        "enemy_units.append",
+        "enemy_harvesters.append",
+        "enemy_buildings.append",
+        "player_harvesters.append",
+        "player_buildings.append",
+    ]
+    target_files = [
+        "scripts/econ_mvp/EconAI.gd",
+        "scripts/econ_mvp/EconMain.gd",
+    ]
+    violations = []
+    for filepath in target_files:
+        full_path = REPO_ROOT / filepath
+        if not full_path.exists():
+            continue
+        content = full_path.read_text(encoding="utf-8")
+        for pattern in patterns:
+            if pattern in content:
+                violations.append(f"{filepath}: {pattern}")
+    if violations:
+        print(f"⚠️  [coupling] 直接配列操作が検出されました:")
+        for v in violations:
+            print(f"   {v}")
+        print("   → EconBattle の spawn/register メソッドを使ってください")
+        return False
+    print("✅ [coupling] 直接配列操作なし")
+    return True
+
+
 def main():
     print("🔍 セッション開始チェック結果\n")
 
@@ -183,6 +224,27 @@ def main():
         total_issues += 1
     else:
         print("✅ GAME_DESIGN.md：最近更新されています")
+
+    # チェック5: 自律進行パターン定義ファイル
+    patterns_issues = check_auto_proceed_patterns()
+    if patterns_issues:
+        print(f"❌ 自律進行パターン：{len(patterns_issues)}件の問題\n")
+        for issue in patterns_issues:
+            print(f"  {issue}")
+        print()
+        total_issues += len(patterns_issues)
+    else:
+        print("✅ 自律進行パターン：docs/meta/auto_proceed_patterns.md 確認済み")
+        print("   [AUTO-PROCEED CHECK] タスク着手前に以下を確認すること:")
+        print("   1. 新機能追加を求められていないか")
+        print("   2. ゲームバランス変更（spd/atk/hp/コスト）が含まれないか")
+        print("   3. UIの再設計・廃止済み設計への変更が求められていないか")
+        print("   → 該当する場合は承認取得前に実装を進めないこと")
+
+    # チェック6: 疎結合違反
+    coupling_ok = check_coupling_violations()
+    if not coupling_ok:
+        total_issues += 1
 
     # サマリー
     print("\n" + "="*60)
