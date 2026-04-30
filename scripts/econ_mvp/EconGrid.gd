@@ -15,6 +15,12 @@ var tile_cells: Dictionary = {}   # Vector2i → TileType
 var mountain_ratio: int = 35
 var desert_ratio: int = 25
 
+# 建設可能エリアハイライト（EconMainがセットする）
+var highlight_cells: Dictionary = {}  # Vector2i -> true
+var enemy_territory_cells: Dictionary = {}  # Vector2i -> true（敵領土セット）
+var fill_cells: Dictionary = {}  # Vector2i -> true（建設モード時のみ塗りつぶし対象セル）
+var resource_highlight_type: int = 0  # ResourceType値（0=NONE）。建設モード時に対応資源タイルを枠線強調
+
 func _ready() -> void:
 	_init_resource_cells()
 
@@ -273,6 +279,62 @@ func _draw() -> void:
 				draw_colored_polygon(corners, Color(0.2, 0.4, 0.8, 0.1))
 			elif row >= 8:  # 旧: row >= 6
 				draw_colored_polygon(corners, Color(0.8, 0.2, 0.2, 0.1))
+			# 建設可能ハイライト（Civilizationスタイル、建設モード時のみ塗りつぶし）
+			if fill_cells.has(pos):
+				draw_colored_polygon(corners, Color(0.3, 0.6, 1.0, 0.20))
+			# 資源タイル強調枠線（建設モード時のみ）
+			if resource_highlight_type != ResourceType.NONE and rtype == resource_highlight_type:
+				var res_color_map: Dictionary = {
+					ResourceType.WOOD:   Color(1.0, 0.5, 0.0, 0.9),
+					ResourceType.STONE:  Color(0.7, 0.7, 0.7, 0.9),
+					ResourceType.SULFUR: Color(1.0, 0.9, 0.0, 0.9),
+					ResourceType.WHEAT:  Color(0.2, 0.9, 0.2, 0.9),
+				}
+				var res_c: Color = res_color_map.get(resource_highlight_type, Color(1, 1, 1, 0.9))
+				var res_closed: PackedVector2Array = corners.duplicate()
+				res_closed.append(corners[0])
+				draw_polyline(res_closed, res_c, 3.0)
 			var closed := corners.duplicate()
 			closed.append(corners[0])
 			draw_polyline(closed, Color(1, 1, 1, 0.4), 1.0)
+	# 領土境界線（プレイヤー・敵、セルループ外でまとめて描画）
+	_draw_territory_border(highlight_cells, Color(0.4, 0.8, 1.0))
+	_draw_territory_border(enemy_territory_cells, Color(1.0, 0.3, 0.3))
+
+# 領土境界線を描画する（プレイヤー・敵共通汎用）
+func _draw_territory_border(cells: Dictionary, color: Color) -> void:
+	if cells.is_empty():
+		return
+	var edge_pairs := [[0, 1], [1, 2], [2, 3], [3, 4], [4, 5], [5, 0]]
+	# edge_pairs[i] に対応する隣接セル方向（corners angle_deg=60*i-30 基準）
+	# i=0:[0,1]=RIGHT, i=1:[1,2]=下右, i=2:[2,3]=下左, i=3:[3,4]=LEFT, i=4:[4,5]=上左, i=5:[5,0]=上右
+	var dirs_even := [
+		Vector2i(1, 0),    # RIGHT
+		Vector2i(0, 1),    # 下右（even）
+		Vector2i(-1, 1),   # 下左（even）
+		Vector2i(-1, 0),   # LEFT
+		Vector2i(-1, -1),  # 上左（even）
+		Vector2i(0, -1),   # 上右（even）
+	]
+	var dirs_odd := [
+		Vector2i(1, 0),    # RIGHT
+		Vector2i(1, 1),    # 下右（odd）
+		Vector2i(0, 1),    # 下左（odd）
+		Vector2i(-1, 0),   # LEFT
+		Vector2i(0, -1),   # 上左（odd）
+		Vector2i(1, -1),   # 上右（odd）
+	]
+	for pos in cells:
+		var col: int = pos.x
+		var row: int = pos.y
+		var center := hex_to_pixel(col, row)
+		var corners := _get_hex_corners(center)
+		var dirs := dirs_even if row % 2 == 0 else dirs_odd
+		for i in range(6):
+			var nb_pos: Vector2i = pos + dirs[i]
+			if not cells.has(nb_pos):
+				var ep: Array = edge_pairs[i]
+				var p0: Vector2 = corners[ep[0]]
+				var p1: Vector2 = corners[ep[1]]
+				draw_line(p0, p1, Color(color.r, color.g, color.b, 0.4), 6.0)
+				draw_line(p0, p1, Color(color.r, color.g, color.b, 0.9), 2.0)

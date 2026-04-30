@@ -25,6 +25,7 @@ var _attack_flash_timer: float = 0.0
 var is_alive: bool = true
 var order: OrderType = OrderType.ATTACK_UNITS
 var guard_target: Node = null
+var target_priority: int = 0  # 0=標準, 1=前線制圧, 2=経済破壊
 
 # 空腹システム
 var hunger: float = 10.0
@@ -154,36 +155,51 @@ func _select_target(enemies: Array, harvesters: Array, buildings: Array, grid: E
 			return
 		# ハーベスターなければ通常ロジックにフォールスルー
 	# ATTACK_UNITS (デフォルト) + フォールスルー
+	# 優先度テーブル: target_priority 0=標準, 1=前線制圧, 2=経済破壊
+	# prio_table[target_priority] = [base_prio, production_bldg_prio, unit_prio, noncombat_prio]
+	var prio_table: Array = [
+		[0, 1, 2, 3],  # 0=標準: BASE>建物>ユニット>非戦闘
+		[2, 1, 0, 3],  # 1=前線制圧: ユニット>建物>BASE>非戦闘
+		[1, 0, 2, 3],  # 2=経済破壊: 建物>BASE>ユニット>非戦闘
+	]
+	var tp: int = clampi(target_priority, 0, prio_table.size() - 1)
+	var prios: Array = prio_table[tp]
 	target_node = null
 	var best_node: Node = null
-	var best_priority: int = 999
-	var best_dist: float = INF
+	var best_score: int = 999999
+	# 全候補をスコアで評価。射程内ターゲットには -10000 ボーナス（遠距離目標より常に優先）
+	# score = priority * 1000 + distance + in_range_bonus
+	# 敵戦闘ユニット
 	for e in enemies:
 		if not _is_target_alive(e) or e.get("grid_pos") == null:
 			continue
-		var d: float = grid.hex_distance(grid_pos, e.grid_pos)
-		if 0 < best_priority or (0 == best_priority and d < best_dist):
-			best_priority = 0
-			best_dist = d
+		var d: int = grid.hex_distance(grid_pos, e.grid_pos)
+		var in_range: bool = (d <= attack_range and d >= min_range)
+		var score: int = prios[2] * 1000 + d + (-10000 if in_range else 0)
+		if score < best_score:
+			best_score = score
 			best_node = e
+	# 敵非戦闘員（ハーベスター）
 	for h in harvesters:
 		if not _is_target_alive(h) or h.get("grid_pos") == null:
 			continue
-		var d: float = grid.hex_distance(grid_pos, h.grid_pos)
-		if 1 < best_priority or (1 == best_priority and d < best_dist):
-			best_priority = 1
-			best_dist = d
+		var d: int = grid.hex_distance(grid_pos, h.grid_pos)
+		var in_range: bool = (d <= attack_range and d >= min_range)
+		var score: int = prios[3] * 1000 + d + (-10000 if in_range else 0)
+		if score < best_score:
+			best_score = score
 			best_node = h
+	# 敵建物（BASE／生産建物を分類）
 	for b in buildings:
 		if not _is_target_alive(b) or b.get("grid_pos") == null:
 			continue
-		var prio: int = 2
-		if b.get("building_type") != null and b.building_type == EconBuilding.BuildingType.BASE:
-			prio = 0  # BASEは最優先（敵ユニットと同等）
-		var d: float = grid.hex_distance(grid_pos, b.grid_pos)
-		if prio < best_priority or (prio == best_priority and d < best_dist):
-			best_priority = prio
-			best_dist = d
+		var is_base: bool = b.get("building_type") != null and b.building_type == EconBuilding.BuildingType.BASE
+		var p: int = prios[0] if is_base else prios[1]
+		var d: int = grid.hex_distance(grid_pos, b.grid_pos)
+		var in_range: bool = (d <= attack_range and d >= min_range)
+		var score: int = p * 1000 + d + (-10000 if in_range else 0)
+		if score < best_score:
+			best_score = score
 			best_node = b
 	target_node = best_node
 
