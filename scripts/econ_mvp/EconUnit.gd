@@ -20,26 +20,44 @@ var move_spd: float
 var target_node: Node = null
 var attack_timer: float = 0.0
 var move_timer: float = 0.0
+const ATTACK_FLASH_DURATION := 0.25
+var _attack_flash_timer: float = 0.0
 var is_alive: bool = true
 var order: OrderType = OrderType.ATTACK_UNITS
 var guard_target: Node = null
 
+# 空腹システム
+var hunger: float = 10.0
+var hunger_max: float = 10.0
+const HUNGER_CONSUME_INTERVAL: float = 5.0
+const HP_DECREASE_RATE: float = 2.0
+var _hunger_timer: float = 0.0
+
+var stack_count: int = 1
+var is_selected: bool = false
+
 var _unit_color: Color
 var _grid_ref: EconGrid = null
 
+# スムーズ移動アニメーション
+const MOVE_ANIM_DURATION := 0.4
+var _anim_from: Vector2 = Vector2.ZERO
+var _anim_to: Vector2 = Vector2.ZERO
+var _anim_t: float = 1.0
+
 # 要件定義書の数値（SPD=攻撃速度1/秒）
 static var UNIT_STATS: Dictionary = {
-	"ATTACKER": {"hp": 80.0,  "atk": 20.0, "spd": 1.5, "move_spd": 1.5, "range": 1, "min_range": 0, "color": Color.RED},
-	"TANK":     {"hp": 200.0, "atk": 25.0, "spd": 0.5, "move_spd": 0.5, "range": 1, "min_range": 0, "color": Color.CORNFLOWER_BLUE},
-	"BREAKER":  {"hp": 70.0,  "atk": 35.0, "spd": 1.0, "move_spd": 1.0, "range": 3, "min_range": 2, "color": Color.LIME_GREEN},
+	"ATTACKER": {"hp": 80.0,  "atk": 20.0, "spd": 1.0, "move_spd": 0.15, "range": 1, "min_range": 0, "color": Color.RED},
+	"TANK":     {"hp": 200.0, "atk": 25.0, "spd": 0.5, "move_spd": 0.10, "range": 1, "min_range": 0, "color": Color.CORNFLOWER_BLUE},
+	"BREAKER":  {"hp": 70.0,  "atk": 35.0, "spd": 0.25, "move_spd": 0.12, "range": 3, "min_range": 2, "color": Color.LIME_GREEN},
 }
 
-static func create(utype: UnitType, s: Side, col: int, row: int) -> EconUnit:
+static func create(utype: int, s: int, col: int, row: int) -> EconUnit:
 	var unit := EconUnit.new()
 	unit.unit_type = utype
 	unit.side = s
 	unit.grid_pos = Vector2i(col, row)
-	var key := ["ATTACKER", "TANK", "BREAKER"][int(utype)]
+	var key: String = ["ATTACKER", "TANK", "BREAKER"][int(utype)]
 	var stats: Dictionary = UNIT_STATS[key]
 	unit.hp = stats["hp"]
 	unit.max_hp = stats["hp"]
@@ -51,10 +69,35 @@ static func create(utype: UnitType, s: Side, col: int, row: int) -> EconUnit:
 	unit._unit_color = stats["color"]
 	return unit
 
-func update(delta: float, enemies: Array, enemy_buildings: Array, enemy_harvesters: Array, grid: EconGrid, all_units: Array) -> void:
+func update(delta: float, enemies: Array, enemy_buildings: Array, enemy_harvesters: Array, grid: EconGrid, all_units: Array, economy: EconEconomy = null) -> void:
 	if not is_alive:
 		return
 	_grid_ref = grid
+	# 空腹システム
+	if economy != null:
+		_hunger_timer += delta
+		if _hunger_timer >= HUNGER_CONSUME_INTERVAL:
+			_hunger_timer = 0.0
+			if economy.wheat >= 1:
+				economy.spend({"wheat": 1})
+				hunger = hunger_max
+			else:
+				hunger = maxf(0.0, hunger - 1.0)
+		if hunger <= 0.0:
+			hp -= HP_DECREASE_RATE * delta
+			if hp <= 0.0:
+				hp = 0.0
+				is_alive = false
+				unit_killed.emit(int(unit_type), int(side), grid_pos)
+			queue_redraw()
+	# スムーズ移動アニメーション
+	if _anim_t < 1.0:
+		_anim_t = minf(1.0, _anim_t + delta / MOVE_ANIM_DURATION)
+		position = _anim_from.lerp(_anim_to, _anim_t)
+		queue_redraw()
+	if _attack_flash_timer > 0.0:
+		_attack_flash_timer -= delta
+		queue_redraw()
 	if target_node == null or not _is_target_alive(target_node):
 		_select_target(enemies, enemy_harvesters, enemy_buildings, grid)
 	# GUARDモード: guard_targetへ移動（近くにいれば通常攻撃AI）
@@ -136,7 +179,7 @@ func _select_target(enemies: Array, harvesters: Array, buildings: Array, grid: E
 			continue
 		var prio: int = 2
 		if b.get("building_type") != null and b.building_type == EconBuilding.BuildingType.BASE:
-			prio = 3
+			prio = 0  # BASEは最優先（敵ユニットと同等）
 		var d: float = grid.hex_distance(grid_pos, b.grid_pos)
 		if prio < best_priority or (prio == best_priority and d < best_dist):
 			best_priority = prio
@@ -165,9 +208,10 @@ func _try_move_toward(delta: float, grid: EconGrid, all_units: Array, goal: Vect
 			blocked[u.grid_pos] = cnt + 1
 	var path: Array = grid.bfs_path(grid_pos, goal, blocked)
 	if path.size() >= 2:
+		_anim_from = position
 		grid_pos = path[1]
-		position = grid.hex_to_pixel(grid_pos.x, grid_pos.y)
-		queue_redraw()
+		_anim_to = grid.hex_to_pixel(grid_pos.x, grid_pos.y)
+		_anim_t = 0.0
 
 func _try_flee(delta: float, grid: EconGrid, all_units: Array) -> void:
 	move_timer += delta
@@ -215,6 +259,8 @@ func _try_attack(delta: float) -> void:
 		return
 	if target_node.has_method("take_damage"):
 		target_node.take_damage(atk)
+		_attack_flash_timer = ATTACK_FLASH_DURATION
+		queue_redraw()
 
 func take_damage(amount: float) -> void:
 	hp -= amount
@@ -227,12 +273,34 @@ func take_damage(amount: float) -> void:
 func _draw() -> void:
 	if not is_alive:
 		return
+	# 選択時：射程リング
+	if is_selected:
+		const HEX_STEP := EconGrid.HEX_SIZE * 1.732
+		if min_range > 0:
+			draw_arc(Vector2.ZERO, min_range * HEX_STEP, 0, TAU, 48, Color(1.0, 0.4, 0.0, 0.55), 2.5)
+		draw_arc(Vector2.ZERO, (attack_range + 0.4) * HEX_STEP, 0, TAU, 48, Color(0.3, 1.0, 0.3, 0.55), 2.5)
 	draw_circle(Vector2.ZERO, 18.0, _unit_color)
 	if side == Side.ENEMY:
 		draw_arc(Vector2.ZERO, 18.0, 0, TAU, 32, Color.BLACK, 2.0)
+	# 選択時：ユニット外周ハイライト
+	if is_selected:
+		draw_arc(Vector2.ZERO, 18.0, 0, TAU, 32, Color.YELLOW, 2.5)
 	var bar_w := 36.0
 	var bar_h := 5.0
 	var bar_y := -26.0
 	var hp_ratio := hp / max_hp if max_hp > 0 else 0.0
 	draw_rect(Rect2(Vector2(-bar_w * 0.5, bar_y), Vector2(bar_w, bar_h)), Color.DARK_GRAY)
 	draw_rect(Rect2(Vector2(-bar_w * 0.5, bar_y), Vector2(bar_w * hp_ratio, bar_h)), Color.GREEN)
+	# 重なり表示
+	if stack_count > 1:
+		draw_string(ThemeDB.fallback_font, Vector2(-9, 9), "x%d" % stack_count, HORIZONTAL_ALIGNMENT_LEFT, -1, 13, Color.WHITE)
+	# 空腹アイコン（ユニット上部）
+	if hunger <= 0.0:
+		draw_circle(Vector2(0, -38), 5.0, Color(1.0, 0.0, 0.0, 0.9))
+	elif hunger <= 5.0:
+		draw_circle(Vector2(0, -38), 5.0, Color(1.0, 1.0, 0.0, 0.9))
+	# 攻撃射線（発火時フラッシュ・フェードアウト）
+	if _attack_flash_timer > 0.0 and target_node != null and target_node.get("is_alive") != null and target_node.is_alive and target_node.get("position") != null:
+		var fade: float = _attack_flash_timer / ATTACK_FLASH_DURATION
+		var target_local: Vector2 = target_node.position - position
+		draw_line(Vector2.ZERO, target_local, Color(1.0, 0.9, 0.1, 0.85 * fade), 2.0)

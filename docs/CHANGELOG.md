@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+## 2026-04-29 fix: BASEへの攻撃優先度修正（ゲーム終了しないバグ）
+- EconUnit.gd: _select_target()でBASEの優先度をprio=3（最低）→prio=0（最高）に変更
+- 敵/味方ユニットが生存中でもBASEを攻撃対象にするようになった
+
 ## 2026-04-29 fix: 小麦不足時のユニット消滅処理を削除（空腹システムに一本化）
 - EconEconomy.gd: 小麦不足時のharvester_starvedシグナル発火・kill_count計算を削除（wheat=0のみに変更）
 - EconEconomy.gd: harvester_starvedシグナル定義を削除
