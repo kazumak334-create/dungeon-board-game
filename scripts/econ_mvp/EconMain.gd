@@ -23,6 +23,7 @@ var _is_running: bool = false
 var _selected_unit: EconUnit = null
 var _guard_select_mode: bool = false
 var _order_panel: PanelContainer = null
+var _target_priority: int = 0  # 0=標準, 1=前線制圧, 2=経済破壊
 
 func _ready() -> void:
 	_setup_grid()
@@ -177,45 +178,11 @@ func _setup_ui(vp: Vector2) -> void:
 	_ai_resource_label.text = "W:0 St:0 Su:0 Wh:0"
 	_ai_resource_label.autowrap_mode = TextServer.AUTOWRAP_WORD
 	vbox.add_child(_ai_resource_label)
-	var alloc_title := Label.new()
-	alloc_title.text = "-- Alloc (drag handles) --"
-	vbox.add_child(alloc_title)
-	# 線分配分バー（LineSegmentAllocBar）
-	var alloc_bar := _create_alloc_bar()
-	vbox.add_child(alloc_bar)
-	var prio_title := Label.new()
-	prio_title.text = "-- Priority (1=first) --"
-	vbox.add_child(prio_title)
-	var prio_hbox := HBoxContainer.new()
-	vbox.add_child(prio_hbox)
-	var btn_pw := Button.new()
-	btn_pw.text = "W:%d" % _economy.priority_wood
-	var btn_pst := Button.new()
-	btn_pst.text = "St:%d" % _economy.priority_stone
-	var btn_psu := Button.new()
-	btn_psu.text = "Su:%d" % _economy.priority_sulfur
-	var btn_pwh := Button.new()
-	btn_pwh.text = "Wh:%d" % _economy.priority_wheat
-	btn_pw.pressed.connect(func():
-		_economy.priority_wood = (_economy.priority_wood % 3) + 1
-		btn_pw.text = "W:%d" % _economy.priority_wood
-	)
-	btn_pst.pressed.connect(func():
-		_economy.priority_stone = (_economy.priority_stone % 3) + 1
-		btn_pst.text = "St:%d" % _economy.priority_stone
-	)
-	btn_psu.pressed.connect(func():
-		_economy.priority_sulfur = (_economy.priority_sulfur % 3) + 1
-		btn_psu.text = "Su:%d" % _economy.priority_sulfur
-	)
-	btn_pwh.pressed.connect(func():
-		_economy.priority_wheat = (_economy.priority_wheat % 3) + 1
-		btn_pwh.text = "Wh:%d" % _economy.priority_wheat
-	)
-	prio_hbox.add_child(btn_pw)
-	prio_hbox.add_child(btn_pst)
-	prio_hbox.add_child(btn_psu)
-	prio_hbox.add_child(btn_pwh)
+	var harvester_sep := HSeparator.new()
+	harvester_sep.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	vbox.add_child(harvester_sep)
+	var harvester_alloc := _create_harvester_alloc_ui()
+	vbox.add_child(harvester_alloc)
 	# 建設方針切り替えボタン
 	var builder_sep := HSeparator.new()
 	builder_sep.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -283,6 +250,42 @@ func _setup_ui(vp: Vector2) -> void:
 			u.guard_target = null
 	)
 	vbox.add_child(btn_bulk_harv)
+	var tp_sep := HSeparator.new()
+	tp_sep.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	vbox.add_child(tp_sep)
+	var tp_title := Label.new()
+	tp_title.text = "-- Target Priority --"
+	vbox.add_child(tp_title)
+	var tp_label := Label.new()
+	tp_label.text = "現在: 標準"
+	vbox.add_child(tp_label)
+	var btn_tp0 := Button.new()
+	btn_tp0.text = "標準 (BASE>建物>兵>非戦)"
+	btn_tp0.pressed.connect(func():
+		_target_priority = 0
+		tp_label.text = "現在: 標準"
+		for u in _battle.player_units:
+			u.target_priority = 0
+	)
+	vbox.add_child(btn_tp0)
+	var btn_tp1 := Button.new()
+	btn_tp1.text = "前線制圧 (兵>建物>BASE>非戦)"
+	btn_tp1.pressed.connect(func():
+		_target_priority = 1
+		tp_label.text = "現在: 前線制圧"
+		for u in _battle.player_units:
+			u.target_priority = 1
+	)
+	vbox.add_child(btn_tp1)
+	var btn_tp2 := Button.new()
+	btn_tp2.text = "経済破壊 (建物>BASE>兵>非戦)"
+	btn_tp2.pressed.connect(func():
+		_target_priority = 2
+		tp_label.text = "現在: 経済破壊"
+		for u in _battle.player_units:
+			u.target_priority = 2
+	)
+	vbox.add_child(btn_tp2)
 	var btn_start := Button.new()
 	btn_start.text = "Start Battle"
 	btn_start.pressed.connect(_on_start_pressed)
@@ -399,134 +402,121 @@ func _setup_ui(vp: Vector2) -> void:
 	)
 	order_vbox.add_child(btn_cancel_order)
 
-func _create_alloc_bar() -> Control:
-	# 線分配分バー：幅200px、ハンドル3つで4セクション（WOOD/STONE/SULFUR/WHEAT）
-	var bar_container := VBoxContainer.new()
-	bar_container.custom_minimum_size = Vector2(200, 0)
-	# --- プリセットボタン行 ---
-	var preset_hbox := HBoxContainer.new()
-	bar_container.add_child(preset_hbox)
-	# [name, alloc_w, alloc_st, alloc_su, alloc_wh, prio_w, prio_st, prio_su, prio_wh]
-	var preset_data := [
-		["初心者", 30, 20, 10, 40, 1, 1, 1, 2],
-		["突特化", 55, 15, 20, 10, 3, 1, 1, 2],
-		["守特化", 20, 50, 10, 20, 1, 3, 1, 2],
-		["崩特化", 25, 10, 55, 10, 1, 1, 3, 2],
+func _create_harvester_alloc_ui() -> Control:
+	# ハーベスター割り当てUI: 棒グラフ + [-][+]ボタンで直接人数指定
+	var container := VBoxContainer.new()
+	container.custom_minimum_size = Vector2(200, 0)
+	var title := Label.new()
+	title.text = "-- Harvesters --"
+	container.add_child(title)
+	# 各資源の行データ
+	var resource_types := [
+		EconGrid.ResourceType.WOOD,
+		EconGrid.ResourceType.STONE,
+		EconGrid.ResourceType.SULFUR,
+		EconGrid.ResourceType.WHEAT,
 	]
-	# --- 線分バー本体 ---
-	var bar_inner := Control.new()
-	bar_inner.custom_minimum_size = Vector2(200, 60)
-	bar_inner.mouse_filter = Control.MOUSE_FILTER_STOP
-	bar_container.add_child(bar_inner)
-	const BAR_W := 196.0
-	const BAR_H := 18.0
-	const BAR_Y := 10.0
-	const HANDLE_R := 7.0
-	# セクション色
-	var seg_colors := [
+	var resource_names := ["Wood  ", "Stone ", "Sulfur", "Wheat "]
+	var resource_colors := [
 		Color(0.2, 0.6, 0.1),   # WOOD
 		Color(0.5, 0.5, 0.5),   # STONE
 		Color(0.8, 0.7, 0.1),   # SULFUR
 		Color(0.9, 0.9, 0.3),   # WHEAT
 	]
-	var seg_names := ["W", "St", "Su", "Wh"]
-	# 初期alloc値からハンドル位置（0.0〜1.0）を計算
-	var total_alloc: float = float(_economy.alloc_wood + _economy.alloc_stone + _economy.alloc_sulfur + _economy.alloc_wheat)
-	if total_alloc <= 0.0:
-		total_alloc = 100.0
-	var handles: Array = []  # 0.0〜1.0 の境界位置
-	handles.append(float(_economy.alloc_wood) / total_alloc)
-	handles.append(handles[0] + float(_economy.alloc_stone) / total_alloc)
-	handles.append(handles[1] + float(_economy.alloc_sulfur) / total_alloc)
-	var drag_idx: int = -1
-	var bar_draw := Control.new()
-	bar_draw.custom_minimum_size = Vector2(200, 60)
-	bar_draw.mouse_filter = Control.MOUSE_FILTER_STOP
-	bar_inner.add_child(bar_draw)
-	var ratio_label := Label.new()
-	ratio_label.position = Vector2(0, 35)
-	ratio_label.custom_minimum_size = Vector2(200, 20)
-	ratio_label.add_theme_font_size_override("font_size", 10)
-	bar_inner.add_child(ratio_label)
-	# alloc更新関数
-	var update_economy := func():
-		var segs: Array = [handles[0], handles[1] - handles[0], handles[2] - handles[1], 1.0 - handles[2]]
-		const TOTAL := 100
-		_economy.alloc_wood   = int(segs[0] * TOTAL + 0.5)
-		_economy.alloc_stone  = int(segs[1] * TOTAL + 0.5)
-		_economy.alloc_sulfur = int(segs[2] * TOTAL + 0.5)
-		_economy.alloc_wheat  = int(segs[3] * TOTAL + 0.5)
-		ratio_label.text = "W:%d St:%d Su:%d Wh:%d" % [
-			_economy.alloc_wood, _economy.alloc_stone, _economy.alloc_sulfur, _economy.alloc_wheat
-		]
-		bar_draw.queue_redraw()
-	update_economy.call()
-	# プリセットボタンのコールバック登録（update_economy参照のためここで接続）
-	for pd in preset_data:
-		var btn := Button.new()
-		btn.text = pd[0]
-		btn.add_theme_font_size_override("font_size", 9)
-		var _apply_preset := func(d: Array):
-			_economy.alloc_wood   = d[1]
-			_economy.alloc_stone  = d[2]
-			_economy.alloc_sulfur = d[3]
-			_economy.alloc_wheat  = d[4]
-			_economy.priority_wood   = d[5]
-			_economy.priority_stone  = d[6]
-			_economy.priority_sulfur = d[7]
-			_economy.priority_wheat  = d[8]
-			var t: float = float(d[1] + d[2] + d[3] + d[4])
-			handles[0] = float(d[1]) / t
-			handles[1] = float(d[1] + d[2]) / t
-			handles[2] = float(d[1] + d[2] + d[3]) / t
-			update_economy.call()
-		btn.pressed.connect(_apply_preset.bind(pd))
-		preset_hbox.add_child(btn)
-	# 描画
-	bar_draw.draw.connect(func():
-		var segs: Array = [handles[0], handles[1] - handles[0], handles[2] - handles[1], 1.0 - handles[2]]
-		var x := 0.0
-		for si in range(4):
-			var sw: float = segs[si] * BAR_W
-			bar_draw.draw_rect(Rect2(x, BAR_Y, sw, BAR_H), seg_colors[si])
-			if sw > 14.0:
-				bar_draw.draw_string(
-					ThemeDB.fallback_font,
-					Vector2(x + sw * 0.5 - 6.0, BAR_Y + 13.0),
-					seg_names[si], HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color.WHITE
-				)
-			x += sw
-		bar_draw.draw_rect(Rect2(0.0, BAR_Y, BAR_W, BAR_H), Color.WHITE, false, 1.0)
-		for hi in range(3):
-			var hx: float = handles[hi] * BAR_W
-			bar_draw.draw_circle(Vector2(hx, BAR_Y + BAR_H * 0.5), HANDLE_R,
-				Color.WHITE if drag_idx != hi else Color.YELLOW)
-	)
-	# マウス入力
-	bar_draw.gui_input.connect(func(ev):
-		if ev is InputEventMouseButton:
-			if ev.button_index == MOUSE_BUTTON_LEFT:
-				if ev.pressed:
-					var mx: float = ev.position.x
-					for hi in range(3):
-						if abs(mx - handles[hi] * BAR_W) <= HANDLE_R + 4.0:
-							drag_idx = hi
-							break
-				else:
-					drag_idx = -1
-		elif ev is InputEventMouseMotion and drag_idx >= 0:
-			var mx: float = clampf(ev.position.x / BAR_W, 0.0, 1.0)
-			# 境界点の順序を守る（最小間隔: 0.02）
-			const MIN_SEG := 0.02
-			if drag_idx == 0:
-				handles[0] = clampf(mx, MIN_SEG, handles[1] - MIN_SEG)
-			elif drag_idx == 1:
-				handles[1] = clampf(mx, handles[0] + MIN_SEG, handles[2] - MIN_SEG)
-			else:
-				handles[2] = clampf(mx, handles[1] + MIN_SEG, 1.0 - MIN_SEG)
-			update_economy.call()
-	)
-	return bar_container
+	const BAR_MAX_W := 100.0
+	const BAR_H := 14.0
+	var total_label := Label.new()
+	var row_bars: Array = []  # 棒グラフControl refs
+	var count_labels: Array = []  # 人数ラベル refs
+	# 合計表示更新関数
+	var _update_total := func():
+		var total: int = 0
+		for rtype in resource_types:
+			total += _economy.target_count.get(rtype, 0)
+		var harvester_count: int = _battle.player_harvesters.size()
+		total_label.text = "計: %d / %d" % [total, harvester_count]
+	# 全行の棒グラフを再描画する関数
+	var _redraw_bars := func():
+		var harvester_count: int = max(1, _battle.player_harvesters.size())
+		for i in range(resource_types.size()):
+			var rtype: int = resource_types[i]
+			var cnt: int = _economy.target_count.get(rtype, 0)
+			count_labels[i].text = str(cnt)
+			row_bars[i].queue_redraw()
+	# 各資源の行を生成
+	for i in range(resource_types.size()):
+		var rtype: int = resource_types[i]
+		var hbox := HBoxContainer.new()
+		container.add_child(hbox)
+		var name_lbl := Label.new()
+		name_lbl.text = resource_names[i]
+		name_lbl.custom_minimum_size = Vector2(40, 0)
+		name_lbl.add_theme_font_size_override("font_size", 10)
+		hbox.add_child(name_lbl)
+		# 棒グラフ
+		var bar := Control.new()
+		bar.custom_minimum_size = Vector2(BAR_MAX_W, BAR_H + 2)
+		bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		var captured_rtype: int = rtype
+		var captured_color: Color = resource_colors[i]
+		bar.draw.connect(func():
+			var harvester_count: int = max(1, _battle.player_harvesters.size())
+			var cnt: int = _economy.target_count.get(captured_rtype, 0)
+			var fill_w: float = BAR_MAX_W * float(cnt) / float(harvester_count)
+			# 空バー背景
+			bar.draw_rect(Rect2(0, 1, BAR_MAX_W, BAR_H), Color(0.2, 0.2, 0.2))
+			# 塗り
+			if fill_w > 0:
+				bar.draw_rect(Rect2(0, 1, fill_w, BAR_H), captured_color)
+			# 枠
+			bar.draw_rect(Rect2(0, 1, BAR_MAX_W, BAR_H), Color.WHITE, false, 1.0)
+		)
+		row_bars.append(bar)
+		hbox.add_child(bar)
+		# 人数ラベル
+		var cnt_lbl := Label.new()
+		cnt_lbl.text = str(_economy.target_count.get(rtype, 0))
+		cnt_lbl.custom_minimum_size = Vector2(16, 0)
+		cnt_lbl.add_theme_font_size_override("font_size", 10)
+		count_labels.append(cnt_lbl)
+		hbox.add_child(cnt_lbl)
+		# [-]ボタン
+		var btn_minus := Button.new()
+		btn_minus.text = "-"
+		btn_minus.custom_minimum_size = Vector2(20, 0)
+		var captured_i: int = i
+		btn_minus.pressed.connect(func():
+			var cur: int = _economy.target_count.get(resource_types[captured_i], 0)
+			# 合計が1以上になるよう制限
+			var total_all: int = 0
+			for rt in resource_types:
+				total_all += _economy.target_count.get(rt, 0)
+			if cur > 0 and total_all > 1:
+				_economy.target_count[resource_types[captured_i]] = cur - 1
+			_update_total.call()
+			_redraw_bars.call()
+		)
+		hbox.add_child(btn_minus)
+		# [+]ボタン
+		var btn_plus := Button.new()
+		btn_plus.text = "+"
+		btn_plus.custom_minimum_size = Vector2(20, 0)
+		btn_plus.pressed.connect(func():
+			var cur: int = _economy.target_count.get(resource_types[captured_i], 0)
+			var harvester_count: int = max(1, _battle.player_harvesters.size())
+			# 合計がharvester_countを超えないよう制限
+			var total_all: int = 0
+			for rt in resource_types:
+				total_all += _economy.target_count.get(rt, 0)
+			if total_all < harvester_count:
+				_economy.target_count[resource_types[captured_i]] = cur + 1
+			_update_total.call()
+			_redraw_bars.call()
+		)
+		hbox.add_child(btn_plus)
+	container.add_child(total_label)
+	_update_total.call()
+	return container
 
 func _on_start_pressed() -> void:
 	if _is_running:
@@ -645,35 +635,15 @@ func _place_building(cell: Vector2i, mode: PlaceMode) -> void:
 		_place_mode = PlaceMode.NONE
 		_mode_label.text = "Mode: None"
 		return
-	# 各建物の対応資源タイル隣接チェック
-	var required_resource_map: Dictionary = {
-		EconBuilding.BuildingType.BARRACKS: EconGrid.ResourceType.WOOD,
-		EconBuilding.BuildingType.FORTRESS: EconGrid.ResourceType.STONE,
-		EconBuilding.BuildingType.WORKSHOP: EconGrid.ResourceType.SULFUR,
-		EconBuilding.BuildingType.VILLAGE:  EconGrid.ResourceType.WHEAT,
-	}
-	var resource_name_map: Dictionary = {
-		EconBuilding.BuildingType.BARRACKS: "木材",
-		EconBuilding.BuildingType.FORTRESS: "石材",
-		EconBuilding.BuildingType.WORKSHOP: "硫黄",
-		EconBuilding.BuildingType.VILLAGE:  "小麦",
-	}
-	var building_name_map: Dictionary = {
-		EconBuilding.BuildingType.BARRACKS: "兵舎",
-		EconBuilding.BuildingType.FORTRESS: "要塞",
-		EconBuilding.BuildingType.WORKSHOP: "工房",
-		EconBuilding.BuildingType.VILLAGE:  "農村",
-	}
-	if required_resource_map.has(btype):
-		var req_res: int = required_resource_map[btype]
-		var neighbors_res = _grid.get_neighbors(cell.x, cell.y)
-		var has_resource := false
-		for nb in neighbors_res:
-			if _grid.get_resource_type(nb) == req_res:
-				has_resource = true
+	# VILLAGEのみ小麦タイル隣接チェック（仕様3：戦闘建物の資源隣接制限削除）
+	if btype == int(EconBuilding.BuildingType.VILLAGE):
+		var has_wheat := false
+		for nb in _grid.get_neighbors(cell.x, cell.y):
+			if _grid.get_resource_type(nb) == EconGrid.ResourceType.WHEAT:
+				has_wheat = true
 				break
-		if not has_resource:
-			_add_log("%sは%sタイルに隣接して建設してください" % [building_name_map[btype], resource_name_map[btype]])
+		if not has_wheat:
+			_add_log("農村は小麦タイルに隣接して建設してください")
 			_place_mode = PlaceMode.NONE
 			_mode_label.text = "Mode: None"
 			return
@@ -758,48 +728,74 @@ func _process(delta: float) -> void:
 
 func _update_build_highlight() -> void:
 	_grid.highlight_cells.clear()
-	if _place_mode == PlaceMode.NONE:
-		_grid.queue_redraw()
-		return
-	# 選択中の建物種に対応する資源タイプ
-	var required_resource_map: Dictionary = {
+	_grid.fill_cells.clear()
+	# 資源タイル強調（建設モード時のみ）
+	var resource_highlight_map: Dictionary = {
 		PlaceMode.BARRACKS: EconGrid.ResourceType.WOOD,
 		PlaceMode.FORTRESS: EconGrid.ResourceType.STONE,
 		PlaceMode.WORKSHOP: EconGrid.ResourceType.SULFUR,
 		PlaceMode.VILLAGE:  EconGrid.ResourceType.WHEAT,
 	}
-	var req_res: int = required_resource_map.get(_place_mode, EconGrid.ResourceType.NONE)
-	# 占有セルを収集
+	_grid.resource_highlight_type = resource_highlight_map.get(_place_mode, EconGrid.ResourceType.NONE)
+	# 占有セルを収集（建設モード時のfill_cells除外に使用）
 	var occupied: Dictionary = {}
-	for h in _battle.player_harvesters:
-		if h.is_alive:
-			occupied[h.grid_pos] = true
-	for b in _battle.player_buildings:
-		if b.is_alive:
-			occupied[b.grid_pos] = true
-	for row in range(0, 3):
-		for col in range(_grid.get_col_count(row)):
-			var cell := Vector2i(col, row)
-			if _grid.is_mountain(cell):
-				continue
-			if occupied.has(cell):
-				continue
-			# 自建物から半径3以内チェック
-			var in_range := false
-			for pb in _battle.player_buildings:
-				if pb.is_alive and _grid.hex_distance(cell, pb.grid_pos) <= 3:
-					in_range = true
-					break
-			if not in_range:
-				continue
-			# 資源隣接チェック
-			if req_res != EconGrid.ResourceType.NONE:
-				var has_res := false
-				for nb in _grid.get_neighbors(col, row):
-					if _grid.get_resource_type(nb) == req_res:
-						has_res = true
-						break
-				if not has_res:
+	if _place_mode != PlaceMode.NONE:
+		for h in _battle.player_harvesters:
+			if h.is_alive:
+				occupied[h.grid_pos] = true
+		for b in _battle.player_buildings:
+			if b.is_alive:
+				occupied[b.grid_pos] = true
+	# highlight_cells: 建設済みplayer_buildingsから半径3の和集合（row制限なし）
+	for pb in _battle.player_buildings:
+		if not pb.is_alive:
+			continue
+		if not pb.is_built:
+			continue
+		for row in range(EconGrid.ROWS):
+			for col in range(_grid.get_col_count(row)):
+				var cell := Vector2i(col, row)
+				if _grid.is_mountain(cell):
 					continue
-			_grid.highlight_cells[cell] = true
+				if _grid.hex_distance(cell, pb.grid_pos) <= 3:
+					_grid.highlight_cells[cell] = true
+	# enemy_territory_cells: 建設済みenemy_buildingsから半径3の和集合（row制限なし）
+	_grid.enemy_territory_cells.clear()
+	for eb in _battle.enemy_buildings:
+		if not eb.is_alive:
+			continue
+		if not eb.is_built:
+			continue
+		for row in range(EconGrid.ROWS):
+			for col in range(_grid.get_col_count(row)):
+				var cell := Vector2i(col, row)
+				if _grid.is_mountain(cell):
+					continue
+				if _grid.hex_distance(cell, eb.grid_pos) <= 3:
+					_grid.enemy_territory_cells[cell] = true
+	# fill_cells（建設モード時のみ塗りつぶし）: row 0-2フィルタ維持
+	if _place_mode != PlaceMode.NONE:
+		for row in range(0, 3):
+			for col in range(_grid.get_col_count(row)):
+				var cell := Vector2i(col, row)
+				if _grid.is_mountain(cell):
+					continue
+				if occupied.has(cell):
+					continue
+				var in_range := false
+				for pb in _battle.player_buildings:
+					if pb.is_alive and _grid.hex_distance(cell, pb.grid_pos) <= 3:
+						in_range = true
+						break
+				if not in_range:
+					continue
+				if _place_mode == PlaceMode.VILLAGE:
+					var has_wheat := false
+					for nb in _grid.get_neighbors(col, row):
+						if _grid.get_resource_type(nb) == EconGrid.ResourceType.WHEAT:
+							has_wheat = true
+							break
+					if not has_wheat:
+						continue
+				_grid.fill_cells[cell] = true
 	_grid.queue_redraw()

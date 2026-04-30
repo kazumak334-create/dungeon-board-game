@@ -14,14 +14,12 @@ func setup(grid: EconGrid, battle: EconBattle) -> void:
 	_battle = battle
 	# 敵専用Economy
 	economy = EconEconomy.new()
-	economy.alloc_wood = 35
-	economy.alloc_stone = 25
-	economy.alloc_sulfur = 20
-	economy.alloc_wheat = 20
-	economy.priority_wood = 1
-	economy.priority_stone = 1
-	economy.priority_sulfur = 2
-	economy.priority_wheat = 3
+	economy.target_count = {
+		EconGrid.ResourceType.WOOD: 1,
+		EconGrid.ResourceType.STONE: 1,
+		EconGrid.ResourceType.SULFUR: 1,
+		EconGrid.ResourceType.WHEAT: 1,
+	}
 
 	add_child(economy)
 	# ビルドオーダー（固定）
@@ -47,61 +45,62 @@ func update(delta: float) -> void:
 		if not next.is_alive or next.is_built:
 			_construction_queue.pop_front()
 			continue
-		var btype_int: int = int(next.building_type)
-		# 各建物の対応資源タイル隣接チェック＆動的位置補正（敵建物から半径3hex以内）
-		var required_res_map: Dictionary = {
-			EconBuilding.BuildingType.BARRACKS: EconGrid.ResourceType.WOOD,
-			EconBuilding.BuildingType.FORTRESS: EconGrid.ResourceType.STONE,
-			EconBuilding.BuildingType.WORKSHOP: EconGrid.ResourceType.SULFUR,
-			EconBuilding.BuildingType.VILLAGE:  EconGrid.ResourceType.WHEAT,
-		}
-		if required_res_map.has(next.building_type):
-			var req_res: int = required_res_map[next.building_type]
-			var neighbors := _grid.get_neighbors(next.grid_pos.x, next.grid_pos.y)
-			var has_res := false
-			for nb in neighbors:
-				if _grid.get_resource_type(nb) == req_res:
-					has_res = true
+		# VILLAGEのみ小麦隣接チェック＆動的位置補正（戦闘建物の資源隣接制限は削除済み）
+		# 敵建物のいずれかから半径3以内チェック
+		var in_range := false
+		for eb in _battle.enemy_buildings:
+			if eb.is_alive and _grid.hex_distance(next.grid_pos, eb.grid_pos) <= 3:
+				in_range = true
+				break
+		var needs_relocation := false
+		if next.building_type == EconBuilding.BuildingType.VILLAGE:
+			var has_wheat := false
+			for nb in _grid.get_neighbors(next.grid_pos.x, next.grid_pos.y):
+				if _grid.get_resource_type(nb) == EconGrid.ResourceType.WHEAT:
+					has_wheat = true
 					break
-			# 敵建物のいずれかから半径3以内チェック
-			var in_range := false
-			for eb in _battle.enemy_buildings:
-				if eb.is_alive and _grid.hex_distance(next.grid_pos, eb.grid_pos) <= 3:
-					in_range = true
-					break
-			if not has_res or not in_range:
-				# 敵陣 (row 8-11) で敵建物から3hex以内かつ対応資源隣接セルを探す
-				var valid_pos := Vector2i(-1, -1)
-				var occupied: Dictionary = {}
-				for b2 in _battle.enemy_buildings:
-					if b2.is_alive:
-						occupied[b2.grid_pos] = true
-				for row in range(8, 12):
-					for col in range(_grid.get_col_count(row)):
-						var cell := Vector2i(col, row)
-						if occupied.has(cell):
-							continue
-						var cell_in_range := false
-						for eb2 in _battle.enemy_buildings:
-							if eb2.is_alive and _grid.hex_distance(cell, eb2.grid_pos) <= 3:
-								cell_in_range = true
-								break
-						if not cell_in_range:
-							continue
-						for nb2 in _grid.get_neighbors(col, row):
-							if _grid.get_resource_type(nb2) == req_res:
-								valid_pos = cell
-								break
-						if valid_pos != Vector2i(-1, -1):
+			if not has_wheat or not in_range:
+				needs_relocation = true
+		elif not in_range:
+			needs_relocation = true
+		if needs_relocation:
+			# 敵陣 (row 8-11) で敵建物から3hex以内のセルを探す
+			var valid_pos := Vector2i(-1, -1)
+			var occupied: Dictionary = {}
+			for b2 in _battle.enemy_buildings:
+				if b2.is_alive:
+					occupied[b2.grid_pos] = true
+			for row in range(8, 12):
+				for col in range(_grid.get_col_count(row)):
+					var cell := Vector2i(col, row)
+					if occupied.has(cell):
+						continue
+					var cell_in_range := false
+					for eb2 in _battle.enemy_buildings:
+						if eb2.is_alive and _grid.hex_distance(cell, eb2.grid_pos) <= 3:
+							cell_in_range = true
 							break
-					if valid_pos != Vector2i(-1, -1):
-						break
-				if valid_pos == Vector2i(-1, -1):
-					# 有効位置が見つからない場合はスキップ
-					_construction_queue.pop_front()
-					continue
-				next.grid_pos = valid_pos
-				next.position = _grid.hex_to_pixel(valid_pos.x, valid_pos.y)
+					if not cell_in_range:
+						continue
+					# VILLAGEは小麦隣接もチェック
+					if next.building_type == EconBuilding.BuildingType.VILLAGE:
+						var has_w := false
+						for nb2 in _grid.get_neighbors(col, row):
+							if _grid.get_resource_type(nb2) == EconGrid.ResourceType.WHEAT:
+								has_w = true
+								break
+						if not has_w:
+							continue
+					valid_pos = cell
+					break
+				if valid_pos != Vector2i(-1, -1):
+					break
+			if valid_pos == Vector2i(-1, -1):
+				# 有効位置が見つからない場合はスキップ
+				_construction_queue.pop_front()
+				continue
+			next.grid_pos = valid_pos
+			next.position = _grid.hex_to_pixel(valid_pos.x, valid_pos.y)
 		# 配置は無料：ビルダーが現地到着後に資材チェックして建設進捗を蓄積する
 		next.position = _grid.hex_to_pixel(next.grid_pos.x, next.grid_pos.y)
 		_battle.register_enemy_building(next)
@@ -126,11 +125,11 @@ func update(delta: float) -> void:
 	var all_movable: Array = _battle.player_units + _battle.player_harvesters + _battle.enemy_units + _battle.enemy_harvesters + _battle.enemy_builders
 	for h in _battle.enemy_harvesters:
 		if h.is_alive:
-			h.update(delta, _grid, all_movable)
+			h.update(delta, _grid, all_movable, _battle.player_units)
 	# 敵ビルダー更新（集中建設固定）
 	for b in _battle.enemy_builders:
 		if b.is_alive:
-			b.update(delta, _grid, all_movable, _battle.enemy_buildings, true, economy)
+			b.update(delta, _grid, all_movable, _battle.enemy_buildings, true, economy, _battle.player_units)
 	# 敵建物更新
 	for b in _battle.enemy_buildings:
 		if b.is_alive:

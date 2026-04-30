@@ -2,6 +2,14 @@
 
 ## [Unreleased]
 
+## 2026-04-30 feat: ハーベスター割り当てUI刷新（棒グラフ + 直接人数指定）
+- EconEconomy.gd: alloc_*/priority_*フィールドを廃止、target_count Dictionaryに変更
+- EconEconomy.gd: get_harvest_target_for(idx, total) — target_countから割り当てリスト生成してラウンドロビン
+- EconHarvester.gd: update()にtotal_harvesters引数を追加、get_harvest_target_for呼び出しを変更
+- EconBattle.gd: harvester update呼び出しにalive_harvester_countを渡す、_remove_dead後に再採番
+- EconMain.gd: スライダーUI/プリセットボタン/Priorityボタンを削除、棒グラフ+[-][+]ボタンUIに置き換え
+- EconAI.gd: enemy economy設定をtarget_countに変更（alloc_*/priority_*廃止）
+
 ## 2026-04-29 fix: BASEへの攻撃優先度修正（ゲーム終了しないバグ）
 - EconUnit.gd: _select_target()でBASEの優先度をprio=3（最低）→prio=0（最高）に変更
 - 敵/味方ユニットが生存中でもBASEを攻撃対象にするようになった
