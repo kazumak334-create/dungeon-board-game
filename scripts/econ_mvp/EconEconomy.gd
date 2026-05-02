@@ -46,8 +46,126 @@ const WHEAT_PER_UNIT := 0.5
 
 var _wheat_timer: float = 0.0
 
-func update(_delta: float, _total_unit_count: int) -> void:
-	pass
+# §6.2 5秒ティック処理（REQUIREMENTS_V0_2_MVP.md §6.2）
+# 呼び出し元：EconBattle.update() → economy.update(delta, total_units)
+# 5秒ごとにEconBattle側でtickを発火する想定。本メソッドは毎フレーム呼ばれるが
+# 内部タイマーで5秒ごとに処理する（既存の_wheat_timerと同構造）
+var _tick_timer: float = 0.0
+const TICK_INTERVAL: float = 5.0
+var _tick_index: int = 0
+
+# 外部から建物リストを受け取るためのフィールド（EconBattleがセットする）
+var buildings: Array = []
+
+func update(delta: float, _total_unit_count: int) -> void:
+	_tick_timer += delta
+	if _tick_timer < TICK_INTERVAL:
+		return
+	_tick_timer -= TICK_INTERVAL
+	_tick_index += 1
+	print("[EconEconomy] tick: ", _tick_index, " pop=", population_used, " food=", food, " sat=", satisfaction, " mil=", military_power)
+
+	# ---- Step 1: 資源生産（アクティブ建物の生産）§6.2-1 ----
+	var prod_mod: float = get_happiness_production_modifier()
+	for b in buildings:
+		if not b.is_alive or not b.is_built:
+			continue
+		var lv: int = b.fusion_rank  # fusion_rank が Lv1/2/3 に対応
+		var lv_bonus: float = 1.0 + (lv - 1) * 0.25  # Lv1=1.0, Lv2=1.25, Lv3=1.5
+		match b.building_type:
+			EconBuilding.BuildingType.SAWMILL:
+				var gain: int = roundi(2.0 * lv_bonus * prod_mod)
+				wood += gain
+				resources["wood"] = wood
+				print("[EconEconomy] SAWMILL Lv%d 木材+%d" % [lv, gain])
+			EconBuilding.BuildingType.MINE:
+				var gain: int = roundi(2.0 * lv_bonus * prod_mod)
+				stone += gain
+				resources["stone"] = stone
+				print("[EconEconomy] MINE Lv%d 石材+%d" % [lv, gain])
+			EconBuilding.BuildingType.WORKSHOP:
+				var gain: int = roundi(1.0 * lv_bonus * prod_mod)
+				sulfur += gain
+				resources["sulfur"] = sulfur
+				print("[EconEconomy] WORKSHOP Lv%d 硫黄+%d" % [lv, gain])
+			EconBuilding.BuildingType.VILLAGE:
+				# VILLAGEの食料生産はEconBuilding._update_village()側で処理済み
+				# ここでは二重計上しない
+				pass
+
+	# ---- Step 2: 兵舎生成（§6.2-2 / §2.5.2）----
+	var mil_mod: float = get_happiness_military_modifier()
+	for b in buildings:
+		if not b.is_alive or not b.is_built:
+			continue
+		if b.building_type != EconBuilding.BuildingType.BARRACKS:
+			continue
+		# 稼働人口=1のチェック（簡略: population_usedが1以上あれば稼働可とする）
+		if population_used < 1:
+			print("[EconEconomy] 兵舎: 稼働人口不足 pop_used=%d, 生成スキップ" % population_used)
+			continue
+		var lv: int = b.fusion_rank
+		var base_gain: int = lv + 1  # Lv1=+2, Lv2=+3, Lv3=+4
+		var actual_gain: float = float(base_gain) * mil_mod
+		military_power += actual_gain
+		print("[EconEconomy] BARRACKS Lv%d 兵力+%.1f (mil_mod=%.2f)" % [lv, actual_gain, mil_mod])
+
+	# ---- Step 3: 食料消費（§6.2-3 / §6.1）----
+	# 暫定方針：人口10人あたり5秒ごと食料-1
+	var food_consume: int = population_used / 10
+	if food_consume > 0:
+		food -= food_consume
+		resources["food"] = food
+		wheat = food  # 後方互換
+		print("[EconEconomy] 食料消費 -%d (food=%d)" % [food_consume, food])
+		if food < 0:
+			food = 0
+			resources["food"] = 0
+			wheat = 0
+			# 食料不足時：幸福度-10ペナルティ（§2.4.3）
+			satisfaction = maxi(satisfaction - 10, 0)
+			print("[EconEconomy] 食料不足！幸福度-10 sat=%d" % satisfaction)
+
+	# ---- Step 4: 幸福度更新（§6.2-4 / §2.4.3）----
+	# 広場(PLAZA)は現在EconBuilding enumに存在しないためスキップ（TODO: PLAZA実装時に追加）
+	# 人口負荷：人口10人ごとに幸福度-1
+	var pop_load: int = population_used / 10
+	satisfaction -= pop_load
+	satisfaction = clampi(satisfaction, 0, 100)
+	print("[EconEconomy] 幸福度更新 pop_load=-%d sat=%d" % [pop_load, satisfaction])
+
+	# ---- Step 5: 防衛拠点回復（§6.2-5）----
+	# WATCHTOWER は現在EconBuilding enumに存在しないためスキップ
+	# TODO: WATCHTOWER実装時に防壁HP回復処理を追加
+
+	# ---- Step 6: 人口配分再計算（§6.2-6 / §2.4.2）----
+	# alloc_work_ratioは別タスク(Task 1-3)で実装予定
+	# 現時点では population_used を population_cap の75%に仮設定
+	var alloc_ratio: float = 0.75  # 初期値：稼働75%
+	population_used = roundi(float(population_cap) * alloc_ratio)
+	print("[EconEconomy] 人口配分再計算 pop_used=%d/%d" % [population_used, population_cap])
+
+# 幸福度による生産補正係数（§2.4.3 / §2.5.3）
+# Task 1-2で詳細実装予定。現在はスタブ。
+func get_happiness_production_modifier() -> float:
+	if satisfaction >= 70:
+		return 1.0  # 高幸福: +20%は人口増加速度に適用・生産補正なし
+	elif satisfaction >= 40:
+		return 1.0  # 通常: 補正なし
+	elif satisfaction >= 20:
+		return 0.9  # 不満: -10%
+	else:
+		return 0.75  # 危険: -25%
+
+# 幸福度による兵力生成補正係数（§2.5.3）
+# Task 1-2で詳細実装予定。現在はスタブ。
+func get_happiness_military_modifier() -> float:
+	if satisfaction >= 70:
+		return 1.1  # 高幸福: +10%
+	elif satisfaction >= 20:
+		return 1.0  # 通常/不満: 補正なし
+	else:
+		return 0.8  # 危険: -20%
 
 func add_resource(rtype: int, amount: int = 1) -> void:
 	match rtype:

@@ -2,6 +2,28 @@
 
 ## [Unreleased]
 
+## 2026-05-02 feat: Task 1-1 — EconEconomy.gd update() に §6.2 処理順序実装
+
+### 変更内容
+- `scripts/econ_mvp/EconEconomy.gd`:
+  - `update()` に §6.2 の6ステップ処理順序を実装（pass → 実装）
+  - Step 1: 資源生産（SAWMILL/MINE/WORKSHOP の Lv別補正・幸福度補正）
+  - Step 2: 兵舎生成（BARRACKS Lv1=+2/Lv2=+3/Lv3=+4・幸福度補正）
+  - Step 3: 食料消費（人口10人あたり5秒-1・不足時幸福度-10）
+  - Step 4: 幸福度更新（人口負荷：人口10人ごと-1。PLAZA未実装のためTODOコメント）
+  - Step 5: 防衛拠点回復（WATCHTOWER未実装のためTODOコメント）
+  - Step 6: 人口配分再計算（Task 1-3待ち・現在は75%固定仮実装）
+  - `get_happiness_production_modifier()` スタブメソッド追加（§2.4.3）
+  - `get_happiness_military_modifier()` スタブメソッド追加（§2.5.3）
+  - `buildings: Array` フィールド追加（EconBattleがセット予定）
+  - `_tick_timer`/`_tick_index` で5秒ティック管理
+  - printデバッグログ：tick開始時・各ステップに出力
+
+### 補足
+- 建物Lv は `fusion_rank`（1/2/3）を使用（EconBuilding.gd に `level` フィールドなし）
+- PLAZA/WATCHTOWER は現 EconBuilding enum に未存在 → Step4/5 はTODOコメントで保留
+- population は `population_used` を使用
+
 ## 2026-05-02 feat: Task 0-1 — TBDコスト確定・cards_econ.json更新・EconEconomy初期値修正
 
 ### 変更内容
