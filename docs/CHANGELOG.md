@@ -2,6 +2,16 @@
 
 ## [Unreleased]
 
+## 2026-05-03 feat: Sprint 1 — 都市ステータス基盤実装（EconEconomy.gd）
+
+### 変更内容
+- `scripts/econ_mvp/EconEconomy.gd`:
+  - 都市ステータスフィールド7つを追加: `population_float`, `food_value`, `satisfaction_value`, `satisfaction_slope`, `satisfaction_stage`, `building_efficiency_modifier`, `food_shortage_count`
+  - `get_satisfaction_stage()` メソッド追加（5段階: decline/dissatisfied/stable/satisfied/prosperity）
+  - `get_display_population()` メソッド追加（max(1, floor(population_float))）
+  - `initialize_v0_2()` に都市ステータス初期化コードとデバッグprintを追加
+  - 既存フィールド（`population_used`, `food`, `satisfaction`）は後方互換のため維持
+
 ## 2026-05-02 feat: Task 2-3 — 鍛冶屋(SMITHY)・防衛拠点(WATCHTOWER)実装
 
 ### 変更内容

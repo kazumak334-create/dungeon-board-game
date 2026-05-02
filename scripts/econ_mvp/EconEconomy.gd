@@ -29,6 +29,15 @@ var currency: int = INITIAL_CURRENCY
 var population_used: int = 0
 var population_cap: int = BASE_POPULATION_CAP  # 拠点効果+50
 
+# === Sprint 1: 都市ステータス基盤 ===
+var population_float: float = 1.0  # 現在人口（小数管理）
+var food_value: int = 0             # 食料値
+var satisfaction_value: float = 60.0  # 満足値（0-100%）
+var satisfaction_slope: float = 0.0   # 満足値傾き（%/秒）
+var satisfaction_stage: String = "satisfied"  # 満足度段階
+var building_efficiency_modifier: float = 1.0  # 建物効率補正
+var food_shortage_count: int = 0    # 食料不足カウント
+
 # §2.4.2 人口配分比率：0.0 ~ 1.0 (スナップ: 0.25 / 0.50 / 0.75)
 # alloc_work_ratio = 0.25 → 稼働75%, 作業25%（初期値）
 var alloc_work_ratio: float = 0.25
@@ -199,6 +208,25 @@ func get_happiness_state() -> String:
 		return "dissatisfied"
 	else:
 		return "danger"
+
+# === Sprint 1: 満足度段階判定 ===
+func get_satisfaction_stage() -> String:
+	"""満足値から5段階の段階キーを返す"""
+	if satisfaction_value < 20.0:
+		return "decline"
+	elif satisfaction_value < 40.0:
+		return "dissatisfied"
+	elif satisfaction_value < 60.0:
+		return "stable"
+	elif satisfaction_value < 80.0:
+		return "satisfied"
+	else:
+		return "prosperity"
+
+# === Sprint 1: 表示人口の計算 ===
+func get_display_population() -> int:
+	"""人口小数から表示用整数値を返す（最低1）"""
+	return max(1, int(floor(population_float)))
 
 # 広場の隣接HOUSEをカウントする（§2.7.1 広場Lv別効果・隣接住居+1/件）
 # 呼び出し元：update() Step 4
@@ -377,3 +405,13 @@ func initialize_v0_2() -> void:
 	iron = 5
 	cotton = 5
 	print("[EconEconomy] initialize_v0_2: resources=%s, currency=%d, food=%d, pop_cap=%d" % [str(resources), currency, food, population_cap])
+	# === Sprint 1: 都市ステータス初期化 ===
+	population_float = 1.0
+	food_value = 0
+	satisfaction_value = 60.0
+	satisfaction_slope = 0.0
+	satisfaction_stage = "satisfied"
+	building_efficiency_modifier = 1.0
+	food_shortage_count = 0
+	# === Sprint 1: デバッグ出力 ===
+	print("[EconEconomy] CityStatus init: pop=%.2f food=%d sat=%.1f stage=%s" % [population_float, food_value, satisfaction_value, get_satisfaction_stage()])
