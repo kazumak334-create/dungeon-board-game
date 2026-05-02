@@ -7,6 +7,7 @@ extends Node
 const TURN_DURATION_SEC: float = 30.0
 const MAX_TURNS: int = 10
 const HAND_MAX_SIZE: int = 8  # ★ v0.2 改訂（5→8）
+const INITIAL_HAND_SIZE: int = 5
 const LIBRARY_CD_SEC: float = 5.0
 const LIBRARY_DRAW_COST_CURRENCY: int = 1
 
@@ -34,9 +35,19 @@ func setup(initial_deck: Array, battle_ref: EconBattle, on_draw: Callable) -> vo
 	# §8.1.2 setup
 	print("[EconDeckManager] setup: deck=%d cards" % initial_deck.size())
 	deck = initial_deck.duplicate()
+	deck.shuffle()
+	hand = []
+	discard_pile = []
+	excluded = []
+	current_turn = 1
+	_last_processed_turn = 1  # ターン1ドロー不要（初期5枚で補完）
 	battle = battle_ref
 	draw_callback = on_draw
 	_initialized = true
+	# 初期手札5枚を確定ドロー（§2.2.2）
+	for i in range(INITIAL_HAND_SIZE):
+		draw_card()
+	print("[EconDeckManager] initial hand: %d cards" % hand.size())
 
 func update(delta: float) -> void:
 	# §4.3 §9.1 §9.2 ターン進行とドローゲージ更新
