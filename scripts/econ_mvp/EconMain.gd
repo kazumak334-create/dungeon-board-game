@@ -7,29 +7,18 @@ var _battle: EconBattle
 var _ai: EconAI
 
 var _ui_layer: CanvasLayer
-var _resource_label: Label
 var _ai_resource_label: Label
-var _wheat_eval_label: Label
 var _log_label: Label
 var _status_label: Label
-var _mode_label: Label
 
 var _log_lines: Array = []
 const MAX_LOG_LINES := 10
 
-enum PlaceMode { NONE, BARRACKS, FORTRESS, WORKSHOP, VILLAGE, SAWMILL, MINE, EQUIPMENT_SHOP, TRADE_POST }
-var _place_mode: PlaceMode = PlaceMode.NONE
 var _is_running: bool = false
 var _selected_unit: EconUnit = null
 var _guard_select_mode: bool = false
 var _order_panel: PanelContainer = null
 var _target_priority: int = 0  # 0=標準, 1=前線制圧, 2=経済破壊
-var _harvester_ui_update: Callable = Callable()
-var _next_h_label: Label = null
-var _build_card_btns: Array = []
-var _stack_bar: Control = null
-var _alloc_harvesters_label: Label = null
-var _alloc_subtitle: Label = null
 var _place_hint_label: Label = null
 var _charge_mode: bool = false  # 一斉突撃モード
 var _flags: Array = []
@@ -37,28 +26,36 @@ var _next_flag_id: int = 0
 var _connecting_building: EconBuilding = null
 var _charge_btn: Button = null  # 旗ボタン
 
-# 要件定義書 req_econ_draw_hand_circulation.md §5 UI要素
+# v0.2 手札カード選択中の建設タイプ（文字列）
+var _selected_card_btype: String = ""
+
+# v0.2 HEADER / FOOTER UI要素
 var _hand_container: HBoxContainer = null  # 手札コンテナ
+var _hand_scroll_offset: int = 0           # スクロールオフセット（0-based）
+var _hand_left_arrow: Button = null        # ◀矢印
+var _hand_right_arrow: Button = null       # ▶矢印
 var _draw_gauge_bar: ColorRect = null      # ドローゲージバー
 var _draw_gauge_bg: ColorRect = null       # ドローゲージ背景
-var _draw_gauge_label: Label = null        # ドローゲージ下サブテキスト
+var _draw_gauge_label: Label = null        # ドローゲージサブテキスト
 var _force_charge_segs: Array = []         # 強制突撃ゲージセグメント×10
-var _force_charge_turn_label: Label = null  # Turn N/10 表示
+var _force_charge_turn_label: Label = null  # N/10 表示
 var _force_charge_warn_label: Label = null  # 突撃準備推奨ラベル
-var _pop_gauge_bar: ColorRect = null        # 人口ゲージバー
-var _pop_label: Label = null               # 人口数字ラベル
-var _pop_preview_label: Label = null        # [+3] プレビューラベル
 var _early_charge_btn: Button = null        # 早期突撃ボタン
-var _deck_count_label: Label = null         # Deck: N 表示
-var _discard_count_label: Label = null      # Discard/Exiled 表示
+var _deck_count_label: Label = null         # DECK 残枚数
+var _discard_count_label: Label = null      # DISCARD 枚数
 
-# v0.2 HEADER ステータスUI（§5.1）
-var _status_pop_label: Label = null        # Pop N/M
-var _status_sat_label: Label = null        # Sat N
-var _status_mil_label: Label = null        # Mil N
-var _status_cur_label: Label = null        # Cur NG
-var _status_food_label: Label = null       # 食料N
-var _status_res_labels: Dictionary = {}    # 各資源ラベル
+# v0.2 HEADER 上段ステータスUI（§3.3〜§3.6）
+var _pop_gauge_bar: ColorRect = null        # 人口ゲージバー
+var _pop_label: Label = null               # 人口 N/M
+var _pop_preview_label: Label = null        # [+3] プレビュー
+var _status_sat_label: Label = null        # Sat 0
+var _troop_gauge_bar: ColorRect = null     # 兵力ゲージバー
+var _troop_label: Label = null             # 兵力数値
+var _gold_label: Label = null              # 資金 NG
+var _status_food_label: Label = null       # 食料
+
+# v0.2 HEADER 下段資源ラベル辞書
+var _res_labels: Dictionary = {}           # key=資源名, value=Label
 
 # ゲージアニメーション用
 var _draw_gauge_blink_timer: float = 0.0
@@ -74,12 +71,15 @@ const COLOR_WOOD       := Color("#3F6932")
 const COLOR_STONE      := Color("#5D5650")
 const COLOR_SULFUR     := Color("#9A8A3C")
 const COLOR_WHEAT      := Color("#A9924F")
-const COLOR_BUILD_COL  := Color("#375590")
-const COLOR_TRADE_COL  := Color("#783C8C")
-# 要件定義書 req_econ_draw_hand_circulation.md §13.4 / UI仕様書 §7.3
+# UI仕様書 §1.4 v0.2 新規色定数
+const COLOR_POP        := Color("#5D8FB8")  # 人口ゲージ青系
+const COLOR_SAT        := Color("#B89AC7")  # 満足度パープル系（v0.3）
+const COLOR_TROOP      := Color("#B85A3C")  # 兵力ゲージ赤茶
+const COLOR_GOLD_COIN  := Color("#E0C060")  # 資金コイン（明るい金）
+# 既存継続色
 const COLOR_ACCENT_GOLD_BRIGHT := Color("#D4B468")  # ドローゲージ満タン近
-const COLOR_ORANGE := Color("#C77A2C")              # 強制突撃ゲージ警戒・突撃ボタン警戒
-const COLOR_RED    := Color("#9C3A2A")              # 強制突撃ゲージ危険・人口満タン・警告
+const COLOR_ORANGE := Color("#C77A2C")              # 強制突撃ゲージ警戒
+const COLOR_RED    := Color("#9C3A2A")              # 危険・人口満タン・警告
 
 func _ready() -> void:
 	_setup_grid()
@@ -213,127 +213,16 @@ func _setup_ui(vp: Vector2) -> void:
 	_ui_layer = CanvasLayer.new()
 	add_child(_ui_layer)
 
-	# === HEADER (top 80px, v0.2 2行構造) ===
-	var header := PanelContainer.new()
-	header.position = Vector2.ZERO
-	header.custom_minimum_size = Vector2(vp.x, 80)
-	_ui_layer.add_child(header)
-	var hdr_vbox := VBoxContainer.new()
-	hdr_vbox.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	hdr_vbox.add_theme_constant_override("separation", 2)
-	header.add_child(hdr_vbox)
+	# === HEADER (y=0, h=80, v0.2 2段構成 §3.1) ===
+	_setup_header_ui(vp)
 
-	# --- HEADER 上段：ステータス（Pop/Sat/Mil/Cur / ゲージ / 突撃ボタン）§5.1.1 ---
-	var hdr_row1 := HBoxContainer.new()
-	hdr_row1.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	hdr_row1.add_theme_constant_override("separation", 12)
-	hdr_vbox.add_child(hdr_row1)
+	# === FOOTER (y=500, h=220, v0.2 §4.1) ===
+	_setup_footer_ui(vp)
 
-	_status_pop_label = Label.new()
-	_status_pop_label.text = "Pop 0/50"
-	_status_pop_label.add_theme_font_size_override("font_size", 11)
-	_status_pop_label.add_theme_color_override("font_color", COLOR_TEXT)
-	hdr_row1.add_child(_status_pop_label)
-
-	_status_sat_label = Label.new()
-	_status_sat_label.text = "Sat 0"
-	_status_sat_label.add_theme_font_size_override("font_size", 11)
-	_status_sat_label.add_theme_color_override("font_color", COLOR_TEXT_DIM)
-	hdr_row1.add_child(_status_sat_label)
-
-	_status_mil_label = Label.new()
-	_status_mil_label.text = "Mil 0"
-	_status_mil_label.add_theme_font_size_override("font_size", 11)
-	_status_mil_label.add_theme_color_override("font_color", COLOR_TEXT)
-	hdr_row1.add_child(_status_mil_label)
-
-	_status_cur_label = Label.new()
-	_status_cur_label.text = "Cur 100G"
-	_status_cur_label.add_theme_font_size_override("font_size", 11)
-	_status_cur_label.add_theme_color_override("font_color", COLOR_ACCENT_GOLD)
-	hdr_row1.add_child(_status_cur_label)
-
-	var hdr1_spacer := Control.new()
-	hdr1_spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	hdr_row1.add_child(hdr1_spacer)
-
-	_status_label = Label.new()
-	_status_label.text = "Setup"
-	_status_label.add_theme_font_size_override("font_size", 11)
-	hdr_row1.add_child(_status_label)
-
-	_charge_btn = Button.new()
-	_charge_btn.text = "[Wait] Idle"
-	_charge_btn.pressed.connect(_on_charge_btn_pressed)
-	hdr_row1.add_child(_charge_btn)
-	var btn_start_hdr := Button.new()
-	btn_start_hdr.text = "▶ Start"
-	btn_start_hdr.pressed.connect(_on_start_pressed)
-	hdr_row1.add_child(btn_start_hdr)
-
-	# --- HEADER 下段：各資源 + 食料 + AI情報 §5.1.1 y=44 ---
-	var hdr_row2 := HBoxContainer.new()
-	hdr_row2.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	hdr_row2.add_theme_constant_override("separation", 8)
-	hdr_vbox.add_child(hdr_row2)
-
-	_resource_label = Label.new()
-	_resource_label.text = "Wood:5  Stone:5  Sulfur:5  Wheat:5  Iron:5  Cotton:5"
-	_resource_label.add_theme_font_size_override("font_size", 10)
-	_resource_label.add_theme_color_override("font_color", COLOR_TEXT)
-	_resource_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	hdr_row2.add_child(_resource_label)
-
-	_status_food_label = Label.new()
-	_status_food_label.text = "食30"
-	_status_food_label.add_theme_font_size_override("font_size", 10)
-	_status_food_label.add_theme_color_override("font_color", COLOR_WHEAT)
-	hdr_row2.add_child(_status_food_label)
-
-	_wheat_eval_label = Label.new()
-	_wheat_eval_label.text = "農村: --"
-	_wheat_eval_label.add_theme_font_size_override("font_size", 10)
-	_wheat_eval_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	hdr_row2.add_child(_wheat_eval_label)
-
-	var hdr_vsep := VSeparator.new()
-	hdr_vsep.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	hdr_row2.add_child(hdr_vsep)
-
-	_ai_resource_label = Label.new()
-	_ai_resource_label.text = "Enemy — W:0  St:0  Su:0  Wh:0"
-	_ai_resource_label.add_theme_font_size_override("font_size", 10)
-	hdr_row2.add_child(_ai_resource_label)
-
-	# === FOOTER (bottom 120px, v0.2 縮小) ===
-	var footer := PanelContainer.new()
-	footer.position = Vector2(0, vp.y - 120.0)
-	footer.custom_minimum_size = Vector2(vp.x, 120)
-	_ui_layer.add_child(footer)
-	var ftr_hbox := HBoxContainer.new()
-	ftr_hbox.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	footer.add_child(ftr_hbox)
-
-	# Left: Harvester allocation (expand fill)
-	var alloc := _create_harvester_alloc_ui()
-	alloc.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	ftr_hbox.add_child(alloc)
-
-	var vsep1 := VSeparator.new()
-	vsep1.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	ftr_hbox.add_child(vsep1)
-
-	# Center: Build panel (fixed ~400px)
-	ftr_hbox.add_child(_create_build_panel())
-
-	# 手札UI・ゲージUI追加（§5 UI要件）
-	_setup_hand_ui(vp)
-	_setup_deck_gauge_ui(vp)
-
-	# Place-on-board hint (floating over board, bottom-left of footer area)
+	# Place-on-board hint (盤面上フローティング)
 	_place_hint_label = Label.new()
 	_place_hint_label.text = "▶ place on board"
-	_place_hint_label.position = Vector2(vp.x - 180.0, vp.y - 175.0)
+	_place_hint_label.position = Vector2(vp.x - 180.0, vp.y - 240.0)
 	_place_hint_label.add_theme_font_size_override("font_size", 11)
 	_place_hint_label.add_theme_color_override("font_color", COLOR_TEXT_DIM)
 	_place_hint_label.visible = false
@@ -389,130 +278,533 @@ func _setup_ui(vp: Vector2) -> void:
 	)
 	order_vbox.add_child(btn_cancel_order)
 
-func _create_build_panel() -> Control:
-	var root := PanelContainer.new()
-	root.custom_minimum_size = Vector2(400, 0)
-	var sb_root := StyleBoxFlat.new()
-	sb_root.bg_color = COLOR_PANEL
-	root.add_theme_stylebox_override("panel", sb_root)
+func _setup_header_ui(vp: Vector2) -> void:
+	# §3.1 HEADER (y=0, h=80) 2段構成
+	var header := PanelContainer.new()
+	header.position = Vector2.ZERO
+	header.custom_minimum_size = Vector2(vp.x, 80)
+	_ui_layer.add_child(header)
+	var hdr_vbox := VBoxContainer.new()
+	hdr_vbox.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	hdr_vbox.add_theme_constant_override("separation", 2)
+	header.add_child(hdr_vbox)
 
-	var vbox := VBoxContainer.new()
-	vbox.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	root.add_child(vbox)
+	# --- 上段 (y=4, h=36): 人口・満足度・兵力・資金 §3.2 ---
+	var row1 := HBoxContainer.new()
+	row1.custom_minimum_size = Vector2(0, 36)
+	row1.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+	row1.add_theme_constant_override("separation", 4)
+	hdr_vbox.add_child(row1)
 
+	# §3.3 人口 (x=8, w=200)
+	_setup_pop_card(row1)
+
+	# §3.4 満足度 (x=216, w=200)
+	var sat_card := _make_status_card(200, 36)
+	row1.add_child(sat_card)
+	var sat_icon := Label.new()
+	sat_icon.text = ":)"
+	sat_icon.add_theme_font_size_override("font_size", 16)
+	sat_icon.add_theme_color_override("font_color", COLOR_SAT)
+	sat_card.add_child(sat_icon)
+	var sat_vbox := VBoxContainer.new()
+	sat_card.add_child(sat_vbox)
+	var sat_lbl_title := Label.new()
+	sat_lbl_title.text = "SATISFACTION (v0.3)"
+	sat_lbl_title.add_theme_font_size_override("font_size", 9)
+	sat_lbl_title.add_theme_color_override("font_color", COLOR_TEXT_DIM)
+	sat_vbox.add_child(sat_lbl_title)
+	_status_sat_label = Label.new()
+	_status_sat_label.text = "0"
+	_status_sat_label.add_theme_font_size_override("font_size", 12)
+	_status_sat_label.add_theme_color_override("font_color", COLOR_TEXT_DIM)
+	sat_vbox.add_child(_status_sat_label)
+
+	# §3.5 兵力 (x=424, w=200)
+	_setup_troop_card(row1)
+
+	# §3.6 資金 (x=632, w=200)
+	_setup_gold_card(row1)
+
+	# 右端コントロールボタン群
+	var ctrl_spacer := Control.new()
+	ctrl_spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	row1.add_child(ctrl_spacer)
+
+	_status_label = Label.new()
+	_status_label.text = "Setup"
+	_status_label.add_theme_font_size_override("font_size", 10)
+	row1.add_child(_status_label)
+
+	_charge_btn = Button.new()
+	_charge_btn.text = "[Wait] Idle"
+	_charge_btn.pressed.connect(_on_charge_btn_pressed)
+	row1.add_child(_charge_btn)
+
+	var btn_start_hdr := Button.new()
+	btn_start_hdr.text = "Start"
+	btn_start_hdr.pressed.connect(_on_start_pressed)
+	row1.add_child(btn_start_hdr)
+
+	# --- 下段 (y=44, h=32): 資源6+食料 | ドロー | 強制突撃 | EARLY §3.7〜§3.10 ---
+	var row2 := HBoxContainer.new()
+	row2.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	row2.add_theme_constant_override("separation", 4)
+	hdr_vbox.add_child(row2)
+
+	# §3.7 資源6種 (x=8, 各40px)
+	var res_keys   := ["wood", "stone", "sulfur", "wheat", "iron", "cotton"]
+	var res_icons  := ["木", "石", "硫", "小", "鉄", "綿"]
+	var res_colors := [COLOR_WOOD, COLOR_STONE, COLOR_SULFUR, COLOR_WHEAT, COLOR_STONE, COLOR_TEXT]
+	_res_labels = {}
+	for ri in range(res_keys.size()):
+		var rc := VBoxContainer.new()
+		rc.custom_minimum_size = Vector2(40, 0)
+		rc.alignment = BoxContainer.ALIGNMENT_CENTER
+		row2.add_child(rc)
+		var ri_lbl := Label.new()
+		ri_lbl.text = res_icons[ri]
+		ri_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		ri_lbl.add_theme_font_size_override("font_size", 10)
+		ri_lbl.add_theme_color_override("font_color", res_colors[ri])
+		rc.add_child(ri_lbl)
+		var rv_lbl := Label.new()
+		rv_lbl.text = "5"
+		rv_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		rv_lbl.add_theme_font_size_override("font_size", 10)
+		rv_lbl.add_theme_color_override("font_color", COLOR_TEXT)
+		rc.add_child(rv_lbl)
+		_res_labels[res_keys[ri]] = rv_lbl
+
+	# 区切り
+	var res_sep := VSeparator.new()
+	res_sep.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	row2.add_child(res_sep)
+
+	# §3.7 食料 (x=310, w=60)
+	var food_c := VBoxContainer.new()
+	food_c.custom_minimum_size = Vector2(48, 0)
+	food_c.alignment = BoxContainer.ALIGNMENT_CENTER
+	row2.add_child(food_c)
+	var food_icon := Label.new()
+	food_icon.text = "食"
+	food_icon.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	food_icon.add_theme_font_size_override("font_size", 10)
+	food_icon.add_theme_color_override("font_color", COLOR_WHEAT)
+	food_c.add_child(food_icon)
+	_status_food_label = Label.new()
+	_status_food_label.text = "30"
+	_status_food_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_status_food_label.add_theme_font_size_override("font_size", 10)
+	_status_food_label.add_theme_color_override("font_color", COLOR_WHEAT)
+	food_c.add_child(_status_food_label)
+
+	# §3.7 AI資源（補助情報）
+	_ai_resource_label = Label.new()
+	_ai_resource_label.text = "E:W0 St0 Su0 Wh0"
+	_ai_resource_label.add_theme_font_size_override("font_size", 9)
+	_ai_resource_label.add_theme_color_override("font_color", COLOR_TEXT_DIM)
+	row2.add_child(_ai_resource_label)
+
+	var mid_spacer := Control.new()
+	mid_spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	row2.add_child(mid_spacer)
+
+	# §3.8 ドローゲージ (x=320, w=180, h=20)
+	var dg_c := VBoxContainer.new()
+	dg_c.custom_minimum_size = Vector2(160, 0)
+	dg_c.alignment = BoxContainer.ALIGNMENT_CENTER
+	row2.add_child(dg_c)
+	var dg_lbl := Label.new()
+	dg_lbl.text = "Draw"
+	dg_lbl.add_theme_font_size_override("font_size", 9)
+	dg_lbl.add_theme_color_override("font_color", COLOR_TEXT_DIM)
+	dg_c.add_child(dg_lbl)
+	var dg_bar_bg := ColorRect.new()
+	dg_bar_bg.custom_minimum_size = Vector2(160, 10)
+	dg_bar_bg.color = COLOR_PANEL
+	dg_c.add_child(dg_bar_bg)
+	_draw_gauge_bg = dg_bar_bg
+	_draw_gauge_bar = ColorRect.new()
+	_draw_gauge_bar.set_anchors_and_offsets_preset(Control.PRESET_LEFT_WIDE)
+	_draw_gauge_bar.size = Vector2(0, 10)
+	_draw_gauge_bar.color = COLOR_ACCENT_GOLD
+	dg_bar_bg.add_child(_draw_gauge_bar)
+	_draw_gauge_label = Label.new()
+	_draw_gauge_label.text = "30s"
+	_draw_gauge_label.add_theme_font_size_override("font_size", 9)
+	_draw_gauge_label.add_theme_color_override("font_color", COLOR_TEXT_DIM)
+	dg_c.add_child(_draw_gauge_label)
+
+	# §3.9 強制突撃ゲージ (w=400, 10分割)
+	var fc_c := VBoxContainer.new()
+	fc_c.custom_minimum_size = Vector2(360, 0)
+	fc_c.alignment = BoxContainer.ALIGNMENT_CENTER
+	row2.add_child(fc_c)
+	var fc_lbl := Label.new()
+	fc_lbl.text = "Force"
+	fc_lbl.add_theme_font_size_override("font_size", 8)
+	fc_lbl.add_theme_color_override("font_color", COLOR_TEXT_DIM)
+	fc_c.add_child(fc_lbl)
+	var fc_segs_row := HBoxContainer.new()
+	fc_segs_row.add_theme_constant_override("separation", 2)
+	fc_c.add_child(fc_segs_row)
+	_force_charge_segs = []
+	for si in range(10):
+		var seg := ColorRect.new()
+		seg.custom_minimum_size = Vector2(32, 14)
+		seg.color = COLOR_PANEL
+		fc_segs_row.add_child(seg)
+		_force_charge_segs.append(seg)
+	_force_charge_turn_label = Label.new()
+	_force_charge_turn_label.text = "0/10"
+	_force_charge_turn_label.add_theme_font_size_override("font_size", 9)
+	_force_charge_turn_label.add_theme_color_override("font_color", COLOR_TEXT_DIM)
+	fc_c.add_child(_force_charge_turn_label)
+
+	_force_charge_warn_label = Label.new()
+	_force_charge_warn_label.text = "突撃推奨"
+	_force_charge_warn_label.add_theme_font_size_override("font_size", 9)
+	_force_charge_warn_label.add_theme_color_override("font_color", COLOR_ORANGE)
+	_force_charge_warn_label.visible = false
+	row2.add_child(_force_charge_warn_label)
+
+	# §3.10 EARLY CHARGE ボタン (w=120)
+	_early_charge_btn = Button.new()
+	_early_charge_btn.text = "EARLY CHARGE"
+	_early_charge_btn.custom_minimum_size = Vector2(120, 28)
+	var ec_sb := StyleBoxFlat.new()
+	ec_sb.bg_color = COLOR_PANEL
+	ec_sb.border_color = COLOR_BORDER
+	ec_sb.set_border_width_all(1)
+	ec_sb.set_corner_radius_all(3)
+	_early_charge_btn.add_theme_stylebox_override("normal", ec_sb)
+	_early_charge_btn.add_theme_font_size_override("font_size", 11)
+	_early_charge_btn.add_theme_color_override("font_color", COLOR_TEXT)
+	_early_charge_btn.pressed.connect(_on_early_charge_btn_pressed)
+	row2.add_child(_early_charge_btn)
+
+func _setup_pop_card(parent: Control) -> void:
+	# §3.3 人口カード (w=200, h=36)
+	var card := _make_status_card(200, 36)
+	parent.add_child(card)
+	var icon_lbl := Label.new()
+	icon_lbl.text = "[P]"
+	icon_lbl.add_theme_font_size_override("font_size", 16)
+	icon_lbl.add_theme_color_override("font_color", COLOR_POP)
+	card.add_child(icon_lbl)
+	var vb := VBoxContainer.new()
+	card.add_child(vb)
 	var title_lbl := Label.new()
-	title_lbl.text = "— BUILD —"
-	title_lbl.add_theme_font_size_override("font_size", 13)
-	title_lbl.add_theme_color_override("font_color", COLOR_TEXT)
-	vbox.add_child(title_lbl)
+	title_lbl.text = "POPULATION"
+	title_lbl.add_theme_font_size_override("font_size", 9)
+	title_lbl.add_theme_color_override("font_color", COLOR_TEXT_DIM)
+	vb.add_child(title_lbl)
+	var gauge_row := HBoxContainer.new()
+	vb.add_child(gauge_row)
+	var gauge_bg := ColorRect.new()
+	gauge_bg.custom_minimum_size = Vector2(80, 8)
+	gauge_bg.color = COLOR_PANEL
+	gauge_row.add_child(gauge_bg)
+	_pop_gauge_bar = ColorRect.new()
+	_pop_gauge_bar.set_anchors_and_offsets_preset(Control.PRESET_LEFT_WIDE)
+	_pop_gauge_bar.size = Vector2(0, 8)
+	_pop_gauge_bar.color = COLOR_POP
+	gauge_bg.add_child(_pop_gauge_bar)
+	_pop_label = Label.new()
+	_pop_label.text = "0/50"
+	_pop_label.add_theme_font_size_override("font_size", 10)
+	_pop_label.add_theme_color_override("font_color", COLOR_TEXT)
+	gauge_row.add_child(_pop_label)
+	_pop_preview_label = Label.new()
+	_pop_preview_label.text = "[+3]"
+	_pop_preview_label.add_theme_font_size_override("font_size", 9)
+	_pop_preview_label.add_theme_color_override("font_color", COLOR_WOOD)
+	_pop_preview_label.visible = false
+	vb.add_child(_pop_preview_label)
 
-	var cards_hbox := GridContainer.new()
-	cards_hbox.columns = 4
-	cards_hbox.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	cards_hbox.add_theme_constant_override("h_separation", 6)
-	cards_hbox.add_theme_constant_override("v_separation", 6)
-	vbox.add_child(cards_hbox)
+func _setup_troop_card(parent: Control) -> void:
+	# §3.5 兵力カード (w=200, h=36)
+	var card := _make_status_card(200, 36)
+	parent.add_child(card)
+	var icon_lbl := Label.new()
+	icon_lbl.text = "[S]"
+	icon_lbl.add_theme_font_size_override("font_size", 16)
+	icon_lbl.add_theme_color_override("font_color", COLOR_TROOP)
+	card.add_child(icon_lbl)
+	var vb := VBoxContainer.new()
+	card.add_child(vb)
+	var title_lbl := Label.new()
+	title_lbl.text = "TROOP"
+	title_lbl.add_theme_font_size_override("font_size", 9)
+	title_lbl.add_theme_color_override("font_color", COLOR_TEXT_DIM)
+	vb.add_child(title_lbl)
+	var gauge_row := HBoxContainer.new()
+	vb.add_child(gauge_row)
+	var gauge_bg := ColorRect.new()
+	gauge_bg.custom_minimum_size = Vector2(80, 8)
+	gauge_bg.color = COLOR_PANEL
+	gauge_row.add_child(gauge_bg)
+	_troop_gauge_bar = ColorRect.new()
+	_troop_gauge_bar.set_anchors_and_offsets_preset(Control.PRESET_LEFT_WIDE)
+	_troop_gauge_bar.size = Vector2(0, 8)
+	_troop_gauge_bar.color = COLOR_TROOP
+	gauge_bg.add_child(_troop_gauge_bar)
+	_troop_label = Label.new()
+	_troop_label.text = "0"
+	_troop_label.add_theme_font_size_override("font_size", 10)
+	_troop_label.add_theme_color_override("font_color", COLOR_TEXT_DIM)
+	gauge_row.add_child(_troop_label)
 
-	var build_data := [
-		# 上段（軍事）4つ
-		{"mode": PlaceMode.BARRACKS,       "icon": "⚔",  "name": "兵舎",   "cost": "20W · 10S"},
-		{"mode": PlaceMode.FORTRESS,       "icon": "🛡",  "name": "要塞",   "cost": "48S · 15W"},
-		{"mode": PlaceMode.WORKSHOP,       "icon": "⚒",  "name": "工房",   "cost": "25W · 5S"},
-		{"mode": PlaceMode.EQUIPMENT_SHOP, "icon": "⚙",  "name": "装備屋", "cost": "5W · 3Su"},
-		# 下段（経済）4つ
-		{"mode": PlaceMode.VILLAGE,        "icon": "⌂",  "name": "農村",   "cost": "15W · 5W"},
-		{"mode": PlaceMode.SAWMILL,        "icon": "🪚",  "name": "製材所", "cost": "8W·3S"},
-		{"mode": PlaceMode.MINE,           "icon": "⛏",  "name": "鉱山",   "cost": "10S·4Su"},
-		{"mode": PlaceMode.TRADE_POST,     "icon": "$",   "name": "交易所", "cost": "5W · 5S"},
-	]
-	var build_modes_arr := [PlaceMode.BARRACKS, PlaceMode.FORTRESS, PlaceMode.WORKSHOP, PlaceMode.EQUIPMENT_SHOP, PlaceMode.VILLAGE, PlaceMode.SAWMILL, PlaceMode.MINE, PlaceMode.TRADE_POST]
+func _setup_gold_card(parent: Control) -> void:
+	# §3.6 資金カード (w=200, h=36)
+	var card := _make_status_card(200, 36)
+	parent.add_child(card)
+	var icon_lbl := Label.new()
+	icon_lbl.text = "[G]"
+	icon_lbl.add_theme_font_size_override("font_size", 16)
+	icon_lbl.add_theme_color_override("font_color", COLOR_GOLD_COIN)
+	card.add_child(icon_lbl)
+	var vb := VBoxContainer.new()
+	card.add_child(vb)
+	var title_lbl := Label.new()
+	title_lbl.text = "GOLD"
+	title_lbl.add_theme_font_size_override("font_size", 9)
+	title_lbl.add_theme_color_override("font_color", COLOR_TEXT_DIM)
+	vb.add_child(title_lbl)
+	_gold_label = Label.new()
+	_gold_label.text = "100G"
+	_gold_label.add_theme_font_size_override("font_size", 12)
+	_gold_label.add_theme_color_override("font_color", COLOR_GOLD_COIN)
+	vb.add_child(_gold_label)
 
-	_build_card_btns = []
-	for i in range(build_data.size()):
-		var data: Dictionary = build_data[i]
-		var card := Button.new()
-		card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		card.size_flags_vertical = Control.SIZE_EXPAND_FILL
-		if i >= 4:  # 下段4つ
-			card.add_theme_constant_override("margin_top", 60)
-		card.flat = true
-		var cv := VBoxContainer.new()
-		cv.alignment = BoxContainer.ALIGNMENT_CENTER
-		cv.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-		cv.add_theme_constant_override("separation", 1)
-		cv.add_theme_constant_override("margin_left", 0)
-		cv.add_theme_constant_override("margin_right", 0)
-		cv.add_theme_constant_override("margin_top", 0)
-		cv.add_theme_constant_override("margin_bottom", 0)
-		card.add_child(cv)
-		var icon_l := Label.new()
-		icon_l.text = data["icon"]
-		icon_l.add_theme_font_size_override("font_size", 16)
-		icon_l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		icon_l.add_theme_color_override("font_color", COLOR_TEXT)
-		icon_l.add_theme_constant_override("margin_left", 0)
-		icon_l.add_theme_constant_override("margin_right", 0)
-		icon_l.add_theme_constant_override("margin_top", 0)
-		icon_l.add_theme_constant_override("margin_bottom", 0)
-		cv.add_child(icon_l)
-		var name_l := Label.new()
-		name_l.text = data["name"]
-		name_l.add_theme_font_size_override("font_size", 10)
-		name_l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		name_l.add_theme_color_override("font_color", COLOR_TEXT)
-		name_l.add_theme_constant_override("margin_left", 0)
-		name_l.add_theme_constant_override("margin_right", 0)
-		name_l.add_theme_constant_override("margin_top", 0)
-		name_l.add_theme_constant_override("margin_bottom", 0)
-		cv.add_child(name_l)
-		var cost_l := Label.new()
-		cost_l.text = data["cost"]
-		cost_l.add_theme_font_size_override("font_size", 8)
-		cost_l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		cost_l.add_theme_color_override("font_color", COLOR_TEXT_DIM)
-		cost_l.add_theme_constant_override("margin_left", 0)
-		cost_l.add_theme_constant_override("margin_right", 0)
-		cost_l.add_theme_constant_override("margin_top", 0)
-		cost_l.add_theme_constant_override("margin_bottom", 0)
-		cv.add_child(cost_l)
-		var cap_mode: int = int(data["mode"])
-		var cap_i: int = i
-		card.pressed.connect(func():
-			if _place_mode == cap_mode:
-				_place_mode = PlaceMode.NONE
-			else:
-				_place_mode = cap_mode
-			_update_build_card_styles()
-			if _place_hint_label:
-				_place_hint_label.visible = (_place_mode != PlaceMode.NONE)
-		)
-		_build_card_btns.append(card)
-		cards_hbox.add_child(card)
+func _make_status_card(w: int, h: int) -> HBoxContainer:
+	# §3.2 水平カード型ステータスパネル共通
+	var card := HBoxContainer.new()
+	card.custom_minimum_size = Vector2(w, h)
+	card.add_theme_constant_override("separation", 4)
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = COLOR_PANEL
+	sb.border_color = COLOR_BORDER
+	sb.set_border_width_all(1)
+	sb.set_corner_radius_all(2)
+	sb.set_content_margin_all(4)
+	return card
 
-	# _mode_label dummy (referenced in _input / _place_building but not displayed)
-	_mode_label = Label.new()
-	_update_build_card_styles()
-	return root
+func _setup_footer_ui(vp: Vector2) -> void:
+	# §4.1 FOOTER (y=500, h=220)
+	var footer := PanelContainer.new()
+	footer.position = Vector2(0, vp.y - 220.0)
+	footer.custom_minimum_size = Vector2(vp.x, 220)
+	_ui_layer.add_child(footer)
+	var ftr_hbox := HBoxContainer.new()
+	ftr_hbox.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	ftr_hbox.add_theme_constant_override("separation", 4)
+	footer.add_child(ftr_hbox)
 
-func _update_build_card_styles() -> void:
-	var build_modes_arr := [PlaceMode.BARRACKS, PlaceMode.FORTRESS, PlaceMode.WORKSHOP, PlaceMode.EQUIPMENT_SHOP, PlaceMode.VILLAGE, PlaceMode.SAWMILL, PlaceMode.MINE, PlaceMode.TRADE_POST]
-	for i in range(_build_card_btns.size()):
-		var card: Button = _build_card_btns[i]
-		var selected: bool = (_place_mode == build_modes_arr[i])
-		var sb := StyleBoxFlat.new()
-		sb.bg_color = COLOR_PANEL
-		sb.border_color = COLOR_ACCENT_GOLD if selected else COLOR_BORDER
-		sb.set_border_width_all(2)
-		sb.set_corner_radius_all(4)
-		card.add_theme_stylebox_override("normal", sb)
-		card.add_theme_stylebox_override("pressed", sb)
-		var sb_h := StyleBoxFlat.new()
-		sb_h.bg_color = Color(COLOR_PANEL.r + 0.06, COLOR_PANEL.g + 0.06, COLOR_PANEL.b + 0.06)
-		sb_h.border_color = COLOR_ACCENT_GOLD if selected else COLOR_BORDER
-		sb_h.set_border_width_all(2)
-		sb_h.set_corner_radius_all(4)
-		card.add_theme_stylebox_override("hover", sb_h)
-		card.modulate.a = 1.0 if selected else 0.8
+	# 左ブロック (x=8, w=120): Deck / Discard §4.3
+	_setup_deck_discard_block(ftr_hbox)
+
+	var ftr_sep1 := VSeparator.new()
+	ftr_sep1.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	ftr_hbox.add_child(ftr_sep1)
+
+	# 中央ブロック (x=140, w=920): 手札 §4.2
+	_setup_hand_center_block(ftr_hbox)
+
+	var ftr_sep2 := VSeparator.new()
+	ftr_sep2.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	ftr_hbox.add_child(ftr_sep2)
+
+	# 右ブロック (x=1072, w=200): EVENT SELECT §4.4
+	_setup_event_block(ftr_hbox)
+
+func _setup_deck_discard_block(parent: Control) -> void:
+	# §4.3 Deck / Discard 左ブロック
+	var vb := VBoxContainer.new()
+	vb.custom_minimum_size = Vector2(120, 0)
+	vb.add_theme_constant_override("separation", 4)
+	parent.add_child(vb)
+
+	# DECK
+	var deck_panel := PanelContainer.new()
+	deck_panel.custom_minimum_size = Vector2(104, 88)
+	deck_panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	var dp_sb := StyleBoxFlat.new()
+	dp_sb.bg_color = COLOR_PANEL
+	dp_sb.border_color = COLOR_BORDER
+	dp_sb.set_border_width_all(1)
+	deck_panel.add_theme_stylebox_override("panel", dp_sb)
+	vb.add_child(deck_panel)
+	var dp_vb := VBoxContainer.new()
+	dp_vb.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	dp_vb.alignment = BoxContainer.ALIGNMENT_CENTER
+	deck_panel.add_child(dp_vb)
+	var dp_title := Label.new()
+	dp_title.text = "DECK"
+	dp_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	dp_title.add_theme_font_size_override("font_size", 10)
+	dp_title.add_theme_color_override("font_color", COLOR_TEXT_DIM)
+	dp_vb.add_child(dp_title)
+	var dp_back := ColorRect.new()
+	dp_back.custom_minimum_size = Vector2(48, 36)
+	dp_back.color = COLOR_PANEL
+	dp_vb.add_child(dp_back)
+	var dp_back_border := Label.new()
+	dp_back_border.text = "[DECK]"
+	dp_back_border.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	dp_back_border.add_theme_font_size_override("font_size", 9)
+	dp_back_border.add_theme_color_override("font_color", COLOR_ACCENT_GOLD)
+	dp_vb.add_child(dp_back_border)
+	_deck_count_label = Label.new()
+	_deck_count_label.text = "残13"
+	_deck_count_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_deck_count_label.add_theme_font_size_override("font_size", 14)
+	_deck_count_label.add_theme_color_override("font_color", COLOR_TEXT)
+	dp_vb.add_child(_deck_count_label)
+
+	# DISCARD
+	var disc_panel := PanelContainer.new()
+	disc_panel.custom_minimum_size = Vector2(104, 88)
+	disc_panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	var dsc_sb := StyleBoxFlat.new()
+	dsc_sb.bg_color = COLOR_PANEL
+	dsc_sb.border_color = COLOR_BORDER
+	dsc_sb.set_border_width_all(1)
+	disc_panel.add_theme_stylebox_override("panel", dsc_sb)
+	vb.add_child(disc_panel)
+	var dsc_vb := VBoxContainer.new()
+	dsc_vb.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	dsc_vb.alignment = BoxContainer.ALIGNMENT_CENTER
+	disc_panel.add_child(dsc_vb)
+	var dsc_title := Label.new()
+	dsc_title.text = "DISCARD"
+	dsc_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	dsc_title.add_theme_font_size_override("font_size", 10)
+	dsc_title.add_theme_color_override("font_color", COLOR_TEXT_DIM)
+	dsc_vb.add_child(dsc_title)
+	var dsc_icon := Label.new()
+	dsc_icon.text = "—"
+	dsc_icon.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	dsc_icon.add_theme_font_size_override("font_size", 18)
+	dsc_icon.add_theme_color_override("font_color", COLOR_TEXT_DIM)
+	dsc_vb.add_child(dsc_icon)
+	_discard_count_label = Label.new()
+	_discard_count_label.text = "0枚"
+	_discard_count_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_discard_count_label.add_theme_font_size_override("font_size", 10)
+	_discard_count_label.add_theme_color_override("font_color", COLOR_TEXT_DIM)
+	dsc_vb.add_child(_discard_count_label)
+
+func _setup_hand_center_block(parent: Control) -> void:
+	# §4.2 手札中央ブロック (w=920, 6枚表示+スクロール矢印)
+	var center_block := VBoxContainer.new()
+	center_block.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	center_block.add_theme_constant_override("separation", 2)
+	parent.add_child(center_block)
+
+	# 矢印+カード行
+	var hand_row := HBoxContainer.new()
+	hand_row.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	hand_row.add_theme_constant_override("separation", 4)
+	center_block.add_child(hand_row)
+
+	_hand_left_arrow = Button.new()
+	_hand_left_arrow.text = "◀"
+	_hand_left_arrow.custom_minimum_size = Vector2(40, 64)
+	_hand_left_arrow.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	_hand_left_arrow.modulate.a = 0.3
+	_hand_left_arrow.pressed.connect(_on_hand_scroll_left)
+	hand_row.add_child(_hand_left_arrow)
+
+	_hand_container = HBoxContainer.new()
+	_hand_container.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_hand_container.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	_hand_container.add_theme_constant_override("separation", 8)
+	hand_row.add_child(_hand_container)
+
+	_hand_right_arrow = Button.new()
+	_hand_right_arrow.text = "▶"
+	_hand_right_arrow.custom_minimum_size = Vector2(40, 64)
+	_hand_right_arrow.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	_hand_right_arrow.modulate.a = 0.3
+	_hand_right_arrow.pressed.connect(_on_hand_scroll_right)
+	hand_row.add_child(_hand_right_arrow)
+
+func _setup_event_block(parent: Control) -> void:
+	# §4.4 Event Select 右ブロック（ロック状態）
+	var ev_panel := PanelContainer.new()
+	ev_panel.custom_minimum_size = Vector2(200, 0)
+	var ep_sb := StyleBoxFlat.new()
+	ep_sb.bg_color = Color(COLOR_PANEL.r * 0.5, COLOR_PANEL.g * 0.5, COLOR_PANEL.b * 0.5, 0.9)
+	ep_sb.border_color = COLOR_BORDER
+	ep_sb.set_border_width_all(1)
+	ev_panel.add_theme_stylebox_override("panel", ep_sb)
+	ev_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	parent.add_child(ev_panel)
+	var ev_vb := VBoxContainer.new()
+	ev_vb.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	ev_vb.alignment = BoxContainer.ALIGNMENT_CENTER
+	ev_panel.add_child(ev_vb)
+	var ev_title := Label.new()
+	ev_title.text = "EVENT SELECT"
+	ev_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	ev_title.add_theme_font_size_override("font_size", 10)
+	ev_title.add_theme_color_override("font_color", COLOR_TEXT_DIM)
+	ev_vb.add_child(ev_title)
+	# 2×2 グリッド
+	var ev_grid := GridContainer.new()
+	ev_grid.columns = 2
+	ev_grid.add_theme_constant_override("h_separation", 4)
+	ev_grid.add_theme_constant_override("v_separation", 4)
+	ev_vb.add_child(ev_grid)
+	for _ei in range(4):
+		var cell_panel := PanelContainer.new()
+		cell_panel.custom_minimum_size = Vector2(88, 72)
+		var cp_sb := StyleBoxFlat.new()
+		cp_sb.bg_color = Color(COLOR_PANEL.r, COLOR_PANEL.g, COLOR_PANEL.b, 0.5)
+		cp_sb.border_color = COLOR_BORDER
+		cp_sb.set_border_width_all(1)
+		cell_panel.add_theme_stylebox_override("panel", cp_sb)
+		cell_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		ev_grid.add_child(cell_panel)
+		var cell_vb := VBoxContainer.new()
+		cell_vb.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		cell_vb.alignment = BoxContainer.ALIGNMENT_CENTER
+		cell_panel.add_child(cell_vb)
+		var lock_lbl := Label.new()
+		lock_lbl.text = "[L]"
+		lock_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		lock_lbl.add_theme_font_size_override("font_size", 18)
+		lock_lbl.add_theme_color_override("font_color", COLOR_TEXT_DIM)
+		cell_vb.add_child(lock_lbl)
+		var locked_lbl := Label.new()
+		locked_lbl.text = "LOCKED"
+		locked_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		locked_lbl.add_theme_font_size_override("font_size", 9)
+		locked_lbl.add_theme_color_override("font_color", COLOR_TEXT_DIM)
+		cell_vb.add_child(locked_lbl)
+	var ev_sub := Label.new()
+	ev_sub.text = "v0.3 開放"
+	ev_sub.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	ev_sub.add_theme_font_size_override("font_size", 9)
+	ev_sub.add_theme_color_override("font_color", COLOR_TEXT_DIM)
+	ev_vb.add_child(ev_sub)
+
+func _on_hand_scroll_left() -> void:
+	if _hand_scroll_offset > 0:
+		_hand_scroll_offset -= 1
+		_refresh_hand_ui()
+
+func _on_hand_scroll_right() -> void:
+	if _battle.deck_manager == null:
+		return
+	var hand_size: int = int(_battle.deck_manager.hand.size())
+	if _hand_scroll_offset + 6 < hand_size:
+		_hand_scroll_offset += 1
+		_refresh_hand_ui()
+
+# _create_build_panel / _update_build_card_styles は v0.2 で廃止（設計書 §4.0）
 
 func _create_control_panel() -> Control:
 	var scroll := ScrollContainer.new()
@@ -624,189 +916,7 @@ func _create_control_panel() -> Control:
 	vbox.add_child(btn_regen)
 	return scroll
 
-func _create_harvester_alloc_ui() -> Control:
-	var all_keys := [
-		EconGrid.ResourceType.WOOD,
-		EconGrid.ResourceType.STONE,
-		EconGrid.ResourceType.SULFUR,
-		EconGrid.ResourceType.WHEAT,
-		EconGrid.ResourceType.IRON,
-		EconGrid.ResourceType.COTTON,
-		EconEconomy.ROLE_BUILD,
-		EconEconomy.ROLE_TRADE,
-	]
-	var col_names  := ["WOOD", "STONE", "SULFUR", "WHEAT", "IRON", "COTTON", "BUILD", "TRADE"]
-	var col_icons  := ["🌲", "◆", "✦", "🌾", "⚙", "☁", "⚒", "⚖"]
-	var col_colors := [COLOR_WOOD, COLOR_STONE, COLOR_SULFUR, COLOR_WHEAT, Color(0.55, 0.45, 0.35), Color(0.95, 0.92, 0.85), COLOR_BUILD_COL, COLOR_TRADE_COL]
-
-	# Root panel
-	var root := PanelContainer.new()
-	var sb_root := StyleBoxFlat.new()
-	sb_root.bg_color = COLOR_PANEL
-	root.add_theme_stylebox_override("panel", sb_root)
-
-	var vbox := VBoxContainer.new()
-	vbox.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	root.add_child(vbox)
-
-	# Header row
-	var hdr := HBoxContainer.new()
-	vbox.add_child(hdr)
-	var title_lbl := Label.new()
-	title_lbl.text = "— HARVESTER ALLOCATION —"
-	title_lbl.add_theme_font_size_override("font_size", 13)
-	title_lbl.add_theme_color_override("font_color", COLOR_TEXT)
-	title_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	hdr.add_child(title_lbl)
-	_alloc_subtitle = Label.new()
-	_alloc_subtitle.text = "total 0 · weights drive distribution"
-	_alloc_subtitle.add_theme_font_size_override("font_size", 11)
-	_alloc_subtitle.add_theme_color_override("font_color", COLOR_TEXT_DIM)
-	hdr.add_child(_alloc_subtitle)
-
-	# 6 columns
-	var cols := HBoxContainer.new()
-	cols.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	cols.add_theme_constant_override("separation", 0)
-	vbox.add_child(cols)
-
-	var count_labels: Array = []
-	for i in range(all_keys.size()):
-		if i > 0:
-			var colsep := VSeparator.new()
-			colsep.mouse_filter = Control.MOUSE_FILTER_IGNORE
-			cols.add_child(colsep)
-		var col := VBoxContainer.new()
-		col.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		col.alignment = BoxContainer.ALIGNMENT_CENTER
-		cols.add_child(col)
-		var icon_lbl := Label.new()
-		icon_lbl.text = col_icons[i]
-		icon_lbl.add_theme_font_size_override("font_size", 18)
-		icon_lbl.add_theme_color_override("font_color", col_colors[i])
-		icon_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		col.add_child(icon_lbl)
-		var name_lbl := Label.new()
-		name_lbl.text = col_names[i]
-		name_lbl.add_theme_font_size_override("font_size", 11)
-		name_lbl.add_theme_color_override("font_color", COLOR_TEXT)
-		name_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		col.add_child(name_lbl)
-		var ctrl_row := HBoxContainer.new()
-		ctrl_row.alignment = BoxContainer.ALIGNMENT_CENTER
-		col.add_child(ctrl_row)
-		var btn_m := Button.new()
-		btn_m.text = "−"
-		btn_m.custom_minimum_size = Vector2(26, 26)
-		var ci: int = i
-		btn_m.pressed.connect(func():
-			var cur: int = _economy.target_count.get(all_keys[ci], 0)
-			var tot: int = 0
-			for k in all_keys: tot += _economy.target_count.get(k, 0)
-			if cur > 0 and tot > 1:
-				_economy.target_count[all_keys[ci]] = cur - 1
-			_harvester_ui_update.call()
-		)
-		ctrl_row.add_child(btn_m)
-		var cnt_lbl := Label.new()
-		cnt_lbl.text = str(_economy.target_count.get(all_keys[i], 0))
-		cnt_lbl.custom_minimum_size = Vector2(32, 0)
-		cnt_lbl.add_theme_font_size_override("font_size", 16)
-		cnt_lbl.add_theme_color_override("font_color", COLOR_TEXT)
-		cnt_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		count_labels.append(cnt_lbl)
-		ctrl_row.add_child(cnt_lbl)
-		var btn_p := Button.new()
-		btn_p.text = "+"
-		btn_p.custom_minimum_size = Vector2(26, 26)
-		btn_p.pressed.connect(func():
-			var cur: int = _economy.target_count.get(all_keys[ci], 0)
-			var alive: int = _battle.player_harvesters.size()
-			var tot: int = 0
-			for k in all_keys: tot += _economy.target_count.get(k, 0)
-			if tot < alive + 6:
-				_economy.target_count[all_keys[ci]] = cur + 1
-			_harvester_ui_update.call()
-		)
-		ctrl_row.add_child(btn_p)
-
-	# Stack bar
-	_stack_bar = Control.new()
-	_stack_bar.custom_minimum_size = Vector2(0, 20)
-	_stack_bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_stack_bar.draw.connect(func():
-		var bw: float = _stack_bar.size.x - 32.0
-		var bx: float = 16.0
-		var by: float = 1.0
-		var bh: float = 16.0
-		var alive: int = _battle.player_harvesters.size()
-		var tot_t: int = 0
-		for k in all_keys: tot_t += _economy.target_count.get(k, 0)
-		var scale_v: int = max(alive, tot_t, 1)
-		var alive_w: float = bw * float(alive) / float(scale_v)
-		_stack_bar.draw_rect(Rect2(bx, by, bw, bh), Color("#1A1814"))
-		var x: float = bx
-		for ii in range(all_keys.size()):
-			var cnt_v: int = _economy.target_count.get(all_keys[ii], 0)
-			var sw: float = bw * float(cnt_v) / float(scale_v)
-			if sw <= 0.0:
-				continue
-			var c: Color = col_colors[ii]
-			var solid_end: float = min(x + sw, bx + alive_w)
-			if solid_end > x:
-				_stack_bar.draw_rect(Rect2(x, by, solid_end - x, bh), c)
-			if x + sw > bx + alive_w:
-				var ts: float = max(x, bx + alive_w)
-				_stack_bar.draw_rect(Rect2(ts, by, x + sw - ts, bh), Color(c.r, c.g, c.b, 0.35))
-			x += sw
-		if alive < scale_v:
-			_stack_bar.draw_line(Vector2(bx + alive_w, by), Vector2(bx + alive_w, by + bh), COLOR_TEXT_DIM, 1.5)
-		if x < bx + bw:
-			_stack_bar.draw_rect(Rect2(x, by, bx + bw - x, bh), COLOR_BORDER)
-		_stack_bar.draw_rect(Rect2(bx, by, bw, bh), COLOR_BORDER, false, 1.0)
-	)
-	vbox.add_child(_stack_bar)
-
-	# Footer row
-	var ftr := HBoxContainer.new()
-	vbox.add_child(ftr)
-	var dist_lbl := Label.new()
-	dist_lbl.text = "DISTRIBUTION · READ-ONLY"
-	dist_lbl.add_theme_font_size_override("font_size", 10)
-	dist_lbl.add_theme_color_override("font_color", COLOR_TEXT_DIM)
-	dist_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	ftr.add_child(dist_lbl)
-	_next_h_label = Label.new()
-	_next_h_label.add_theme_font_size_override("font_size", 10)
-	_next_h_label.add_theme_color_override("font_color", COLOR_TEXT_DIM)
-	_next_h_label.text = "次H: --"
-	ftr.add_child(_next_h_label)
-	_alloc_harvesters_label = Label.new()
-	_alloc_harvesters_label.text = "0 HARVESTERS"
-	_alloc_harvesters_label.add_theme_font_size_override("font_size", 11)
-	_alloc_harvesters_label.add_theme_color_override("font_color", COLOR_TEXT)
-	ftr.add_child(_alloc_harvesters_label)
-
-	# Update function (called every frame from _process)
-	var _update := func():
-		var alive: int = _battle.player_harvesters.size()
-		_alloc_harvesters_label.text = "%d HARVESTERS" % alive
-		var tot: int = 0
-		for k in all_keys: tot += _economy.target_count.get(k, 0)
-		_alloc_subtitle.text = "total %d · weights drive distribution" % tot
-		for i2 in range(all_keys.size()):
-			count_labels[i2].text = str(_economy.target_count.get(all_keys[i2], 0))
-		if _stack_bar != null:
-			_stack_bar.queue_redraw()
-		var min_rem: float = INF
-		for b in _battle.player_buildings:
-			if b.is_alive and b.is_built and b.get("building_type") != null:
-				if b.building_type == EconBuilding.BuildingType.VILLAGE:
-					min_rem = minf(min_rem, EconBuilding.VILLAGE_HARVESTER_INTERVAL - b._harvester_timer)
-		_next_h_label.text = "次H: %.0fs" % min_rem if min_rem < INF else "次H: 農村なし"
-	_harvester_ui_update = _update
-	_update.call()
-	return root
+# _create_harvester_alloc_ui は v0.2 で廃止（設計書 §2.3）
 
 func _on_start_pressed() -> void:
 	if _is_running:
@@ -861,7 +971,7 @@ func _input(event: InputEvent) -> void:
 	# Ignore clicks in header / footer UI areas
 	var mouse_y: float = event.position.y
 	var vp_h: float = get_viewport().get_visible_rect().size.y
-	if mouse_y < 80.0 or mouse_y > vp_h - 120.0:  # v0.2: HEADER=80, FOOTER=120
+	if mouse_y < 80.0 or mouse_y > vp_h - 220.0:  # v0.2: HEADER=80, FOOTER=220
 		return
 	var local_pos: Vector2 = _grid.to_local(get_global_mouse_position())
 	var cell := _pixel_to_hex(local_pos)
@@ -902,13 +1012,12 @@ func _input(event: InputEvent) -> void:
 					return
 		_guard_select_mode = false
 		return
-	# 建設モード
-	if _place_mode != PlaceMode.NONE:
+	# 手札カード選択後の建設モード（v0.2 hand→board 配置）
+	if _selected_card_btype != "":
 		if cell == Vector2i(-1, -1):
 			return
 		if not _grid.is_valid_cell(cell.x, cell.y):
 			return
-		# 山岳セルへの建設を禁止
 		if _grid.is_mountain(cell):
 			_add_log("Cannot build on mountain")
 			return
@@ -920,9 +1029,8 @@ func _input(event: InputEvent) -> void:
 			if b.grid_pos == cell:
 				_add_log("Cell occupied by building")
 				return
-		_place_building(cell, _place_mode)
-		_place_mode = PlaceMode.NONE
-		_update_build_card_styles()
+		_place_building_from_card(cell, _selected_card_btype)
+		_selected_card_btype = ""
 		if _place_hint_label: _place_hint_label.visible = false
 		return
 	# 未建設建物のキャンセル
@@ -956,34 +1064,24 @@ func _deselect_unit() -> void:
 	_order_panel.visible = false
 	_guard_select_mode = false
 
-func _place_building(cell: Vector2i, mode: PlaceMode) -> void:
+func _place_building_from_card(cell: Vector2i, btype_str: String) -> void:
+	# v0.2 手札カードから建物を配置（§4.2 手札→盤面ドロップ）
 	var btype_map: Dictionary = {
-		PlaceMode.BARRACKS: EconBuilding.BuildingType.BARRACKS,
-		PlaceMode.FORTRESS: EconBuilding.BuildingType.FORTRESS,
-		PlaceMode.WORKSHOP: EconBuilding.BuildingType.WORKSHOP,
-		PlaceMode.VILLAGE:  EconBuilding.BuildingType.VILLAGE,
-		PlaceMode.SAWMILL:  EconBuilding.BuildingType.SAWMILL,
-		PlaceMode.MINE:     EconBuilding.BuildingType.MINE,
-		PlaceMode.EQUIPMENT_SHOP: EconBuilding.BuildingType.EQUIPMENT_SHOP,
+		"BARRACKS":        EconBuilding.BuildingType.BARRACKS,
+		"HOUSE":           EconBuilding.BuildingType.VILLAGE,
+		"LIBRARY":         EconBuilding.BuildingType.TRADE_POST,
+		"MARKET":          EconBuilding.BuildingType.TRADE_POST,
+		"WOOD_EXTRACTOR":  EconBuilding.BuildingType.SAWMILL,
+		"STONE_EXTRACTOR": EconBuilding.BuildingType.MINE,
+		"SULFUR_EXTRACTOR":EconBuilding.BuildingType.MINE,
+		"WHEAT_EXTRACTOR": EconBuilding.BuildingType.VILLAGE,
+		"IRON_EXTRACTOR":  EconBuilding.BuildingType.MINE,
+		"COTTON_EXTRACTOR":EconBuilding.BuildingType.VILLAGE,
 	}
-	var btype: int = int(btype_map[mode])
-	# #3: Village数が生産棟の上限（兵舎/要塞/工房のみ）
-	if btype in [0, 1, 2]:  # BARRACKS / FORTRESS / WORKSHOP
-		var village_count: int = 0
-		var production_count: int = 0
-		for b in _battle.player_buildings:
-			if not b.is_alive:
-				continue
-			if b.building_type == EconBuilding.BuildingType.VILLAGE:
-				village_count += 1
-			elif b.building_type != EconBuilding.BuildingType.BASE:
-				production_count += 1
-		var max_prod: int = village_count * 2 + 1
-		if production_count >= max_prod:
-			_add_log("Village not enough! (%d/%d)" % [production_count, max_prod])
-			_place_mode = PlaceMode.NONE
-			_mode_label.text = "Mode: None"
-			return
+	if not btype_map.has(btype_str):
+		_add_log("Unknown building type: %s" % btype_str)
+		return
+	var btype: int = int(btype_map[btype_str])
 	# 自建物のいずれかから半径3hex以内チェック
 	var in_range := false
 	for pb in _battle.player_buildings:
@@ -992,37 +1090,7 @@ func _place_building(cell: Vector2i, mode: PlaceMode) -> void:
 			break
 	if not in_range:
 		_add_log("自建物から半径3hex以内にのみ建設できます")
-		_place_mode = PlaceMode.NONE
-		_update_build_card_styles()
-		if _place_hint_label: _place_hint_label.visible = false
 		return
-	# SAWMILL: WOODタイル隣接必須
-	if btype == int(EconBuilding.BuildingType.SAWMILL):
-		var has_wood := false
-		for nb in _grid.get_neighbors(cell.x, cell.y):
-			if _grid.get_resource_type(nb) == EconGrid.ResourceType.WOOD:
-				has_wood = true
-				break
-		if not has_wood:
-			_add_log("製材所は木材タイルに隣接して建設してください")
-			_place_mode = PlaceMode.NONE
-			_update_build_card_styles()
-			if _place_hint_label: _place_hint_label.visible = false
-			return
-	# MINE: STONE/SULFUR/IRONタイル隣接必須
-	if btype == int(EconBuilding.BuildingType.MINE):
-		var has_ore := false
-		for nb in _grid.get_neighbors(cell.x, cell.y):
-			var ntype := _grid.get_resource_type(nb)
-			if ntype in [EconGrid.ResourceType.STONE, EconGrid.ResourceType.SULFUR, EconGrid.ResourceType.IRON]:
-				has_ore = true
-				break
-		if not has_ore:
-			_add_log("鉱山は石材・硫黄・鉄鉱タイルに隣接して建設してください")
-			_place_mode = PlaceMode.NONE
-			_update_build_card_styles()
-			if _place_hint_label: _place_hint_label.visible = false
-			return
 	var b := EconBuilding.new()
 	b.setup(btype, cell, true)
 	b.position = _grid.hex_to_pixel(cell.x, cell.y)
@@ -1031,7 +1099,6 @@ func _place_building(cell: Vector2i, mode: PlaceMode) -> void:
 			_spawn_harvester_at(pos.x, pos.y)
 		elif _charge_mode:
 			_battle.spawn_player_unit(pos.x, pos.y, utype, _charge_mode)
-			# ユニット生成後のバフ適用は _battle._on_unit_produced() で処理（疎結合）
 			_battle._on_unit_produced(pos, utype)
 		else:
 			var idle_count: int = 0
@@ -1040,15 +1107,13 @@ func _place_building(cell: Vector2i, mode: PlaceMode) -> void:
 					idle_count += 1
 			if idle_count < EconGrid.MAX_STACK:
 				_battle.spawn_player_unit(pos.x, pos.y, utype, _charge_mode)
-				# ユニット生成後のバフ適用は _battle._on_unit_produced() で処理（疎結合）
 				_battle._on_unit_produced(pos, utype)
 	)
 	b.building_destroyed.connect(func(building: Node):
 		_battle._on_building_destroyed(building)
 	)
 	_battle.register_player_building(b)
-	var names := ["Barracks", "Fortress", "Workshop", "Village", "BASE", "Sawmill", "Mine", "Equipment_Shop"]
-	_add_log("%s placed at (%d,%d)" % [names[btype], cell.x, cell.y])
+	_add_log("%s placed at (%d,%d)" % [btype_str, cell.x, cell.y])
 
 
 func _on_battle_ended(player_won: bool) -> void:
@@ -1107,23 +1172,15 @@ func _get_wheat_eval() -> Dictionary:
 
 func _process(delta: float) -> void:
 	_battle.update(delta)
-	_resource_label.text = "W:%d St:%d Su:%d Wh:%d Fe:%d Co:%d" % [
-		_economy.resources.get("wood", 0),
-		_economy.resources.get("stone", 0),
-		_economy.resources.get("sulfur", 0),
-		_economy.resources.get("wheat", 0),
-		_economy.resources.get("iron", 0),
-		_economy.resources.get("cotton", 0),
-	]
+	# v0.2 資源ラベル辞書更新（§3.7）
+	for res_key in _res_labels.keys():
+		var lbl: Label = _res_labels[res_key]
+		lbl.text = "%d" % _economy.resources.get(res_key, 0)
 	if _ai != null and _ai.economy != null:
 		var eco := _ai.economy
 		_ai_resource_label.text = "W:%d St:%d Su:%d Wh:%d" % [eco.wood, eco.stone, eco.sulfur, eco.wheat]
-	var eval: Dictionary = _get_wheat_eval()
-	_wheat_eval_label.text = eval["text"]
-	_wheat_eval_label.add_theme_color_override("font_color", eval["color"])
-	_update_build_highlight()
-	if _harvester_ui_update.is_valid():
-		_harvester_ui_update.call()
+	# v0.2 highlight更新（建設モードなし → 領土表示のみ）
+	_update_territory_highlight()
 	# v0.2 ステータスUI更新（§5.1）
 	_update_status_ui()
 	# ドロー・ゲージ・人口UI更新（§5 pull型）
@@ -1131,29 +1188,12 @@ func _process(delta: float) -> void:
 	_update_force_charge_gauge_ui(delta)
 	_update_population_ui()
 
-func _update_build_highlight() -> void:
+func _update_territory_highlight() -> void:
+	# v0.2: 建設モード廃止により fill_cells は常に空。領土表示のみ更新。
 	_grid.highlight_cells.clear()
 	_grid.fill_cells.clear()
-	# 資源タイル強調（建設モード時のみ）
-	var resource_highlight_map: Dictionary = {
-		PlaceMode.BARRACKS: EconGrid.ResourceType.WOOD,
-		PlaceMode.FORTRESS: EconGrid.ResourceType.STONE,
-		PlaceMode.WORKSHOP: EconGrid.ResourceType.SULFUR,
-		PlaceMode.VILLAGE:  EconGrid.ResourceType.WHEAT,
-		PlaceMode.SAWMILL:  EconGrid.ResourceType.WOOD,
-		PlaceMode.MINE:     EconGrid.ResourceType.STONE,
-	}
-	_grid.resource_highlight_type = resource_highlight_map.get(_place_mode, EconGrid.ResourceType.NONE)
-	# 占有セルを収集（建設モード時のfill_cells除外に使用）
-	var occupied: Dictionary = {}
-	if _place_mode != PlaceMode.NONE:
-		for h in _battle.player_harvesters:
-			if h.is_alive:
-				occupied[h.grid_pos] = true
-		for b in _battle.player_buildings:
-			if b.is_alive:
-				occupied[b.grid_pos] = true
-	# highlight_cells: 建設済みplayer_buildingsから半径3の和集合（row制限なし）
+	_grid.resource_highlight_type = EconGrid.ResourceType.NONE
+	# highlight_cells: 建設済みplayer_buildingsから半径3の和集合
 	for pb in _battle.player_buildings:
 		if not pb.is_alive:
 			continue
@@ -1166,7 +1206,7 @@ func _update_build_highlight() -> void:
 					continue
 				if _grid.hex_distance(cell, pb.grid_pos) <= 3:
 					_grid.highlight_cells[cell] = true
-	# enemy_territory_cells: 建設済みenemy_buildingsから半径3の和集合（row制限なし）
+	# enemy_territory_cells: 建設済みenemy_buildingsから半径3の和集合
 	_grid.enemy_territory_cells.clear()
 	for eb in _battle.enemy_buildings:
 		if not eb.is_alive:
@@ -1180,43 +1220,6 @@ func _update_build_highlight() -> void:
 					continue
 				if _grid.hex_distance(cell, eb.grid_pos) <= 3:
 					_grid.enemy_territory_cells[cell] = true
-	# fill_cells（建設モード時のみ塗りつぶし）: col 0-7フィルタ
-	if _place_mode != PlaceMode.NONE:
-		for col in range(0, 8):
-			for row in range(_grid.ROWS):
-				var cell := Vector2i(col, row)
-				if _grid.is_mountain(cell):
-					continue
-				if occupied.has(cell):
-					continue
-				var in_range := false
-				for pb in _battle.player_buildings:
-					if pb.is_alive and _grid.hex_distance(cell, pb.grid_pos) <= 3:
-						in_range = true
-						break
-				if not in_range:
-					continue
-				# 敵領土内には建設不可
-				if _grid.enemy_territory_cells.has(cell):
-					continue
-				if _place_mode == PlaceMode.SAWMILL:
-					var has_wood := false
-					for nb in _grid.get_neighbors(col, row):
-						if _grid.get_resource_type(nb) == EconGrid.ResourceType.WOOD:
-							has_wood = true
-							break
-					if not has_wood:
-						continue
-				if _place_mode == PlaceMode.MINE:
-					var has_ore := false
-					for nb in _grid.get_neighbors(col, row):
-						var ntype := _grid.get_resource_type(nb)
-						if ntype in [EconGrid.ResourceType.STONE, EconGrid.ResourceType.SULFUR, EconGrid.ResourceType.IRON]:
-							has_ore = true
-							break
-					if not has_ore:
-						continue
-				_grid.fill_cells[cell] = true
 	_grid.queue_redraw()
 
 func _place_flag(pos: Vector2i) -> void:
@@ -1314,28 +1317,33 @@ func _on_card_drawn(card: Dictionary) -> void:
 	_draw_flash_timer = 0.1
 
 func _refresh_hand_ui() -> void:
-	# 手札UIを再構築（§5.3）
+	# 手札UIを再構築（§4.2 スクロール対応・6枚表示）
 	if _hand_container == null:
 		return
-	# 既存カードを全削除
 	for child in _hand_container.get_children():
 		child.queue_free()
 	if _battle.deck_manager == null:
 		return
-	# 手札カードを左→右で配置（ドロー順固定 §5.3 §2.8）
 	var hand_size: int = int(_battle.deck_manager.hand.size())
-	for i in range(hand_size):
-		var card_data: Dictionary = _battle.deck_manager.hand[i]
-		var card_node := _create_hand_card_node(card_data, i)
+	# スクロールオフセット範囲補正
+	_hand_scroll_offset = clampi(_hand_scroll_offset, 0, max(0, hand_size - 6))
+	# 6枚表示（offset〜offset+5）
+	var display_count: int = mini(6, hand_size - _hand_scroll_offset)
+	for i in range(display_count):
+		var actual_idx: int = _hand_scroll_offset + i
+		var card_data: Dictionary = _battle.deck_manager.hand[actual_idx]
+		var card_node := _create_hand_card_node(card_data, actual_idx)
 		_hand_container.add_child(card_node)
-	# デッキ・捨て札・除外表示更新（§5.3）
+	# 矢印 enabled 更新 §4.2.4
+	if _hand_left_arrow != null:
+		_hand_left_arrow.modulate.a = 1.0 if _hand_scroll_offset > 0 else 0.3
+	if _hand_right_arrow != null:
+		_hand_right_arrow.modulate.a = 1.0 if (_hand_scroll_offset + 6 < hand_size) else 0.3
+	# デッキ・捨て札表示更新 §4.3
 	if _deck_count_label != null:
-		_deck_count_label.text = "Deck: %d" % int(_battle.deck_manager.deck.size())
+		_deck_count_label.text = "残%d" % int(_battle.deck_manager.deck.size())
 	if _discard_count_label != null:
-		_discard_count_label.text = "Discard: %d / Exiled: %d" % [
-			int(_battle.deck_manager.discard_pile.size()),
-			int(_battle.deck_manager.excluded.size()),
-		]
+		_discard_count_label.text = "%d枚" % int(_battle.deck_manager.discard_pile.size())
 
 func _create_hand_card_node(card_data: Dictionary, card_idx: int) -> Control:
 	# §5.2.1 手札カード1枚のノードを生成（96×112px・v0.2 縮小）
@@ -1422,16 +1430,17 @@ func _create_hand_card_node(card_data: Dictionary, card_idx: int) -> Control:
 	desc_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD
 	vbox.add_child(desc_lbl)
 
-	# クリックで建設モード起動（v0.1 PlaceMode 連携）
-	var captured_idx: int = card_idx
+	# クリックで建設モード起動（v0.2 §4.2 手札→盤面配置）
 	var captured_card: Dictionary = card_data
 	card_btn.pressed.connect(func():
 		if _battle.deck_manager != null and bool(_battle.deck_manager.force_charge_triggered):
 			_add_log("突撃発動中: 建設停止")
 			return
+		var btype_str: String = captured_card.get("building_type", "")
+		_selected_card_btype = btype_str
 		_add_log("手札: %s を選択（盤面クリックで配置）" % captured_card.get("name", "?"))
-		# v0.1 は既存 PlaceMode に対応する建物タイプにマッピング
-		_set_place_mode_from_card(captured_card, captured_idx)
+		if _place_hint_label:
+			_place_hint_label.visible = true
 	)
 
 	# 住居ホバー時の人口プレビュー（§5.5.3）
@@ -1479,205 +1488,9 @@ func _get_card_icon(building_type: String) -> String:
 	}
 	return icons.get(building_type, "?")
 
-func _set_place_mode_from_card(card_data: Dictionary, card_idx: int) -> void:
-	# 手札カードから既存 PlaceMode を設定（v0.1 統合）
-	var btype: String = card_data.get("building_type", "")
-	var mode_map: Dictionary = {
-		"BARRACKS": PlaceMode.BARRACKS,
-		"HOUSE": PlaceMode.VILLAGE,
-		"LIBRARY": PlaceMode.TRADE_POST,
-		"MARKET": PlaceMode.TRADE_POST,
-		"WOOD_EXTRACTOR": PlaceMode.SAWMILL,
-		"STONE_EXTRACTOR": PlaceMode.MINE,
-		"SULFUR_EXTRACTOR": PlaceMode.MINE,
-		"WHEAT_EXTRACTOR": PlaceMode.VILLAGE,
-		"IRON_EXTRACTOR": PlaceMode.MINE,
-		"COTTON_EXTRACTOR": PlaceMode.VILLAGE,
-	}
-	if mode_map.has(btype):
-		_place_mode = mode_map[btype]
-		_update_build_card_styles()
-		if _place_hint_label:
-			_place_hint_label.visible = true
+# _set_place_mode_from_card は v0.2 で廃止（PlaceMode 廃止に伴い _selected_card_btype に統合）
 
-func _setup_deck_gauge_ui(vp: Vector2) -> void:
-	# §5.1 ドローゲージUI（x=970, y=600, 160×20）
-	var draw_gauge_root := Control.new()
-	draw_gauge_root.position = Vector2(970, 580)
-	_ui_layer.add_child(draw_gauge_root)
-
-	var draw_label_top := Label.new()
-	draw_label_top.text = "NEXT DRAW"
-	draw_label_top.position = Vector2(0, 0)
-	draw_label_top.add_theme_font_size_override("font_size", 10)
-	draw_label_top.add_theme_color_override("font_color", COLOR_TEXT_DIM)
-	draw_gauge_root.add_child(draw_label_top)
-
-	_draw_gauge_bg = ColorRect.new()
-	_draw_gauge_bg.position = Vector2(0, 14)
-	_draw_gauge_bg.size = Vector2(160, 20)
-	_draw_gauge_bg.color = COLOR_PANEL
-	draw_gauge_root.add_child(_draw_gauge_bg)
-
-	_draw_gauge_bar = ColorRect.new()
-	_draw_gauge_bar.position = Vector2(0, 14)
-	_draw_gauge_bar.size = Vector2(0, 20)
-	_draw_gauge_bar.color = COLOR_ACCENT_GOLD
-	draw_gauge_root.add_child(_draw_gauge_bar)
-
-	_draw_gauge_label = Label.new()
-	_draw_gauge_label.position = Vector2(0, 36)
-	_draw_gauge_label.add_theme_font_size_override("font_size", 10)
-	_draw_gauge_label.add_theme_color_override("font_color", COLOR_TEXT_DIM)
-	draw_gauge_root.add_child(_draw_gauge_label)
-
-	# §5.2 強制突撃ゲージUI（x=440, y=14, 400×24, 10分割）
-	var fc_root := Control.new()
-	fc_root.position = Vector2(440, 2)
-	_ui_layer.add_child(fc_root)
-
-	var fc_label_top := Label.new()
-	fc_label_top.text = "FORCED CHARGE"
-	fc_label_top.position = Vector2(0, 0)
-	fc_label_top.add_theme_font_size_override("font_size", 10)
-	fc_label_top.add_theme_color_override("font_color", COLOR_TEXT_DIM)
-	fc_root.add_child(fc_label_top)
-
-	_force_charge_segs = []
-	for i in range(10):
-		var seg := ColorRect.new()
-		seg.position = Vector2(i * 40, 14)
-		seg.size = Vector2(38, 24)
-		seg.color = COLOR_PANEL
-		fc_root.add_child(seg)
-		_force_charge_segs.append(seg)
-
-	_force_charge_turn_label = Label.new()
-	_force_charge_turn_label.text = "Turn 0/10"
-	_force_charge_turn_label.position = Vector2(0, 40)
-	_force_charge_turn_label.add_theme_font_size_override("font_size", 9)
-	_force_charge_turn_label.add_theme_color_override("font_color", COLOR_TEXT_DIM)
-	fc_root.add_child(_force_charge_turn_label)
-
-	_force_charge_warn_label = Label.new()
-	_force_charge_warn_label.text = "突撃準備推奨"
-	_force_charge_warn_label.position = Vector2(280, 40)
-	_force_charge_warn_label.add_theme_font_size_override("font_size", 11)
-	_force_charge_warn_label.add_theme_color_override("font_color", COLOR_ORANGE)
-	_force_charge_warn_label.visible = false
-	fc_root.add_child(_force_charge_warn_label)
-
-	# §5.2.2 早期突撃ボタン（x=890, y=12, 100×32）
-	_early_charge_btn = Button.new()
-	_early_charge_btn.text = "EARLY CHARGE"
-	_early_charge_btn.position = Vector2(890, 12)
-	_early_charge_btn.custom_minimum_size = Vector2(100, 32)
-	var ec_sb := StyleBoxFlat.new()
-	ec_sb.bg_color = COLOR_PANEL
-	ec_sb.border_color = COLOR_BORDER
-	ec_sb.set_border_width_all(1)
-	ec_sb.set_corner_radius_all(3)
-	_early_charge_btn.add_theme_stylebox_override("normal", ec_sb)
-	_early_charge_btn.add_theme_font_size_override("font_size", 11)
-	_early_charge_btn.add_theme_color_override("font_color", COLOR_TEXT)
-	_early_charge_btn.pressed.connect(_on_early_charge_btn_pressed)
-	_ui_layer.add_child(_early_charge_btn)
-
-	# §5.5 人口表示UI（x=1140, y=600, w=80）
-	var pop_root := Control.new()
-	pop_root.position = Vector2(1140, 580)
-	_ui_layer.add_child(pop_root)
-
-	var pop_label_top := Label.new()
-	pop_label_top.text = "POPULATION"
-	pop_label_top.position = Vector2(0, 0)
-	pop_label_top.add_theme_font_size_override("font_size", 10)
-	pop_label_top.add_theme_color_override("font_color", COLOR_TEXT_DIM)
-	pop_root.add_child(pop_label_top)
-
-	var pop_bar_bg := ColorRect.new()
-	pop_bar_bg.position = Vector2(0, 14)
-	pop_bar_bg.size = Vector2(80, 12)
-	pop_bar_bg.color = COLOR_PANEL
-	pop_root.add_child(pop_bar_bg)
-
-	_pop_gauge_bar = ColorRect.new()
-	_pop_gauge_bar.position = Vector2(0, 14)
-	_pop_gauge_bar.size = Vector2(40, 12)
-	_pop_gauge_bar.color = COLOR_WOOD
-	pop_root.add_child(_pop_gauge_bar)
-
-	_pop_label = Label.new()
-	_pop_label.text = "0/3"
-	_pop_label.position = Vector2(0, 28)
-	_pop_label.add_theme_font_size_override("font_size", 12)
-	_pop_label.add_theme_color_override("font_color", COLOR_TEXT)
-	pop_root.add_child(_pop_label)
-
-	_pop_preview_label = Label.new()
-	_pop_preview_label.text = "[+3]"
-	_pop_preview_label.position = Vector2(0, 44)
-	_pop_preview_label.add_theme_font_size_override("font_size", 11)
-	_pop_preview_label.add_theme_color_override("font_color", COLOR_WOOD)
-	_pop_preview_label.visible = false
-	pop_root.add_child(_pop_preview_label)
-
-	# §5.3 デッキ・捨て札・除外表示（画面右下）
-	var right_panel_x: float = vp.x - 210.0
-	var right_panel_y: float = 84.0  # HEADER下
-	# §5.4 イベント選択区プレースホルダー（v0.2 ロック状態）
-	var event_panel := PanelContainer.new()
-	event_panel.position = Vector2(right_panel_x, right_panel_y)
-	event_panel.custom_minimum_size = Vector2(200, 120)
-	var ep_sb := StyleBoxFlat.new()
-	ep_sb.bg_color = Color(COLOR_PANEL.r * 0.5, COLOR_PANEL.g * 0.5, COLOR_PANEL.b * 0.5, 0.9)
-	ep_sb.border_color = COLOR_BORDER
-	ep_sb.set_border_width_all(1)
-	event_panel.add_theme_stylebox_override("panel", ep_sb)
-	event_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_ui_layer.add_child(event_panel)
-	var ep_vbox := VBoxContainer.new()
-	ep_vbox.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	ep_vbox.alignment = BoxContainer.ALIGNMENT_CENTER
-	event_panel.add_child(ep_vbox)
-	var ep_lock := Label.new()
-	ep_lock.text = "🔒"
-	ep_lock.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	ep_lock.add_theme_font_size_override("font_size", 32)
-	ep_vbox.add_child(ep_lock)
-	var ep_text := Label.new()
-	ep_text.text = "v0.3 で開放"
-	ep_text.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	ep_text.add_theme_font_size_override("font_size", 10)
-	ep_text.add_theme_color_override("font_color", COLOR_TEXT_DIM)
-	ep_vbox.add_child(ep_text)
-
-	# デッキ・捨て札・除外表示（イベント選択区の下）
-	_deck_count_label = Label.new()
-	_deck_count_label.text = "Deck: 13"
-	_deck_count_label.position = Vector2(right_panel_x, right_panel_y + 128)
-	_deck_count_label.add_theme_font_size_override("font_size", 10)
-	_deck_count_label.add_theme_color_override("font_color", COLOR_TEXT_DIM)
-	_ui_layer.add_child(_deck_count_label)
-
-	_discard_count_label = Label.new()
-	_discard_count_label.text = "Discard: 0 / Exiled: 0"
-	_discard_count_label.position = Vector2(right_panel_x, right_panel_y + 142)
-	_discard_count_label.add_theme_font_size_override("font_size", 10)
-	_discard_count_label.add_theme_color_override("font_color", COLOR_TEXT_DIM)
-	_ui_layer.add_child(_discard_count_label)
-
-func _setup_hand_ui(vp: Vector2) -> void:
-	# §5.2 手札UI（FOOTER 手札8枚スクロール対応・y=vp.y-120, h=112）
-	var hand_root := Control.new()
-	hand_root.position = Vector2(8, vp.y - 116)
-	hand_root.custom_minimum_size = Vector2(vp.x - 220.0, 112)
-	_ui_layer.add_child(hand_root)
-
-	_hand_container = HBoxContainer.new()
-	_hand_container.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	_hand_container.add_theme_constant_override("separation", 8)
-	hand_root.add_child(_hand_container)
+# _setup_deck_gauge_ui / _setup_hand_ui は v0.2 で廃止（_setup_header_ui / _setup_footer_ui に統合）
 
 func _update_draw_gauge_ui(delta: float) -> void:
 	# §5.1 ドローゲージUI 毎フレーム更新（_process から呼ぶ）
@@ -1714,7 +1527,9 @@ func _update_draw_gauge_ui(delta: float) -> void:
 	else:
 		_draw_gauge_label.add_theme_color_override("font_color", COLOR_TEXT_DIM)
 
-	_draw_gauge_bar.size = Vector2(160.0 * progress, 20)
+	# ゲージバーは親ColorRect(bg)の幅に対して相対的に伸縮
+	var bg_w: float = _draw_gauge_bg.size.x if _draw_gauge_bg.size.x > 0.0 else 160.0
+	_draw_gauge_bar.size = Vector2(bg_w * progress, _draw_gauge_bg.size.y)
 	_draw_gauge_bar.color = bar_color
 	_draw_gauge_label.text = sub_text
 
@@ -1786,7 +1601,8 @@ func _update_population_ui() -> void:
 	if pop_cap <= 0:
 		return
 	var ratio: float = float(pop_used) / float(pop_cap)
-	_pop_gauge_bar.size = Vector2(80.0 * clampf(ratio, 0.0, 1.0), 12)
+	var pbg_w: float = _pop_gauge_bar.get_parent().size.x if _pop_gauge_bar.get_parent() != null and _pop_gauge_bar.get_parent().size.x > 0.0 else 80.0
+	_pop_gauge_bar.size = Vector2(pbg_w * clampf(ratio, 0.0, 1.0), _pop_gauge_bar.size.y)
 	# §5.5.1 色分け
 	if ratio >= 1.0:
 		_pop_gauge_bar.color = COLOR_RED
@@ -1800,24 +1616,27 @@ func _update_population_ui() -> void:
 	_pop_label.text = "%d/%d" % [pop_used, pop_cap]
 
 func _update_status_ui() -> void:
-	# §5.1 HEADER ステータスUI 毎フレーム更新（v0.2 新規）
-	var pop_used: int = _economy.population_used
-	var pop_cap: int = _economy.population_cap
-	if _status_pop_label != null:
-		_status_pop_label.text = "Pop %d/%d" % [pop_used, pop_cap]
-		var pop_color := COLOR_RED if pop_used >= pop_cap else COLOR_TEXT
-		_status_pop_label.add_theme_color_override("font_color", pop_color)
+	# §5.1 HEADER ステータスUI 毎フレーム更新（v0.2）
+	# 満足度（§3.4）
 	if _status_sat_label != null:
 		_status_sat_label.text = "Sat %d" % _economy.satisfaction
-	if _status_mil_label != null:
+	# 兵力（§3.5）
+	if _troop_label != null:
 		var mil_int: int = int(floor(_economy.military_power))
-		_status_mil_label.text = "Mil %d" % mil_int
-		var mil_color := COLOR_ACCENT_GOLD if mil_int > 0 else COLOR_TEXT_DIM
-		_status_mil_label.add_theme_color_override("font_color", mil_color)
-	if _status_cur_label != null:
-		_status_cur_label.text = "Cur %dG" % _economy.currency
-		var cur_color := COLOR_TEXT_DIM if _economy.currency <= 0 else COLOR_ACCENT_GOLD
-		_status_cur_label.add_theme_color_override("font_color", cur_color)
+		_troop_label.text = "%d" % mil_int
+		var mil_color := COLOR_TROOP if mil_int > 0 else COLOR_TEXT_DIM
+		_troop_label.add_theme_color_override("font_color", mil_color)
+	# 兵力ゲージ（§3.5）
+	if _troop_gauge_bar != null:
+		var troop_ratio: float = clampf(float(_economy.military_power) / 20.0, 0.0, 1.0)
+		var tbg_w: float = _troop_gauge_bar.get_parent().size.x if _troop_gauge_bar.get_parent() != null and _troop_gauge_bar.get_parent().size.x > 0.0 else 80.0
+		_troop_gauge_bar.size = Vector2(tbg_w * troop_ratio, _troop_gauge_bar.size.y)
+	# 資金（§3.6）
+	if _gold_label != null:
+		_gold_label.text = "%dG" % _economy.currency
+		var cur_color := COLOR_TEXT_DIM if _economy.currency <= 0 else COLOR_GOLD_COIN
+		_gold_label.add_theme_color_override("font_color", cur_color)
+	# 食料（§3.7）
 	if _status_food_label != null:
 		_status_food_label.text = "食%d" % _economy.food
 		var food_color := COLOR_RED if _economy.food < 5 else COLOR_WHEAT

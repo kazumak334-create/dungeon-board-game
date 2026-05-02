@@ -2,6 +2,19 @@
 
 ## [Unreleased]
 
+## 2026-05-02 feat: EconMain.gd v0.2 UI全面改修（HEADER/FOOTER再設計・PlaceMode廃止）
+- EconMain.gd: v0.1 UIパネル群を削除し v0.2 仕様書準拠の HEADER/FOOTER に全面置き換え
+  - 削除: `_create_harvester_alloc_ui`, `_create_build_panel`, `_update_build_card_styles`, `_place_building`, `_set_place_mode_from_card`
+  - 削除: `PlaceMode` enum / `_place_mode` 変数 / `_harvester_ui_update` Callable
+  - 追加: `_selected_card_btype: String` で PlaceMode を代替
+  - HEADER 2段構成（§3.1〜§3.10）: 人口・満足度・兵力・資金カード + 資源6種+食料+ドローゲージ+強制突撃ゲージ+EARLYボタン
+  - FOOTER 3ブロック構成（§4.1〜§4.4）: Deck/Discard + 手札6枚スクロール + EVENT SELECTロック
+  - 新色定数4種追加: COLOR_POP / COLOR_SAT / COLOR_TROOP / COLOR_GOLD_COIN
+  - `_update_build_highlight()` → `_update_territory_highlight()` 置き換え（PlaceMode参照排除）
+  - `_update_status_ui()` を v0.2 変数名（`_troop_label`, `_gold_label`等）ベースに更新
+  - `_process()` 資源更新を `_res_labels` 辞書ベースに変更
+  - `_update_population_ui()` / `_update_status_ui()` ゲージ幅を親幅参照に修正
+
 ## 2026-05-02 feat: Econ MVP v0.2 ステータス基盤・兵力蓄積・UI大改造
 - EconEconomy.gd: v0.2 フィールド追加（resources dict/food=30/satisfaction=0/military_power=0.0）
   - BASE_POPULATION_CAP=50（拠点効果）/ BARRACKS_POWER_PER_SEC=0.2 / INITIAL_CURRENCY=100 / INITIAL_FOOD=30
