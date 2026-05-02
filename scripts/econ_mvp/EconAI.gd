@@ -1,6 +1,9 @@
 class_name EconAI
 extends Node
 
+# 敵戦闘ユニット無効化フラグ（true=通常動作 / false=経済検証モード）
+const ENEMY_COMBAT_UNITS_ENABLED: bool = false
+
 var economy: EconEconomy
 var _grid: EconGrid
 var _battle: EconBattle
@@ -135,5 +138,5 @@ func update(delta: float) -> void:
 func on_unit_produced(pos: Vector2i, utype: int) -> void:
 	if utype == -1:
 		_battle.spawn_enemy_harvester(pos, economy)
-	else:
+	elif ENEMY_COMBAT_UNITS_ENABLED:
 		_battle.spawn_enemy_unit(utype, pos)
