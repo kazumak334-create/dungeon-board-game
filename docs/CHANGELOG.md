@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+## 2026-05-02 refactor: EconMain.gd 廃止関数を物理削除（設計書 §2.3 §4.0）
+- 削除: `_spawn_harvester_at()` 定義を物理削除し、呼び出し箇所を `_battle.spawn_player_harvester()` 直接呼び出しに置換
+- 削除: `_connect_building_to_flag()` 定義を物理削除し、呼び出し箇所をインライン展開
+- 削除: 廃止済みコメント行（`_create_harvester_alloc_ui`, `_create_build_panel`, `_update_build_card_styles`, `_set_place_mode_from_card` の廃止コメント）
+
 ## 2026-05-02 feat: EconMain.gd v0.2 UI全面改修（HEADER/FOOTER再設計・PlaceMode廃止）
 - EconMain.gd: v0.1 UIパネル群を削除し v0.2 仕様書準拠の HEADER/FOOTER に全面置き換え
   - 削除: `_create_harvester_alloc_ui`, `_create_build_panel`, `_update_build_card_styles`, `_place_building`, `_set_place_mode_from_card`

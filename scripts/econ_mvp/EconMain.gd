@@ -192,7 +192,7 @@ func _place_initial_village(is_player: bool) -> void:
 			if is_player:
 				village.unit_produced.connect(func(pos: Vector2i, utype: int):
 					if utype == -1:
-						_spawn_harvester_at(pos.x, pos.y)
+						_battle.spawn_player_harvester(Vector2i(pos.x, pos.y), _economy)
 					else:
 						_battle._on_unit_produced(pos, utype)
 				)
@@ -205,9 +205,6 @@ func _place_initial_village(is_player: bool) -> void:
 				_battle.register_enemy_building(village)
 			_add_log("Initial Village at (%d,%d)" % [cell.x, cell.y])
 			return
-
-func _spawn_harvester_at(col: int, row: int) -> void:
-	_battle.spawn_player_harvester(Vector2i(col, row), _economy)
 
 func _setup_ui(vp: Vector2) -> void:
 	_ui_layer = CanvasLayer.new()
@@ -804,8 +801,6 @@ func _on_hand_scroll_right() -> void:
 		_hand_scroll_offset += 1
 		_refresh_hand_ui()
 
-# _create_build_panel / _update_build_card_styles は v0.2 で廃止（設計書 §4.0）
-
 func _create_control_panel() -> Control:
 	var scroll := ScrollContainer.new()
 	scroll.custom_minimum_size = Vector2(260, 0)
@@ -916,8 +911,6 @@ func _create_control_panel() -> Control:
 	vbox.add_child(btn_regen)
 	return scroll
 
-# _create_harvester_alloc_ui は v0.2 で廃止（設計書 §2.3）
-
 func _on_start_pressed() -> void:
 	if _is_running:
 		return
@@ -979,7 +972,16 @@ func _input(event: InputEvent) -> void:
 	if _connecting_building != null:
 		for f in _flags:
 			if f.grid_pos == cell:
-				_connect_building_to_flag(_connecting_building, f)
+				var b := _connecting_building
+				if b.connected_flag_id >= 0:
+					for old_f in _flags:
+						if old_f.flag_id == b.connected_flag_id:
+							old_f.remove_building(b.grid_pos)
+							old_f.queue_redraw()
+				b.connected_flag_id = f.flag_id
+				f.add_building(b.grid_pos)
+				f.queue_redraw()
+				_add_log("Building (%d,%d) → Flag %d" % [b.grid_pos.x, b.grid_pos.y, f.flag_id])
 				_connecting_building = null
 				return
 		_connecting_building = null
@@ -1096,7 +1098,7 @@ func _place_building_from_card(cell: Vector2i, btype_str: String) -> void:
 	b.position = _grid.hex_to_pixel(cell.x, cell.y)
 	b.unit_produced.connect(func(pos: Vector2i, utype: int):
 		if utype == -1:
-			_spawn_harvester_at(pos.x, pos.y)
+			_battle.spawn_player_harvester(Vector2i(pos.x, pos.y), _economy)
 		elif _charge_mode:
 			_battle.spawn_player_unit(pos.x, pos.y, utype, _charge_mode)
 			_battle._on_unit_produced(pos, utype)
@@ -1233,17 +1235,6 @@ func _place_flag(pos: Vector2i) -> void:
 	_flags.append(f)
 	_battle.set_player_flags(_flags)
 	_add_log("Flag placed at (%d,%d)" % [pos.x, pos.y])
-
-func _connect_building_to_flag(b: EconBuilding, f) -> void:
-	if b.connected_flag_id >= 0:
-		for old_f in _flags:
-			if old_f.flag_id == b.connected_flag_id:
-				old_f.remove_building(b.grid_pos)
-				old_f.queue_redraw()
-	b.connected_flag_id = f.flag_id
-	f.add_building(b.grid_pos)
-	f.queue_redraw()
-	_add_log("Building (%d,%d) → Flag %d" % [b.grid_pos.x, b.grid_pos.y, f.flag_id])
 
 func get_building_cluster_center(building_pos: Vector2i) -> Vector2:
 	var idle_units: Array = _battle.player_units.filter(func(u):
@@ -1487,8 +1478,6 @@ func _get_card_icon(building_type: String) -> String:
 		"COTTON_EXTRACTOR": "🌿",
 	}
 	return icons.get(building_type, "?")
-
-# _set_place_mode_from_card は v0.2 で廃止（PlaceMode 廃止に伴い _selected_card_btype に統合）
 
 # _setup_deck_gauge_ui / _setup_hand_ui は v0.2 で廃止（_setup_header_ui / _setup_footer_ui に統合）
 
