@@ -2,6 +2,31 @@
 
 ## [Unreleased]
 
+## 2026-05-02 feat: Task 1-2 — 幸福度システム実装（REQUIREMENTS_V0_2_MVP.md §2.4.3/§6.2/§6.3）
+
+### 変更内容
+- `scripts/econ_mvp/EconBuilding.gd`:
+  - enum BuildingType に `PLAZA`（index=10）、`HOUSE`（index=11）を追加
+  - BUILD_COSTS / BUILD_HP / REQUIRED_CONSTRUCTION に PLAZA/HOUSE エントリ追加
+  - `update()` matchに PLAZA/HOUSE ケース追加（パッシブ型のため pass）
+  - `_draw()` に PLAZA（CORNFLOWER_BLUE）/ HOUSE（SANDY_BROWN）のcolor追加
+- `scripts/econ_mvp/EconEconomy.gd`:
+  - `get_happiness_state() -> String` 追加（"high"/"normal"/"dissatisfied"/"danger" 4段階）
+  - `_count_adjacent_houses(plaza, buildings)` 追加（広場隣接HOUSE数カウント）
+  - `_hex_distance(a, b)` 追加（EconGridに依存しない内部ヘックス距離計算）
+  - `get_happiness_production_modifier()` スタブ → 完成（dissatisfied=0.9 / danger=0.75）
+  - `get_happiness_military_modifier()` スタブ → 完成（high=1.1 / danger=0.8）
+  - update() Step 4 を完成（広場供給+隣接住居ボーナス → 人口負荷 → clamp(0,100)）
+- `scripts/econ_mvp/EconBattle.gd`:
+  - `_create_building_from_card()` の HOUSE→VILLAGE 旧マッピングを HOUSE→HOUSE に修正、PLAZAを追加
+- `scripts/econ_mvp/EconMain.gd`:
+  - `_place_building_from_card()` の HOUSE→VILLAGE 旧マッピングを HOUSE→HOUSE に修正、PLAZAを追加
+
+### printデバッグログ（1ティック分）
+- `[EconEconomy] tick: N pop=X food=Y sat=Z mil=W`
+- `[EconEconomy] PLAZA LvN 幸福供給+X（隣接住居×Y）`
+- `[EconEconomy] 幸福度更新 plaza_supply=+X pop_load=-Y sat=Z state=STATE`
+
 ## 2026-05-02 feat: Task 1-1 — EconEconomy.gd update() に §6.2 処理順序実装
 
 ### 変更内容

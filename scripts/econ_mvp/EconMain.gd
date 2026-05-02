@@ -39,6 +39,7 @@ var _start_button: Button = null
 var _game_started: bool = false
 
 # v0.2 HEADER / FOOTER UI要素
+var _header: PanelContainer = null         # HEADER コンテナ（サイズ取得用）
 var _hand_container: HBoxContainer = null  # 手札コンテナ
 var _hand_scroll_offset: int = 0           # スクロールオフセット（0-based）
 var _hand_left_arrow: Button = null        # ◀矢印
@@ -95,21 +96,40 @@ func _ready() -> void:
 	_setup_grid()
 	_setup_economy()
 	_setup_battle()
-	# origin を先に確定 → エンティティ配置はすべてこの後
 	var vp := get_viewport().get_visible_rect().size
-	const HEADER_H := 56.0   # 改訂5: 56px（2段構成で56に戻す）
 	const FOOTER_H := 180.0  # 改訂3: 180px
-	var hex_w := EconGrid.HEX_SIZE * sqrt(3.0)
-	var col_count := 26
-	var board_h := vp.y - HEADER_H - FOOTER_H
+
+	# UI を先に生成してHEADERの実際のサイズを取得
+	_setup_ui(vp)
+
+	# HEADERの実際のレンダリング高さを取得（ノードがツリーに追加されて初めて size が確定）
+	await get_tree().process_frame
+	var header_h: float = _header.size.y if _header else 56.0
+	print("[EconMain] HEADER actual height: %f" % header_h)
+
+	# 盤面高を計算
+	var board_h: float = vp.y - header_h - FOOTER_H
+
+	# FOOTERの y位置を動的に計算して設定
+	var footer_y: float = header_h + board_h
+	if _ui_layer.get_child_count() > 1:
+		var footer = _ui_layer.get_child(1)
+		footer.position.y = footer_y
+		print("[EconMain] FOOTER position.y: %f (HEADER %f + BOARD %f)" % [footer_y, header_h, board_h])
+
+	# grid をHEADERの下に配置
+	_grid.position.y = header_h
+
+	# grid.origin を計算（盤面内でのセンタリング）
+	var hex_w: float = EconGrid.HEX_SIZE * sqrt(3.0)
+	var col_count: int = 26
 	var grid_full_w := hex_w * float(col_count)
 	var grid_full_h := EconGrid.HEX_SIZE * 2.0 * 0.75 * float(EconGrid.ROWS - 1) + EconGrid.HEX_SIZE * 2.0
 	_grid.origin = Vector2(
 		(vp.x - grid_full_w) * 0.5 + hex_w * 0.5,
-		HEADER_H + (board_h - grid_full_h) * 0.5 + EconGrid.HEX_SIZE
+		(board_h - grid_full_h) * 0.5 + EconGrid.HEX_SIZE
 	)
 	_grid.queue_redraw()
-	_setup_ui(vp)
 	_setup_ai()
 	_setup_initial_entities()
 	_setup_deck_manager()
@@ -285,6 +305,7 @@ func _setup_header_ui(vp: Vector2) -> void:
 	header.position = Vector2.ZERO
 	header.custom_minimum_size = Vector2(vp.x, 56)
 	_ui_layer.add_child(header)
+	_header = header  # 参照を保持（_ready で size.y 取得用）
 	var hdr_vbox := VBoxContainer.new()
 	hdr_vbox.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	hdr_vbox.add_theme_constant_override("separation", 0)
@@ -1132,7 +1153,8 @@ func _place_building_from_card(cell: Vector2i, btype_str: String) -> void:
 	# v0.2 手札カードから建物を配置（§4.2 手札→盤面ドロップ）
 	var btype_map: Dictionary = {
 		"BARRACKS":        EconBuilding.BuildingType.BARRACKS,
-		"HOUSE":           EconBuilding.BuildingType.VILLAGE,
+		"HOUSE":           EconBuilding.BuildingType.HOUSE,
+		"PLAZA":           EconBuilding.BuildingType.PLAZA,
 		"LIBRARY":         EconBuilding.BuildingType.TRADE_POST,
 		"MARKET":          EconBuilding.BuildingType.TRADE_POST,
 		"WOOD_EXTRACTOR":  EconBuilding.BuildingType.SAWMILL,

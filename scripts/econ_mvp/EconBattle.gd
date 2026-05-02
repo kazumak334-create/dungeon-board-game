@@ -108,7 +108,8 @@ func _create_building_from_card(card: Dictionary, target_cell: Vector2i) -> Econ
 		"TRADE_POST": EconBuilding.BuildingType.TRADE_POST,
 		"LIBRARY": EconBuilding.BuildingType.TRADE_POST,  # v0.1 仮マッピング
 		"MARKET": EconBuilding.BuildingType.TRADE_POST,   # v0.1 仮マッピング
-		"HOUSE": EconBuilding.BuildingType.VILLAGE,       # v0.1 仮マッピング
+		"HOUSE": EconBuilding.BuildingType.HOUSE,
+		"PLAZA": EconBuilding.BuildingType.PLAZA,
 		"WOOD_EXTRACTOR": EconBuilding.BuildingType.SAWMILL,
 		"STONE_EXTRACTOR": EconBuilding.BuildingType.MINE,
 		"SULFUR_EXTRACTOR": EconBuilding.BuildingType.MINE,
@@ -165,10 +166,9 @@ func _resolve_population_overflow() -> void:
 		print("[EconBattle] _resolve_population_overflow: stopped building at (%d,%d)" % [target.grid_pos.x, target.grid_pos.y])
 
 func trigger_early_charge() -> void:
-	# §4.6.1 / §8.2 早期突撃のエントリポイント（v0.2 改訂：unitize_military_power追加）
+	# §4.6.1 / §8.2 早期突撃のエントリポイント（unitize_military_powerはDeckManager経由で実行）
 	if deck_manager != null:
 		deck_manager.trigger_force_charge()
-	unitize_military_power()  # ★ v0.2 新規：兵力→ユニット化（§9.2）
 	log_message.emit("Early charge triggered!")
 
 func unitize_military_power() -> int:
@@ -313,7 +313,7 @@ func spawn_player_harvester(pos: Vector2i, economy: EconEconomy) -> void:
 	h.harvester_index = player_harvesters.size()
 	player_harvesters.append(h)
 	grid.add_child(h)
-	log_message.emit("Harvester spawned at (%d,%d)" % [pos.x, pos.y])
+	# Harvester spawn log removed (v0.2: left-side harvester UI deleted)
 
 func add_building_to_queue(_b: EconBuilding) -> void:
 	pass  # ビルダー方式に移行済み。ビルダーが自動的に未建設建物を担当する

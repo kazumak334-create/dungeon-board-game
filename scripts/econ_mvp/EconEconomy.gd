@@ -127,12 +127,27 @@ func update(delta: float, _total_unit_count: int) -> void:
 			print("[EconEconomy] 食料不足！幸福度-10 sat=%d" % satisfaction)
 
 	# ---- Step 4: 幸福度更新（§6.2-4 / §2.4.3）----
-	# 広場(PLAZA)は現在EconBuilding enumに存在しないためスキップ（TODO: PLAZA実装時に追加）
-	# 人口負荷：人口10人ごとに幸福度-1
+	# 4-1: 広場(PLAZA)による幸福供給
+	var plaza_supply: int = 0
+	for b in buildings:
+		if not b.is_alive or not b.is_built:
+			continue
+		if b.building_type != EconBuilding.BuildingType.PLAZA:
+			continue
+		var lv: int = b.fusion_rank  # Lv1=+1, Lv2=+2, Lv3=+3
+		var base_supply: int = lv  # Lv1→1, Lv2→2, Lv3→3（§2.7.1）
+		# 隣接住居ボーナス：隣接HOUSEを数えて+1/件
+		var adj_houses: int = _count_adjacent_houses(b, buildings)
+		plaza_supply += base_supply + adj_houses
+		print("[EconEconomy] PLAZA Lv%d 幸福供給+%d（隣接住居×%d）" % [lv, base_supply + adj_houses, adj_houses])
+
+	# 4-2: 人口負荷：人口10人ごとに幸福度-1（§2.4.3）
 	var pop_load: int = population_used / 10
-	satisfaction -= pop_load
+
+	# 4-3: 幸福度更新
+	satisfaction += plaza_supply - pop_load
 	satisfaction = clampi(satisfaction, 0, 100)
-	print("[EconEconomy] 幸福度更新 pop_load=-%d sat=%d" % [pop_load, satisfaction])
+	print("[EconEconomy] 幸福度更新 plaza_supply=+%d pop_load=-%d sat=%d state=%s" % [plaza_supply, pop_load, satisfaction, get_happiness_state()])
 
 	# ---- Step 5: 防衛拠点回復（§6.2-5）----
 	# WATCHTOWER は現在EconBuilding enumに存在しないためスキップ
@@ -145,27 +160,68 @@ func update(delta: float, _total_unit_count: int) -> void:
 	population_used = roundi(float(population_cap) * alloc_ratio)
 	print("[EconEconomy] 人口配分再計算 pop_used=%d/%d" % [population_used, population_cap])
 
-# 幸福度による生産補正係数（§2.4.3 / §2.5.3）
-# Task 1-2で詳細実装予定。現在はスタブ。
-func get_happiness_production_modifier() -> float:
+# 幸福度状態を返す（§2.4.3）
+# 戻り値: "high" / "normal" / "dissatisfied" / "danger"
+func get_happiness_state() -> String:
 	if satisfaction >= 70:
-		return 1.0  # 高幸福: +20%は人口増加速度に適用・生産補正なし
+		return "high"
 	elif satisfaction >= 40:
-		return 1.0  # 通常: 補正なし
+		return "normal"
 	elif satisfaction >= 20:
-		return 0.9  # 不満: -10%
+		return "dissatisfied"
 	else:
-		return 0.75  # 危険: -25%
+		return "danger"
+
+# 広場の隣接HOUSEをカウントする（§2.7.1 広場Lv別効果・隣接住居+1/件）
+# 呼び出し元：update() Step 4
+func _count_adjacent_houses(plaza: EconBuilding, all_buildings: Array) -> int:
+	var count: int = 0
+	for b in all_buildings:
+		if not b.is_alive or not b.is_built:
+			continue
+		if b.building_type != EconBuilding.BuildingType.HOUSE:
+			continue
+		# ヘックスグリッド隣接（距離=1）チェック
+		var pos_plaza: Vector2i = plaza.grid_pos
+		var pos_house: Vector2i = b.grid_pos
+		var dist: int = _hex_distance(pos_plaza, pos_house)
+		if dist == 1:
+			count += 1
+	return count
+
+# ヘックス距離計算（offset座標系）（EconGrid.hex_distanceと同等ロジック）
+func _hex_distance(a: Vector2i, b: Vector2i) -> int:
+	var ax := a.x - (a.y - (a.y & 1)) / 2
+	var az := a.y
+	var ay := -ax - az
+	var bx := b.x - (b.y - (b.y & 1)) / 2
+	var bz := b.y
+	var by_ := -bx - bz
+	return maxi(maxi(absi(ax - bx), absi(ay - by_)), absi(az - bz))
+
+# 幸福度による生産補正係数（§2.4.3）
+# "high"/"normal": 1.0 / "dissatisfied": 0.9 / "danger": 0.75
+func get_happiness_production_modifier() -> float:
+	var state: String = get_happiness_state()
+	match state:
+		"dissatisfied":
+			return 0.9
+		"danger":
+			return 0.75
+		_:
+			return 1.0
 
 # 幸福度による兵力生成補正係数（§2.5.3）
-# Task 1-2で詳細実装予定。現在はスタブ。
+# "high": 1.1 / "normal"/"dissatisfied": 1.0 / "danger": 0.8
 func get_happiness_military_modifier() -> float:
-	if satisfaction >= 70:
-		return 1.1  # 高幸福: +10%
-	elif satisfaction >= 20:
-		return 1.0  # 通常/不満: 補正なし
-	else:
-		return 0.8  # 危険: -20%
+	var state: String = get_happiness_state()
+	match state:
+		"high":
+			return 1.1
+		"danger":
+			return 0.8
+		_:
+			return 1.0
 
 func add_resource(rtype: int, amount: int = 1) -> void:
 	match rtype:
