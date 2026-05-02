@@ -2,6 +2,29 @@
 
 ## [Unreleased]
 
+## 2026-05-02 feat: EconMain/EconGrid 改訂5 UI全面実装（ui_draw_hand_gauge_specification.md 改訂5）
+
+### Phase 1: HEADER 56px + 2段構成
+- `EconMain.gd`: `HEADER_H` を 80→56 に変更
+- HEADER 上段 (h=28): POP / TROOP / GOLD / FOOD 4ステータス
+- HEADER 下段 (h=28): 資源6種 + 満足度(v0.3) + Force Chargeゲージ（10分割）
+- 削除: Idle旗ボタン / START上段ボタン / EARLY CHARGEボタン / AI資源ラベル（非表示化）
+- Drawゲージを HEADER 下段から FOOTER 手札スクロール右上に移動（Phase 5）
+
+### Phase 2: 初期ユニット削除
+- `_setup_initial_entities()`: 初期農村・初期ハーベスター×2を削除、BASEのみ配置
+
+### Phase 3: BASE長押し一斉突撃
+- `EconMain.gd`: `_base_longpress_start_time` / `_base_longpress_cell` 変数追加
+- `_input()` にBASE長押し開始判定を追加
+- `_process()` に0.6秒経過判定 + EconGrid へのリング進捗セット
+- `_trigger_unified_charge()`: 白フラッシュ + "CHARGE!" テキスト表示
+- `EconGrid.gd`: `base_longpress_cell` / `base_longpress_progress` 変数追加、`_draw()` に金色弧描画
+
+### Phase 4: STARTボタン（初回のみ盤面中央フローティング）
+- `_create_start_button()`: x=560, y=288, w=160, h=64 のフローティングボタン
+- 押下後消滅・`_on_start_pressed()` 呼出
+
 ## 2026-05-02 feat: EconMain.gd 兵力ゲージ4段階演出（ui_draw_hand_gauge_specification.md §3.5）
 - `_elapsed_time` 変数を追加、`_process()` で毎フレーム累積
 - `_update_status_ui()` 内の兵力ゲージ処理を4段階演出に差し替え

@@ -24,10 +24,19 @@ var _charge_mode: bool = false  # 一斉突撃モード
 var _flags: Array = []
 var _next_flag_id: int = 0
 var _connecting_building: EconBuilding = null
-var _charge_btn: Button = null  # 旗ボタン
+var _charge_btn: Button = null  # 旗ボタン（Phase 6で削除予定）
 
 # v0.2 手札カード選択中の建設タイプ（文字列）
 var _selected_card_btype: String = ""
+
+# Phase 3: BASE長押し一斉突撃
+var _base_longpress_start_time: float = -1.0
+var _base_longpress_cell: Vector2i = Vector2i(-1, -1)
+const BASE_LONGPRESS_THRESHOLD := 0.6
+
+# Phase 4: STARTボタン
+var _start_button: Button = null
+var _game_started: bool = false
 
 # v0.2 HEADER / FOOTER UI要素
 var _hand_container: HBoxContainer = null  # 手札コンテナ
@@ -88,8 +97,8 @@ func _ready() -> void:
 	_setup_battle()
 	# origin を先に確定 → エンティティ配置はすべてこの後
 	var vp := get_viewport().get_visible_rect().size
-	const HEADER_H := 80.0   # v0.2 拡張（56→80）
-	const FOOTER_H := 120.0  # v0.2 縮小（180→120）
+	const HEADER_H := 56.0   # 改訂5: 56px（2段構成で56に戻す）
+	const FOOTER_H := 180.0  # 改訂3: 180px
 	var hex_w := EconGrid.HEX_SIZE * sqrt(3.0)
 	var col_count := 26
 	var board_h := vp.y - HEADER_H - FOOTER_H
@@ -129,18 +138,14 @@ func _setup_ai() -> void:
 	_ai.setup(_grid, _battle)
 
 func _setup_initial_entities() -> void:
+	# 改訂5: 開幕は完全に空（初期農村・ハーベスター削除）
+	print("[EconMain] _setup_initial_entities: BASE only mode (Phase 2 clean start)")
 	# 敵BASE（固定: row 11 中央）
 	var enemy_base := EconBuilding.new()
 	enemy_base.setup(EconBuilding.BuildingType.BASE, Vector2i(24, 6), false)
 	enemy_base.position = _grid.hex_to_pixel(24, 6)
 	enemy_base.unit_produced.connect(_ai.on_unit_produced)
 	_battle.register_enemy_building(enemy_base)
-	# 敵初期ハーベスター × 2
-	for ei in range(2):
-		var epos: Vector2i = [Vector2i(23, 5), Vector2i(23, 7)][ei]
-		_battle.spawn_enemy_harvester(epos, _ai.economy)
-	# AI側の初期農村を自動配置
-	_place_initial_village(false)
 	# プレイヤーBASE（row 0 中央）自動配置
 	var player_base := EconBuilding.new()
 	player_base.setup(EconBuilding.BuildingType.BASE, Vector2i(1, 6), true)
@@ -150,12 +155,6 @@ func _setup_initial_entities() -> void:
 		_battle._on_building_destroyed(building)
 	)
 	_battle.register_player_building(player_base)
-	# 初期農村を小麦隣接タイルに自動配置（is_built=true）
-	_place_initial_village(true)
-	# プレイヤー初期ハーベスター × 2
-	for pi in range(2):
-		var ppos: Vector2i = [Vector2i(2, 5), Vector2i(2, 7)][pi]
-		_battle.spawn_player_harvester(ppos, _economy)
 
 func _place_initial_village(is_player: bool) -> void:
 	# 小麦に隣接するタイルに農村を1棟自動配置（is_built=true）
@@ -211,11 +210,15 @@ func _setup_ui(vp: Vector2) -> void:
 	_ui_layer = CanvasLayer.new()
 	add_child(_ui_layer)
 
-	# === HEADER (y=0, h=80, v0.2 2段構成 §3.1) ===
+	# === HEADER (y=0, h=56, 改訂5 2段構成) ===
 	_setup_header_ui(vp)
 
-	# === FOOTER (y=500, h=220, v0.2 §4.1) ===
+	# === FOOTER (y=540, h=180, 改訂5: HEADER56+BOARD464=520 → y=520) ===
 	_setup_footer_ui(vp)
+
+	# STARTボタン（初回のみ盤面中央フローティング）
+	if not _game_started:
+		_create_start_button()
 
 	# Place-on-board hint (盤面上フローティング)
 	_place_hint_label = Label.new()
@@ -228,7 +231,7 @@ func _setup_ui(vp: Vector2) -> void:
 
 	# === FLOATING LOG (board area, top-left) ===
 	_log_label = Label.new()
-	_log_label.position = Vector2(8, 64)
+	_log_label.position = Vector2(8, 60)
 	_log_label.autowrap_mode = TextServer.AUTOWRAP_WORD
 	_log_label.custom_minimum_size = Vector2(260, 0)
 	_log_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -277,99 +280,83 @@ func _setup_ui(vp: Vector2) -> void:
 	order_vbox.add_child(btn_cancel_order)
 
 func _setup_header_ui(vp: Vector2) -> void:
-	# §3.1 HEADER (y=0, h=80) 2段構成
+	# 改訂5: HEADER (y=0, h=56) 2段構成（各段28px）
 	var header := PanelContainer.new()
 	header.position = Vector2.ZERO
-	header.custom_minimum_size = Vector2(vp.x, 80)
+	header.custom_minimum_size = Vector2(vp.x, 56)
 	_ui_layer.add_child(header)
 	var hdr_vbox := VBoxContainer.new()
 	hdr_vbox.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	hdr_vbox.add_theme_constant_override("separation", 2)
+	hdr_vbox.add_theme_constant_override("separation", 0)
 	header.add_child(hdr_vbox)
 
-	# --- 上段 (y=4, h=36): 人口・満足度・兵力・資金 §3.2 ---
+	# --- 上段 (y=0, h=28): POP / TROOP / GOLD / FOOD ---
 	var row1 := HBoxContainer.new()
-	row1.custom_minimum_size = Vector2(0, 36)
+	row1.custom_minimum_size = Vector2(0, 28)
 	row1.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
 	row1.add_theme_constant_override("separation", 4)
 	hdr_vbox.add_child(row1)
 
-	# §3.3 人口 (x=8, w=200)
-	_setup_pop_card(row1)
+	# POP (x=8, w=130, h=28)
+	_setup_pop_header(row1)
 
-	# §3.4 満足度 (x=216, w=200)
-	var sat_card := _make_status_card(200, 36)
-	row1.add_child(sat_card)
-	var sat_icon := Label.new()
-	sat_icon.text = ":)"
-	sat_icon.add_theme_font_size_override("font_size", 16)
-	sat_icon.add_theme_color_override("font_color", COLOR_SAT)
-	sat_card.add_child(sat_icon)
-	var sat_vbox := VBoxContainer.new()
-	sat_card.add_child(sat_vbox)
-	var sat_lbl_title := Label.new()
-	sat_lbl_title.text = "SATISFACTION (v0.3)"
-	sat_lbl_title.add_theme_font_size_override("font_size", 9)
-	sat_lbl_title.add_theme_color_override("font_color", COLOR_TEXT_DIM)
-	sat_vbox.add_child(sat_lbl_title)
-	_status_sat_label = Label.new()
-	_status_sat_label.text = "0"
-	_status_sat_label.add_theme_font_size_override("font_size", 12)
-	_status_sat_label.add_theme_color_override("font_color", COLOR_TEXT_DIM)
-	sat_vbox.add_child(_status_sat_label)
+	# TROOP (x=146, w=130, h=28)
+	_setup_troop_header(row1)
 
-	# §3.5 兵力 (x=424, w=200)
-	_setup_troop_card(row1)
+	# GOLD (x=292, w=110, h=28)
+	_setup_gold_header(row1)
 
-	# §3.6 資金 (x=632, w=200)
-	_setup_gold_card(row1)
+	# FOOD (x=410, w=90, h=28)
+	var food_hbox := HBoxContainer.new()
+	food_hbox.custom_minimum_size = Vector2(90, 28)
+	food_hbox.add_theme_constant_override("separation", 2)
+	row1.add_child(food_hbox)
+	var food_icon := Label.new()
+	food_icon.text = "食"
+	food_icon.add_theme_font_size_override("font_size", 10)
+	food_icon.add_theme_color_override("font_color", COLOR_WHEAT)
+	food_hbox.add_child(food_icon)
+	_status_food_label = Label.new()
+	_status_food_label.text = "30"
+	_status_food_label.add_theme_font_size_override("font_size", 11)
+	_status_food_label.add_theme_color_override("font_color", COLOR_WHEAT)
+	food_hbox.add_child(_status_food_label)
 
-	# 右端コントロールボタン群
+	# 右端ステータスラベル（Start等の一時ラベル）
 	var ctrl_spacer := Control.new()
 	ctrl_spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	row1.add_child(ctrl_spacer)
-
 	_status_label = Label.new()
 	_status_label.text = "Setup"
-	_status_label.add_theme_font_size_override("font_size", 10)
+	_status_label.add_theme_font_size_override("font_size", 9)
+	_status_label.add_theme_color_override("font_color", COLOR_TEXT_DIM)
 	row1.add_child(_status_label)
 
-	_charge_btn = Button.new()
-	_charge_btn.text = "[Wait] Idle"
-	_charge_btn.pressed.connect(_on_charge_btn_pressed)
-	row1.add_child(_charge_btn)
-
-	var btn_start_hdr := Button.new()
-	btn_start_hdr.text = "Start"
-	btn_start_hdr.pressed.connect(_on_start_pressed)
-	row1.add_child(btn_start_hdr)
-
-	# --- 下段 (y=44, h=32): 資源6+食料 | ドロー | 強制突撃 | EARLY §3.7〜§3.10 ---
+	# --- 下段 (y=28, h=28): 資源6 + 満足度 + Force Charge ゲージ ---
 	var row2 := HBoxContainer.new()
+	row2.custom_minimum_size = Vector2(0, 28)
 	row2.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	row2.add_theme_constant_override("separation", 4)
+	row2.add_theme_constant_override("separation", 2)
 	hdr_vbox.add_child(row2)
 
-	# §3.7 資源6種 (x=8, 各40px)
+	# 資源6種 (x=8, w=440, h=28)
 	var res_keys   := ["wood", "stone", "sulfur", "wheat", "iron", "cotton"]
 	var res_icons  := ["木", "石", "硫", "小", "鉄", "綿"]
 	var res_colors := [COLOR_WOOD, COLOR_STONE, COLOR_SULFUR, COLOR_WHEAT, COLOR_STONE, COLOR_TEXT]
 	_res_labels = {}
 	for ri in range(res_keys.size()):
-		var rc := VBoxContainer.new()
-		rc.custom_minimum_size = Vector2(40, 0)
-		rc.alignment = BoxContainer.ALIGNMENT_CENTER
+		var rc := HBoxContainer.new()
+		rc.custom_minimum_size = Vector2(72, 0)
+		rc.add_theme_constant_override("separation", 2)
 		row2.add_child(rc)
 		var ri_lbl := Label.new()
 		ri_lbl.text = res_icons[ri]
-		ri_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		ri_lbl.add_theme_font_size_override("font_size", 10)
 		ri_lbl.add_theme_color_override("font_color", res_colors[ri])
 		rc.add_child(ri_lbl)
 		var rv_lbl := Label.new()
-		rv_lbl.text = "5"
-		rv_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		rv_lbl.add_theme_font_size_override("font_size", 10)
+		rv_lbl.text = "0"
+		rv_lbl.add_theme_font_size_override("font_size", 11)
 		rv_lbl.add_theme_color_override("font_color", COLOR_TEXT)
 		rc.add_child(rv_lbl)
 		_res_labels[res_keys[ri]] = rv_lbl
@@ -379,111 +366,138 @@ func _setup_header_ui(vp: Vector2) -> void:
 	res_sep.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	row2.add_child(res_sep)
 
-	# §3.7 食料 (x=310, w=60)
-	var food_c := VBoxContainer.new()
-	food_c.custom_minimum_size = Vector2(48, 0)
-	food_c.alignment = BoxContainer.ALIGNMENT_CENTER
-	row2.add_child(food_c)
-	var food_icon := Label.new()
-	food_icon.text = "食"
-	food_icon.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	food_icon.add_theme_font_size_override("font_size", 10)
-	food_icon.add_theme_color_override("font_color", COLOR_WHEAT)
-	food_c.add_child(food_icon)
-	_status_food_label = Label.new()
-	_status_food_label.text = "30"
-	_status_food_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_status_food_label.add_theme_font_size_override("font_size", 10)
-	_status_food_label.add_theme_color_override("font_color", COLOR_WHEAT)
-	food_c.add_child(_status_food_label)
+	# 満足度 (x=456, w=120, h=28)
+	_status_sat_label = Label.new()
+	_status_sat_label.text = "満足度0(v0.3)"
+	_status_sat_label.add_theme_font_size_override("font_size", 10)
+	_status_sat_label.add_theme_color_override("font_color", COLOR_SAT)
+	_status_sat_label.custom_minimum_size = Vector2(120, 0)
+	row2.add_child(_status_sat_label)
 
-	# §3.7 AI資源（補助情報）
-	_ai_resource_label = Label.new()
-	_ai_resource_label.text = "E:W0 St0 Su0 Wh0"
-	_ai_resource_label.add_theme_font_size_override("font_size", 9)
-	_ai_resource_label.add_theme_color_override("font_color", COLOR_TEXT_DIM)
-	row2.add_child(_ai_resource_label)
+	# 区切り
+	var fc_sep := VSeparator.new()
+	fc_sep.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	row2.add_child(fc_sep)
 
-	var mid_spacer := Control.new()
-	mid_spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	row2.add_child(mid_spacer)
-
-	# §3.8 ドローゲージ (x=320, w=180, h=20)
-	var dg_c := VBoxContainer.new()
-	dg_c.custom_minimum_size = Vector2(160, 0)
-	dg_c.alignment = BoxContainer.ALIGNMENT_CENTER
-	row2.add_child(dg_c)
-	var dg_lbl := Label.new()
-	dg_lbl.text = "Draw"
-	dg_lbl.add_theme_font_size_override("font_size", 9)
-	dg_lbl.add_theme_color_override("font_color", COLOR_TEXT_DIM)
-	dg_c.add_child(dg_lbl)
-	var dg_bar_bg := ColorRect.new()
-	dg_bar_bg.custom_minimum_size = Vector2(160, 10)
-	dg_bar_bg.color = COLOR_PANEL
-	dg_c.add_child(dg_bar_bg)
-	_draw_gauge_bg = dg_bar_bg
-	_draw_gauge_bar = ColorRect.new()
-	_draw_gauge_bar.set_anchors_and_offsets_preset(Control.PRESET_LEFT_WIDE)
-	_draw_gauge_bar.size = Vector2(0, 10)
-	_draw_gauge_bar.color = COLOR_ACCENT_GOLD
-	dg_bar_bg.add_child(_draw_gauge_bar)
-	_draw_gauge_label = Label.new()
-	_draw_gauge_label.text = "30s"
-	_draw_gauge_label.add_theme_font_size_override("font_size", 9)
-	_draw_gauge_label.add_theme_color_override("font_color", COLOR_TEXT_DIM)
-	dg_c.add_child(_draw_gauge_label)
-
-	# §3.9 強制突撃ゲージ (w=400, 10分割)
-	var fc_c := VBoxContainer.new()
-	fc_c.custom_minimum_size = Vector2(360, 0)
-	fc_c.alignment = BoxContainer.ALIGNMENT_CENTER
-	row2.add_child(fc_c)
+	# Force Charge ゲージ (x=584, w=288, h=28) 10分割円ドット表示
+	var fc_hbox := HBoxContainer.new()
+	fc_hbox.custom_minimum_size = Vector2(288, 0)
+	fc_hbox.add_theme_constant_override("separation", 2)
+	fc_hbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	row2.add_child(fc_hbox)
 	var fc_lbl := Label.new()
-	fc_lbl.text = "Force"
-	fc_lbl.add_theme_font_size_override("font_size", 8)
+	fc_lbl.text = "Force:"
+	fc_lbl.add_theme_font_size_override("font_size", 9)
 	fc_lbl.add_theme_color_override("font_color", COLOR_TEXT_DIM)
-	fc_c.add_child(fc_lbl)
-	var fc_segs_row := HBoxContainer.new()
-	fc_segs_row.add_theme_constant_override("separation", 2)
-	fc_c.add_child(fc_segs_row)
+	fc_hbox.add_child(fc_lbl)
 	_force_charge_segs = []
 	for si in range(10):
 		var seg := ColorRect.new()
-		seg.custom_minimum_size = Vector2(32, 14)
+		seg.custom_minimum_size = Vector2(22, 18)
 		seg.color = COLOR_PANEL
-		fc_segs_row.add_child(seg)
+		fc_hbox.add_child(seg)
 		_force_charge_segs.append(seg)
 	_force_charge_turn_label = Label.new()
 	_force_charge_turn_label.text = "0/10"
 	_force_charge_turn_label.add_theme_font_size_override("font_size", 9)
 	_force_charge_turn_label.add_theme_color_override("font_color", COLOR_TEXT_DIM)
-	fc_c.add_child(_force_charge_turn_label)
-
+	fc_hbox.add_child(_force_charge_turn_label)
 	_force_charge_warn_label = Label.new()
 	_force_charge_warn_label.text = "突撃推奨"
 	_force_charge_warn_label.add_theme_font_size_override("font_size", 9)
 	_force_charge_warn_label.add_theme_color_override("font_color", COLOR_ORANGE)
 	_force_charge_warn_label.visible = false
-	row2.add_child(_force_charge_warn_label)
+	fc_hbox.add_child(_force_charge_warn_label)
 
-	# §3.10 EARLY CHARGE ボタン (w=120)
-	_early_charge_btn = Button.new()
-	_early_charge_btn.text = "EARLY CHARGE"
-	_early_charge_btn.custom_minimum_size = Vector2(120, 28)
-	var ec_sb := StyleBoxFlat.new()
-	ec_sb.bg_color = COLOR_PANEL
-	ec_sb.border_color = COLOR_BORDER
-	ec_sb.set_border_width_all(1)
-	ec_sb.set_corner_radius_all(3)
-	_early_charge_btn.add_theme_stylebox_override("normal", ec_sb)
-	_early_charge_btn.add_theme_font_size_override("font_size", 11)
-	_early_charge_btn.add_theme_color_override("font_color", COLOR_TEXT)
-	_early_charge_btn.pressed.connect(_on_early_charge_btn_pressed)
-	row2.add_child(_early_charge_btn)
+	# AI資源ラベル（削除済み・ダミー変数を残す）
+	_ai_resource_label = Label.new()  # 非表示・_process内の参照エラー回避用
+	_ai_resource_label.visible = false
+
+func _setup_pop_header(parent: Control) -> void:
+	# 改訂5: 上段 POP (w=130, h=28)
+	var hbox := HBoxContainer.new()
+	hbox.custom_minimum_size = Vector2(130, 28)
+	hbox.add_theme_constant_override("separation", 2)
+	parent.add_child(hbox)
+	var icon_lbl := Label.new()
+	icon_lbl.text = "[P]"
+	icon_lbl.add_theme_font_size_override("font_size", 11)
+	icon_lbl.add_theme_color_override("font_color", COLOR_POP)
+	hbox.add_child(icon_lbl)
+	var vb := VBoxContainer.new()
+	hbox.add_child(vb)
+	var gauge_row := HBoxContainer.new()
+	vb.add_child(gauge_row)
+	var gauge_bg := ColorRect.new()
+	gauge_bg.custom_minimum_size = Vector2(60, 6)
+	gauge_bg.color = COLOR_PANEL
+	gauge_row.add_child(gauge_bg)
+	_pop_gauge_bar = ColorRect.new()
+	_pop_gauge_bar.set_anchors_and_offsets_preset(Control.PRESET_LEFT_WIDE)
+	_pop_gauge_bar.size = Vector2(0, 6)
+	_pop_gauge_bar.color = COLOR_POP
+	gauge_bg.add_child(_pop_gauge_bar)
+	_pop_label = Label.new()
+	_pop_label.text = "0/50"
+	_pop_label.add_theme_font_size_override("font_size", 10)
+	_pop_label.add_theme_color_override("font_color", COLOR_TEXT)
+	gauge_row.add_child(_pop_label)
+	_pop_preview_label = Label.new()
+	_pop_preview_label.text = "[+3]"
+	_pop_preview_label.add_theme_font_size_override("font_size", 9)
+	_pop_preview_label.add_theme_color_override("font_color", COLOR_WOOD)
+	_pop_preview_label.visible = false
+	vb.add_child(_pop_preview_label)
+
+func _setup_troop_header(parent: Control) -> void:
+	# 改訂5: 上段 TROOP (w=130, h=28)
+	var hbox := HBoxContainer.new()
+	hbox.custom_minimum_size = Vector2(130, 28)
+	hbox.add_theme_constant_override("separation", 2)
+	parent.add_child(hbox)
+	var icon_lbl := Label.new()
+	icon_lbl.text = "[S]"
+	icon_lbl.add_theme_font_size_override("font_size", 11)
+	icon_lbl.add_theme_color_override("font_color", COLOR_TROOP)
+	hbox.add_child(icon_lbl)
+	var vb := VBoxContainer.new()
+	hbox.add_child(vb)
+	var gauge_row := HBoxContainer.new()
+	vb.add_child(gauge_row)
+	var gauge_bg := ColorRect.new()
+	gauge_bg.custom_minimum_size = Vector2(60, 6)
+	gauge_bg.color = COLOR_PANEL
+	gauge_row.add_child(gauge_bg)
+	_troop_gauge_bar = ColorRect.new()
+	_troop_gauge_bar.set_anchors_and_offsets_preset(Control.PRESET_LEFT_WIDE)
+	_troop_gauge_bar.size = Vector2(0, 6)
+	_troop_gauge_bar.color = COLOR_TROOP
+	gauge_bg.add_child(_troop_gauge_bar)
+	_troop_label = Label.new()
+	_troop_label.text = "0"
+	_troop_label.add_theme_font_size_override("font_size", 10)
+	_troop_label.add_theme_color_override("font_color", COLOR_TEXT_DIM)
+	gauge_row.add_child(_troop_label)
+
+func _setup_gold_header(parent: Control) -> void:
+	# 改訂5: 上段 GOLD (w=110, h=28)
+	var hbox := HBoxContainer.new()
+	hbox.custom_minimum_size = Vector2(110, 28)
+	hbox.add_theme_constant_override("separation", 2)
+	parent.add_child(hbox)
+	var icon_lbl := Label.new()
+	icon_lbl.text = "[G]"
+	icon_lbl.add_theme_font_size_override("font_size", 11)
+	icon_lbl.add_theme_color_override("font_color", COLOR_GOLD_COIN)
+	hbox.add_child(icon_lbl)
+	_gold_label = Label.new()
+	_gold_label.text = "100G"
+	_gold_label.add_theme_font_size_override("font_size", 12)
+	_gold_label.add_theme_color_override("font_color", COLOR_GOLD_COIN)
+	hbox.add_child(_gold_label)
 
 func _setup_pop_card(parent: Control) -> void:
-	# §3.3 人口カード (w=200, h=36)
+	# 旧実装（未使用・互換性保持）
 	var card := _make_status_card(200, 36)
 	parent.add_child(card)
 	var icon_lbl := Label.new()
@@ -590,17 +604,17 @@ func _make_status_card(w: int, h: int) -> HBoxContainer:
 	return card
 
 func _setup_footer_ui(vp: Vector2) -> void:
-	# §4.1 FOOTER (y=500, h=220)
+	# 改訂5: FOOTER (y=520, h=180) HEADER56+BOARD464=520
 	var footer := PanelContainer.new()
-	footer.position = Vector2(0, vp.y - 220.0)
-	footer.custom_minimum_size = Vector2(vp.x, 220)
+	footer.position = Vector2(0, 520.0)
+	footer.custom_minimum_size = Vector2(vp.x, 180)
 	_ui_layer.add_child(footer)
 	var ftr_hbox := HBoxContainer.new()
 	ftr_hbox.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	ftr_hbox.add_theme_constant_override("separation", 4)
 	footer.add_child(ftr_hbox)
 
-	# 左ブロック (x=8, w=120): Deck / Discard §4.3
+	# 左ブロック (x=8, w=90): Deck / Discard §4.3 改訂3
 	_setup_deck_discard_block(ftr_hbox)
 
 	var ftr_sep1 := VSeparator.new()
@@ -614,19 +628,19 @@ func _setup_footer_ui(vp: Vector2) -> void:
 	ftr_sep2.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	ftr_hbox.add_child(ftr_sep2)
 
-	# 右ブロック (x=1072, w=200): EVENT SELECT §4.4
+	# 右ブロック (x=1120, w=160): EVENT SELECT §4.4 改訂3
 	_setup_event_block(ftr_hbox)
 
 func _setup_deck_discard_block(parent: Control) -> void:
-	# §4.3 Deck / Discard 左ブロック
+	# §4.3 Deck / Discard 左ブロック 改訂3: w=90
 	var vb := VBoxContainer.new()
-	vb.custom_minimum_size = Vector2(120, 0)
+	vb.custom_minimum_size = Vector2(90, 0)
 	vb.add_theme_constant_override("separation", 4)
 	parent.add_child(vb)
 
 	# DECK
 	var deck_panel := PanelContainer.new()
-	deck_panel.custom_minimum_size = Vector2(104, 88)
+	deck_panel.custom_minimum_size = Vector2(90, 80)
 	deck_panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	var dp_sb := StyleBoxFlat.new()
 	dp_sb.bg_color = COLOR_PANEL
@@ -663,7 +677,7 @@ func _setup_deck_discard_block(parent: Control) -> void:
 
 	# DISCARD
 	var disc_panel := PanelContainer.new()
-	disc_panel.custom_minimum_size = Vector2(104, 88)
+	disc_panel.custom_minimum_size = Vector2(90, 80)
 	disc_panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	var dsc_sb := StyleBoxFlat.new()
 	dsc_sb.bg_color = COLOR_PANEL
@@ -695,11 +709,41 @@ func _setup_deck_discard_block(parent: Control) -> void:
 	dsc_vb.add_child(_discard_count_label)
 
 func _setup_hand_center_block(parent: Control) -> void:
-	# §4.2 手札中央ブロック (w=920, 6枚表示+スクロール矢印)
+	# 改訂5: 手札中央ブロック + Drawゲージ右上配置
 	var center_block := VBoxContainer.new()
+	center_block.custom_minimum_size = Vector2(1016, 160)
 	center_block.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	center_block.add_theme_constant_override("separation", 2)
 	parent.add_child(center_block)
+
+	# Drawゲージ（FOOTER手札スクロール右上 x=920, y=0, w=196, h=24）
+	var dg_row := HBoxContainer.new()
+	dg_row.custom_minimum_size = Vector2(0, 24)
+	dg_row.add_theme_constant_override("separation", 4)
+	center_block.add_child(dg_row)
+	var dg_spacer := Control.new()
+	dg_spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	dg_row.add_child(dg_spacer)
+	var dg_lbl := Label.new()
+	dg_lbl.text = "Draw"
+	dg_lbl.add_theme_font_size_override("font_size", 9)
+	dg_lbl.add_theme_color_override("font_color", COLOR_TEXT_DIM)
+	dg_row.add_child(dg_lbl)
+	var dg_bar_bg := ColorRect.new()
+	dg_bar_bg.custom_minimum_size = Vector2(140, 12)
+	dg_bar_bg.color = COLOR_PANEL
+	dg_row.add_child(dg_bar_bg)
+	_draw_gauge_bg = dg_bar_bg
+	_draw_gauge_bar = ColorRect.new()
+	_draw_gauge_bar.set_anchors_and_offsets_preset(Control.PRESET_LEFT_WIDE)
+	_draw_gauge_bar.size = Vector2(0, 12)
+	_draw_gauge_bar.color = COLOR_ACCENT_GOLD
+	dg_bar_bg.add_child(_draw_gauge_bar)
+	_draw_gauge_label = Label.new()
+	_draw_gauge_label.text = "30s"
+	_draw_gauge_label.add_theme_font_size_override("font_size", 9)
+	_draw_gauge_label.add_theme_color_override("font_color", COLOR_TEXT_DIM)
+	dg_row.add_child(_draw_gauge_label)
 
 	# 矢印+カード行
 	var hand_row := HBoxContainer.new()
@@ -730,9 +774,9 @@ func _setup_hand_center_block(parent: Control) -> void:
 	hand_row.add_child(_hand_right_arrow)
 
 func _setup_event_block(parent: Control) -> void:
-	# §4.4 Event Select 右ブロック（ロック状態）
+	# §4.4 Event Select 右ブロック（ロック状態）改訂4: w=144, 2×2（4セル）
 	var ev_panel := PanelContainer.new()
-	ev_panel.custom_minimum_size = Vector2(200, 0)
+	ev_panel.custom_minimum_size = Vector2(144, 0)
 	var ep_sb := StyleBoxFlat.new()
 	ep_sb.bg_color = Color(COLOR_PANEL.r * 0.5, COLOR_PANEL.g * 0.5, COLOR_PANEL.b * 0.5, 0.9)
 	ep_sb.border_color = COLOR_BORDER
@@ -745,12 +789,12 @@ func _setup_event_block(parent: Control) -> void:
 	ev_vb.alignment = BoxContainer.ALIGNMENT_CENTER
 	ev_panel.add_child(ev_vb)
 	var ev_title := Label.new()
-	ev_title.text = "EVENT SELECT"
+	ev_title.text = "EVENT"
 	ev_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	ev_title.add_theme_font_size_override("font_size", 10)
 	ev_title.add_theme_color_override("font_color", COLOR_TEXT_DIM)
 	ev_vb.add_child(ev_title)
-	# 2×2 グリッド
+	# 2×2 グリッド（改訂4: 4セル復元）各セル 68×68px
 	var ev_grid := GridContainer.new()
 	ev_grid.columns = 2
 	ev_grid.add_theme_constant_override("h_separation", 4)
@@ -758,7 +802,7 @@ func _setup_event_block(parent: Control) -> void:
 	ev_vb.add_child(ev_grid)
 	for _ei in range(4):
 		var cell_panel := PanelContainer.new()
-		cell_panel.custom_minimum_size = Vector2(88, 72)
+		cell_panel.custom_minimum_size = Vector2(68, 68)
 		var cp_sb := StyleBoxFlat.new()
 		cp_sb.bg_color = Color(COLOR_PANEL.r, COLOR_PANEL.g, COLOR_PANEL.b, 0.5)
 		cp_sb.border_color = COLOR_BORDER
@@ -785,7 +829,7 @@ func _setup_event_block(parent: Control) -> void:
 	var ev_sub := Label.new()
 	ev_sub.text = "v0.3 開放"
 	ev_sub.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	ev_sub.add_theme_font_size_override("font_size", 9)
+	ev_sub.add_theme_font_size_override("font_size", 8)
 	ev_sub.add_theme_color_override("font_color", COLOR_TEXT_DIM)
 	ev_vb.add_child(ev_sub)
 
@@ -941,6 +985,23 @@ func _on_charge_btn_pressed() -> void:
 func _input(event: InputEvent) -> void:
 	if not (event is InputEventMouseButton):
 		return
+	# BASE長押し開始・終了（左クリック）
+	if event.button_index == MOUSE_BUTTON_LEFT:
+		if event.pressed:
+			var local_check := _grid.to_local(get_global_mouse_position())
+			var click_cell := _pixel_to_hex(local_check)
+			var is_player_base := false
+			for b in _battle.player_buildings:
+				if b.building_type == EconBuilding.BuildingType.BASE and b.is_alive and b.grid_pos == click_cell:
+					is_player_base = true
+					break
+			if is_player_base:
+				_base_longpress_start_time = Time.get_ticks_msec() / 1000.0
+				_base_longpress_cell = click_cell
+				print("[EconMain] BASE longpress start at (%d,%d)" % [click_cell.x, click_cell.y])
+		else:
+			# リリース: 長押しをリセット（発動前なら何もしない）
+			_base_longpress_start_time = -1.0
 	if not event.pressed:
 		return
 	# 右クリック: 旗設置
@@ -965,7 +1026,7 @@ func _input(event: InputEvent) -> void:
 	# Ignore clicks in header / footer UI areas
 	var mouse_y: float = event.position.y
 	var vp_h: float = get_viewport().get_visible_rect().size.y
-	if mouse_y < 80.0 or mouse_y > vp_h - 220.0:  # v0.2: HEADER=80, FOOTER=220
+	if mouse_y < 56.0 or mouse_y > vp_h - 180.0:  # 改訂5: HEADER=56, FOOTER=180
 		return
 	var local_pos: Vector2 = _grid.to_local(get_global_mouse_position())
 	var cell := _pixel_to_hex(local_pos)
@@ -1175,6 +1236,24 @@ func _get_wheat_eval() -> Dictionary:
 
 func _process(delta: float) -> void:
 	_elapsed_time += delta
+	# BASE長押し判定（0.6秒で一斉突撃）
+	if _base_longpress_start_time >= 0.0:
+		var elapsed := Time.get_ticks_msec() / 1000.0 - _base_longpress_start_time
+		var progress := clampf(elapsed / BASE_LONGPRESS_THRESHOLD, 0.0, 1.0)
+		_grid.base_longpress_cell = _base_longpress_cell
+		_grid.base_longpress_progress = progress
+		if elapsed >= BASE_LONGPRESS_THRESHOLD:
+			_trigger_unified_charge()
+			_base_longpress_start_time = -1.0
+			_grid.base_longpress_cell = Vector2i(-1, -1)
+			_grid.base_longpress_progress = 0.0
+		# リング進捗描画更新
+		_grid.queue_redraw()
+	else:
+		if _grid.base_longpress_cell != Vector2i(-1, -1):
+			_grid.base_longpress_cell = Vector2i(-1, -1)
+			_grid.base_longpress_progress = 0.0
+			_grid.queue_redraw()
 	_battle.update(delta)
 	# v0.2 資源ラベル辞書更新（§3.7）
 	for res_key in _res_labels.keys():
@@ -1339,9 +1418,9 @@ func _refresh_hand_ui() -> void:
 		_discard_count_label.text = "%d枚" % int(_battle.deck_manager.discard_pile.size())
 
 func _create_hand_card_node(card_data: Dictionary, card_idx: int) -> Control:
-	# §5.2.1 手札カード1枚のノードを生成（96×112px・v0.2 縮小）
+	# §4.2.1 手札カード1枚のノードを生成（80×96px・改訂3 縮小）
 	var card_btn := Button.new()
-	card_btn.custom_minimum_size = Vector2(96, 112)
+	card_btn.custom_minimum_size = Vector2(80, 96)
 	card_btn.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 
 	# 状態判定（§5.3.2 6状態の優先順位チェック）
@@ -1608,9 +1687,9 @@ func _update_population_ui() -> void:
 
 func _update_status_ui() -> void:
 	# §5.1 HEADER ステータスUI 毎フレーム更新（v0.2）
-	# 満足度（§3.4）
+	# 満足度（改訂5: 下段ラベルのみ）
 	if _status_sat_label != null:
-		_status_sat_label.text = "Sat %d" % _economy.satisfaction
+		_status_sat_label.text = "満足度%d(v0.3)" % _economy.satisfaction
 	# 兵力 + 兵力ゲージ 4段階演出（§3.5）
 	var mil_power: float = _economy.military_power
 	if _troop_label != null:
@@ -1668,13 +1747,16 @@ func _update_status_ui() -> void:
 		_status_food_label.add_theme_color_override("font_color", food_color)
 
 func _on_early_charge_btn_pressed() -> void:
-	# §5.2.2 早期突撃ボタン押下
+	# 旧早期突撃ボタン（削除済みUIの互換関数）
+	_trigger_unified_charge()
+
+func _trigger_unified_charge() -> void:
+	# Phase 3: BASE長押し + ターン10 の統一一斉突撃処理
 	if _battle.deck_manager != null and bool(_battle.deck_manager.force_charge_triggered):
 		return
+	print("[EconMain] _trigger_unified_charge: activated")
 	_battle.trigger_early_charge()
-	if _early_charge_btn != null:
-		_early_charge_btn.disabled = true
-	_add_log("早期突撃発動!")
+	_add_log("一斉突撃発動!")
 	_charge_mode = true
 	for u in _battle.player_units:
 		if u.is_alive and u.is_idle:
@@ -1682,3 +1764,46 @@ func _on_early_charge_btn_pressed() -> void:
 	for f in _flags:
 		f.is_assault_mode = true
 		f.queue_redraw()
+	# 画面フラッシュ（白・0.3秒）
+	var flash_rect := ColorRect.new()
+	flash_rect.color = Color.WHITE
+	flash_rect.modulate.a = 0.4
+	flash_rect.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_ui_layer.add_child(flash_rect)
+	var tween := create_tween()
+	tween.tween_property(flash_rect, "modulate:a", 0.0, 0.3)
+	tween.tween_callback(flash_rect.queue_free)
+	# 「CHARGE!」テキスト（盤面中央・赤・64px）
+	var vp := get_viewport().get_visible_rect().size
+	var charge_label := Label.new()
+	charge_label.text = "CHARGE!"
+	charge_label.add_theme_font_size_override("font_size", 64)
+	charge_label.add_theme_color_override("font_color", COLOR_RED)
+	charge_label.position = vp / 2.0 - Vector2(160.0, 40.0)
+	_ui_layer.add_child(charge_label)
+	var tween2 := create_tween()
+	tween2.tween_property(charge_label, "modulate:a", 0.0, 1.0)
+	tween2.tween_callback(charge_label.queue_free)
+	_base_longpress_start_time = -1.0
+
+func _create_start_button() -> void:
+	# Phase 4: STARTボタン（初回のみ盤面中央フローティング）
+	_start_button = Button.new()
+	_start_button.text = "Start"
+	_start_button.position = Vector2(560.0, 288.0)
+	_start_button.custom_minimum_size = Vector2(160.0, 64.0)
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = COLOR_PANEL
+	sb.border_color = COLOR_ACCENT_GOLD
+	sb.set_border_width_all(2)
+	sb.set_corner_radius_all(4)
+	_start_button.add_theme_stylebox_override("normal", sb)
+	_start_button.add_theme_font_size_override("font_size", 20)
+	_start_button.add_theme_color_override("font_color", COLOR_ACCENT_GOLD)
+	_start_button.pressed.connect(func():
+		_game_started = true
+		_on_start_pressed()
+		_start_button.queue_free()
+		_start_button = null
+	)
+	_ui_layer.add_child(_start_button)
