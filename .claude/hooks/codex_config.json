@@ -1,0 +1,12 @@
+{
+  "_comment": "Codex CLI の設定。codex_command を環境に合わせて変更してください",
+  "codex_command": "C:/Users/kazum/AppData/Local/Packages/OpenAI.Codex_2p2nqsd0c76g0/LocalCache/Local/OpenAI/Codex/bin/codex.exe",
+  "codex_args": [],
+  "codex_model": "gpt-5.5",
+  "auto_dispatch": false,
+  "notify_on_result": true,
+  "request_dir": "docs/tasks",
+  "request_prefix": "codex_request_",
+  "result_prefix": "codex_result_",
+  "system_prompt_path": "docs/meta/codex_system_prompt.md"
+}
