@@ -30,7 +30,7 @@ var battle: EconBattle = null     # 親バトル参照
 # デッキロードフラグ（_ready前に setup が呼ばれることへの対応）
 var _initialized: bool = false
 # ターン境界の二重発火防止用（直前のターン番号を保持）
-var _last_processed_turn: int = -1
+var _last_processed_turn: int = 0
 
 func setup(initial_deck: Array, battle_ref: EconBattle, on_draw: Callable) -> void:
 	# §8.1.2 setup
@@ -49,10 +49,11 @@ func update(delta: float) -> void:
 
 	battle_elapsed_sec += delta
 	# ターン番号は経過秒から独立算出（§4.3 ドロー保留と無関係）
-	current_turn = int(battle_elapsed_sec / TURN_DURATION_SEC)
+	# +1 で 1始まり（t=0〜30秒=ターン1 / §4.3具体例「ターン1(t=0〜30秒)」準拠）
+	current_turn = int(battle_elapsed_sec / TURN_DURATION_SEC) + 1
 
 	# ターン境界を検知してドロー発火（二重発火防止）
-	if current_turn > _last_processed_turn and current_turn > 0:
+	if current_turn > _last_processed_turn:
 		_last_processed_turn = current_turn
 		_on_turn_elapsed()
 

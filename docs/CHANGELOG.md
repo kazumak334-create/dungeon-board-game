@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+## 2026-05-02 fix: EconDeckManager current_turn 1始まり修正（Turn 0/10 表示バグ対応）
+- EconDeckManager.gd 53行: `current_turn = int(elapsed / 30) + 1` に変更（§4.3具体例「ターン1(t=0〜30秒)」準拠）
+- EconDeckManager.gd 33行: `_last_processed_turn` 初期値を -1 → 0 に変更（+1後の即発火防止）
+- EconDeckManager.gd 56行: `current_turn > 0` ガード削除（1始まりにより不要）
+- 修正2（force_charge_triggered 時の hand disabled）は実装済みのため対応不要（EconMain.gd 1383-1384行に既存）
+
 ## 2026-05-02 feat: Econ MVP v0.1 ドロー・手札・ゲージシステム実装
 - EconDeckManager.gd（新規）: デッキ管理クラス。deck/hand/discard_pile/excluded + ターン進行 + ドローゲージ
   - TURN_DURATION_SEC=30.0 / MAX_TURNS=10 / HAND_MAX_SIZE=5 / LIBRARY_CD_SEC=5.0
