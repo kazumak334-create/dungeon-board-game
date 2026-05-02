@@ -122,14 +122,10 @@ func update(delta: float) -> void:
 		_battle.log_message.emit("AI diag: W%d St%d Su%d | harv:%d | next:%s" % [
 			economy.wood, economy.stone, economy.sulfur, alive_h, q_info])
 	# 敵ハーベスター更新
-	var all_movable: Array = _battle.player_units + _battle.player_harvesters + _battle.enemy_units + _battle.enemy_harvesters + _battle.enemy_builders
+	var all_movable: Array = _battle.player_units + _battle.player_harvesters + _battle.enemy_units + _battle.enemy_harvesters
 	for h in _battle.enemy_harvesters:
 		if h.is_alive:
 			h.update(delta, _grid, all_movable, _battle.player_units)
-	# 敵ビルダー更新（集中建設固定）
-	for b in _battle.enemy_builders:
-		if b.is_alive:
-			b.update(delta, _grid, all_movable, _battle.enemy_buildings, true, economy, _battle.player_units)
 	# 敵建物更新
 	for b in _battle.enemy_buildings:
 		if b.is_alive:
@@ -139,7 +135,5 @@ func update(delta: float) -> void:
 func on_unit_produced(pos: Vector2i, utype: int) -> void:
 	if utype == -1:
 		_battle.spawn_enemy_harvester(pos, economy)
-	elif utype == -2:
-		_battle.spawn_enemy_builder(pos)
 	else:
 		_battle.spawn_enemy_unit(utype, pos)
