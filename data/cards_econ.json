@@ -6,7 +6,7 @@
       "type": "building",
       "building_type": "WOOD_EXTRACTOR",
       "draw_type": "BASIC",
-      "cost": { "wood": 2, "stone": 0, "sulfur": 0, "wheat": 0 },
+      "cost": { "wood": 2, "stone": 0, "sulfur": 0, "wheat": 0, "iron": 0, "cotton": 0 },
       "population_required": 1,
       "population_supply": 0,
       "hp": 50,
@@ -142,7 +142,7 @@
       "population_required": 2,
       "population_supply": 0,
       "hp": 100,
-      "description": "攻撃ユニットを生産する"
+      "description": "兵力を蓄積する(+0.2/秒)。突撃時に1:1でユニット化"
     },
     {
       "id": "card_barracks_2",
@@ -154,7 +154,7 @@
       "population_required": 2,
       "population_supply": 0,
       "hp": 100,
-      "description": "攻撃ユニットを生産する"
+      "description": "兵力を蓄積する(+0.2/秒)。突撃時に1:1でユニット化"
     }
   ]
 }

@@ -3,14 +3,12 @@ extends Node
 
 # 要件定義書 req_econ_draw_hand_circulation.md §8.1 に準拠
 
-# 定数（パラメータ化）
+# 定数（パラメータ化・§13.6）
 const TURN_DURATION_SEC: float = 30.0
 const MAX_TURNS: int = 10
-const HAND_MAX_SIZE: int = 5
+const HAND_MAX_SIZE: int = 8  # ★ v0.2 改訂（5→8）
 const LIBRARY_CD_SEC: float = 5.0
 const LIBRARY_DRAW_COST_CURRENCY: int = 1
-const BASE_POPULATION_CAP: int = 3
-const HOUSE_POPULATION_SUPPLY: int = 3
 
 # 状態（§7.2）
 var deck: Array = []           # Array[Dictionary]（Card）
@@ -108,6 +106,17 @@ func exclude_card(card: Dictionary) -> void:
 	excluded.append(card)
 	print("[EconDeckManager] exclude_card: '%s', hand=%d, excluded=%d" % [card.get("name", "?"), hand.size(), excluded.size()])
 
+func exclude_card_at(idx: int) -> Dictionary:
+	# §8.1.2 exclude_card_at（インデックス指定・§4.4.3 ステップ②）
+	if idx < 0 or idx >= hand.size():
+		print("[EconDeckManager] exclude_card_at: invalid idx=%d" % idx)
+		return {}
+	var card: Dictionary = hand[idx]
+	hand.remove_at(idx)
+	excluded.append(card)
+	print("[EconDeckManager] exclude_card_at: '%s', hand=%d, excluded=%d" % [card.get("name", "?"), hand.size(), excluded.size()])
+	return card
+
 func play_card(card_idx: int) -> Dictionary:
 	# §8.1.2 play_card: hand から remove、exclude_card を呼び、カードを返す
 	if card_idx < 0 or card_idx >= hand.size():
@@ -132,7 +141,7 @@ func request_library_draw() -> bool:
 	return true
 
 func try_resolve_pending_draws() -> void:
-	# §4.3 毎フレーム呼出。pending_draws > 0 かつ手札<5 なら1枚消化
+	# §4.3 毎フレーム呼出。pending_draws > 0 かつ手札<8 なら1枚消化
 	if pending_draws <= 0:
 		return
 	if hand.size() >= HAND_MAX_SIZE:
@@ -171,12 +180,8 @@ func is_battle_ended_by_turn_limit() -> bool:
 	return current_turn >= MAX_TURNS and force_charge_triggered
 
 func get_econ_state_snapshot() -> Dictionary:
-	# §7.3 UI描画用 state スナップショット
-	var pop_used: int = 0
-	var pop_cap: int = BASE_POPULATION_CAP
-	if battle != null and battle.economy != null:
-		pop_used = battle.economy.population_used
-		pop_cap = battle.economy.population_cap
+	# §7.2 UI描画用 state スナップショット（v0.2 拡張）
+	var eco: EconEconomy = battle.economy if battle != null else null
 	return {
 		"deck_count": deck.size(),
 		"hand": hand.duplicate(),
@@ -186,7 +191,11 @@ func get_econ_state_snapshot() -> Dictionary:
 		"draw_gauge_max": TURN_DURATION_SEC,
 		"current_turn": current_turn,
 		"force_charge_triggered": force_charge_triggered,
-		"currency": battle.economy.currency if battle != null and battle.economy != null else 0,
-		"population_used": pop_used,
-		"population_cap": pop_cap,
+		"currency": eco.currency if eco != null else 0,
+		"food": eco.food if eco != null else 0,
+		"satisfaction": eco.satisfaction if eco != null else 0,
+		"military_power": eco.military_power if eco != null else 0.0,
+		"population_used": eco.population_used if eco != null else 0,
+		"population_cap": eco.population_cap if eco != null else 0,
+		"resources": eco.resources.duplicate() if eco != null else {},
 	}

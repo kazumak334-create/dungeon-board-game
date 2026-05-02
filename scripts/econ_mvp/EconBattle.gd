@@ -41,25 +41,57 @@ func setup_deck(initial_deck: Array, on_draw: Callable) -> void:
 	print("[EconBattle] setup_deck: deck_manager initialized")
 
 func play_card_and_build(card_idx: int, target_cell: Vector2i) -> bool:
-	# §8.2 外部からカード使用→建物配置のエントリポイント
+	# §4.4.3 / §8.2 カード使用→建物配置エントリポイント（v0.2 改訂・資源即時消費）
 	if deck_manager == null:
 		return false
-	var card_raw = deck_manager.play_card(card_idx)
-	var card: Dictionary = card_raw if card_raw is Dictionary else {}
-	if card.is_empty():
+	# 強制突撃後は建設停止（§9.6）
+	if deck_manager.force_charge_triggered:
 		return false
+	if card_idx < 0 or card_idx >= deck_manager.hand.size():
+		return false
+	var card: Dictionary = deck_manager.hand[card_idx]
+	# 配置チェック（§4.4.2）
+	if not _check_placement_valid(card, target_cell):
+		return false
+	# ① 資源即時消費（§4.4.3 ステップ1）
+	if economy != null:
+		economy.consume_resources(card)
+	# ② 手札から除外（§4.4.3 ステップ2）
+	deck_manager.exclude_card_at(card_idx)
+	# ③ 盤面に建物生成・登録（§4.4.3 ステップ3）
 	var building := _create_building_from_card(card, target_cell)
 	if building == null:
 		return false
 	register_player_building(building)
-	# 人口更新（§8.5）
+	# 人口更新（§8.6）
 	if economy != null:
-		var pop_req: int = card.get("population_required", 0)
-		economy.population_used += pop_req
+		economy.population_used += card.get("population_required", 0)
 		var pop_supply: int = card.get("population_supply", 0)
 		if pop_supply > 0:
 			economy.population_cap += pop_supply
 	log_message.emit("Card played: %s at (%d,%d)" % [card.get("name", "?"), target_cell.x, target_cell.y])
+	return true
+
+func _check_placement_valid(card: Dictionary, target_cell: Vector2i) -> bool:
+	# §4.4.2 配置時4条件チェック
+	# 条件1: 資源充足
+	if economy != null and not economy.can_afford_card(card):
+		log_message.emit("Resource insufficient for %s" % card.get("name", "?"))
+		return false
+	# 条件2: 人口充足
+	if economy != null:
+		var pop_req: int = card.get("population_required", 0)
+		if economy.population_used + pop_req > economy.population_cap:
+			log_message.emit("Population cap exceeded")
+			return false
+	# 条件3: 配置先有効チェック（グリッド内かつ占有なし）
+	if grid != null and not grid.is_valid_cell(target_cell.x, target_cell.y):
+		return false
+	for b in player_buildings:
+		if b.grid_pos == target_cell and b.is_alive:
+			log_message.emit("Cell occupied at (%d,%d)" % [target_cell.x, target_cell.y])
+			return false
+	# 条件4: 強制突撃前（呼出元でチェック済み）
 	return true
 
 func _create_building_from_card(card: Dictionary, target_cell: Vector2i) -> EconBuilding:
@@ -133,10 +165,58 @@ func _resolve_population_overflow() -> void:
 		print("[EconBattle] _resolve_population_overflow: stopped building at (%d,%d)" % [target.grid_pos.x, target.grid_pos.y])
 
 func trigger_early_charge() -> void:
-	# §8.2 早期突撃のエントリポイント
+	# §4.6.1 / §8.2 早期突撃のエントリポイント（v0.2 改訂：unitize_military_power追加）
 	if deck_manager != null:
 		deck_manager.trigger_force_charge()
+	unitize_military_power()  # ★ v0.2 新規：兵力→ユニット化（§9.2）
 	log_message.emit("Early charge triggered!")
+
+func unitize_military_power() -> int:
+	# §4.7.3 / §8.2 兵力→ユニット変換（突撃時のみ呼出・旗倒し単独では呼ばない）
+	if economy == null:
+		return 0
+	var unit_count: int = int(floor(economy.military_power))
+	economy.military_power -= float(unit_count)  # 小数部を残す
+	if unit_count <= 0:
+		return 0
+	_spawn_units_from_barracks(unit_count)
+	log_message.emit("Unitized military power: %d units spawned" % unit_count)
+	print("[EconBattle] unitize_military_power: %d units from %.2f power" % [unit_count, economy.military_power + float(unit_count)])
+	return unit_count
+
+func _spawn_units_from_barracks(unit_count: int) -> void:
+	# §4.7.3 兵舎セルから均等分散出現
+	var barracks_cells: Array = []
+	for b in player_buildings:
+		if b.building_type == EconBuilding.BuildingType.BARRACKS and b.is_alive and b.is_built:
+			barracks_cells.append(b.grid_pos)
+	if barracks_cells.size() == 0:
+		# 兵舎なし → BASE位置からスポーン
+		for b in player_buildings:
+			if b.building_type == EconBuilding.BuildingType.BASE and b.is_alive:
+				barracks_cells.append(b.grid_pos)
+				break
+	if barracks_cells.size() == 0:
+		return
+	var per_cell: int = int(unit_count / barracks_cells.size())
+	var remainder: int = unit_count % barracks_cells.size()
+	for i in range(barracks_cells.size()):
+		var cell: Vector2i = barracks_cells[i]
+		var n: int = per_cell + (1 if i < remainder else 0)
+		for _j in range(n):
+			spawn_player_unit(cell.x, cell.y, 0, true)  # 突撃モードで出現
+	print("[EconBattle] _spawn_units_from_barracks: %d units from %d barracks" % [unit_count, barracks_cells.size()])
+
+func _accumulate_barracks_power(delta: float) -> void:
+	# §4.7.2 / §8.2 兵舎の兵力蓄積（EconBattle.update内で呼出）
+	if economy == null:
+		return
+	var active_count: int = 0
+	for b in player_buildings:
+		if b.building_type == EconBuilding.BuildingType.BARRACKS and b.is_alive and b.is_built:
+			active_count += 1
+	if active_count > 0:
+		economy.accumulate_military_power(delta, active_count)
 
 func update(delta: float) -> void:
 	if not is_running or _game_over:
@@ -146,6 +226,12 @@ func update(delta: float) -> void:
 	if deck_manager != null:
 		deck_manager.update(delta)
 		deck_manager.try_resolve_pending_draws()
+	# 兵舎の兵力蓄積（v0.2 §4.7.2）
+	_accumulate_barracks_power(delta)
+	# 強制突撃ゲージ満タン時の自動ユニット化（§9.1 ターン10）
+	if deck_manager != null and deck_manager.force_charge_triggered and economy != null:
+		if floor(economy.military_power) > 0.0:
+			pass  # unitize_military_power は trigger_force_charge 経由で呼ばれる
 	# 経済更新（小麦消費）
 	var total_units: int = player_units.size()
 	economy.update(delta, total_units)

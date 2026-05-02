@@ -2,6 +2,33 @@
 
 ## [Unreleased]
 
+## 2026-05-02 feat: Econ MVP v0.2 ステータス基盤・兵力蓄積・UI大改造
+- EconEconomy.gd: v0.2 フィールド追加（resources dict/food=30/satisfaction=0/military_power=0.0）
+  - BASE_POPULATION_CAP=50（拠点効果）/ BARRACKS_POWER_PER_SEC=0.2 / INITIAL_CURRENCY=100 / INITIAL_FOOD=30
+  - consume_resources(card) / can_afford_card(card) / accumulate_military_power(delta, n) 追加
+  - initialize_v0_2(): 初期値一括設定メソッド追加
+  - 要件定義書 §7.3 §8.3 §13.6 準拠
+- EconDeckManager.gd: HAND_MAX_SIZE 5→8（v0.2改訂）/ BASE_POPULATION_CAP/HOUSE_POPULATION_SUPPLY削除（EconEconomy側へ移動）
+  - exclude_card_at(idx) 追加（§8.1.2・§4.4.3 ステップ②）
+  - get_econ_state_snapshot() 拡張（food/satisfaction/military_power/resources追加）
+- EconBattle.gd: play_card_and_build() 改訂（資源即時消費・BUILD区廃止・§4.4.3）
+  - _check_placement_valid() 新規（4条件チェック）
+  - unitize_military_power() / _spawn_units_from_barracks() / _accumulate_barracks_power() 追加（§4.7.2-4.7.4）
+  - trigger_early_charge() に unitize_military_power() 呼び出し追加（§9.2）
+  - update() に _accumulate_barracks_power(delta) 追加
+- EconMain.gd: HEADER 56→80px（2行構造）/ FOOTER 180→120px / FOOTER判定y更新
+  - HEADER上段: Pop/Sat/Mil/Cur ステータス表示追加（§5.1）
+  - HEADER下段: 各資源+食料表示・resources辞書参照に切り替え
+  - 手札カード 120×160 → 96×112px（§5.2.1）
+  - 手札UI位置・幅を FOOTER 120px に対応
+  - イベント選択区プレースホルダー（ロック状態UI・§5.4）追加
+  - デッキ/捨て札/除外表示を画面右下に配置（§5.3）
+  - _update_status_ui() 新規（毎フレーム Pop/Sat/Mil/Cur/Food を更新）
+  - _get_card_state() で resources 辞書参照に切り替え
+  - MAX表示 "5/5" → "8/8" 更新
+  - _setup_economy() に initialize_v0_2() 呼び出し追加
+- data/cards_econ.json: 兵舎description更新（攻撃直接生産→兵力蓄積式）/ iron/cotton costフィールド追加
+
 ## 2026-05-02 fix: EconDeckManager current_turn 1始まり修正（Turn 0/10 表示バグ対応）
 - EconDeckManager.gd 53行: `current_turn = int(elapsed / 30) + 1` に変更（§4.3具体例「ターン1(t=0〜30秒)」準拠）
 - EconDeckManager.gd 33行: `_last_processed_turn` 初期値を -1 → 0 に変更（+1後の即発火防止）

@@ -4,6 +4,13 @@ extends Node
 const ROLE_BUILD := 10
 const ROLE_TRADE := 11
 
+# v0.2 定数（§13.6 パラメータ化）
+const BASE_POPULATION_CAP: int = 50  # 拠点効果（§7.4）
+const HOUSE_POPULATION_SUPPLY: int = 3
+const BARRACKS_POWER_PER_SEC: float = 0.2  # 仮値（§4.7.2）
+const INITIAL_FOOD: int = 30              # §7.3
+const INITIAL_CURRENCY: int = 100        # §7.3
+
 var wood: int = 0
 var stone: int = 0
 var sulfur: int = 0
@@ -11,10 +18,16 @@ var wheat: int = 10
 var iron: int = 0
 var cotton: int = 0
 
+# v0.2 追加フィールド（§7.3）
+var resources: Dictionary = {"wood": 5, "stone": 5, "sulfur": 5, "wheat": 5, "iron": 5, "cotton": 5}
+var food: int = INITIAL_FOOD
+var satisfaction: int = 0     # v0.3で具体化、初期値0（§7.3）
+var military_power: float = 0.0  # 兵力（§4.7.2）
+
 # 要件定義書 req_econ_draw_hand_circulation.md §7.4
-var currency: int = 0
+var currency: int = INITIAL_CURRENCY
 var population_used: int = 0
-var population_cap: int = 3  # BASE_POPULATION_CAP=3
+var population_cap: int = BASE_POPULATION_CAP  # 拠点効果+50
 
 # ハーベスター割り当て人数（直接人数指定）
 var target_count: Dictionary = {
@@ -93,3 +106,54 @@ func get_harvest_target_for(idx: int, total: int) -> int:
 
 func get_display_text() -> String:
 	return "Wood:%d Stone:%d Sulfur:%d Wheat:%d Iron:%d Cotton:%d" % [wood, stone, sulfur, wheat, iron, cotton]
+
+# v0.2 新規：カード配置時の資源消費（§8.3）
+func consume_resources(card: Dictionary) -> void:
+	var cost: Dictionary = card.get("cost", {})
+	for resource_key in cost.keys():
+		if resources.has(resource_key):
+			resources[resource_key] -= cost[resource_key]
+			# 後方互換：既存フィールドとresourcesを同期
+			_sync_resource_field(resource_key)
+	print("[EconEconomy] consume_resources: %s" % str(cost))
+
+# v0.2 新規：資源充足チェック（§8.3）
+func can_afford_card(card: Dictionary) -> bool:
+	var cost: Dictionary = card.get("cost", {})
+	for resource_key in cost.keys():
+		if not resources.has(resource_key):
+			return false
+		if resources[resource_key] < cost[resource_key]:
+			return false
+	return true
+
+# v0.2 新規：兵力蓄積（§4.7.2）
+func accumulate_military_power(delta: float, active_barracks_count: int) -> void:
+	military_power += BARRACKS_POWER_PER_SEC * float(active_barracks_count) * delta
+
+# v0.2 新規：resources辞書とフィールドを同期する内部メソッド
+func _sync_resource_field(resource_key: String) -> void:
+	match resource_key:
+		"wood": wood = resources.get("wood", 0)
+		"stone": stone = resources.get("stone", 0)
+		"sulfur": sulfur = resources.get("sulfur", 0)
+		"wheat": wheat = resources.get("wheat", 0)
+		"iron": iron = resources.get("iron", 0)
+		"cotton": cotton = resources.get("cotton", 0)
+
+# v0.2 新規：初期化（§9.1）
+func initialize_v0_2() -> void:
+	population_cap = BASE_POPULATION_CAP
+	population_used = 0
+	satisfaction = 0
+	military_power = 0.0
+	currency = INITIAL_CURRENCY
+	food = INITIAL_FOOD
+	resources = {"wood": 5, "stone": 5, "sulfur": 5, "wheat": 5, "iron": 5, "cotton": 5}
+	wood = 5
+	stone = 5
+	sulfur = 5
+	wheat = 5
+	iron = 5
+	cotton = 5
+	print("[EconEconomy] initialize_v0_2: resources=%s, currency=%d, food=%d, pop_cap=%d" % [str(resources), currency, food, population_cap])
