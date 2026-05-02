@@ -2,6 +2,14 @@
 
 ## [Unreleased]
 
+## 2026-05-02 feat: EconMain.gd 兵力ゲージ4段階演出（ui_draw_hand_gauge_specification.md §3.5）
+- `_elapsed_time` 変数を追加、`_process()` で毎フレーム累積
+- `_update_status_ui()` 内の兵力ゲージ処理を4段階演出に差し替え
+  - Stage 0 (=0): α=0.3 暗く静止、数値色 COLOR_TEXT_DIM
+  - Stage 1 (1〜30): α=1.0 通常表示、数値色 COLOR_TEXT
+  - Stage 2 (31〜50): 1.0秒周期 α=0.7↔1.0 正弦明滅、数値太字
+  - Stage 3 (51+): 0.5秒周期強明滅 + COLOR_RED、数値 COLOR_RED 太字
+
 ## 2026-05-02 refactor: EconMain.gd 廃止関数を物理削除（設計書 §2.3 §4.0）
 - 削除: `_spawn_harvester_at()` 定義を物理削除し、呼び出し箇所を `_battle.spawn_player_harvester()` 直接呼び出しに置換
 - 削除: `_connect_building_to_flag()` 定義を物理削除し、呼び出し箇所をインライン展開

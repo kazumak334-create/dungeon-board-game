@@ -61,6 +61,7 @@ var _res_labels: Dictionary = {}           # key=資源名, value=Label
 var _draw_gauge_blink_timer: float = 0.0
 var _force_charge_blink_timer: float = 0.0
 var _draw_flash_timer: float = 0.0  # ドロー発動白フラッシュ
+var _elapsed_time: float = 0.0      # 兵力ゲージ明滅アニメーション用累積時間
 
 const COLOR_PANEL      := Color("#231F1B")
 const COLOR_BORDER     := Color("#3C3628")
@@ -1173,6 +1174,7 @@ func _get_wheat_eval() -> Dictionary:
 	return {"text": text, "color": color}
 
 func _process(delta: float) -> void:
+	_elapsed_time += delta
 	_battle.update(delta)
 	# v0.2 資源ラベル辞書更新（§3.7）
 	for res_key in _res_labels.keys():
@@ -1609,17 +1611,51 @@ func _update_status_ui() -> void:
 	# 満足度（§3.4）
 	if _status_sat_label != null:
 		_status_sat_label.text = "Sat %d" % _economy.satisfaction
-	# 兵力（§3.5）
+	# 兵力 + 兵力ゲージ 4段階演出（§3.5）
+	var mil_power: float = _economy.military_power
 	if _troop_label != null:
-		var mil_int: int = int(floor(_economy.military_power))
-		_troop_label.text = "%d" % mil_int
-		var mil_color := COLOR_TROOP if mil_int > 0 else COLOR_TEXT_DIM
-		_troop_label.add_theme_color_override("font_color", mil_color)
-	# 兵力ゲージ（§3.5）
+		_troop_label.text = "%d" % int(floor(mil_power))
+	var gauge_progress: float = clampf(mil_power / 60.0, 0.0, 1.0)
+	if mil_power == 0.0:
+		# Stage 0: 暗く静止
+		if _troop_gauge_bar != null:
+			_troop_gauge_bar.modulate.a = 0.3
+			_troop_gauge_bar.self_modulate = COLOR_TROOP
+		if _troop_label != null:
+			_troop_label.add_theme_color_override("font_color", COLOR_TEXT_DIM)
+			_troop_label.remove_theme_font_size_override("font_size")
+	elif mil_power <= 30.0:
+		# Stage 1: 通常表示
+		if _troop_gauge_bar != null:
+			_troop_gauge_bar.modulate.a = 1.0
+			_troop_gauge_bar.self_modulate = COLOR_TROOP
+		if _troop_label != null:
+			_troop_label.add_theme_color_override("font_color", COLOR_TEXT)
+			_troop_label.remove_theme_font_size_override("font_size")
+	elif mil_power <= 50.0:
+		# Stage 2: 1.0秒周期 α=0.7↔1.0 明滅 + 太字
+		var cycle2: float = fmod(_elapsed_time, 1.0)
+		var alpha2: float = lerp(0.7, 1.0, sin(cycle2 * PI) * 0.5 + 0.5)
+		if _troop_gauge_bar != null:
+			_troop_gauge_bar.modulate.a = alpha2
+			_troop_gauge_bar.self_modulate = COLOR_TROOP
+		if _troop_label != null:
+			_troop_label.add_theme_color_override("font_color", COLOR_TEXT)
+			_troop_label.add_theme_font_size_override("font_size", 14)
+	else:
+		# Stage 3: 0.5秒周期強明滅 + 赤色
+		var cycle3: float = fmod(_elapsed_time, 0.5)
+		var alpha3: float = 0.5 if cycle3 < 0.25 else 1.0
+		if _troop_gauge_bar != null:
+			_troop_gauge_bar.modulate.a = alpha3
+			_troop_gauge_bar.self_modulate = COLOR_RED
+		if _troop_label != null:
+			_troop_label.add_theme_color_override("font_color", COLOR_RED)
+			_troop_label.add_theme_font_size_override("font_size", 14)
+	# ゲージバーサイズ更新（共通）
 	if _troop_gauge_bar != null:
-		var troop_ratio: float = clampf(float(_economy.military_power) / 20.0, 0.0, 1.0)
 		var tbg_w: float = _troop_gauge_bar.get_parent().size.x if _troop_gauge_bar.get_parent() != null and _troop_gauge_bar.get_parent().size.x > 0.0 else 80.0
-		_troop_gauge_bar.size = Vector2(tbg_w * troop_ratio, _troop_gauge_bar.size.y)
+		_troop_gauge_bar.size = Vector2(tbg_w * gauge_progress, _troop_gauge_bar.size.y)
 	# 資金（§3.6）
 	if _gold_label != null:
 		_gold_label.text = "%dG" % _economy.currency
