@@ -2,6 +2,27 @@
 
 ## [Unreleased]
 
+## 2026-05-03 feat: Sprint 2 — 食料値システム実装（食堂・製粉所・人口維持処理）
+
+### 変更内容
+- `scripts/econ_mvp/EconBuilding.gd`:
+  - enum BuildingType に `DINER`（index=19）、`MILL`（index=20）を追加
+  - BUILD_COSTS / BUILD_HP / REQUIRED_CONSTRUCTION に DINER/MILL エントリ追加
+  - 定数追加: `DINER_INTERVAL/WHEAT_COST/FOOD_GAIN/FOOD_GAIN_SPICE`、`MILL_INTERVAL/WHEAT_COST/WHEAT_GAIN/WHEAT_GAIN_BOOST`
+  - タイマーフィールド追加: `_diner_timer`, `_mill_timer`
+  - `_update_diner()` / `_update_mill()` メソッド追加（5秒周期・小麦消費→食料値/小麦加算）
+  - `update()` match に DINER/MILL ケース追加
+  - `_draw()` に DINER/MILL の色定義追加
+- `scripts/econ_mvp/EconEconomy.gd`:
+  - `add_food(amount: int)` メソッド追加
+  - `consume_food_for_maintenance()` メソッド追加（5秒周期食料値消費・food_shortage_count増減）
+  - Step 3（旧: 人口10人/食料-1式）を `consume_food_for_maintenance()` 呼び出しへ置換
+- `data/cards_econ.json`:
+  - `card_diner`（食堂: wood4/stone2/HP60）追加
+  - `card_mill`（製粉所: wood3/stone2/HP60）追加
+- `scripts/econ_mvp/EconBattle.gd`:
+  - `_create_building_from_card()` の btype_map に `"DINER"`, `"MILL"` を追加
+
 ## 2026-05-03 feat: Sprint 1 — 都市ステータス基盤実装（EconEconomy.gd）
 
 ### 変更内容

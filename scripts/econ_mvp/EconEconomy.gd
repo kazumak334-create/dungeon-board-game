@@ -123,21 +123,8 @@ func update(delta: float, _total_unit_count: int) -> void:
 		military_power += actual_gain
 		print("[EconEconomy] BARRACKS Lv%d 兵力+%.1f (mil_mod=%.2f)" % [lv, actual_gain, mil_mod])
 
-	# ---- Step 3: 食料消費（§6.2-3 / §6.1）----
-	# 暫定方針：人口10人あたり5秒ごと食料-1
-	var food_consume: int = population_used / 10
-	if food_consume > 0:
-		food -= food_consume
-		resources["food"] = food
-		wheat = food  # 後方互換
-		print("[EconEconomy] 食料消費 -%d (food=%d)" % [food_consume, food])
-		if food < 0:
-			food = 0
-			resources["food"] = 0
-			wheat = 0
-			# 食料不足時：幸福度-10ペナルティ（§2.4.3）
-			satisfaction = maxi(satisfaction - 10, 0)
-			print("[EconEconomy] 食料不足！幸福度-10 sat=%d" % satisfaction)
+	# ---- Step 3: 人口維持処理（§6.2-3 / req_econ_food_system_sprint2.md §3）----
+	consume_food_for_maintenance()
 
 	# ---- Step 4: 幸福度更新（§6.2-4 / §2.4.3）----
 	# 4-1: 広場(PLAZA)による幸福供給
@@ -307,6 +294,33 @@ func spend(costs: Dictionary) -> void:
 
 func add_wheat(amount: int) -> void:
 	wheat += amount
+
+func add_food(amount: int) -> void:
+	"""食料値を加算（req_econ_food_system_sprint2.md §3）"""
+	food_value += amount
+	food = food_value  # 後方互換
+	resources["food"] = food_value
+	print("[EconEconomy] 食料値+%d (現在: %d)" % [amount, food_value])
+
+func consume_food_for_maintenance() -> void:
+	"""人口維持のための食料値消費処理（5秒ごと）（req_econ_food_system_sprint2.md §3）"""
+	var maintenance_cost: int = max(1, int(floor(population_float)))
+
+	if food_value >= maintenance_cost:
+		# 食料値が足りる場合
+		food_value -= maintenance_cost
+		food_shortage_count = max(0, food_shortage_count - 1)
+		food = food_value  # 後方互換
+		resources["food"] = food_value
+		print("[EconEconomy] 食料値維持: -%d (food_value=%d, shortage=%d)" % [maintenance_cost, food_value, food_shortage_count])
+	else:
+		# 食料値が不足する場合（残全消費）
+		var consumed: int = food_value
+		food_value = 0
+		food = 0
+		resources["food"] = 0
+		food_shortage_count += 1
+		print("[EconEconomy] 食料値不足！残全消費 -%d shortage_count=%d" % [consumed, food_shortage_count])
 
 # 採掘先の資源タイプを決定（target_count から割り当てリストを生成してラウンドロビン）
 # ROLE_BUILD / ROLE_TRADE も含めたリストから返す

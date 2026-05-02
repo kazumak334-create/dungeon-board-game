@@ -116,6 +116,8 @@ func _create_building_from_card(card: Dictionary, target_cell: Vector2i) -> Econ
 		"WHEAT_EXTRACTOR": EconBuilding.BuildingType.VILLAGE,
 		"IRON_EXTRACTOR": EconBuilding.BuildingType.MINE,
 		"COTTON_EXTRACTOR": EconBuilding.BuildingType.VILLAGE,
+		"DINER": EconBuilding.BuildingType.DINER,
+		"MILL": EconBuilding.BuildingType.MILL,
 	}
 	if not btype_map.has(btype_str):
 		print("[EconBattle] _create_building_from_card: unknown building_type '%s'" % btype_str)

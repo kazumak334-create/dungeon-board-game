@@ -1,7 +1,7 @@
 class_name EconBuilding
 extends Node2D
 
-enum BuildingType { BARRACKS, FORTRESS, WORKSHOP, VILLAGE, BASE, SAWMILL, MINE, EQUIPMENT_SHOP, TRADE_POST, WALL, PLAZA, HOUSE, EXCHANGE, LIBRARY, LIBRARY_ADV, MUSEUM, ART_GALLERY, SMITHY, WATCHTOWER }
+enum BuildingType { BARRACKS, FORTRESS, WORKSHOP, VILLAGE, BASE, SAWMILL, MINE, EQUIPMENT_SHOP, TRADE_POST, WALL, PLAZA, HOUSE, EXCHANGE, LIBRARY, LIBRARY_ADV, MUSEUM, ART_GALLERY, SMITHY, WATCHTOWER, DINER, MILL }
 
 var building_type: BuildingType
 var grid_pos: Vector2i
@@ -32,6 +32,8 @@ static var BUILD_COSTS: Dictionary = {
 	16: {},                         # ART_GALLERY（美術館・スタブ）
 	17: {"wood": 4, "stone": 4, "sulfur": 2},  # SMITHY（鍛冶屋）
 	18: {"wood": 6, "stone": 6, "sulfur": 2},  # WATCHTOWER（防衛拠点）
+	19: {"wood": 4, "stone": 2},               # DINER（食堂）
+	20: {"wood": 3, "stone": 2},               # MILL（製粉所）
 }
 
 static var BUILD_HP: Dictionary = {
@@ -54,6 +56,8 @@ static var BUILD_HP: Dictionary = {
 	16: 60.0,  # ART_GALLERY（美術館・スタブ）
 	17: 80.0,  # SMITHY（鍛冶屋）
 	18: 100.0,  # WATCHTOWER
+	19: 60.0,   # DINER（食堂）
+	20: 60.0,   # MILL（製粉所）
 }
 
 # ベース生産間隔: 20秒（隣接ボーナスなしは実質機能しない重さ）
@@ -86,6 +90,18 @@ const WATCHTOWER_REPAIR_INTERVAL := 5.0  # 防壁回復tick（秒）
 const WATCHTOWER_REPAIR_AMOUNT_LV2 := 10 # Lv2 防壁回復量
 const WATCHTOWER_REPAIR_AMOUNT_LV3 := 15 # Lv3 防壁回復量
 
+# 食堂（DINER）定数（要件定義書 req_econ_food_system_sprint2.md §1）
+const DINER_INTERVAL := 5.0
+const DINER_WHEAT_COST := 1
+const DINER_FOOD_GAIN := 2
+const DINER_FOOD_GAIN_SPICE := 3  # 香辛料タグ上（TODO: パネルリソース実装時に有効化）
+
+# 製粉所（MILL）定数（要件定義書 req_econ_food_system_sprint2.md §2）
+const MILL_INTERVAL := 5.0
+const MILL_WHEAT_COST := 1
+const MILL_WHEAT_GAIN := 2
+const MILL_WHEAT_GAIN_BOOST := 3  # 小麦値3以上パネル上（TODO: パネルリソース実装時に有効化）
+
 # ビルダーシステム
 static var REQUIRED_CONSTRUCTION: Dictionary = {
 	0: 5.0,   # BARRACKS
@@ -107,6 +123,8 @@ static var REQUIRED_CONSTRUCTION: Dictionary = {
 	16: 5.0,   # ART_GALLERY（美術館・スタブ）
 	17: 6.0,   # SMITHY（鍛冶屋）
 	18: 8.0,    # WATCHTOWER（防衛拠点）
+	19: 5.0,    # DINER（食堂）
+	20: 5.0,    # MILL（製粉所）
 }
 
 var build_progress: float = 0.0
@@ -123,6 +141,8 @@ var fusion_cluster_id: int = -1     # 同種クラスタの ID（-1=未計算）
 var _produce_timer: float = 0.0
 var _harvester_timer: float = 0.0
 var _cotton_timer: float = 0.0
+var _diner_timer: float = 0.0
+var _mill_timer: float = 0.0
 var _resource_ready: bool = true  # 生産コストが払えるか（!表示用）
 var _construction_ready: bool = true  # 建設コストが払えるか（建設中!表示用）
 var _placement_bonus_active: bool = false  # 配置ボーナス有効フラグ
@@ -211,9 +231,12 @@ func update(delta: float, economy: EconEconomy, buildings: Array = [], grid: Eco
 			pass  # 次期MVPで効果設計
 		BuildingType.SMITHY:
 			_update_smithy(delta, economy)
-
 		BuildingType.WATCHTOWER:
 			_update_watchtower(delta, economy)
+		BuildingType.DINER:
+			_update_diner(delta, economy)
+		BuildingType.MILL:
+			_update_mill(delta, economy)
 func _update_barracks(delta: float, economy: EconEconomy) -> void:
 	# 配置ボーナス適用時: 間隔・コスト半減
 	# 要件定義書 req_econ_building_variants.md § 3 より
@@ -296,6 +319,56 @@ func _update_watchtower(delta: float, economy: EconEconomy) -> void:
 		# TODO(Sprint 5): 範囲内に敵がいるとき範囲内兵舎から防衛兵力を引き抜き出撃
 		pass
 
+func _update_diner(delta: float, economy: EconEconomy) -> void:
+	# 食堂：5秒ごとに小麦1消費→食料値+2（要件定義書 req_econ_food_system_sprint2.md §1）
+	_diner_timer += delta
+	if _diner_timer < DINER_INTERVAL:
+		return
+	_diner_timer -= DINER_INTERVAL
+
+	# 小麦確認
+	if economy.wheat < DINER_WHEAT_COST:
+		print("[EconBuilding] DINER: 小麦不足、発動スキップ")
+		return
+
+	# 小麦消費
+	economy.wheat -= DINER_WHEAT_COST
+	economy.resources["wheat"] = economy.wheat
+
+	# 食料値加算（TODO: パネルリソース実装時に香辛料タグ判定を有効化）
+	# 現MVPでは常に通常効果（+2）
+	var gain: int = DINER_FOOD_GAIN
+	# if has_spice_tag(grid_pos): gain = DINER_FOOD_GAIN_SPICE  # TODO: パネルリソース実装時に有効化
+
+	economy.food_value += gain
+	economy.food = economy.food_value  # 後方互換
+	economy.resources["food"] = economy.food_value
+	print("[EconBuilding] DINER: 小麦-1 食料値+%d (food_value=%d)" % [gain, economy.food_value])
+
+func _update_mill(delta: float, economy: EconEconomy) -> void:
+	# 製粉所：5秒ごとに小麦1消費→小麦+2（要件定義書 req_econ_food_system_sprint2.md §2）
+	_mill_timer += delta
+	if _mill_timer < MILL_INTERVAL:
+		return
+	_mill_timer -= MILL_INTERVAL
+
+	# 小麦確認
+	if economy.wheat < MILL_WHEAT_COST:
+		print("[EconBuilding] MILL: 小麦不足、発動スキップ")
+		return
+
+	# 小麦消費
+	economy.wheat -= MILL_WHEAT_COST
+
+	# 小麦生産（TODO: パネルリソース実装時に小麦値3以上パネル判定を有効化）
+	# 現MVPでは常に通常効果（+2）
+	var gain: int = MILL_WHEAT_GAIN
+	# if get_panel_wheat_value(grid_pos) >= 3: gain = MILL_WHEAT_GAIN_BOOST  # TODO: パネルリソース実装時に有効化
+
+	economy.wheat += gain
+	economy.resources["wheat"] = economy.wheat
+	print("[EconBuilding] MILL: 小麦-1 小麦+%d (wheat=%d)" % [gain, economy.wheat])
+
 func take_damage(amount: float) -> void:
 	hp -= amount
 	if hp <= 0.0:
@@ -329,6 +402,8 @@ func _draw() -> void:
 		BuildingType.LIBRARY, BuildingType.LIBRARY_ADV, BuildingType.MUSEUM, BuildingType.ART_GALLERY: color = Color.LIGHT_GRAY  # スタブ
 		BuildingType.SMITHY: color = Color.DARK_ORANGE  # 火・鉄を想起する暖色（兵舎=PERU と区別）
 		BuildingType.WATCHTOWER: color = Color(0.3, 0.5, 0.8)  # スチールブルー（防衛）
+		BuildingType.DINER: color = Color(0.9, 0.6, 0.2)    # オレンジ系（食堂）
+		BuildingType.MILL: color = Color(0.7, 0.8, 0.4)     # 黄緑系（製粉所）
 	color.a = alpha
 	draw_rect(Rect2(Vector2(-18, -18), Vector2(36, 36)), color)
 	draw_rect(Rect2(Vector2(-18, -18), Vector2(36, 36)), Color(1.0, 1.0, 1.0, alpha), false, 2.0)

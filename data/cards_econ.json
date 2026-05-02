@@ -220,6 +220,32 @@
       "required_work": 8.0,
       "hp": 80,
       "description": "隣接兵舎のユニットDPS+10%（§2.5.9）。暫定コスト（硫黄2消費・中規模）"
+    },
+    {
+      "id": "card_diner",
+      "name": "食堂",
+      "type": "building",
+      "building_type": "DINER",
+      "draw_type": "BASIC",
+      "cost": { "wood": 4, "stone": 2, "sulfur": 0 },
+      "population_required": 1,
+      "population_supply": 0,
+      "required_work": 5.0,
+      "hp": 60,
+      "description": "5秒ごと小麦1消費・食料値+2（香辛料タグ上は+3）"
+    },
+    {
+      "id": "card_mill",
+      "name": "製粉所",
+      "type": "building",
+      "building_type": "MILL",
+      "draw_type": "BASIC",
+      "cost": { "wood": 3, "stone": 2, "sulfur": 0 },
+      "population_required": 1,
+      "population_supply": 0,
+      "required_work": 5.0,
+      "hp": 60,
+      "description": "5秒ごと小麦1消費・小麦+2（小麦3以上パネル上は+3）"
     }
   ]
 }
