@@ -1,7 +1,7 @@
 class_name EconBuilding
 extends Node2D
 
-enum BuildingType { BARRACKS, FORTRESS, WORKSHOP, VILLAGE, BASE, SAWMILL, MINE, EQUIPMENT_SHOP, TRADE_POST, WALL, PLAZA, HOUSE }
+enum BuildingType { BARRACKS, FORTRESS, WORKSHOP, VILLAGE, BASE, SAWMILL, MINE, EQUIPMENT_SHOP, TRADE_POST, WALL, PLAZA, HOUSE, EXCHANGE, LIBRARY, LIBRARY_ADV, MUSEUM, ART_GALLERY, SMITHY, WATCHTOWER }
 
 var building_type: BuildingType
 var grid_pos: Vector2i
@@ -25,6 +25,13 @@ static var BUILD_COSTS: Dictionary = {
 	9: {},                         # WALL
 	10: {"wood": 4, "stone": 2},   # PLAZA（§2.7.2）
 	11: {"wood": 3},               # HOUSE（§2.7.2）
+	12: {"wood": 4, "stone": 2},   # EXCHANGE（交換所）
+	13: {},                         # LIBRARY（書庫・スタブ）
+	14: {},                         # LIBRARY_ADV（図書館・スタブ）
+	15: {},                         # MUSEUM（博物館・スタブ）
+	16: {},                         # ART_GALLERY（美術館・スタブ）
+	17: {"wood": 4, "stone": 4, "sulfur": 2},  # SMITHY（鍛冶屋）
+	18: {"wood": 6, "stone": 6, "sulfur": 2},  # WATCHTOWER（防衛拠点）
 }
 
 static var BUILD_HP: Dictionary = {
@@ -40,6 +47,13 @@ static var BUILD_HP: Dictionary = {
 	9: 100.0,  # WALL
 	10: 60.0,  # PLAZA（§2.7.2）
 	11: 60.0,  # HOUSE（§2.7.2）
+	12: 80.0,  # EXCHANGE（交換所）
+	13: 60.0,  # LIBRARY（書庫・スタブ）
+	14: 60.0,  # LIBRARY_ADV（図書館・スタブ）
+	15: 60.0,  # MUSEUM（博物館・スタブ）
+	16: 60.0,  # ART_GALLERY（美術館・スタブ）
+	17: 80.0,  # SMITHY（鍛冶屋）
+	18: 100.0,  # WATCHTOWER
 }
 
 # ベース生産間隔: 20秒（隣接ボーナスなしは実質機能しない重さ）
@@ -61,6 +75,17 @@ const VILLAGE_HARVESTER_INTERVAL := 30.0
 const BARRACKS_CONSCRIPT_INTERVAL := 5.0   # 農村隣接時の徴兵兵舎間隔（ボーナス適用後）
 const BARRACKS_CONSCRIPT_WHEAT_COST := 2   # 徴兵兵舎のWheat消費
 
+# 鍛冶屋：隣接兵舎DPS補正（要件定義書 req_econ_smithy_building.md §3）
+const SMITHY_DPS_MULT_LV1 := 1.10  # +10%
+const SMITHY_DPS_MULT_LV2 := 1.15  # +15%（次期MVP）
+const SMITHY_DPS_MULT_LV3 := 1.20  # +20%（次期MVP）
+
+# 防衛拠点：防衛兵力統括・防壁回復（要件定義書 req_econ_watchtower_building.md §4.5）
+const WATCHTOWER_RANGE_LV1 := 2  # 防衛範囲（hex距離）Lv1
+const WATCHTOWER_REPAIR_INTERVAL := 5.0  # 防壁回復tick（秒）
+const WATCHTOWER_REPAIR_AMOUNT_LV2 := 10 # Lv2 防壁回復量
+const WATCHTOWER_REPAIR_AMOUNT_LV3 := 15 # Lv3 防壁回復量
+
 # ビルダーシステム
 static var REQUIRED_CONSTRUCTION: Dictionary = {
 	0: 5.0,   # BARRACKS
@@ -75,6 +100,13 @@ static var REQUIRED_CONSTRUCTION: Dictionary = {
 	9: 0.0,   # WALL
 	10: 5.0,  # PLAZA（§2.7.2）
 	11: 3.0,  # HOUSE（§2.7.2）
+	12: 5.0,   # EXCHANGE（交換所）
+	13: 5.0,   # LIBRARY（書庫・スタブ）
+	14: 5.0,   # LIBRARY_ADV（図書館・スタブ）
+	15: 5.0,   # MUSEUM（博物館・スタブ）
+	16: 5.0,   # ART_GALLERY（美術館・スタブ）
+	17: 6.0,   # SMITHY（鍛冶屋）
+	18: 8.0,    # WATCHTOWER（防衛拠点）
 }
 
 var build_progress: float = 0.0
@@ -94,6 +126,10 @@ var _cotton_timer: float = 0.0
 var _resource_ready: bool = true  # 生産コストが払えるか（!表示用）
 var _construction_ready: bool = true  # 建設コストが払えるか（建設中!表示用）
 var _placement_bonus_active: bool = false  # 配置ボーナス有効フラグ
+var smithy_level: int = 1   # Lv1〜Lv3（強化システム連動・MVPでは 1 固定）
+var _smithy_active: bool = false   # 必要稼働人口1割当時のみ true
+var _watchtower_repair_timer: float = 0.0  # 防壁回復tick用タイマー
+var watchtower_level: int = 1              # Lv1〜Lv3（強化システム連動・MVPでは 1 固定）
 
 signal unit_produced(pos: Vector2i, unit_type: int)  # unit_type: 0=突,1=守,2=崩,-1=harvester
 signal base_destroyed(is_player: bool)
@@ -171,7 +207,13 @@ func update(delta: float, economy: EconEconomy, buildings: Array = [], grid: Eco
 			pass  # 幸福度供給はEconEconomy.update() Step 4で処理（§2.4.3）
 		BuildingType.HOUSE:
 			pass  # パッシブ：人口上限供給はEconEconomy側で処理（§2.4.2）
+		BuildingType.EXCHANGE, BuildingType.LIBRARY, BuildingType.LIBRARY_ADV, BuildingType.MUSEUM, BuildingType.ART_GALLERY:
+			pass  # 次期MVPで効果設計
+		BuildingType.SMITHY:
+			_update_smithy(delta, economy)
 
+		BuildingType.WATCHTOWER:
+			_update_watchtower(delta, economy)
 func _update_barracks(delta: float, economy: EconEconomy) -> void:
 	# 配置ボーナス適用時: 間隔・コスト半減
 	# 要件定義書 req_econ_building_variants.md § 3 より
@@ -224,6 +266,36 @@ func _update_village(delta: float, economy: EconEconomy) -> void:
 		_harvester_timer = 0.0
 		unit_produced.emit(grid_pos, -1)
 
+func _update_smithy(delta: float, economy: EconEconomy) -> void:
+	# 鍛冶屋: 稼働人口1を満たせば有効（パッシブ的に出撃時DPS補正を提供）
+	# 実際のDPS適用は EconBattle でユニット生成時に行う（疎結合）
+	_smithy_active = true
+	_resource_ready = true
+
+func get_smithy_dps_mult() -> float:
+	# 鍛冶屋として、現在の Lv に応じた DPS 倍率を返す（非稼働時は 1.0）
+	# 要件 req_econ_smithy_building.md §4.10
+	if building_type != BuildingType.SMITHY:
+		return 1.0
+	if not _smithy_active:
+		return 1.0
+	match smithy_level:
+		2: return SMITHY_DPS_MULT_LV2
+		3: return SMITHY_DPS_MULT_LV3
+		_: return SMITHY_DPS_MULT_LV1
+
+	func _update_watchtower(delta: float, economy: EconEconomy) -> void:
+		# 防衛拠点: 本MVPではスタブ（Sprint 5で防衛出撃・防壁回復を実装）
+		# TODO(Sprint 5): 範囲内兵舎から兵力を引き出して防衛出撃
+		# TODO(Sprint 5): 範囲内防壁HP回復（+10HP/5秒）
+		_resource_ready = true
+		_watchtower_repair_timer += delta
+		if _watchtower_repair_timer >= WATCHTOWER_REPAIR_INTERVAL:
+			_watchtower_repair_timer = 0.0
+			# TODO(Sprint 5): watchtower_level >= 2 のとき範囲内防壁を回復
+			# TODO(Sprint 5): 範囲内に敵がいるとき範囲内兵舎から防衛兵力を引き抜き出撃
+			pass
+
 func take_damage(amount: float) -> void:
 	hp -= amount
 	if hp <= 0.0:
@@ -253,6 +325,10 @@ func _draw() -> void:
 		BuildingType.WALL: color = Color.LIGHT_GRAY
 		BuildingType.PLAZA: color = Color.CORNFLOWER_BLUE
 		BuildingType.HOUSE: color = Color.SANDY_BROWN
+		BuildingType.EXCHANGE: color = Color.GOLD  # 通貨建物・市場との差別化のため金色系
+		BuildingType.LIBRARY, BuildingType.LIBRARY_ADV, BuildingType.MUSEUM, BuildingType.ART_GALLERY: color = Color.LIGHT_GRAY  # スタブ
+		BuildingType.SMITHY: color = Color.DARK_ORANGE  # 火・鉄を想起する暖色（兵舎=PERU と区別）
+		BuildingType.WATCHTOWER: color = Color(0.3, 0.5, 0.8)  # スチールブルー（防衛）
 	color.a = alpha
 	draw_rect(Rect2(Vector2(-18, -18), Vector2(36, 36)), color)
 	draw_rect(Rect2(Vector2(-18, -18), Vector2(36, 36)), Color(1.0, 1.0, 1.0, alpha), false, 2.0)

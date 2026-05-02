@@ -231,6 +231,26 @@ Phase 7  ローンチ準備             ░░░░░░░░░░░░░�
 
 ---
 
+## EconMVP スプリント計画（v0.2 都市建設デッキバトル）
+
+更新日: 2026-05-02
+
+| Sprint | テーマ | 主タスク | ステータス |
+|--------|--------|---------|-----------|
+| Sprint 0 | データ確定 | TBDコスト・cards_econ.json更新（Task 0-1） | ✅ 完了 |
+| Sprint 1 | 経済基盤 | EconEconomy処理順序（Task 1-1）、幸福度システム（Task 1-2） | ✅ 完了 |
+| Sprint 2 | 建物拡充 | PLAZA/HOUSE（Task 2-1）、交換所EXCHANGE（Task 2-2）、鍛冶屋SMITHY・防衛拠点WATCHTOWERスタブ（Task 2-3） | ✅ 完了 |
+| Sprint 3 | デッキシステム | ドロー・リロードCT厳密化（Task 3-2） | Codex適用済み・実機未確認 |
+| Sprint 4 | ターン進行 | セミリアルタイムターン・中央ティッカー（Task 4-1）、最終突撃フェーズ（Task 4-2）、1ラン5戦（Task 4-3） | Task 4-1 Codex適用済み・4-2/4-3 未実施 |
+| Sprint 5 | ログ基盤 | LogManager JSONL出力・SNAPSHOT/SUMMARY/METRICS（Phase 1-2） | Codex適用済み・実機未確認 |
+| Sprint 6 | 敵なしMVP動作確認 | 通しプレイ・ログ収集（10〜30プレイ） | 未実施 |
+| Sprint 7 | 数値調整 | ログ分析→パラメータチューニング | 未実施 |
+| Sprint 8 | 防衛拠点完全実装 | WATCHTOWERロジック詳細（req_econ_watchtower_building.md参照） | 未実施 |
+| Sprint 9 | 敵AI導入 | 三すくみ実装・EconAI強化 | 未実施 |
+| Sprint 10 | 対戦MVP完成 | PvA完全動作・1ラン5戦キャンペーン | 未実施 |
+
+---
+
 ## 技術負債バックログ
 
 ### 技術負債: DeckManager → ManaManager リファクタ

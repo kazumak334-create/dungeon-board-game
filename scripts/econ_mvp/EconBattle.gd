@@ -415,13 +415,32 @@ func _apply_equipment_buffs(unit: EconUnit, source_building_pos: Vector2i) -> vo
 	if best != null:
 		unit.apply_equipment_buff(int(unit.unit_type), best.fusion_rank)
 
+# ユニット生成時の鍛冶屋バフ適用
+# 要件定義書 req_econ_smithy_building.md § 5.3 より
+func _apply_smithy_buff(unit: EconUnit, source_building_pos: Vector2i) -> void:
+	# 隣接鍛冶屋のうち最大 smithy_level を選定（重複適用回避）
+	var best_rank: int = 0
+	for b in player_buildings:
+		if not b.is_alive or not b.is_built:
+			continue
+		if b.building_type != EconBuilding.BuildingType.SMITHY:
+			continue
+		if grid.hex_distance(source_building_pos, b.grid_pos) != 1:
+			continue
+		var rank: int = b.smithy_level
+		if rank > best_rank:
+			best_rank = rank
+	# 適用（疎結合: メソッド経由）
+	if best_rank > 0:
+		unit.apply_smithy_buff(best_rank)
+
 # ハーベスター harvested シグナル受信時のルーティング
 # 要件定義書 req_econ_unit_production_harvester.md § 2.3 より
 func _on_harvested(rtype: int) -> void:
 	_route_harvested_resource(rtype)
 
-# ユニット生成時の装備屋バフ適用
-# 要件定義書 req_econ_equipment_shop_mvp.md § 3.1 より
+# ユニット生成時の装備屋・鍛冶屋バフ適用
+# 要件定義書 req_econ_equipment_shop_mvp.md § 3.1 / req_econ_smithy_building.md § 5.3 より
 func _on_unit_produced(pos: Vector2i, unit_type: int) -> void:
 	# unit_type: 0=突, 1=守, 2=崩, -1=harvester（ハーベスター生成時は処理しない）
 	if unit_type < 0:
@@ -430,6 +449,7 @@ func _on_unit_produced(pos: Vector2i, unit_type: int) -> void:
 		return
 	var unit = player_units[-1]
 	_apply_equipment_buffs(unit, pos)
+	_apply_smithy_buff(unit, pos)
 
 func _on_building_constructed(building: EconBuilding) -> void:
 	# 装備屋建設完了時に融合ランク再計算（要件定義書 req_econ_equipment_shop_mvp.md § 4.4）

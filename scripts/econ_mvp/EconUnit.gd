@@ -286,6 +286,17 @@ func take_damage(amount: float) -> void:
 		unit_killed.emit(int(unit_type), int(side), grid_pos)
 	queue_redraw()
 
+# 鍛冶屋バフ適用（疎結合・メソッド経由）
+# 要件定義書 req_econ_smithy_building.md § 5.2 より
+# rank: 1=Lv1(+10%), 2=Lv2(+15%), 3=Lv3(+20%)
+func apply_smithy_buff(rank: int) -> void:
+	var mult: float = 1.0
+	match rank:
+		2: mult = 1.15
+		3: mult = 1.20
+		_: mult = 1.10
+	atk = int(atk * mult)
+
 func _draw() -> void:
 	if not is_alive:
 		return

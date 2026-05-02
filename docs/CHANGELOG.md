@@ -2,6 +2,40 @@
 
 ## [Unreleased]
 
+## 2026-05-02 feat: Task 2-3 — 鍛冶屋(SMITHY)・防衛拠点(WATCHTOWER)実装
+
+### 変更内容
+- `scripts/econ_mvp/EconBuilding.gd`:
+  - enum BuildingType に `SMITHY`（index=17）、`WATCHTOWER`（index=18）を追加
+  - BUILD_COSTS / BUILD_HP / REQUIRED_CONSTRUCTION に SMITHY/WATCHTOWER エントリ追加
+  - 定数追加: `SMITHY_DPS_MULT_LV1=1.10/1.15/1.20`
+  - `get_smithy_dps_mult(fusion_rank)` メソッド追加
+  - `smithy_level` プロパティ追加（fusion_rank proxy）
+  - `_update_smithy()` / `_update_watchtower()` メソッド追加（WATCHTOWERはSprint 8 TODO）
+  - `update()` match に SMITHY/WATCHTOWER ケース追加
+- `scripts/econ_mvp/EconUnit.gd`:
+  - `apply_smithy_buff(rank: int) -> void` メソッド追加（atk × DPS倍率適用）
+- `scripts/econ_mvp/EconBattle.gd`:
+  - `_apply_smithy_buff(unit: EconUnit, source_building_pos: Vector2i)` メソッド追加（隣接SMITHY検索・最大ランク適用）
+  - `_on_unit_produced()` で `_apply_smithy_buff()` 呼び出し追加
+
+### 要件定義書
+- `docs/requirements/req_econ_smithy_building.md`
+- `docs/requirements/req_econ_watchtower_building.md`
+
+## 2026-05-02 feat: Task 2-2 — 交換所(EXCHANGE)実装
+
+### 変更内容
+- `scripts/econ_mvp/EconBuilding.gd`:
+  - enum BuildingType に `EXCHANGE`（index=12）を追加
+  - LIBRARY/LIBRARY_ADV/MUSEUM/ART_GALLERY（index=13〜16）スタブ enum 追加（効果は次MVP）
+  - 定数追加: `EXCHANGE_DRAW_CT_LV1=30.0`、`EXCHANGE_DRAW_COST_LV1=15`
+  - `_update_exchange()` メソッド追加（CT30秒・通貨15消費・1枚ドロー）
+  - `update()` match に EXCHANGE/LIBRARY/LIBRARY_ADV/MUSEUM/ART_GALLERY ケース追加
+
+### 要件定義書
+- `docs/requirements/req_econ_exchange_building.md`（Lv2/Lv3は未定・次MVP検討）
+
 ## 2026-05-02 feat: Task 2-1 — 広場(PLAZA)・住居(HOUSE)完全実装（REQUIREMENTS_V0_2_MVP.md §2.7.1）
 
 ### 変更内容
