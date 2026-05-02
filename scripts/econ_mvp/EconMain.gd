@@ -67,6 +67,13 @@ var _status_food_label: Label = null       # 食料
 # v0.2 HEADER 下段資源ラベル辞書
 var _res_labels: Dictionary = {}           # key=資源名, value=Label
 
+# §2.4.2 配分バーUI
+var _alloc_bar_bg: ColorRect = null        # 配分バー背景
+var _alloc_bar_work: ColorRect = null      # 作業人口部分（右側）
+var _alloc_handle: ColorRect = null        # ドラッグハンドル
+var _alloc_label: Label = null             # 稼働N% / 作業N% 表示
+var _alloc_dragging: bool = false          # ドラッグ中フラグ
+
 # ゲージアニメーション用
 var _draw_gauge_blink_timer: float = 0.0
 var _force_charge_blink_timer: float = 0.0
@@ -395,6 +402,9 @@ func _setup_header_ui(vp: Vector2) -> void:
 	_status_sat_label.custom_minimum_size = Vector2(120, 0)
 	row2.add_child(_status_sat_label)
 
+	# §2.4.2 配分バー (稼働←→作業)
+	_setup_alloc_bar(row2)
+
 	# 区切り
 	var fc_sep := VSeparator.new()
 	fc_sep.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -516,6 +526,50 @@ func _setup_gold_header(parent: Control) -> void:
 	_gold_label.add_theme_font_size_override("font_size", 12)
 	_gold_label.add_theme_color_override("font_color", COLOR_GOLD_COIN)
 	hbox.add_child(_gold_label)
+
+func _setup_alloc_bar(parent: Control) -> void:
+	# §2.4.2 配分バー (稼働←→作業) w=120, h=28
+	# 左側=稼働人口(青), 右側=作業人口(緑), ハンドル=白線
+	var container := HBoxContainer.new()
+	container.custom_minimum_size = Vector2(140, 28)
+	container.add_theme_constant_override("separation", 2)
+	parent.add_child(container)
+
+	var icon_lbl := Label.new()
+	icon_lbl.text = "配"
+	icon_lbl.add_theme_font_size_override("font_size", 10)
+	icon_lbl.add_theme_color_override("font_color", COLOR_TEXT_DIM)
+	container.add_child(icon_lbl)
+
+	# バー背景（クリッカブルエリア）
+	_alloc_bar_bg = ColorRect.new()
+	_alloc_bar_bg.custom_minimum_size = Vector2(80, 14)
+	_alloc_bar_bg.color = COLOR_PANEL
+	_alloc_bar_bg.mouse_filter = Control.MOUSE_FILTER_STOP
+	container.add_child(_alloc_bar_bg)
+
+	# 作業人口部分（右から伸びる）
+	_alloc_bar_work = ColorRect.new()
+	_alloc_bar_work.color = COLOR_WOOD
+	_alloc_bar_work.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_alloc_bar_bg.add_child(_alloc_bar_work)
+
+	# ドラッグハンドル（縦線）
+	_alloc_handle = ColorRect.new()
+	_alloc_handle.color = COLOR_TEXT
+	_alloc_handle.custom_minimum_size = Vector2(2, 14)
+	_alloc_handle.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_alloc_bar_bg.add_child(_alloc_handle)
+
+	# 表示ラベル（稼働75%/作業25%）
+	_alloc_label = Label.new()
+	_alloc_label.text = "稼75/作25"
+	_alloc_label.add_theme_font_size_override("font_size", 9)
+	_alloc_label.add_theme_color_override("font_color", COLOR_TEXT_DIM)
+	container.add_child(_alloc_label)
+
+	# マウスイベント接続
+	_alloc_bar_bg.gui_input.connect(_on_alloc_bar_input)
 
 func _setup_pop_card(parent: Control) -> void:
 	# 旧実装（未使用・互換性保持）
@@ -1197,8 +1251,17 @@ func _place_building_from_card(cell: Vector2i, btype_str: String) -> void:
 	)
 	b.building_destroyed.connect(func(building: Node):
 		_battle._on_building_destroyed(building)
+		# HOUSE破壊時に population_cap を再計算する（§2.7.1）
+		if btype == EconBuilding.BuildingType.HOUSE and _economy != null:
+			_economy.population_cap = _economy.calculate_population_cap()
+			print("[EconMain] HOUSE destroyed: population_cap recalculated -> ", _economy.population_cap)
 	)
 	_battle.register_player_building(b)
+	# HOUSE配置時（建設完了後ではなく配置時）に population_cap を再計算する（§2.7.1）
+	# 建設完了時の再計算は EconHarvester._complete_construction() 側で行う
+	if btype == EconBuilding.BuildingType.HOUSE and _economy != null:
+		_economy.population_cap = _economy.calculate_population_cap()
+		print("[EconMain] HOUSE placed: population_cap recalculated -> ", _economy.population_cap)
 	_add_log("%s placed at (%d,%d)" % [btype_str, cell.x, cell.y])
 
 
@@ -1292,6 +1355,7 @@ func _process(delta: float) -> void:
 	_update_draw_gauge_ui(delta)
 	_update_force_charge_gauge_ui(delta)
 	_update_population_ui()
+	_update_alloc_bar_ui()
 
 func _update_territory_highlight() -> void:
 	# v0.2: 建設モード廃止により fill_cells は常に空。領土表示のみ更新。
@@ -1683,6 +1747,49 @@ func _update_force_charge_gauge_ui(delta: float) -> void:
 			ec_sb.set_border_width_all(1)
 			_early_charge_btn.add_theme_color_override("font_color", COLOR_TEXT)
 		_early_charge_btn.add_theme_stylebox_override("normal", ec_sb)
+
+func _on_alloc_bar_input(event: InputEvent) -> void:
+	# §2.4.2 配分バードラッグ入力処理
+	if _alloc_bar_bg == null:
+		return
+	if event is InputEventMouseButton:
+		var mb := event as InputEventMouseButton
+		if mb.button_index == MOUSE_BUTTON_LEFT:
+			_alloc_dragging = mb.pressed
+			if mb.pressed:
+				_apply_alloc_from_mouse(mb.position.x)
+	elif event is InputEventMouseMotion and _alloc_dragging:
+		_apply_alloc_from_mouse(event.position.x)
+
+func _apply_alloc_from_mouse(local_x: float) -> void:
+	# マウスX位置から alloc_work_ratio を計算してスナップ適用
+	var bar_w: float = _alloc_bar_bg.size.x
+	if bar_w <= 0.0:
+		return
+	var raw_ratio: float = clampf(local_x / bar_w, 0.0, 1.0)
+	_economy.set_alloc_work_ratio(raw_ratio)
+	_update_alloc_bar_ui()
+
+func _update_alloc_bar_ui() -> void:
+	# §2.4.2 配分バーUI更新（pull型）
+	if _alloc_bar_bg == null or _alloc_bar_work == null or _alloc_handle == null:
+		return
+	var ratio: float = _economy.alloc_work_ratio  # 作業割合
+	var bar_w: float = _alloc_bar_bg.size.x
+	if bar_w <= 0.0:
+		return
+	var work_x: float = bar_w * (1.0 - ratio)  # 作業部分の開始X
+	# 作業人口部分（右側・緑）
+	_alloc_bar_work.position = Vector2(work_x, 0.0)
+	_alloc_bar_work.size = Vector2(bar_w - work_x, _alloc_bar_bg.size.y)
+	# ハンドル位置
+	_alloc_handle.position = Vector2(work_x - 1.0, 0.0)
+	_alloc_handle.size = Vector2(2.0, _alloc_bar_bg.size.y)
+	# ラベル更新
+	if _alloc_label != null:
+		var work_pct: int = roundi(ratio * 100.0)
+		var work_pct_working: int = 100 - work_pct
+		_alloc_label.text = "稼%d/作%d" % [work_pct_working, work_pct]
 
 func _update_population_ui() -> void:
 	# §5.5 人口表示UI 毎フレーム更新（pull型）

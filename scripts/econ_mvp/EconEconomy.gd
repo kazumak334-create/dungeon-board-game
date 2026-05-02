@@ -29,6 +29,10 @@ var currency: int = INITIAL_CURRENCY
 var population_used: int = 0
 var population_cap: int = BASE_POPULATION_CAP  # 拠点効果+50
 
+# §2.4.2 人口配分比率：0.0 ~ 1.0 (スナップ: 0.25 / 0.50 / 0.75)
+# alloc_work_ratio = 0.25 → 稼働75%, 作業25%（初期値）
+var alloc_work_ratio: float = 0.25
+
 # ハーベスター割り当て人数（直接人数指定）
 var target_count: Dictionary = {
 	EconGrid.ResourceType.WOOD: 1,
@@ -154,11 +158,35 @@ func update(delta: float, _total_unit_count: int) -> void:
 	# TODO: WATCHTOWER実装時に防壁HP回復処理を追加
 
 	# ---- Step 6: 人口配分再計算（§6.2-6 / §2.4.2）----
-	# alloc_work_ratioは別タスク(Task 1-3)で実装予定
-	# 現時点では population_used を population_cap の75%に仮設定
-	var alloc_ratio: float = 0.75  # 初期値：稼働75%
-	population_used = roundi(float(population_cap) * alloc_ratio)
-	print("[EconEconomy] 人口配分再計算 pop_used=%d/%d" % [population_used, population_cap])
+	# alloc_work_ratio = 作業人口の割合（0.25/0.50/0.75）
+	population_used = get_working_population()
+	print("[EconEconomy] 人口配分再計算 alloc_work_ratio=%.2f working=%d building=%d cap=%d" % [alloc_work_ratio, get_working_population(), get_building_population(), population_cap])
+
+# §2.4.2 稼働人口 = population_cap × (1 - alloc_work_ratio)
+func get_working_population() -> int:
+	return int(population_cap * (1.0 - alloc_work_ratio))
+
+# §2.4.2 作業人口 = population_cap × alloc_work_ratio
+func get_building_population() -> int:
+	return int(population_cap * alloc_work_ratio)
+
+# §2.4.2 スナップ機構：最も近い 0.25 / 0.50 / 0.75 に丸める
+func snap_alloc_ratio(target_ratio: float) -> float:
+	var snap_values: Array = [0.25, 0.5, 0.75]
+	var closest: float = snap_values[0]
+	var min_diff: float = abs(target_ratio - closest)
+	for snap_val in snap_values:
+		var diff: float = abs(target_ratio - snap_val)
+		if diff < min_diff:
+			min_diff = diff
+			closest = snap_val
+	return closest
+
+# §2.4.2 配分変更メソッド（変更CT: なし / いつでも変更可）
+# 次の5秒tickで population_used に反映される
+func set_alloc_work_ratio(ratio: float) -> void:
+	alloc_work_ratio = snap_alloc_ratio(ratio)
+	print("[EconEconomy] alloc_ratio: %.2f working: %d building: %d" % [alloc_work_ratio, get_working_population(), get_building_population()])
 
 # 幸福度状態を返す（§2.4.3）
 # 戻り値: "high" / "normal" / "dissatisfied" / "danger"
@@ -316,9 +344,25 @@ func _sync_resource_field(resource_key: String) -> void:
 		"iron": iron = resources.get("iron", 0)
 		"cotton": cotton = resources.get("cotton", 0)
 
+# §2.7.1 住居(HOUSE)のLv別人口上限供給量（Lv1=+10, Lv2=+15, Lv3=+20）
+# 建物リストを走査してBASEの50 + 各HOUSEのLv別効果を合算する
+func calculate_population_cap() -> int:
+	var cap: int = BASE_POPULATION_CAP
+	for b in buildings:
+		if not b.is_alive or not b.is_built:
+			continue
+		if b.building_type != EconBuilding.BuildingType.HOUSE:
+			continue
+		var lv_bonus: Array = [10, 15, 20]  # Lv1, Lv2, Lv3（§2.7.1）
+		var rank: int = clampi(b.fusion_rank - 1, 0, 2)
+		cap += lv_bonus[rank]
+	print("[EconEconomy] calculate_population_cap: ", cap)
+	return cap
+
 # v0.2 新規：初期化（§9.1）
 func initialize_v0_2() -> void:
-	population_cap = BASE_POPULATION_CAP
+	# HOUSE を含む初期建物を考慮して population_cap を再計算する（§2.7.1）
+	population_cap = calculate_population_cap()
 	population_used = 0
 	satisfaction = 60  # §2.4.3
 	military_power = 0.0

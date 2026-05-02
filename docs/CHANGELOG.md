@@ -2,6 +2,29 @@
 
 ## [Unreleased]
 
+## 2026-05-02 feat: Task 2-1 — 広場(PLAZA)・住居(HOUSE)完全実装（REQUIREMENTS_V0_2_MVP.md §2.7.1）
+
+### 変更内容
+- `scripts/econ_mvp/EconEconomy.gd`:
+  - `calculate_population_cap()` メソッド追加（HOUSE Lv別効果: Lv1=+10, Lv2=+15, Lv3=+20）
+  - `initialize_v0_2()` を `calculate_population_cap()` 呼び出しに変更（初期 HOUSE を考慮）
+- `scripts/econ_mvp/EconHarvester.gd`:
+  - HOUSE 建設完了時に `economy.population_cap = economy.calculate_population_cap()` を実行
+- `scripts/econ_mvp/EconBattle.gd`:
+  - HOUSE 破壊時の `population_cap -= pop_supply` を `calculate_population_cap()` 再計算に変更
+- `scripts/econ_mvp/EconMain.gd`:
+  - `_place_building_from_card()` で HOUSE 配置・破壊時に `calculate_population_cap()` を呼び出し追加
+
+### 確認済み実装（Task 1-2 で完了）
+- PLAZA/HOUSE の enum / BUILD_COSTS / REQUIRED_CONSTRUCTION / _draw()色 — 実装済み
+- EconEconomy.gd Step 4 の PLAZA 幸福度供給 + 隣接住居ボーナス — 実装済み
+
+### printデバッグログ
+- `[EconEconomy] calculate_population_cap: N`
+- `[EconHarvester] HOUSE built: population_cap recalculated -> N`
+- `[EconBattle] HOUSE destroyed: population_cap recalculated -> N`
+- `[EconMain] HOUSE placed: population_cap recalculated -> N`
+
 ## 2026-05-02 feat: Task 1-2 — 幸福度システム実装（REQUIREMENTS_V0_2_MVP.md §2.4.3/§6.2/§6.3）
 
 ### 変更内容

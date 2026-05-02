@@ -136,7 +136,9 @@ func _create_building_from_card(card: Dictionary, target_cell: Vector2i) -> Econ
 			economy.population_used -= pop_req
 			var pop_supply: int = card.get("population_supply", 0)
 			if pop_supply > 0:
-				economy.population_cap -= pop_supply
+				# HOUSE破壊時は calculate_population_cap() で再計算する（§2.7.1 Lv別効果対応）
+				economy.population_cap = economy.calculate_population_cap()
+				print("[EconBattle] HOUSE destroyed: population_cap recalculated -> ", economy.population_cap)
 				_resolve_population_overflow()
 	)
 	return b
