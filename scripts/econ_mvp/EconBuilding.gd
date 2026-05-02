@@ -284,17 +284,17 @@ func get_smithy_dps_mult() -> float:
 		3: return SMITHY_DPS_MULT_LV3
 		_: return SMITHY_DPS_MULT_LV1
 
-	func _update_watchtower(delta: float, economy: EconEconomy) -> void:
-		# 防衛拠点: 本MVPではスタブ（Sprint 5で防衛出撃・防壁回復を実装）
-		# TODO(Sprint 5): 範囲内兵舎から兵力を引き出して防衛出撃
-		# TODO(Sprint 5): 範囲内防壁HP回復（+10HP/5秒）
-		_resource_ready = true
-		_watchtower_repair_timer += delta
-		if _watchtower_repair_timer >= WATCHTOWER_REPAIR_INTERVAL:
-			_watchtower_repair_timer = 0.0
-			# TODO(Sprint 5): watchtower_level >= 2 のとき範囲内防壁を回復
-			# TODO(Sprint 5): 範囲内に敵がいるとき範囲内兵舎から防衛兵力を引き抜き出撃
-			pass
+func _update_watchtower(delta: float, economy: EconEconomy) -> void:
+	# 防衛拠点: 本MVPではスタブ（Sprint 5で防衛出撃・防壁回復を実装）
+	# TODO(Sprint 5): 範囲内兵舎から兵力を引き出して防衛出撃
+	# TODO(Sprint 5): 範囲内防壁HP回復（+10HP/5秒）
+	_resource_ready = true
+	_watchtower_repair_timer += delta
+	if _watchtower_repair_timer >= WATCHTOWER_REPAIR_INTERVAL:
+		_watchtower_repair_timer = 0.0
+		# TODO(Sprint 5): watchtower_level >= 2 のとき範囲内防壁を回復
+		# TODO(Sprint 5): 範囲内に敵がいるとき範囲内兵舎から防衛兵力を引き抜き出撃
+		pass
 
 func take_damage(amount: float) -> void:
 	hp -= amount
