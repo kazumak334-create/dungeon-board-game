@@ -2,6 +2,84 @@
 
 ## [Unreleased]
 
+## 2026-05-02 feat: Task 0-1 — TBDコスト確定・cards_econ.json更新・EconEconomy初期値修正
+
+### 変更内容
+- `data/cards_econ.json`: 全建物の `wheat` コストキーを `food` に統一（§3.3 用語統一）
+- `data/cards_econ.json`: 4建物（PLAZA/EXCHANGE/WATCHTOWER/SMITHY）エントリを追加（§2.7.2）
+  - 各建物に `required_work` フィールドを追加
+  - 住居の `population_supply` を 3→10 に修正（§2.7.1: Lv1=+10）
+  - BARRACKS コストを §2.7.2 確定値（wood=8）に修正
+  - TRADE_POST コストを §2.7.2 確定値（wood=5, stone=5）に修正
+- `scripts/econ_mvp/EconEconomy.gd`:
+  - `satisfaction` 初期値 0→60（§2.4.3）
+  - `HOUSE_POPULATION_SUPPLY` → `HOUSE_POP_CAP_LV1` = 10 にリネーム（§2.7.1）
+  - `resources` 辞書の `wheat` キーを `food` に変更・初期値30（§2.4.1）
+  - `initialize_v0_2()` の `wheat`/`food` 同期処理を追加
+  - `_sync_resource_field` に `food` ハンドラ追加
+
+### 暫定コスト根拠（§2.7.2 TBD箇所）
+| 建物 | wood | stone | sulfur | required_work | 根拠 |
+|---|---|---|---|---|---|
+| PLAZA | 4 | 2 | 0 | 5.0 | 農場と同規模（パッシブ・幸福供給） |
+| EXCHANGE | 5 | 3 | 0 | 8.0 | 市場より少し軽量（通貨消費型） |
+| WATCHTOWER | 5 | 5 | 0 | 10.0 | 採掘所同等（防衛・高HP=120） |
+| SMITHY | 6 | 2 | 2 | 8.0 | 硫黄消費・DPSバフ特殊建物 |
+
+## 2026-05-02 docs: v0.1時代のドキュメント整理 → docs/archive/ に移動
+
+### 移動したファイル（計35件）
+
+v0.1時代の仕様書・廃止設計関連（8件）:
+- enterprise_draw_design_mvp.md
+- integrated_game_design_spec_v1.md
+- draw_deck_hand_system_spec_revised.md
+- game_spec.md
+- visual_spec_critical.md
+- visual_implementation_options.md
+- military_unit_conversion_spec.md
+- special_unit_conversion_spec.md
+
+廃止済みシステム・設計ドキュメント（7件）:
+- alert_level_combat_impact.md
+- alert_level_requirements.md
+- artifact_design_plan.md
+- relic_system_proposal.md
+- event_system_proposal.md
+- event_worldview_candidates.md
+- gemini_sprite_generation_strategy.md
+
+古いreq_*.md（計11件）:
+- req_wave_flow_fix.md
+- req_battle_transition.md
+- req_deckprep_ui_improvement.md
+- req_deckprep_ui_v2.md
+- req_spell_synthesis.md
+- req_spell_battle_overhaul.md
+- req_spell_deck_system.md
+- req_poc_hex_battle.md
+- req_poc2.md
+- req_hex_mvp.md
+- req_dead_code_skills_batch_a/b/c.md (3件)
+
+UI設計参考資料（4件）:
+- design/ui/deckprep.md
+- design/ui/shop.md
+- skill_tree_design.md
+- synthesis_tree_draft.md
+- ui_screen_proposals.md
+
+ペルソナレビュー（2件）:
+- persona_detailed_review.md
+- persona_gameplay_review.md
+
+### 保持されたファイル
+- GAME_DESIGN_V0_2_MVP.md（新マスター設計）
+- REQUIREMENTS_V0_2_MVP.md（新要件定義）
+- docs/meta/ 配下全ファイル（プロセス管理）
+- design/design_principles.md（設計判断基準）
+- 現在実装中のファイル一式
+
 ## 2026-05-02 feat: EconMain/EconGrid 改訂5 UI全面実装（ui_draw_hand_gauge_specification.md 改訂5）
 
 ### Phase 1: HEADER 56px + 2段構成

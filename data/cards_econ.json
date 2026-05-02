@@ -6,9 +6,10 @@
       "type": "building",
       "building_type": "WOOD_EXTRACTOR",
       "draw_type": "BASIC",
-      "cost": { "wood": 2, "stone": 0, "sulfur": 0, "wheat": 0, "iron": 0, "cotton": 0 },
+      "cost": { "wood": 2, "stone": 0, "sulfur": 0, "food": 0, "iron": 0, "cotton": 0 },
       "population_required": 1,
       "population_supply": 0,
+      "required_work": 5.0,
       "hp": 50,
       "description": "木材を採取する"
     },
@@ -18,9 +19,10 @@
       "type": "building",
       "building_type": "STONE_EXTRACTOR",
       "draw_type": "BASIC",
-      "cost": { "wood": 2, "stone": 0, "sulfur": 0, "wheat": 0 },
+      "cost": { "wood": 2, "stone": 0, "sulfur": 0, "food": 0 },
       "population_required": 1,
       "population_supply": 0,
+      "required_work": 5.0,
       "hp": 50,
       "description": "石材を採取する"
     },
@@ -30,23 +32,25 @@
       "type": "building",
       "building_type": "SULFUR_EXTRACTOR",
       "draw_type": "BASIC",
-      "cost": { "wood": 2, "stone": 0, "sulfur": 0, "wheat": 0 },
+      "cost": { "wood": 2, "stone": 0, "sulfur": 0, "food": 0 },
       "population_required": 1,
       "population_supply": 0,
+      "required_work": 5.0,
       "hp": 50,
       "description": "硫黄を採取する"
     },
     {
-      "id": "card_wheat_extractor",
+      "id": "card_village",
       "name": "農場",
       "type": "building",
-      "building_type": "WHEAT_EXTRACTOR",
+      "building_type": "VILLAGE",
       "draw_type": "BASIC",
-      "cost": { "wood": 2, "stone": 0, "sulfur": 0, "wheat": 0 },
+      "cost": { "wood": 4, "stone": 3, "sulfur": 0 },
       "population_required": 1,
       "population_supply": 0,
+      "required_work": 5.0,
       "hp": 50,
-      "description": "小麦を採取する"
+      "description": "食料を生産する（§2.4.1）"
     },
     {
       "id": "card_iron_extractor",
@@ -54,9 +58,10 @@
       "type": "building",
       "building_type": "IRON_EXTRACTOR",
       "draw_type": "BASIC",
-      "cost": { "wood": 2, "stone": 1, "sulfur": 0, "wheat": 0 },
+      "cost": { "wood": 2, "stone": 1, "sulfur": 0, "food": 0 },
       "population_required": 1,
       "population_supply": 0,
+      "required_work": 5.0,
       "hp": 50,
       "description": "鉄鉱石を採取する（山岳タイル隣接必須）"
     },
@@ -66,9 +71,10 @@
       "type": "building",
       "building_type": "COTTON_EXTRACTOR",
       "draw_type": "BASIC",
-      "cost": { "wood": 2, "stone": 0, "sulfur": 0, "wheat": 0 },
+      "cost": { "wood": 2, "stone": 0, "sulfur": 0, "food": 0 },
       "population_required": 1,
       "population_supply": 0,
+      "required_work": 5.0,
       "hp": 50,
       "description": "綿花を採取する"
     },
@@ -78,11 +84,12 @@
       "type": "building",
       "building_type": "HOUSE",
       "draw_type": "BASIC",
-      "cost": { "wood": 3, "stone": 0, "sulfur": 0, "wheat": 0 },
+      "cost": { "wood": 3, "stone": 0, "sulfur": 0 },
       "population_required": 0,
-      "population_supply": 3,
+      "population_supply": 10,
+      "required_work": 5.0,
       "hp": 60,
-      "description": "人口上限を+3供給する"
+      "description": "人口上限+10（Lv1）。§2.7.1"
     },
     {
       "id": "card_house_2",
@@ -90,11 +97,12 @@
       "type": "building",
       "building_type": "HOUSE",
       "draw_type": "BASIC",
-      "cost": { "wood": 3, "stone": 0, "sulfur": 0, "wheat": 0 },
+      "cost": { "wood": 3, "stone": 0, "sulfur": 0 },
       "population_required": 0,
-      "population_supply": 3,
+      "population_supply": 10,
+      "required_work": 5.0,
       "hp": 60,
-      "description": "人口上限を+3供給する"
+      "description": "人口上限+10（Lv1）。§2.7.1"
     },
     {
       "id": "card_house_3",
@@ -102,11 +110,12 @@
       "type": "building",
       "building_type": "HOUSE",
       "draw_type": "BASIC",
-      "cost": { "wood": 3, "stone": 0, "sulfur": 0, "wheat": 0 },
+      "cost": { "wood": 3, "stone": 0, "sulfur": 0 },
       "population_required": 0,
-      "population_supply": 3,
+      "population_supply": 10,
+      "required_work": 5.0,
       "hp": 60,
-      "description": "人口上限を+3供給する"
+      "description": "人口上限+10（Lv1）。§2.7.1"
     },
     {
       "id": "card_library",
@@ -114,9 +123,10 @@
       "type": "building",
       "building_type": "LIBRARY",
       "draw_type": "BASIC",
-      "cost": { "wood": 4, "stone": 2, "sulfur": 0, "wheat": 0 },
+      "cost": { "wood": 4, "stone": 2, "sulfur": 0 },
       "population_required": 1,
       "population_supply": 0,
+      "required_work": 8.0,
       "hp": 80,
       "description": "通貨1を消費してカードを引く（CD 5秒）"
     },
@@ -124,13 +134,14 @@
       "id": "card_market",
       "name": "市場",
       "type": "building",
-      "building_type": "MARKET",
+      "building_type": "TRADE_POST",
       "draw_type": "BASIC",
-      "cost": { "wood": 3, "stone": 2, "sulfur": 0, "wheat": 0 },
+      "cost": { "wood": 5, "stone": 5, "sulfur": 0 },
       "population_required": 1,
       "population_supply": 0,
+      "required_work": 5.0,
       "hp": 70,
-      "description": "通貨+1/10秒（稼働時のみ）"
+      "description": "通貨生産（§2.7.2: TRADE_POST wood=5, stone=5）"
     },
     {
       "id": "card_barracks",
@@ -138,11 +149,12 @@
       "type": "building",
       "building_type": "BARRACKS",
       "draw_type": "BASIC",
-      "cost": { "wood": 5, "stone": 3, "sulfur": 0, "wheat": 0 },
-      "population_required": 2,
+      "cost": { "wood": 8, "stone": 0, "sulfur": 0 },
+      "population_required": 1,
       "population_supply": 0,
+      "required_work": 5.0,
       "hp": 100,
-      "description": "兵力を蓄積する(+0.2/秒)。突撃時に1:1でユニット化"
+      "description": "兵力生成 Lv1=+2/5秒（§2.5.2）"
     },
     {
       "id": "card_barracks_2",
@@ -150,11 +162,64 @@
       "type": "building",
       "building_type": "BARRACKS",
       "draw_type": "BASIC",
-      "cost": { "wood": 5, "stone": 3, "sulfur": 0, "wheat": 0 },
-      "population_required": 2,
+      "cost": { "wood": 8, "stone": 0, "sulfur": 0 },
+      "population_required": 1,
       "population_supply": 0,
+      "required_work": 5.0,
       "hp": 100,
-      "description": "兵力を蓄積する(+0.2/秒)。突撃時に1:1でユニット化"
+      "description": "兵力生成 Lv1=+2/5秒（§2.5.2）"
+    },
+    {
+      "id": "card_plaza",
+      "name": "広場",
+      "type": "building",
+      "building_type": "PLAZA",
+      "draw_type": "BASIC",
+      "cost": { "wood": 4, "stone": 2, "sulfur": 0 },
+      "population_required": 0,
+      "population_supply": 0,
+      "required_work": 5.0,
+      "hp": 60,
+      "description": "5秒ごと幸福度+1（隣接住居+1/件）。§2.7.1。暫定コスト（農場規模参考）"
+    },
+    {
+      "id": "card_exchange",
+      "name": "交換所",
+      "type": "building",
+      "building_type": "EXCHANGE",
+      "draw_type": "BASIC",
+      "cost": { "wood": 5, "stone": 3, "sulfur": 0 },
+      "population_required": 1,
+      "population_supply": 0,
+      "required_work": 8.0,
+      "hp": 70,
+      "description": "通貨を消費して追加ドロー（§2.7.1）。暫定コスト（市場より少し軽量）"
+    },
+    {
+      "id": "card_watchtower",
+      "name": "防衛拠点",
+      "type": "building",
+      "building_type": "WATCHTOWER",
+      "draw_type": "BASIC",
+      "cost": { "wood": 5, "stone": 5, "sulfur": 0 },
+      "population_required": 1,
+      "population_supply": 0,
+      "required_work": 10.0,
+      "hp": 120,
+      "description": "防衛兵力統括・防壁回復 Lv1=範囲2（§2.7.1）。暫定コスト（採掘所同等）"
+    },
+    {
+      "id": "card_smithy",
+      "name": "鍛冶屋",
+      "type": "building",
+      "building_type": "SMITHY",
+      "draw_type": "BASIC",
+      "cost": { "wood": 6, "stone": 2, "sulfur": 2 },
+      "population_required": 1,
+      "population_supply": 0,
+      "required_work": 8.0,
+      "hp": 80,
+      "description": "隣接兵舎のユニットDPS+10%（§2.5.9）。暫定コスト（硫黄2消費・中規模）"
     }
   ]
 }

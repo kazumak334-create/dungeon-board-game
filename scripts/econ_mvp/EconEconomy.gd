@@ -6,7 +6,7 @@ const ROLE_TRADE := 11
 
 # v0.2 定数（§13.6 パラメータ化）
 const BASE_POPULATION_CAP: int = 50  # 拠点効果（§7.4）
-const HOUSE_POPULATION_SUPPLY: int = 3
+const HOUSE_POP_CAP_LV1: int = 10  # §2.7.1: 住居Lv1の人口上限供給量
 const BARRACKS_POWER_PER_SEC: float = 0.2  # 仮値（§4.7.2）
 const INITIAL_FOOD: int = 30              # §7.3
 const INITIAL_CURRENCY: int = 100        # §7.3
@@ -19,9 +19,9 @@ var iron: int = 0
 var cotton: int = 0
 
 # v0.2 追加フィールド（§7.3）
-var resources: Dictionary = {"wood": 5, "stone": 5, "sulfur": 5, "wheat": 5, "iron": 5, "cotton": 5}
+var resources: Dictionary = {"wood": 5, "stone": 5, "sulfur": 5, "food": 30, "iron": 5, "cotton": 5}  # food初期値§2.4.1
 var food: int = INITIAL_FOOD
-var satisfaction: int = 0     # v0.3で具体化、初期値0（§7.3）
+var satisfaction: int = 60    # §2.4.3: 幸福度初期値60
 var military_power: float = 0.0  # 兵力（§4.7.2）
 
 # 要件定義書 req_econ_draw_hand_circulation.md §7.4
@@ -137,7 +137,8 @@ func _sync_resource_field(resource_key: String) -> void:
 		"wood": wood = resources.get("wood", 0)
 		"stone": stone = resources.get("stone", 0)
 		"sulfur": sulfur = resources.get("sulfur", 0)
-		"wheat": wheat = resources.get("wheat", 0)
+		"food": food = resources.get("food", 0)
+		"wheat": wheat = resources.get("wheat", 0)  # 後方互換（EconUnit.gd参照のため残存）
 		"iron": iron = resources.get("iron", 0)
 		"cotton": cotton = resources.get("cotton", 0)
 
@@ -145,15 +146,16 @@ func _sync_resource_field(resource_key: String) -> void:
 func initialize_v0_2() -> void:
 	population_cap = BASE_POPULATION_CAP
 	population_used = 0
-	satisfaction = 0
+	satisfaction = 60  # §2.4.3
 	military_power = 0.0
 	currency = INITIAL_CURRENCY
 	food = INITIAL_FOOD
-	resources = {"wood": 5, "stone": 5, "sulfur": 5, "wheat": 5, "iron": 5, "cotton": 5}
+	resources = {"wood": 5, "stone": 5, "sulfur": 5, "food": INITIAL_FOOD, "iron": 5, "cotton": 5}  # §2.4.1
 	wood = 5
 	stone = 5
 	sulfur = 5
-	wheat = 5
+	wheat = INITIAL_FOOD  # 後方互換：EconUnit.gd が economy.wheat を参照するため food と同期
+	food = INITIAL_FOOD
 	iron = 5
 	cotton = 5
 	print("[EconEconomy] initialize_v0_2: resources=%s, currency=%d, food=%d, pop_cap=%d" % [str(resources), currency, food, population_cap])
