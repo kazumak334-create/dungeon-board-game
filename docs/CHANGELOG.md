@@ -2,6 +2,46 @@
 
 ## [Unreleased]
 
+## 2026-05-02 feat: Econ MVP v0.1 ドロー・手札・ゲージシステム実装
+- EconDeckManager.gd（新規）: デッキ管理クラス。deck/hand/discard_pile/excluded + ターン進行 + ドローゲージ
+  - TURN_DURATION_SEC=30.0 / MAX_TURNS=10 / HAND_MAX_SIZE=5 / LIBRARY_CD_SEC=5.0
+  - draw_card() / exclude_card() / play_card() / try_resolve_pending_draws() / trigger_force_charge()
+  - 手札MAX時ドロー保留（pending_draws）・山札枯渇時ドロー無効
+  - 要件定義書 §4.3 §8.1 §9.1-9.6 準拠
+- EconDeckManager.gd.uid: UIDファイル新規作成
+- data/cards_econ.json（新規）: 初期デッキ13枚定義（採取6種・住居3・書庫1・市場1・兵舎2）
+- EconEconomy.gd: currency/population_used/population_cap フィールド追加（§7.4）
+- EconBattle.gd: deck_manager フィールド・setup_deck()/play_card_and_build()/trigger_early_charge()追加（§8.2）
+  - _create_building_from_card(): カードから EconBuilding 生成
+  - _resolve_population_overflow(): 住居破壊時の建物停止アルゴリズム（§8.5.1）
+  - update()内に deck_manager.update()/try_resolve_pending_draws() 追加
+- EconMain.gd: 新規色定数追加（COLOR_ACCENT_GOLD_BRIGHT/#D4B468 / COLOR_ORANGE/#C77A2C / COLOR_RED/#9C3A2A）
+  - _setup_deck_manager(): cards_econ.json ロード・EconBattle.setup_deck() 呼び出し
+  - _setup_hand_ui(): FOOTER中央に手札コンテナ（HBoxContainer）追加
+  - _setup_deck_gauge_ui(): ドローゲージ(x=970,y=600,160×20) / 強制突撃ゲージ(x=440,y=14,400×24,10分割) / 早期突撃ボタン / 人口表示UI
+  - _update_draw_gauge_ui(): 4状態（通常/もうすぐドロー/発動瞬間/MAX保留）毎フレーム更新
+  - _update_force_charge_gauge_ui(): 4段階色（緑/黄/橙/赤）+ 明滅演出
+  - _update_population_ui(): 人口ゲージ3段階色
+  - _on_early_charge_btn_pressed(): 早期突撃ボタン処理
+- check_syntax.sh: ✓ エラー0件
+
+## 2026-05-01 feat: EconMVP 建物バリアント設計確定・実装（配置ボーナス・速度2倍・クラスタリング）
+- docs/design/econ_building_system.md: ## 12「建物バリアント一覧」追加（残論点#2確定）
+  - 兵舎3案（斥候/群/徴兵）・要塞4案（砲塔/採掘/採掘守備/投石）・工房2案（長射程崩壊/連爆崩壊）
+  - 農村4案・製材所4案・鉱山5案・装備屋5案・交易所3案・市場2案
+  - 投石要塞: Stone2/3秒・射程5・ダメージ30（DPS10、守備ユニット相当）
+  - 長射程崩壊: HP40/ATK35/射程5-5。連爆崩壊: HP50/ATK40/隣接突撃起爆
+- docs/meta/req_econ_building_variants.md: 要件定義書新規作成（6要件）
+- EconBuilding.gd: ベース生産間隔を20秒に変更（BARRACKS/FORTRESS/WORKSHOP）
+- EconBuilding.gd: check_placement_bonus()追加・配置ボーナス（農村/鉱山隣接で時間・コスト半減）
+- EconBuilding.gd: update()シグネチャ拡張（buildings/grid引数追加、既存コードとの後方互換あり）
+- EconBuilding.gd: 徴兵兵舎用定数追加（BARRACKS_CONSCRIPT_INTERVAL/WHEAT_COST）
+- EconUnit.gd: 全ユニット移動速度2倍（ATTACKER:0.62 / TANK:0.34 / BREAKER:0.50）
+- EconHarvester.gd: _harvest_bonus計算を棟数カウント式に変更（1棟+1/2棟+2/3棟+3）
+- EconBattle.gd: b.update()にplayer_buildings/grid引数を追加
+- EconAI.gd: b.update()にenemy_buildings/_grid引数を追加
+- check_syntax.sh: エラー0件
+
 ## 2026-04-30 feat: ハーベスター割り当てUI刷新（棒グラフ + 直接人数指定）
 - EconEconomy.gd: alloc_*/priority_*フィールドを廃止、target_count Dictionaryに変更
 - EconEconomy.gd: get_harvest_target_for(idx, total) — target_countから割り当てリスト生成してラウンドロビン

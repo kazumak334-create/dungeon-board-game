@@ -1,0 +1,160 @@
+{
+  "cards": [
+    {
+      "id": "card_wood_extractor",
+      "name": "製材所",
+      "type": "building",
+      "building_type": "WOOD_EXTRACTOR",
+      "draw_type": "BASIC",
+      "cost": { "wood": 2, "stone": 0, "sulfur": 0, "wheat": 0 },
+      "population_required": 1,
+      "population_supply": 0,
+      "hp": 50,
+      "description": "木材を採取する"
+    },
+    {
+      "id": "card_stone_extractor",
+      "name": "採石場",
+      "type": "building",
+      "building_type": "STONE_EXTRACTOR",
+      "draw_type": "BASIC",
+      "cost": { "wood": 2, "stone": 0, "sulfur": 0, "wheat": 0 },
+      "population_required": 1,
+      "population_supply": 0,
+      "hp": 50,
+      "description": "石材を採取する"
+    },
+    {
+      "id": "card_sulfur_extractor",
+      "name": "硫黄採取所",
+      "type": "building",
+      "building_type": "SULFUR_EXTRACTOR",
+      "draw_type": "BASIC",
+      "cost": { "wood": 2, "stone": 0, "sulfur": 0, "wheat": 0 },
+      "population_required": 1,
+      "population_supply": 0,
+      "hp": 50,
+      "description": "硫黄を採取する"
+    },
+    {
+      "id": "card_wheat_extractor",
+      "name": "農場",
+      "type": "building",
+      "building_type": "WHEAT_EXTRACTOR",
+      "draw_type": "BASIC",
+      "cost": { "wood": 2, "stone": 0, "sulfur": 0, "wheat": 0 },
+      "population_required": 1,
+      "population_supply": 0,
+      "hp": 50,
+      "description": "小麦を採取する"
+    },
+    {
+      "id": "card_iron_extractor",
+      "name": "鉄鉱採掘場",
+      "type": "building",
+      "building_type": "IRON_EXTRACTOR",
+      "draw_type": "BASIC",
+      "cost": { "wood": 2, "stone": 1, "sulfur": 0, "wheat": 0 },
+      "population_required": 1,
+      "population_supply": 0,
+      "hp": 50,
+      "description": "鉄鉱石を採取する（山岳タイル隣接必須）"
+    },
+    {
+      "id": "card_cotton_extractor",
+      "name": "綿花農場",
+      "type": "building",
+      "building_type": "COTTON_EXTRACTOR",
+      "draw_type": "BASIC",
+      "cost": { "wood": 2, "stone": 0, "sulfur": 0, "wheat": 0 },
+      "population_required": 1,
+      "population_supply": 0,
+      "hp": 50,
+      "description": "綿花を採取する"
+    },
+    {
+      "id": "card_house",
+      "name": "住居",
+      "type": "building",
+      "building_type": "HOUSE",
+      "draw_type": "BASIC",
+      "cost": { "wood": 3, "stone": 0, "sulfur": 0, "wheat": 0 },
+      "population_required": 0,
+      "population_supply": 3,
+      "hp": 60,
+      "description": "人口上限を+3供給する"
+    },
+    {
+      "id": "card_house_2",
+      "name": "住居",
+      "type": "building",
+      "building_type": "HOUSE",
+      "draw_type": "BASIC",
+      "cost": { "wood": 3, "stone": 0, "sulfur": 0, "wheat": 0 },
+      "population_required": 0,
+      "population_supply": 3,
+      "hp": 60,
+      "description": "人口上限を+3供給する"
+    },
+    {
+      "id": "card_house_3",
+      "name": "住居",
+      "type": "building",
+      "building_type": "HOUSE",
+      "draw_type": "BASIC",
+      "cost": { "wood": 3, "stone": 0, "sulfur": 0, "wheat": 0 },
+      "population_required": 0,
+      "population_supply": 3,
+      "hp": 60,
+      "description": "人口上限を+3供給する"
+    },
+    {
+      "id": "card_library",
+      "name": "書庫",
+      "type": "building",
+      "building_type": "LIBRARY",
+      "draw_type": "BASIC",
+      "cost": { "wood": 4, "stone": 2, "sulfur": 0, "wheat": 0 },
+      "population_required": 1,
+      "population_supply": 0,
+      "hp": 80,
+      "description": "通貨1を消費してカードを引く（CD 5秒）"
+    },
+    {
+      "id": "card_market",
+      "name": "市場",
+      "type": "building",
+      "building_type": "MARKET",
+      "draw_type": "BASIC",
+      "cost": { "wood": 3, "stone": 2, "sulfur": 0, "wheat": 0 },
+      "population_required": 1,
+      "population_supply": 0,
+      "hp": 70,
+      "description": "通貨+1/10秒（稼働時のみ）"
+    },
+    {
+      "id": "card_barracks",
+      "name": "兵舎",
+      "type": "building",
+      "building_type": "BARRACKS",
+      "draw_type": "BASIC",
+      "cost": { "wood": 5, "stone": 3, "sulfur": 0, "wheat": 0 },
+      "population_required": 2,
+      "population_supply": 0,
+      "hp": 100,
+      "description": "攻撃ユニットを生産する"
+    },
+    {
+      "id": "card_barracks_2",
+      "name": "兵舎",
+      "type": "building",
+      "building_type": "BARRACKS",
+      "draw_type": "BASIC",
+      "cost": { "wood": 5, "stone": 3, "sulfur": 0, "wheat": 0 },
+      "population_required": 2,
+      "population_supply": 0,
+      "hp": 100,
+      "description": "攻撃ユニットを生産する"
+    }
+  ]
+}
