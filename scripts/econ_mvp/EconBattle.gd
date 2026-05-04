@@ -365,21 +365,61 @@ func update(delta: float) -> void:
 	_remove_dead()
 	_check_victory()
 
+func _allocate_work_labor() -> Array:
+	# ADR-003: EconBattle が作業人手割当を所有する
+	var sorted_sites: Array = grid.construction_sites.values()
+	sorted_sites.sort_custom(func(a: Dictionary, b: Dictionary) -> bool:
+		return int(a.get("started_at", 0)) < int(b.get("started_at", 0))
+	)
+	var pool: int = economy.get_work_labor()
+	var active_sites: Array = []
+	for site in sorted_sites:
+		var need: int = int(site.get("required_work_labor", 1))
+		if pool >= need:
+			pool -= need
+			active_sites.append(site)
+	return active_sites
+
 func _update_construction_progress(delta: float) -> void:
+	# ADR-003: construction 管理は EconBattle が単一責務所有者
 	if grid == null or economy == null:
 		return
-	var completed_sites: Array = grid.update_construction(delta, economy)
-	for site in completed_sites:
+	var active_sites: Array = _allocate_work_labor()
+	var active_lookup: Dictionary = {}
+	for site in active_sites:
+		active_lookup[site.get("panel_id", Vector2i(-1, -1))] = true
+
+	var completed_panel_ids: Array = []
+	for pos in grid.construction_sites.keys():
+		var site: Dictionary = grid.construction_sites[pos]
+		var is_active: bool = active_lookup.has(pos)
+		site["is_active"] = is_active
+		if is_active:
+			var build_time: float = max(0.001, float(site.get("construction_time", 1.0)))
+			site["construction_progress"] = min(1.0, float(site.get("construction_progress", 0.0)) + delta / build_time)
+		grid.construction_sites[pos] = site
+		_log_event({
+			"type": "BUILDING_PROGRESS_UPDATED",
+			"panel_id": [pos.x, pos.y],
+			"progress": float(site.get("construction_progress", 0.0)),
+			"required_work_labor": int(site.get("required_work_labor", 1)),
+		})
+		if float(site.get("construction_progress", 0.0)) >= 1.0:
+			completed_panel_ids.append(pos)
+
+	for pos in completed_panel_ids:
+		var site: Dictionary = grid.construction_sites[pos].duplicate(true)
+		grid.construction_sites.erase(pos)
 		var building: EconBuilding = grid.spawn_building(site)
 		if building == null:
 			continue
 		var card: Dictionary = site.get("card", {})
-		building.unit_produced.connect(func(pos: Vector2i, utype: int):
+		building.unit_produced.connect(func(bpos: Vector2i, utype: int):
 			if utype == -1:
-				spawn_player_harvester(Vector2i(pos.x, pos.y), economy)
+				spawn_player_harvester(Vector2i(bpos.x, bpos.y), economy)
 			else:
-				spawn_player_unit(pos.x, pos.y, utype, false)
-				_on_unit_produced(pos, utype)
+				spawn_player_unit(bpos.x, bpos.y, utype, false)
+				_on_unit_produced(bpos, utype)
 		)
 		building.building_destroyed.connect(func(destroyed: Node):
 			_on_building_destroyed(destroyed)
@@ -401,6 +441,8 @@ func _update_construction_progress(delta: float) -> void:
 		})
 		_on_building_constructed(building)
 		building.queue_redraw()
+	if not completed_panel_ids.is_empty() or not grid.construction_sites.is_empty():
+		grid.queue_redraw()
 
 func _remove_dead() -> void:
 	player_units = player_units.filter(func(u): return u.is_alive)

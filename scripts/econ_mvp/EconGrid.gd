@@ -371,43 +371,6 @@ func start_construction(panel_id: Vector2i, building_type: int, card: Dictionary
 	queue_redraw()
 	return true
 
-func update_construction(delta: float, economy: EconEconomy) -> Array:
-	var completed: Array = []
-	if economy == null:
-		return completed
-	var active_sites: Array = _allocate_work_labor(economy)
-	var active_lookup: Dictionary = {}
-	for site in active_sites:
-		active_lookup[site.get("panel_id", Vector2i(-1, -1))] = true
-	for pos in construction_sites.keys():
-		var site: Dictionary = construction_sites[pos]
-		var active: bool = active_lookup.has(pos)
-		site["is_active"] = active
-		if active:
-			var build_time: float = max(0.001, float(site.get("construction_time", 1.0)))
-			site["construction_progress"] = min(1.0, float(site.get("construction_progress", 0.0)) + delta / build_time)
-		construction_sites[pos] = site
-		if float(site.get("construction_progress", 0.0)) >= 1.0:
-			completed.append(site.duplicate(true))
-	for site in completed:
-		construction_sites.erase(site.get("panel_id", Vector2i(-1, -1)))
-	if not completed.is_empty() or not construction_sites.is_empty():
-		queue_redraw()
-	return completed
-
-func _allocate_work_labor(economy: EconEconomy) -> Array:
-	var sorted_sites: Array = construction_sites.values()
-	sorted_sites.sort_custom(func(a: Dictionary, b: Dictionary) -> bool:
-		return int(a.get("started_at", 0)) < int(b.get("started_at", 0))
-	)
-	var pool: int = economy.get_work_labor()
-	var active_sites: Array = []
-	for site in sorted_sites:
-		var need: int = int(site.get("required_work_labor", 1))
-		if pool >= need:
-			pool -= need
-			active_sites.append(site)
-	return active_sites
 
 func spawn_building(site: Dictionary) -> EconBuilding:
 	var panel_id: Vector2i = site.get("panel_id", Vector2i(-1, -1))
@@ -415,6 +378,8 @@ func spawn_building(site: Dictionary) -> EconBuilding:
 	building.setup(int(site.get("building_type", EconBuilding.BuildingType.HOUSE)), panel_id, true)
 	building.is_built = true
 	building.required_operation_labor = int(site.get("required_operation_labor", 0))
+	# 完成直前の build_progress で微フェード表現（不要ならコメント化）
+	building.build_progress = 0.99
 	building.position = hex_to_pixel(panel_id.x, panel_id.y)
 	return building
 

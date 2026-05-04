@@ -2,6 +2,23 @@
 
 ## [Unreleased]
 
+## 2026-05-04 refactor: ADR-003 Construction 管理を EconBattle に統合
+
+### 変更内容
+- `scripts/econ_mvp/EconBattle.gd`:
+  - `_update_construction_progress(delta)` を全面書き換え（EconGrid.update_construction() 呼び出しを廃止）
+  - `_allocate_work_labor()` を EconBattle に追加（作業人手割当の単一責務所有者化）
+  - `BUILDING_PROGRESS_UPDATED` / `BUILDING_COMPLETED` イベントを EconBattle 内で記録
+- `scripts/econ_mvp/EconGrid.gd`:
+  - `update_construction()` メソッド削除（EconBattle に統合）
+  - `_allocate_work_labor()` メソッド削除（EconBattle に統合）
+  - `spawn_building(site: Dictionary)` シグネチャは既に1パラメータで実装済み（変更なし）
+
+### 検証
+- check_syntax.sh 構文チェック: パス
+- check_syntax.sh 静的パターンチェック: パス
+- 参照: docs/requirements/REQUIREMENTS_SPRINT_7.md §4.3 / ADR-003
+
 ## 2026-05-04 feat: Sprint 7 — 初期デッキ・ランドカード配置基盤実装
 
 ### 変更内容
