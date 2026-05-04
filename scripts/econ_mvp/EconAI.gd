@@ -20,7 +20,7 @@ func setup(grid: EconGrid, battle: EconBattle) -> void:
 	economy.target_count = {
 		EconGrid.ResourceType.WOOD: 1,
 		EconGrid.ResourceType.STONE: 1,
-		EconGrid.ResourceType.SULFUR: 1,
+		EconGrid.ResourceType.RESIN: 1,
 		EconGrid.ResourceType.WHEAT: 1,
 	}
 
@@ -122,8 +122,8 @@ func update(delta: float) -> void:
 			var nb: EconBuilding = _construction_queue[0]
 			var cost: Dictionary = EconBuilding.BUILD_COSTS.get(int(nb.building_type), {})
 			q_info = "%s(cost:%s)" % [q_names[int(nb.building_type)], str(cost)]
-		_battle.log_message.emit("AI diag: W%d St%d Su%d | harv:%d | next:%s" % [
-			economy.wood, economy.stone, economy.sulfur, alive_h, q_info])
+		_battle.log_message.emit("AI diag: W%d St%d Re%d | harv:%d | next:%s" % [
+			economy.wood, economy.stone, economy.resin, alive_h, q_info])
 	# 敵ハーベスター更新
 	var all_movable: Array = _battle.player_units + _battle.player_harvesters + _battle.enemy_units + _battle.enemy_harvesters
 	for h in _battle.enemy_harvesters:

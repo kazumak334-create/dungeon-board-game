@@ -7,6 +7,8 @@ var building_type: BuildingType
 var grid_pos: Vector2i
 var is_alive: bool = true
 var is_built: bool = false
+var is_operating: bool = true
+var required_operation_labor: int = 0
 var hp: float = 100.0
 var max_hp: float = 100.0
 var is_player_side: bool = true
@@ -15,12 +17,12 @@ var connected_flag_id: int = -1   # -1 = 接続なし
 static var BUILD_COSTS: Dictionary = {
 	0: {"wood": 8},     # BARRACKS
 	1: {"stone": 10},    # FORTRESS
-	2: {"sulfur": 8},   # WORKSHOP
+	2: {"resin": 8},   # WORKSHOP
 	3: {"wood": 4, "stone": 3, "wheat": 2},     # VILLAGE
 	4: {},              # BASE（建設不可）
 	5: {"wood": 8, "stone": 3},   # SAWMILL
-	6: {"stone": 10, "sulfur": 4}, # MINE
-	7: {"wood": 5, "sulfur": 3},   # EQUIPMENT_SHOP
+	6: {"stone": 10, "resin": 4}, # MINE
+	7: {"wood": 5, "resin": 3},   # EQUIPMENT_SHOP
 	8: {"wood": 5, "stone": 5},  # TRADE_POST
 	9: {},                         # WALL
 	10: {"wood": 4, "stone": 2},   # PLAZA（§2.7.2）
@@ -30,8 +32,8 @@ static var BUILD_COSTS: Dictionary = {
 	14: {},                         # LIBRARY_ADV（図書館・スタブ）
 	15: {},                         # MUSEUM（博物館・スタブ）
 	16: {},                         # ART_GALLERY（美術館・スタブ）
-	17: {"wood": 4, "stone": 4, "sulfur": 2},  # SMITHY（鍛冶屋）
-	18: {"wood": 6, "stone": 6, "sulfur": 2},  # WATCHTOWER（防衛拠点）
+	17: {"wood": 4, "stone": 4, "resin": 2},  # SMITHY（鍛冶屋）
+	18: {"wood": 6, "stone": 6, "resin": 2},  # WATCHTOWER（防衛拠点）
 	19: {"wood": 4, "stone": 2},               # DINER（食堂）
 	20: {"wood": 3, "stone": 2},               # MILL（製粉所）
 }
@@ -67,7 +69,7 @@ const BARRACKS_PRODUCE_COST := 3    # wood
 const FORTRESS_PRODUCE_INTERVAL := 20.0
 const FORTRESS_PRODUCE_COST := 3    # stone
 const WORKSHOP_PRODUCE_INTERVAL := 20.0
-const WORKSHOP_PRODUCE_COST := 3    # sulfur
+const WORKSHOP_PRODUCE_COST := 3    # resin
 const VILLAGE_WHEAT_INTERVAL := 5.0
 const VILLAGE_WHEAT_AMOUNT := 2
 const VILLAGE_COTTON_INTERVAL := 5.0
@@ -101,6 +103,8 @@ const MILL_INTERVAL := 5.0
 const MILL_WHEAT_COST := 1
 const MILL_WHEAT_GAIN := 2
 const MILL_WHEAT_GAIN_BOOST := 3  # 小麦値3以上パネル上（TODO: パネルリソース実装時に有効化）
+const EFFECTIVE_INTERVAL_MIN := 2.0
+const EFFECTIVE_INTERVAL_MAX := 15.0
 
 # ビルダーシステム
 static var REQUIRED_CONSTRUCTION: Dictionary = {
@@ -131,7 +135,7 @@ var build_progress: float = 0.0
 var build_priority: int = 0  # 集中建設モードでの優先度（大きいほど優先）
 
 # ユニット生産ハーベスター化（要件定義書 req_econ_unit_production_harvester.md）
-var stockpile: Dictionary = {"wood": 0, "stone": 0, "sulfur": 0}
+var stockpile: Dictionary = {"wood": 0, "stone": 0, "resin": 0}
 const STOCKPILE_CAP := 6
 
 # 装備屋融合ランク（要件定義書 req_econ_equipment_shop_mvp.md）
@@ -143,6 +147,11 @@ var _harvester_timer: float = 0.0
 var _cotton_timer: float = 0.0
 var _diner_timer: float = 0.0
 var _mill_timer: float = 0.0
+var _produce_last_interval: float = 0.0
+var _harvester_last_interval: float = 0.0
+var _cotton_last_interval: float = 0.0
+var _diner_last_interval: float = 0.0
+var _mill_last_interval: float = 0.0
 var _resource_ready: bool = true  # 生産コストが払えるか（!表示用）
 var _construction_ready: bool = true  # 建設コストが払えるか（建設中!表示用）
 var _placement_bonus_active: bool = false  # 配置ボーナス有効フラグ
@@ -163,6 +172,13 @@ func setup(btype: BuildingType, pos: Vector2i, player_side: bool) -> void:
 	hp = max_hp
 	# BASEは建設不可の初期配置なので建設済み扱い
 	is_built = (btype == BuildingType.BASE)
+	is_operating = true
+
+func set_operating(value: bool) -> void:
+	if is_operating == value:
+		return
+	is_operating = value
+	queue_redraw()
 
 # stockpile への供給（疎結合・メソッド経由）
 # 要件定義書 req_econ_unit_production_harvester.md § 6.1 より
@@ -199,6 +215,9 @@ func update(delta: float, economy: EconEconomy, buildings: Array = [], grid: Eco
 		return
 	if not is_built:
 		return
+	if not is_operating:
+		_resource_ready = true
+		return
 	# 配置ボーナスチェック（引数が揃っている場合のみ）
 	if buildings.size() > 0 and grid != null:
 		check_placement_bonus(buildings, grid)
@@ -234,22 +253,38 @@ func update(delta: float, economy: EconEconomy, buildings: Array = [], grid: Eco
 		BuildingType.WATCHTOWER:
 			_update_watchtower(delta, economy)
 		BuildingType.DINER:
-			_update_diner(delta, economy)
+			_update_diner(delta, economy, grid)
 		BuildingType.MILL:
-			_update_mill(delta, economy)
+			_update_mill(delta, economy, grid)
+
+func _get_effective_interval(base_interval: float, economy: EconEconomy) -> float:
+	var efficiency: float = economy.get_building_efficiency_modifier() if economy != null else 0.0
+	var denominator: float = max(0.01, 1.0 + efficiency)
+	return clampf(base_interval / denominator, EFFECTIVE_INTERVAL_MIN, EFFECTIVE_INTERVAL_MAX)
+
+func _remap_timer_to_interval(timer: float, last_interval: float, new_interval: float) -> float:
+	if last_interval <= 0.0 or abs(last_interval - new_interval) <= 0.001:
+		return timer
+	var progress: float = clampf(timer / last_interval, 0.0, 1.0)
+	return progress * new_interval
+
 func _update_barracks(delta: float, economy: EconEconomy) -> void:
 	# 配置ボーナス適用時: 間隔・コスト半減
 	# 要件定義書 req_econ_building_variants.md § 3 より
-	var interval := 5.0 if _placement_bonus_active else BARRACKS_PRODUCE_INTERVAL
+	var base_interval := 5.0 if _placement_bonus_active else BARRACKS_PRODUCE_INTERVAL
+	var interval := _get_effective_interval(base_interval, economy)
+	_produce_timer = _remap_timer_to_interval(_produce_timer, _produce_last_interval, interval)
+	_produce_last_interval = interval
 	var cost := ceili(BARRACKS_PRODUCE_COST / 2.0) if _placement_bonus_active else BARRACKS_PRODUCE_COST
 	# ハーベスター化：自分のstockpileを参照（要件定義書 req_econ_unit_production_harvester.md）
 	_resource_ready = (stockpile.get("wood", 0) >= cost)
+	if not _resource_ready:
+		return
 	_produce_timer += delta
 	if _produce_timer >= interval:
-		if _resource_ready:
-			stockpile["wood"] -= cost
-			_produce_timer = 0.0
-			unit_produced.emit(grid_pos, 0)
+		stockpile["wood"] -= cost
+		_produce_timer -= interval
+		unit_produced.emit(grid_pos, 0)
 
 func _update_fortress(delta: float, economy: EconEconomy) -> void:
 	var interval := 5.0 if _placement_bonus_active else FORTRESS_PRODUCE_INTERVAL
@@ -264,29 +299,44 @@ func _update_fortress(delta: float, economy: EconEconomy) -> void:
 			unit_produced.emit(grid_pos, 1)
 
 func _update_workshop(delta: float, economy: EconEconomy) -> void:
-	var interval := 5.0 if _placement_bonus_active else WORKSHOP_PRODUCE_INTERVAL
+	var base_interval := 5.0 if _placement_bonus_active else WORKSHOP_PRODUCE_INTERVAL
+	var interval := _get_effective_interval(base_interval, economy)
+	_produce_timer = _remap_timer_to_interval(_produce_timer, _produce_last_interval, interval)
+	_produce_last_interval = interval
 	var cost := ceili(WORKSHOP_PRODUCE_COST / 2.0) if _placement_bonus_active else WORKSHOP_PRODUCE_COST
 	# ハーベスター化：自分のstockpileを参照（要件定義書 req_econ_unit_production_harvester.md）
-	_resource_ready = (stockpile.get("sulfur", 0) >= cost)
+	_resource_ready = (stockpile.get("resin", 0) >= cost)
+	if not _resource_ready:
+		return
 	_produce_timer += delta
 	if _produce_timer >= interval:
-		if _resource_ready:
-			stockpile["sulfur"] -= cost
-			_produce_timer = 0.0
-			unit_produced.emit(grid_pos, 2)
+		stockpile["resin"] -= cost
+		_produce_timer -= interval
+		unit_produced.emit(grid_pos, 2)
 
 func _update_village(delta: float, economy: EconEconomy) -> void:
+	var wheat_interval := _get_effective_interval(VILLAGE_WHEAT_INTERVAL, economy)
+	_produce_timer = _remap_timer_to_interval(_produce_timer, _produce_last_interval, wheat_interval)
+	_produce_last_interval = wheat_interval
 	_produce_timer += delta
-	if _produce_timer >= VILLAGE_WHEAT_INTERVAL:
-		_produce_timer = 0.0
+	if _produce_timer >= wheat_interval:
+		_produce_timer -= wheat_interval
 		economy.add_wheat(VILLAGE_WHEAT_AMOUNT)
+
+	var cotton_interval := _get_effective_interval(VILLAGE_COTTON_INTERVAL, economy)
+	_cotton_timer = _remap_timer_to_interval(_cotton_timer, _cotton_last_interval, cotton_interval)
+	_cotton_last_interval = cotton_interval
 	_cotton_timer += delta
-	if _cotton_timer >= VILLAGE_COTTON_INTERVAL:
-		_cotton_timer = 0.0
+	if _cotton_timer >= cotton_interval:
+		_cotton_timer -= cotton_interval
 		economy.add_resource(EconGrid.ResourceType.COTTON, VILLAGE_COTTON_AMOUNT)
+
+	var harvester_interval := _get_effective_interval(VILLAGE_HARVESTER_INTERVAL, economy)
+	_harvester_timer = _remap_timer_to_interval(_harvester_timer, _harvester_last_interval, harvester_interval)
+	_harvester_last_interval = harvester_interval
 	_harvester_timer += delta
-	if _harvester_timer >= VILLAGE_HARVESTER_INTERVAL:
-		_harvester_timer = 0.0
+	if _harvester_timer >= harvester_interval:
+		_harvester_timer -= harvester_interval
 		unit_produced.emit(grid_pos, -1)
 
 func _update_smithy(delta: float, economy: EconEconomy) -> void:
@@ -319,55 +369,61 @@ func _update_watchtower(delta: float, economy: EconEconomy) -> void:
 		# TODO(Sprint 5): 範囲内に敵がいるとき範囲内兵舎から防衛兵力を引き抜き出撃
 		pass
 
-func _update_diner(delta: float, economy: EconEconomy) -> void:
+func _update_diner(delta: float, economy: EconEconomy, grid: EconGrid = null) -> void:
 	# 食堂：5秒ごとに小麦1消費→食料値+2（要件定義書 req_econ_food_system_sprint2.md §1）
-	_diner_timer += delta
-	if _diner_timer < DINER_INTERVAL:
-		return
-	_diner_timer -= DINER_INTERVAL
-
-	# 小麦確認
+	var interval := _get_effective_interval(DINER_INTERVAL, economy)
+	_diner_timer = _remap_timer_to_interval(_diner_timer, _diner_last_interval, interval)
+	_diner_last_interval = interval
 	if economy.wheat < DINER_WHEAT_COST:
-		print("[EconBuilding] DINER: 小麦不足、発動スキップ")
+		_resource_ready = false
 		return
+	_resource_ready = true
+	_diner_timer += delta
+	if _diner_timer < interval:
+		return
+	_diner_timer -= interval
 
 	# 小麦消費
 	economy.wheat -= DINER_WHEAT_COST
 	economy.resources["wheat"] = economy.wheat
 
-	# 食料値加算（TODO: パネルリソース実装時に香辛料タグ判定を有効化）
-	# 現MVPでは常に通常効果（+2）
-	var gain: int = DINER_FOOD_GAIN
-	# if has_spice_tag(grid_pos): gain = DINER_FOOD_GAIN_SPICE  # TODO: パネルリソース実装時に有効化
-
+	var has_spice: bool = grid != null and grid.has_spice_tag(grid_pos)
+	var gain: int = DINER_FOOD_GAIN_SPICE if has_spice else DINER_FOOD_GAIN
 	economy.food_value += gain
 	economy.food = economy.food_value  # 後方互換
 	economy.resources["food"] = economy.food_value
-	print("[EconBuilding] DINER: 小麦-1 食料値+%d (food_value=%d)" % [gain, economy.food_value])
+	print("[EconBuilding] DINER: 小麦-1 食料値+%d (food_value=%d)%s" % [
+		gain,
+		economy.food_value,
+		" [spice tag bonus]" if has_spice else "",
+	])
 
-func _update_mill(delta: float, economy: EconEconomy) -> void:
+func _update_mill(delta: float, economy: EconEconomy, grid: EconGrid = null) -> void:
 	# 製粉所：5秒ごとに小麦1消費→小麦+2（要件定義書 req_econ_food_system_sprint2.md §2）
-	_mill_timer += delta
-	if _mill_timer < MILL_INTERVAL:
-		return
-	_mill_timer -= MILL_INTERVAL
-
-	# 小麦確認
+	var interval := _get_effective_interval(MILL_INTERVAL, economy)
+	_mill_timer = _remap_timer_to_interval(_mill_timer, _mill_last_interval, interval)
+	_mill_last_interval = interval
 	if economy.wheat < MILL_WHEAT_COST:
-		print("[EconBuilding] MILL: 小麦不足、発動スキップ")
+		_resource_ready = false
 		return
+	_resource_ready = true
+	_mill_timer += delta
+	if _mill_timer < interval:
+		return
+	_mill_timer -= interval
 
 	# 小麦消費
 	economy.wheat -= MILL_WHEAT_COST
 
-	# 小麦生産（TODO: パネルリソース実装時に小麦値3以上パネル判定を有効化）
-	# 現MVPでは常に通常効果（+2）
-	var gain: int = MILL_WHEAT_GAIN
-	# if get_panel_wheat_value(grid_pos) >= 3: gain = MILL_WHEAT_GAIN_BOOST  # TODO: パネルリソース実装時に有効化
-
+	var has_high_yield_wheat: bool = grid != null and grid.get_panel_wheat_value(grid_pos) >= 3
+	var gain: int = MILL_WHEAT_GAIN_BOOST if has_high_yield_wheat else MILL_WHEAT_GAIN
 	economy.wheat += gain
 	economy.resources["wheat"] = economy.wheat
-	print("[EconBuilding] MILL: 小麦-1 小麦+%d (wheat=%d)" % [gain, economy.wheat])
+	print("[EconBuilding] MILL: 小麦-1 小麦+%d (wheat=%d)%s" % [
+		gain,
+		economy.wheat,
+		" [high-yield panel bonus]" if has_high_yield_wheat else "",
+	])
 
 func take_damage(amount: float) -> void:
 	hp -= amount
@@ -379,6 +435,42 @@ func take_damage(amount: float) -> void:
 		# 装備屋破壊時に融合ランク再計算を通知（要件定義書 req_econ_equipment_shop_mvp.md § 3.2）
 		building_destroyed.emit(self)
 	queue_redraw()
+
+func get_build_progress_ratio() -> float:
+	var required: float = float(REQUIRED_CONSTRUCTION.get(int(building_type), 1.0))
+	if required <= 0.0:
+		return 1.0
+	return clampf(build_progress / required, 0.0, 1.0)
+
+func get_timer_progress() -> float:
+	if not is_built:
+		return get_build_progress_ratio()
+	match building_type:
+		BuildingType.DINER:
+			return _timer_progress_ratio(_diner_timer, _diner_last_interval)
+		BuildingType.MILL:
+			return _timer_progress_ratio(_mill_timer, _mill_last_interval)
+		BuildingType.VILLAGE:
+			return maxf(
+				_timer_progress_ratio(_produce_timer, _produce_last_interval),
+				_timer_progress_ratio(_cotton_timer, _cotton_last_interval)
+			)
+		BuildingType.BARRACKS, BuildingType.FORTRESS, BuildingType.WORKSHOP:
+			return _timer_progress_ratio(_produce_timer, _produce_last_interval)
+		_:
+			return 0.0
+
+func _timer_progress_ratio(timer: float, interval: float) -> float:
+	if interval <= 0.0:
+		return 0.0
+	return clampf(timer / interval, 0.0, 1.0)
+
+func _draw_bottom_progress_mask(progress: float, color: Color) -> void:
+	if progress <= 0.0:
+		return
+	var clamped := clampf(progress, 0.0, 1.0)
+	var height := 36.0 * clamped
+	draw_rect(Rect2(Vector2(-18.0, 18.0 - height), Vector2(36.0, height)), color)
 
 func _draw() -> void:
 	if not is_alive:
@@ -406,6 +498,10 @@ func _draw() -> void:
 		BuildingType.MILL: color = Color(0.7, 0.8, 0.4)     # 黄緑系（製粉所）
 	color.a = alpha
 	draw_rect(Rect2(Vector2(-18, -18), Vector2(36, 36)), color)
+	if is_built:
+		_draw_bottom_progress_mask(get_timer_progress(), Color(0.25, 0.9, 0.45, 0.25))
+	else:
+		_draw_bottom_progress_mask(get_build_progress_ratio(), Color(0.25, 0.9, 0.45, 0.45))
 	draw_rect(Rect2(Vector2(-18, -18), Vector2(36, 36)), Color(1.0, 1.0, 1.0, alpha), false, 2.0)
 	if is_built:
 		var bar_w := 36.0
@@ -418,6 +514,8 @@ func _draw() -> void:
 		if not _resource_ready:
 			draw_circle(Vector2(15, -22), 7.0, Color(0.9, 0.1, 0.1, 0.9))
 			draw_string(ThemeDB.fallback_font, Vector2(11, -16), "!", HORIZONTAL_ALIGNMENT_CENTER, -1, 13, Color.WHITE)
+		var dot_color := Color(0.25, 0.9, 0.45, 0.95) if is_operating else Color(0.45, 0.43, 0.40, 0.95)
+		draw_circle(Vector2(0, 23), 3.0, dot_color)
 	# 建設中かつ建設コスト不足 → 右上に「!」
 	if not is_built and not _construction_ready:
 		draw_circle(Vector2(15, -22), 7.0, Color(0.9, 0.1, 0.1, 0.9))

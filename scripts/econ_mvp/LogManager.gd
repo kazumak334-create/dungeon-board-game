@@ -1,9 +1,13 @@
 extends Node
 
+signal event_logged(text: String)
+
 var log_enabled: bool = true
 var log_level: String = "DEBUG"
 var _file: FileAccess = null
 var _battle_id: String = ""
+var recent_logs: Array[String] = []
+const MAX_RECENT_LOGS: int = 50
 
 var _draw_count: int = 0
 var _reload_count: int = 0
@@ -43,14 +47,20 @@ func log_event(data: Dictionary) -> void:
 	var event_type: String = str(data.get("type", ""))
 	if not _should_log(event_type):
 		return
-	if _file == null:
-		return
 	var row := data.duplicate(true)
 	if not row.has("battle_id"):
 		row["battle_id"] = _battle_id
 	_update_counters(row)
-	_file.store_line(JSON.stringify(row))
-	_file.flush()
+	if _file != null:
+		_file.store_line(JSON.stringify(row))
+		_file.flush()
+	var text := _format_event_text(row)
+	if text != "":
+		recent_logs.append(text)
+		if recent_logs.size() > MAX_RECENT_LOGS:
+			recent_logs.pop_front()
+		print("[LogManager] %s" % text)
+		event_logged.emit(text)
 
 func log_snapshot(data: Dictionary) -> void:
 	var row := data.duplicate(true)
@@ -133,6 +143,39 @@ func _update_counters(row: Dictionary) -> void:
 	if row.get("type", "") == "SNAPSHOT":
 		_last_total_force = float(row.get("total_force", _last_total_force))
 		_last_duration = int(row.get("time", _last_duration))
+
+func _format_event_text(row: Dictionary) -> String:
+	var prefix := "[%s] " % _format_event_time(row)
+	match str(row.get("type", "")):
+		"POP_MILESTONE":
+			return prefix + "Population confirmed: %dk -> %dk" % [int(row.get("old_population", 0)), int(row.get("new_population", 0))]
+		"SAT_STAGE_CHANGE":
+			return prefix + "Satisfaction changed: %s -> %s" % [str(row.get("old_stage", "")), str(row.get("new_stage", ""))]
+		"POP_LOSS":
+			return prefix + "Population loss: %d (%s)" % [int(row.get("loss", 0)), str(row.get("reason", row.get("cause", "")))]
+		"LAND_PANEL_GEN":
+			var pos: Array = row.get("pos", [])
+			return prefix + "Land panel generated at %s" % str(pos)
+		"LAND_CARD_REWARD":
+			return prefix + "Land card reward generated: %s" % str(row.get("land_subtype", ""))
+		"LAND_CARD_PLACED":
+			var placed: Array = row.get("pos", row.get("placed_pos", []))
+			return prefix + "Land card placed at %s" % str(placed)
+		"BUILD_PLACED", "BUILD_COMPLETE":
+			return prefix + "Building placed: %s at %s" % [str(row.get("building_type", "")), str(row.get("pos", []))]
+		"POP_CHANGE", "SAT_SLOPE":
+			return ""
+		_:
+			return ""
+
+func _format_event_time(row: Dictionary) -> String:
+	if row.has("clock"):
+		return str(row["clock"])
+	if row.has("time"):
+		var sec := int(float(row.get("time", 0.0)))
+		return "%02d:%02d:%02d" % [int(sec / 3600), int(sec / 60) % 60, sec % 60]
+	var now := Time.get_datetime_dict_from_system()
+	return "%02d:%02d:%02d" % [int(now["hour"]), int(now["minute"]), int(now["second"])]
 
 func _get_timestamp() -> String:
 	var now := Time.get_datetime_dict_from_system()

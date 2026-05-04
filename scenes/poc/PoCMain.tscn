@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3 uid="uid://poc_main"]
+
+[ext_resource type="Script" path="res://scripts/poc/PoCMain.gd" id="1_poc_main"]
+
+[node name="PoCMain" type="Node2D"]
+script = ExtResource("1_poc_main")

@@ -1,8 +1,11 @@
 class_name EconBattle
 extends Node
 
+const EconChestScript := preload("res://scripts/econ_mvp/EconChest.gd")
+
 signal battle_ended(player_won: bool)
 signal log_message(text: String)
+signal chest_acquired(result: Dictionary)
 
 var player_units: Array = []
 var enemy_units: Array = []
@@ -19,17 +22,25 @@ var ai: EconAI = null
 var is_running: bool = false
 var player_flags: Array = []   # EconRallyFlag の配列
 var _game_over: bool = false
+var _enemy_base_breakthrough_ids: Dictionary = {}
 
 # 要件定義書 req_econ_draw_hand_circulation.md §8.2
 var deck_manager = null  # EconDeckManager（型推論省略）
+var reward_manager = null
+var chests: Array = []
 
 func setup(g: EconGrid, eco: EconEconomy) -> void:
 	grid = g
 	economy = eco
 
+func set_reward_manager(manager) -> void:
+	reward_manager = manager
+
 func start() -> void:
 	is_running = true
 	_game_over = false
+	_enemy_base_breakthrough_ids.clear()
+	_spawn_chests()
 	log_message.emit("Battle started!")
 
 func setup_deck(initial_deck: Array, on_draw: Callable) -> void:
@@ -112,7 +123,7 @@ func _create_building_from_card(card: Dictionary, target_cell: Vector2i) -> Econ
 		"PLAZA": EconBuilding.BuildingType.PLAZA,
 		"WOOD_EXTRACTOR": EconBuilding.BuildingType.SAWMILL,
 		"STONE_EXTRACTOR": EconBuilding.BuildingType.MINE,
-		"SULFUR_EXTRACTOR": EconBuilding.BuildingType.MINE,
+		"RESIN_EXTRACTOR": EconBuilding.BuildingType.MINE,
 		"WHEAT_EXTRACTOR": EconBuilding.BuildingType.VILLAGE,
 		"IRON_EXTRACTOR": EconBuilding.BuildingType.MINE,
 		"COTTON_EXTRACTOR": EconBuilding.BuildingType.VILLAGE,
@@ -179,14 +190,45 @@ func unitize_military_power() -> int:
 	# §4.7.3 / §8.2 兵力→ユニット変換（突撃時のみ呼出・旗倒し単独では呼ばない）
 	if economy == null:
 		return 0
-	var unit_count: int = int(floor(economy.military_power))
+	var raw_unit_count: int = int(floor(economy.military_power))
+	var unit_count: int = mini(raw_unit_count, economy.get_max_chargeable_units())
 	economy.military_power -= float(unit_count)  # 小数部を残す
 	if unit_count <= 0:
+		print("[EconBattle] unitize_military_power skipped: power=%d max_chargeable=%d" % [raw_unit_count, economy.get_max_chargeable_units()])
 		return 0
 	_spawn_units_from_barracks(unit_count)
 	log_message.emit("Unitized military power: %d units spawned" % unit_count)
-	print("[EconBattle] unitize_military_power: %d units from %.2f power" % [unit_count, economy.military_power + float(unit_count)])
+	print("[EconBattle] unitize_military_power: %d/%d units from %.2f power" % [unit_count, raw_unit_count, economy.military_power + float(unit_count)])
 	return unit_count
+
+func register_enemy_reach_base(enemy_count: int) -> void:
+	if economy == null:
+		return
+	economy.apply_defense_breakthrough_loss(enemy_count)
+
+func _check_enemy_base_breakthroughs() -> void:
+	var player_base: EconBuilding = _get_player_base()
+	if player_base == null:
+		return
+	var breakthrough_count: int = 0
+	for u in enemy_units:
+		if not u.is_alive:
+			continue
+		var unit_id: int = u.get_instance_id()
+		if _enemy_base_breakthrough_ids.has(unit_id):
+			continue
+		if grid.hex_distance(u.grid_pos, player_base.grid_pos) <= u.attack_range:
+			_enemy_base_breakthrough_ids[unit_id] = true
+			breakthrough_count += 1
+	if breakthrough_count > 0:
+		register_enemy_reach_base(breakthrough_count)
+		log_message.emit("Defense breakthrough: %d enemy units reached base" % breakthrough_count)
+
+func _get_player_base() -> EconBuilding:
+	for b in player_buildings:
+		if b.building_type == EconBuilding.BuildingType.BASE and b.is_alive:
+			return b
+	return null
 
 func _spawn_units_from_barracks(unit_count: int) -> void:
 	# §4.7.3 兵舎セルから均等分散出現
@@ -225,7 +267,6 @@ func _accumulate_barracks_power(delta: float) -> void:
 func update(delta: float) -> void:
 	if not is_running or _game_over:
 		return
-	# 建設キューは廃止。ビルダーが現地に移動してbuild_progressを加算する
 	# ドローマネージャー更新（§8.2）
 	if deck_manager != null:
 		deck_manager.update(delta)
@@ -239,6 +280,8 @@ func update(delta: float) -> void:
 	# 経済更新（小麦消費）
 	var total_units: int = player_units.size()
 	economy.update(delta, total_units)
+	_update_milestone_progress()
+	_update_construction_progress(delta)
 	# ハーベスター更新
 	var all_movable: Array = player_units + player_harvesters + enemy_units
 	var alive_harvester_count: int = player_harvesters.filter(func(h): return h.is_alive).size()
@@ -262,11 +305,49 @@ func update(delta: float) -> void:
 		if u.is_alive:
 			u.update(delta, player_units, player_buildings, player_harvesters, grid, all_units, ai.economy if ai != null else null)
 	# 重なりカウント更新
+	_check_enemy_base_breakthroughs()
 	_update_stack_counts()
 	# 死亡処理
 	_remove_dead()
 	# 勝敗判定
 	_check_victory()
+
+func _update_construction_progress(delta: float) -> void:
+	if economy == null:
+		return
+	var targets: Array = player_buildings.filter(func(b): return b.is_alive and not b.is_built)
+	if targets.is_empty():
+		return
+	targets.sort_custom(func(a, b):
+		var a_order: int = a.get_meta("construction_order") if a.has_meta("construction_order") else 0
+		var b_order: int = b.get_meta("construction_order") if b.has_meta("construction_order") else 0
+		return a_order < b_order
+	)
+	var target: EconBuilding = targets[0]
+	var cost: Dictionary = EconBuilding.BUILD_COSTS.get(int(target.building_type), {})
+	target._construction_ready = economy.can_afford(cost)
+	if not target._construction_ready:
+		target.queue_redraw()
+		return
+	var construction_power: float = max(0.0, float(economy.get_building_population()) / 25.0)
+	if construction_power <= 0.0:
+		return
+	target.build_progress += construction_power * delta
+	var required: float = EconBuilding.REQUIRED_CONSTRUCTION.get(int(target.building_type), 5.0)
+	if target.build_progress < required:
+		target.queue_redraw()
+		return
+	target.build_progress = required
+	economy.spend(cost)
+	target.is_built = true
+	target._construction_ready = true
+	if target.building_type == EconBuilding.BuildingType.HOUSE:
+		economy.population_cap = economy.calculate_population_cap()
+	if grid != null:
+		grid.reveal_panels_around(target.grid_pos)
+	print("[EconBattle] Building completed at (%d,%d)" % [target.grid_pos.x, target.grid_pos.y])
+	_on_building_constructed(target)
+	target.queue_redraw()
 
 func _remove_dead() -> void:
 	player_units = player_units.filter(func(u): return u.is_alive)
@@ -346,6 +427,8 @@ func register_enemy_building(b: EconBuilding) -> void:
 func register_player_building(b: EconBuilding) -> void:
 	player_buildings.append(b)
 	grid.add_child(b)
+	if economy != null:
+		economy.buildings = player_buildings
 
 func _update_stack_counts() -> void:
 	var counts: Dictionary = {}
@@ -457,6 +540,83 @@ func _on_building_constructed(building: EconBuilding) -> void:
 	# 装備屋建設完了時に融合ランク再計算（要件定義書 req_econ_equipment_shop_mvp.md § 4.4）
 	if building.building_type == EconBuilding.BuildingType.EQUIPMENT_SHOP:
 		_recalc_fusion_clusters()
+	_try_acquire_adjacent_chests(building)
+
+func boost_first_construction(progress_ratio: float) -> void:
+	var targets: Array = player_buildings.filter(func(b): return b.is_alive and not b.is_built)
+	if targets.is_empty():
+		return
+	targets.sort_custom(func(a, b):
+		var a_order: int = a.get_meta("construction_order") if a.has_meta("construction_order") else 0
+		var b_order: int = b.get_meta("construction_order") if b.has_meta("construction_order") else 0
+		return a_order < b_order
+	)
+	var target: EconBuilding = targets[0]
+	var required: float = EconBuilding.REQUIRED_CONSTRUCTION.get(int(target.building_type), 5.0)
+	target.build_progress = min(required, target.build_progress + required * progress_ratio)
+	target.queue_redraw()
+
+func _spawn_chests() -> void:
+	for chest in chests:
+		if is_instance_valid(chest):
+			chest.queue_free()
+	chests.clear()
+	if grid == null:
+		return
+	var candidates := [Vector2i(9, 4), Vector2i(13, 6), Vector2i(16, 8)]
+	for pos in candidates:
+		if not grid.is_valid_cell(pos.x, pos.y):
+			continue
+		var chest = EconChestScript.new()
+		chest.setup(pos, reward_manager)
+		chest.position = grid.hex_to_pixel(pos.x, pos.y)
+		chests.append(chest)
+		grid.add_child(chest)
+
+func _try_acquire_adjacent_chests(building: EconBuilding) -> void:
+	if grid == null:
+		return
+	for chest in chests:
+		if chest == null or bool(chest.acquired):
+			continue
+		if grid.hex_distance(building.grid_pos, chest.grid_pos) > 1:
+			continue
+		var result: Dictionary = chest.acquire()
+		if result.is_empty():
+			continue
+		log_message.emit("Chest obtained: %s" % str(result.get("reward", {}).get("label", "reward")))
+		chest_acquired.emit(result)
+
+func _update_milestone_progress() -> void:
+	if reward_manager == null or economy == null:
+		return
+	reward_manager.update_progress("population", int(economy.population_float))
+	reward_manager.update_progress("food", int(economy.food_value))
+	reward_manager.update_progress("satisfaction", int(economy.satisfaction_value))
+	reward_manager.update_progress("building", _count_built_player_buildings())
+	reward_manager.update_progress("resource", _count_total_resources())
+	reward_manager.update_progress("troop", int(floor(economy.military_power)))
+	reward_manager.update_progress("land", _count_placed_land_cards())
+	reward_manager.update_progress("risk", int(deck_manager.current_turn) if deck_manager != null else 0)
+
+func _count_built_player_buildings() -> int:
+	var count := 0
+	for b in player_buildings:
+		if b.is_alive and b.is_built:
+			count += 1
+	return count
+
+func _count_total_resources() -> int:
+	return int(economy.wood + economy.stone + economy.resin + economy.wheat + economy.iron + economy.cotton)
+
+func _count_placed_land_cards() -> int:
+	if grid == null:
+		return 0
+	var count := 0
+	for panel in grid.land_panels.values():
+		if bool((panel as Dictionary).get("land_card_placed", false)):
+			count += 1
+	return count
 
 func _on_building_destroyed(building: EconBuilding) -> void:
 	# 装備屋死亡時に融合ランク再計算（要件定義書 req_econ_equipment_shop_mvp.md § 4.4）
@@ -473,9 +633,9 @@ func _route_harvested_resource(rtype: int) -> void:
 		EconGrid.ResourceType.STONE:
 			btype = EconBuilding.BuildingType.FORTRESS
 			key = "stone"
-		EconGrid.ResourceType.SULFUR:
+		EconGrid.ResourceType.RESIN:
 			btype = EconBuilding.BuildingType.WORKSHOP
-			key = "sulfur"
+			key = "resin"
 		_:
 			# WHEAT / IRON / COTTON 等は既存通り economy に直接追加
 			economy.add_resource(rtype, 1)

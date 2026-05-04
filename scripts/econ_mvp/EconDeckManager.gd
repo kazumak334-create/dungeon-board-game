@@ -10,6 +10,16 @@ const HAND_MAX_SIZE: int = 8  # ★ v0.2 改訂（5→8）
 const INITIAL_HAND_SIZE: int = 5
 const LIBRARY_CD_SEC: float = 5.0
 const LIBRARY_DRAW_COST_CURRENCY: int = 1
+const INITIAL_DECK_SPEC: Array = [
+	{"id": "card_house", "count": 3},
+	{"id": "card_village", "count": 2},
+	{"id": "card_wood_extractor", "count": 2},
+	{"id": "card_stone_extractor", "count": 2},
+	{"id": "card_diner", "count": 1},
+	{"id": "card_barracks", "count": 1},
+	{"id": "card_plaza", "count": 1},
+	{"id": "card_trade_post", "count": 1},
+]
 
 # 状態（§7.2）
 var deck: Array = []           # Array[Dictionary]（Card）

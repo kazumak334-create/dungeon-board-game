@@ -2,6 +2,41 @@
 
 ## [Unreleased]
 
+## 2026-05-04 feat: Sprint 7 — 初期デッキ・ランドカード配置基盤実装
+
+### 変更内容
+- `scripts/econ_mvp/EconGrid.gd`:
+  - `get_land_card_placement_options()` メソッド追加（ランドカード配置可能マス取得）
+  - `place_land_card()` メソッド追加（ランドカード配置処理）
+- `scripts/econ_mvp/EconMain.gd`:
+  - 戦闘勝利後ランドカード報酬UI確認ロジック追加
+- `data/cards_econ.json`:
+  - 初期デッキ・ランドカード定義追加
+
+### 検証
+- bash check_syntax.sh エラー0件、JSON パース成功
+- 参照: docs/tasks/codex_result_sprint7.md
+
+## 2026-05-03 feat: Sprint 8 — 常時UI・ログ・デバッグ表示実装
+
+### 変更内容
+- `scripts/econ_mvp/EconUI.gd`:
+  - 常時UI6項目（人口・食料・満足度・兵力・兵士数・ユニット数）実装
+  - 詳細ポップアップ実装
+- `scripts/econ_mvp/EconEconomy.gd`:
+  - 各種ログ接続追加
+- `scripts/econ_mvp/LogManager.gd`:
+  - 時刻付きログ出力実装
+  - イベント通知シグナル追加
+- `scripts/econ_mvp/EconMain.gd`:
+  - LogManager接続追加
+- `scripts/econ_mvp/EconGrid.gd`:
+  - デバッグ表示改善
+
+### 検証
+- bash check_syntax.sh エラー0件
+- 参照: docs/tasks/codex_result_sprint8.md
+
 ## 2026-05-03 feat: Sprint 2 — 食料値システム実装（食堂・製粉所・人口維持処理）
 
 ### 変更内容

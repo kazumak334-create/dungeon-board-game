@@ -1,0 +1,6 @@
+[gd_scene format=3 uid="uid://cemjlque888pr"]
+
+[ext_resource type="Script" uid="uid://buswuk58ussyk" path="res://scripts/econ_mvp/EconMain.gd" id="1_econ_main"]
+
+[node name="EconMain" type="Node2D" unique_id=545001143]
+script = ExtResource("1_econ_main")

@@ -88,6 +88,12 @@ UI/UX企画作成（事前）・レビュー（事後）・改善指示
 - docs/meta/agents.md: Agent定義
 - docs/GAME_DESIGN.md: ゲーム設計
 - scripts/MaterialSelect.gd: UIスタイル参考
+- docs/meta/ai_development_rules.md（UI/内部状態整合性チェック・テスト観点）
+
+## 企画書に含めるべきテスト観点（ai_development_rules.md 準拠）
+- **UI/内部状態の整合性**: 表示値（リソース・HP等）と内部データが常に一致するか明記する
+- **操作の競合**: 連打・連続クリック時に重複処理が発生しないかを企画段階で設計する
+- **状態遷移**: 各UIコンポーネントの有効/無効切り替えタイミングを明示する
 
 ## 差し戻しパターン
 docs/meta/rejection_patterns.md のUI欄参照

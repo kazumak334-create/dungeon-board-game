@@ -1,0 +1,10 @@
+{
+  "name": "dungeon-board-workflow",
+  "description": "ClaudeCode workflow commands and agents for the Dungeon Board Game Godot project.",
+  "version": "0.1.0",
+  "author": {
+    "name": "Dungeon Board Game"
+  },
+  "commands": "./commands/",
+  "agents": "./agents/"
+}

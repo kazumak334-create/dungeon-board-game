@@ -1,3 +1,5 @@
+STATUS: 廃止（→ docs/GAME_DESIGN_V0_2_MVP.md）
+
 # ゲーム設計書（Single Source of Truth）
 
 作成日: 2026-04-10

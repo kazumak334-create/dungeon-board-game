@@ -1,0 +1,53 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(bash check_syntax.sh *)",
+      "Bash(bash check_syntax.sh)",
+      "Bash(python tools/session_check.py)",
+      "Bash(python -m json.tool data/cards.json)",
+      "Bash(python3 -m json.tool data/cards.json)",
+      "mcp__godot__godot_health_check",
+      "mcp__godot__godot_screenshot"
+    ]
+  },
+  "hooks": {
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash -c 'FLAG=\"/tmp/metacognition_$(date +%Y%m%d_%H).done\"; [ -f \"$FLAG\" ] && exit 0; touch \"$FLAG\"; cd \"$CLAUDE_PROJECT_DIR\" && python tools/session_check.py 2>/dev/null'"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash check_syntax.sh"
+          },
+          {
+            "type": "command",
+            "command": "python .claude/hooks/dispatch_codex.py"
+          }
+        ]
+      },
+      {
+        "matcher": "Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash check_syntax.sh"
+          },
+          {
+            "type": "command",
+            "command": "python .claude/hooks/dispatch_codex.py"
+          }
+        ]
+      }
+    ]
+  }
+}

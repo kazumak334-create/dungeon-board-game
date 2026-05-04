@@ -183,7 +183,7 @@ func _calc_harvest_bonus(buildings: Array, grid: EconGrid, target_pos: Vector2i,
 	match rtype:
 		EconGrid.ResourceType.WOOD:
 			matching_btype = EconBuilding.BuildingType.SAWMILL
-		EconGrid.ResourceType.STONE, EconGrid.ResourceType.SULFUR, EconGrid.ResourceType.IRON:
+		EconGrid.ResourceType.STONE, EconGrid.ResourceType.RESIN, EconGrid.ResourceType.IRON:
 			matching_btype = EconBuilding.BuildingType.MINE
 		_:
 			return 0

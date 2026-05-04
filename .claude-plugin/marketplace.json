@@ -1,0 +1,17 @@
+{
+  "name": "dungeon-board-local",
+  "owner": {
+    "name": "Dungeon Board Game"
+  },
+  "plugins": [
+    {
+      "name": "dungeon-board-workflow",
+      "source": "./plugins/dungeon-board-workflow",
+      "description": "Project workflow commands and agents for Godot/GDScript development.",
+      "version": "0.1.0",
+      "author": {
+        "name": "Dungeon Board Game"
+      }
+    }
+  ]
+}

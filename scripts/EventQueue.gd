@@ -185,7 +185,6 @@ func flush(board_manager: Node, base_hp: Array) -> void:
 						adj.shuffle()
 						var pos = adj[0]
 						var clone = src.clone()
-						clone.passive_skill = ""
 						board_manager.board[s][pos[0]][pos[1]] = clone
 						board_manager.attack_timers[s][pos[0]][pos[1]] = clone.get_attack_interval()
 						board_manager.emit_signal("unit_placed", s, pos[0], pos[1], clone)

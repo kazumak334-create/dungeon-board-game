@@ -6,7 +6,7 @@
       "type": "building",
       "building_type": "WOOD_EXTRACTOR",
       "draw_type": "BASIC",
-      "cost": { "wood": 2, "stone": 0, "sulfur": 0, "food": 0, "iron": 0, "cotton": 0 },
+      "cost": { "wood": 2, "stone": 0, "resin": 0, "food": 0, "iron": 0, "cotton": 0 },
       "population_required": 1,
       "population_supply": 0,
       "required_work": 5.0,
@@ -19,7 +19,7 @@
       "type": "building",
       "building_type": "STONE_EXTRACTOR",
       "draw_type": "BASIC",
-      "cost": { "wood": 2, "stone": 0, "sulfur": 0, "food": 0 },
+      "cost": { "wood": 2, "stone": 0, "resin": 0, "food": 0 },
       "population_required": 1,
       "population_supply": 0,
       "required_work": 5.0,
@@ -27,17 +27,17 @@
       "description": "石材を採取する"
     },
     {
-      "id": "card_sulfur_extractor",
-      "name": "硫黄採取所",
+      "id": "card_resin_extractor",
+      "name": "樹脂採取所",
       "type": "building",
-      "building_type": "SULFUR_EXTRACTOR",
+      "building_type": "RESIN_EXTRACTOR",
       "draw_type": "BASIC",
-      "cost": { "wood": 2, "stone": 0, "sulfur": 0, "food": 0 },
+      "cost": { "wood": 2, "stone": 0, "resin": 0, "food": 0 },
       "population_required": 1,
       "population_supply": 0,
       "required_work": 5.0,
       "hp": 50,
-      "description": "硫黄を採取する"
+      "description": "樹脂を採取する"
     },
     {
       "id": "card_village",
@@ -45,7 +45,7 @@
       "type": "building",
       "building_type": "VILLAGE",
       "draw_type": "BASIC",
-      "cost": { "wood": 4, "stone": 3, "sulfur": 0 },
+      "cost": { "wood": 4, "stone": 3, "resin": 0 },
       "population_required": 1,
       "population_supply": 0,
       "required_work": 5.0,
@@ -58,7 +58,7 @@
       "type": "building",
       "building_type": "IRON_EXTRACTOR",
       "draw_type": "BASIC",
-      "cost": { "wood": 2, "stone": 1, "sulfur": 0, "food": 0 },
+      "cost": { "wood": 2, "stone": 1, "resin": 0, "food": 0 },
       "population_required": 1,
       "population_supply": 0,
       "required_work": 5.0,
@@ -71,7 +71,7 @@
       "type": "building",
       "building_type": "COTTON_EXTRACTOR",
       "draw_type": "BASIC",
-      "cost": { "wood": 2, "stone": 0, "sulfur": 0, "food": 0 },
+      "cost": { "wood": 2, "stone": 0, "resin": 0, "food": 0 },
       "population_required": 1,
       "population_supply": 0,
       "required_work": 5.0,
@@ -84,7 +84,7 @@
       "type": "building",
       "building_type": "HOUSE",
       "draw_type": "BASIC",
-      "cost": { "wood": 3, "stone": 0, "sulfur": 0 },
+      "cost": { "wood": 3, "stone": 0, "resin": 0 },
       "population_required": 0,
       "population_supply": 10,
       "required_work": 5.0,
@@ -97,7 +97,7 @@
       "type": "building",
       "building_type": "HOUSE",
       "draw_type": "BASIC",
-      "cost": { "wood": 3, "stone": 0, "sulfur": 0 },
+      "cost": { "wood": 3, "stone": 0, "resin": 0 },
       "population_required": 0,
       "population_supply": 10,
       "required_work": 5.0,
@@ -110,7 +110,7 @@
       "type": "building",
       "building_type": "HOUSE",
       "draw_type": "BASIC",
-      "cost": { "wood": 3, "stone": 0, "sulfur": 0 },
+      "cost": { "wood": 3, "stone": 0, "resin": 0 },
       "population_required": 0,
       "population_supply": 10,
       "required_work": 5.0,
@@ -123,7 +123,7 @@
       "type": "building",
       "building_type": "LIBRARY",
       "draw_type": "BASIC",
-      "cost": { "wood": 4, "stone": 2, "sulfur": 0 },
+      "cost": { "wood": 4, "stone": 2, "resin": 0 },
       "population_required": 1,
       "population_supply": 0,
       "required_work": 8.0,
@@ -136,7 +136,7 @@
       "type": "building",
       "building_type": "TRADE_POST",
       "draw_type": "BASIC",
-      "cost": { "wood": 5, "stone": 5, "sulfur": 0 },
+      "cost": { "wood": 5, "stone": 5, "resin": 0 },
       "population_required": 1,
       "population_supply": 0,
       "required_work": 5.0,
@@ -149,7 +149,7 @@
       "type": "building",
       "building_type": "BARRACKS",
       "draw_type": "BASIC",
-      "cost": { "wood": 8, "stone": 0, "sulfur": 0 },
+      "cost": { "wood": 8, "stone": 0, "resin": 0 },
       "population_required": 1,
       "population_supply": 0,
       "required_work": 5.0,
@@ -162,7 +162,7 @@
       "type": "building",
       "building_type": "BARRACKS",
       "draw_type": "BASIC",
-      "cost": { "wood": 8, "stone": 0, "sulfur": 0 },
+      "cost": { "wood": 8, "stone": 0, "resin": 0 },
       "population_required": 1,
       "population_supply": 0,
       "required_work": 5.0,
@@ -175,7 +175,7 @@
       "type": "building",
       "building_type": "PLAZA",
       "draw_type": "BASIC",
-      "cost": { "wood": 4, "stone": 2, "sulfur": 0 },
+      "cost": { "wood": 4, "stone": 2, "resin": 0 },
       "population_required": 0,
       "population_supply": 0,
       "required_work": 5.0,
@@ -183,12 +183,13 @@
       "description": "5秒ごと幸福度+1（隣接住居+1/件）。§2.7.1。暫定コスト（農場規模参考）"
     },
     {
-      "id": "card_exchange",
+      "id": "card_trade_post",
       "name": "交換所",
       "type": "building",
       "building_type": "EXCHANGE",
+      "category": "special",
       "draw_type": "BASIC",
-      "cost": { "wood": 5, "stone": 3, "sulfur": 0 },
+      "cost": { "wood": 5, "stone": 3, "resin": 0 },
       "population_required": 1,
       "population_supply": 0,
       "required_work": 8.0,
@@ -201,7 +202,7 @@
       "type": "building",
       "building_type": "WATCHTOWER",
       "draw_type": "BASIC",
-      "cost": { "wood": 5, "stone": 5, "sulfur": 0 },
+      "cost": { "wood": 5, "stone": 5, "resin": 0 },
       "population_required": 1,
       "population_supply": 0,
       "required_work": 10.0,
@@ -214,12 +215,12 @@
       "type": "building",
       "building_type": "SMITHY",
       "draw_type": "BASIC",
-      "cost": { "wood": 6, "stone": 2, "sulfur": 2 },
+      "cost": { "wood": 6, "stone": 2, "resin": 2 },
       "population_required": 1,
       "population_supply": 0,
       "required_work": 8.0,
       "hp": 80,
-      "description": "隣接兵舎のユニットDPS+10%（§2.5.9）。暫定コスト（硫黄2消費・中規模）"
+      "description": "隣接兵舎のユニットDPS+10%（§2.5.9）。暫定コスト（樹脂2消費・中規模）"
     },
     {
       "id": "card_diner",
@@ -227,7 +228,7 @@
       "type": "building",
       "building_type": "DINER",
       "draw_type": "BASIC",
-      "cost": { "wood": 4, "stone": 2, "sulfur": 0 },
+      "cost": { "wood": 4, "stone": 2, "resin": 0 },
       "population_required": 1,
       "population_supply": 0,
       "required_work": 5.0,
@@ -240,12 +241,60 @@
       "type": "building",
       "building_type": "MILL",
       "draw_type": "BASIC",
-      "cost": { "wood": 3, "stone": 2, "sulfur": 0 },
+      "cost": { "wood": 3, "stone": 2, "resin": 0 },
       "population_required": 1,
       "population_supply": 0,
       "required_work": 5.0,
       "hp": 60,
       "description": "5秒ごと小麦1消費・小麦+2（小麦3以上パネル上は+3）"
     }
-  ]
+  ],
+  "reward_pools": {
+    "normal_milestone_rewards": {
+      "normal_building": [
+        { "card_id": "card_house", "name": "住居", "weight": 1, "system": "population", "description": "人口上限を増やす" },
+        { "card_id": "card_village", "name": "農場", "weight": 1, "system": "food", "description": "食料生産を増やす" },
+        { "card_id": "card_barracks", "name": "兵舎", "weight": 1, "system": "troop", "description": "兵力を蓄積する" }
+      ],
+      "special_building": [
+        { "card_id": "card_trade_post", "name": "交換所", "weight": 1, "system": "risk", "description": "通貨で追加ドローする" },
+        { "card_id": "card_watchtower", "name": "防衛拠点", "weight": 1, "system": "building", "description": "防衛兵力を補助する" },
+        { "card_id": "card_smithy", "name": "鍛冶屋", "weight": 1, "system": "troop", "description": "隣接兵舎を強化する" }
+      ],
+      "policy_card": [
+        { "card_id": "policy_migration_promotion", "name": "移住奨励", "weight": 1, "system": "population", "description": "人口系の方針カード" },
+        { "card_id": "policy_food_rationing", "name": "配給制", "weight": 1, "system": "food", "description": "食料系の方針カード" },
+        { "card_id": "policy_work_order", "name": "建設指令", "weight": 1, "system": "building", "description": "建設系の方針カード" }
+      ]
+    },
+    "special_milestone_rewards": {
+      "land_card": [
+        { "card_id": "land_wood_3", "name": "森林開拓地", "weight": 1, "resource": "wood", "value": 3, "tags": [] },
+        { "card_id": "land_stone_3", "name": "岩盤開拓地", "weight": 1, "resource": "stone", "value": 3, "tags": [] },
+        { "card_id": "land_wheat_3", "name": "肥沃な土地", "weight": 1, "resource": "wheat", "value": 3, "tags": [] }
+      ],
+      "great_person_card": [
+        { "card_id": "great_builder", "name": "大工棟梁", "weight": 1, "effect": "construction_speed_+20%", "description": "建設方針を強化する偉人カード" },
+        { "card_id": "great_commander", "name": "歴戦指揮官", "weight": 1, "effect": "troop_+10%", "description": "兵力方針を強化する偉人カード" },
+        { "card_id": "great_steward", "name": "都市執政官", "weight": 1, "effect": "satisfaction_+10%", "description": "都市運営を強化する偉人カード" }
+      ],
+      "special_building": [
+        { "card_id": "card_trade_post", "name": "交換所", "weight": 1, "system": "risk", "description": "通貨で追加ドローする" },
+        { "card_id": "card_watchtower", "name": "防衛拠点", "weight": 1, "system": "building", "description": "防衛兵力を補助する" },
+        { "card_id": "card_smithy", "name": "鍛冶屋", "weight": 1, "system": "troop", "description": "隣接兵舎を強化する" }
+      ]
+    },
+    "chest_rewards": [
+      { "reward_type": "resource", "resource": "wood", "value": 5, "weight": 1, "label": "木 +5" },
+      { "reward_type": "resource", "resource": "stone", "value": 5, "weight": 1, "label": "石 +5" },
+      { "reward_type": "resource", "resource": "wheat", "value": 5, "weight": 1, "label": "小麦 +5" },
+      { "reward_type": "resource", "resource": "resin", "value": 3, "weight": 1, "label": "樹脂 +3" },
+      { "reward_type": "resource", "resource": "iron", "value": 3, "weight": 1, "label": "鉄鉱石 +3" },
+      { "reward_type": "food_value", "value": 10, "weight": 1, "label": "食料値 +10" },
+      { "reward_type": "satisfaction_pct", "value": 5, "weight": 1, "label": "満足値 +5%" },
+      { "reward_type": "construction_boost", "value": 30, "target": "single", "weight": 1, "label": "建設 +30%" },
+      { "reward_type": "troop_buff", "value": 5, "duration": "battle", "weight": 1, "label": "兵力 +5%" },
+      { "reward_type": "currency", "value": 50, "weight": 1, "label": "通貨 +50G" }
+    ]
+  }
 }

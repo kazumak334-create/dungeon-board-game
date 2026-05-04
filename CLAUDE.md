@@ -357,6 +357,35 @@
 - ファイル先頭の「更新日」を書き換えて履歴を残す
 - どうしても新ファイルが必要な場合（まったく新規の要件）は、古いファイルの先頭に `STATUS: 廃止（→ 新ファイル名）` を追記してから作成する
 
+### 個別req統合ルール（Econ MVP）
+
+個別の `docs/requirements/req_*.md` は、恒久的なSSoTではなく一時的な実装リソースとして扱う。
+
+#### 作成してよい場合
+- 1タスクの実装範囲が大きく、`REQUIREMENTS_V0_2_MVP.md` に直接書く前に分解が必要な場合
+- Codex request の根拠として、実装順序・変更対象・検証条件を明確にする場合
+- CEO/Architect が「実装リソース」として明示した場合
+
+#### 必須フロー
+1. 個別 `req_*.md` の冒頭に `ステータス: 実装リソース（一時）` を明記する
+2. Codex request では個別reqを根拠として引用してよい
+3. 実装完了後、内容を `docs/requirements/REQUIREMENTS_V0_2_MVP.md` へ統合する
+4. 統合前に個別req冒頭へ以下を追記する
+
+```md
+STATUS: 統合済み
+統合先: docs/requirements/REQUIREMENTS_V0_2_MVP.md
+統合日: YYYY-MM-DD
+```
+
+5. 統合済み確認後、個別reqは削除する（backupフォルダは作らない。Git履歴を使う）
+
+#### 現在の実装リソース
+- `docs/requirements/req_econ_card_placement_flow.md`
+- `docs/requirements/req_econ_parameter_architecture.md`
+
+上記2ファイルは実装完了後、`REQUIREMENTS_V0_2_MVP.md` へ統合してから削除する。
+
 ### 背景
 2026-04-24、wave_manager_requirements.md（古）と req_wave_flow_fix.md（新）が並存し、どちらが正か不明なまま実装が進んだ。古いファイルに廃止マークがなく、Checkerが矛盾を検出できなかった。
 
@@ -429,12 +458,22 @@
 
 ## 全Agent必読ファイル
 
-- docs/GAME_DESIGN.md（設計・最優先）
-- docs/game_philosophy.md（ゲーム哲学・判断基準）
-- docs/design/design_principles.md（設計判断基準・3点チェック）
-- docs/design/glossary.md（用語定義・盤面構造）
-- docs/meta/agents.md（Agent定義）
-- docs/meta/rejection_patterns.md（差し戻しパターン）
+**ドキュメント管理ルール（絶対遵守・2026-05-04新規）**:
+- `docs/meta/document_management.md`
+  - フォルダ構成、ファイル命名規則、バージョン管理プロセス
+  - 実装・CEO・Checker の参照ファイル一覧（参照禁止ファイル含む）
+
+**最新設計ドキュメント（SSoT）**:
+- `docs/GAME_DESIGN_V0_2_MVP.md`（Econ MVP 最新仕様・最優先）
+- `docs/game_philosophy.md`（ゲーム哲学・判断基準）
+- `docs/design/design_principles.md`（設計判断基準・3点チェック）
+- `docs/design/glossary.md`（用語定義・盤面構造）
+- `docs/meta/agents.md`（Agent定義）
+- `docs/meta/rejection_patterns.md`（差し戻しパターン）
+
+**旧ファイル（参考のみ・実装で参照禁止）**:
+- `docs/GAME_DESIGN.md` → STATUS: 廃止（→ GAME_DESIGN_V0_2_MVP.md）
+- `docs/requirements/req_econ_*.md` (26ファイル) → STATUS: 廃止（→ REQUIREMENTS_SPRINT_{N}.md）
 
 ---
 

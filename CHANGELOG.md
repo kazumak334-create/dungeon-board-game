@@ -1,5 +1,28 @@
 # CHANGELOG
 
+## 2026-05-03
+
+### feat: Sprint 3 人口システム・Sprint 4 満足度システム実装（EconEconomy.gd）
+
+#### Sprint 3: リアルタイム人口増減（req_econ_population_sprint3.md）
+- `EconEconomy.gd`: `_growth_blocked_by_food: bool` フィールド追加（72行）
+- `EconEconomy.gd`: `_calculate_population_growth_rate()` 追加（441行）
+- `EconEconomy.gd`: `_calculate_population_decline_rate()` 追加（455行）
+- `EconEconomy.gd`: `_try_confirm_population_growth()` 追加（467行）
+- `EconEconomy.gd`: `_get_population_change_breakdown()` 追加（484行）
+- `EconEconomy.gd`: `update_population(delta)` 追加（496行）
+- `EconEconomy.gd`: `update()` を毎フレーム/5秒tick分離構造に変更（74行）
+
+#### Sprint 4: リアルタイム満足値更新（req_econ_satisfaction_sprint4.md）
+- `EconEconomy.gd`: `_get_population_scale_influence()` 追加（519行）
+- `EconEconomy.gd`: `_get_population_growth_influence()` 追加（528行）
+- `EconEconomy.gd`: `_get_building_satisfaction_influence()` 追加（537行）
+- `EconEconomy.gd`: `_get_food_shortage_penalty()` 追加（550行）
+- `EconEconomy.gd`: `_calculate_satisfaction_slope()` 追加（554行）
+- `EconEconomy.gd`: `_get_satisfaction_slope_breakdown()` 追加（562行）
+- `EconEconomy.gd`: `update_satisfaction(delta)` 追加（573行）
+- `EconEconomy.gd`: `get_happiness_state()` を5段階ベース後方互換ラッパーに置換（189行）
+
 ## 2026-04-25
 
 ### feat: バトル遷移・WAVE表示・キャストゲージ・素材ドロップ基盤実装 (req_battle_transition.md)

@@ -3,7 +3,7 @@
   "codex_command": "C:/Users/kazum/AppData/Local/Packages/OpenAI.Codex_2p2nqsd0c76g0/LocalCache/Local/OpenAI/Codex/bin/codex.exe",
   "codex_args": [],
   "codex_model": "gpt-5.5",
-  "auto_dispatch": false,
+  "auto_dispatch": true,
   "notify_on_result": true,
   "request_dir": "docs/tasks",
   "request_prefix": "codex_request_",
