@@ -105,16 +105,7 @@ func update(delta: float, total_unit_count: int) -> void:
 		var lv: int = b.fusion_rank  # fusion_rank 縺・Lv1/2/3 縺ｫ蟇ｾ蠢・
 		var lv_bonus: float = 1.0 + (lv - 1) * 0.25  # Lv1=1.0, Lv2=1.25, Lv3=1.5
 		match b.building_type:
-			EconBuilding.BuildingType.SAWMILL:
-				var gain: int = roundi(2.0 * lv_bonus)
-				wood += gain
-				resources["wood"] = wood
-				print("[EconEconomy] SAWMILL Lv%d 譛ｨ譚・%d" % [lv, gain])
-			EconBuilding.BuildingType.MINE:
-				var gain: int = roundi(2.0 * lv_bonus)
-				stone += gain
-				resources["stone"] = stone
-				print("[EconEconomy] MINE Lv%d 遏ｳ譚・%d" % [lv, gain])
+			# SAWMILL/MINE は EconBuilding._update_sawmill/_update_mine() でタイマー駆動（§5.7）
 			EconBuilding.BuildingType.WORKSHOP:
 				var gain: int = roundi(1.0 * lv_bonus)
 				resin += gain

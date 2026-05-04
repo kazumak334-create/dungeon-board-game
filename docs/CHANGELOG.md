@@ -2,6 +2,16 @@
 
 ## [Unreleased]
 
+## 2026-05-04 Sprint 7/8 実装: 資源カード追加・SAWMILL/MINEタイマー駆動化・DetailPopup・BuildQueueUI常時表示
+
+### 実装内容
+- data/cards_econ.json: 資源カード2種（card_resource_wood / card_resource_stone）を追加。INITIAL_DECK を17枚に更新（+card_resource_wood×2, +card_resource_stone×2）（REQUIREMENTS_SPRINT_7.md §4.1.1）
+- scripts/econ_mvp/EconBuilding.gd: SAWMILL/MINE を EconBuilding._update_sawmill() / _update_mine() でタイマー駆動（5秒周期）化。定数 SAWMILL_PRODUCE_INTERVAL / MINE_PRODUCE_INTERVAL / SAWMILL_GAIN_BASE / MINE_GAIN_BASE 追加。get_timer_progress() に SAWMILL/MINE 分岐追加（§5.7）
+- scripts/econ_mvp/EconEconomy.gd: update() Step 1 から SAWMILL / MINE の加算ロジックを削除（§5.7 タイマー駆動化への移行）
+- scripts/econ_mvp/ui/DetailPopup.gd: 新規作成。建物詳細ポップアップ（M項目必須表示・O項目条件付き・BUILDING_NAME_JP定数・ESCキー対応・画面外補正）（REQUIREMENTS_SPRINT_8.md §6.6.3）
+- scripts/econ_mvp/EconMain.gd: DetailPopup の preload・初期化・建物クリック時表示・外側クリック閉じる処理を追加
+- scripts/econ_mvp/ui/BuildQueueUI.gd line 66: visible = true に変更（キュー空時も常時表示・emptyラベル表示）（REQUIREMENTS_SPRINT_7.md 附則）
+
 ## 2026-05-04 Drawゲージ更新修正 + 手札リロール機能実装
 
 ### 修正内容

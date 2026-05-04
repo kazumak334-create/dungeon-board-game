@@ -25,6 +25,7 @@ const MAX_LOG_LINES := 10
 const LABOR_COST_PER_UNIT := 5
 const EconUIScript := preload("res://scripts/econ_mvp/EconUI.gd")
 const BuildQueueUIScript := preload("res://scripts/econ_mvp/ui/BuildQueueUI.gd")
+const DetailPopupScript := preload("res://scripts/econ_mvp/ui/DetailPopup.gd")
 const LogManagerScript := preload("res://scripts/econ_mvp/LogManager.gd")
 const GameSessionScript := preload("res://scripts/econ_mvp/GameSession.gd")
 const RewardSystemManagerScript := preload("res://scripts/econ_mvp/RewardSystemManager.gd")
@@ -103,6 +104,7 @@ var _soldiers_header_label: Label = null
 var _units_header_label: Label = null
 var _header_detail_popup: PanelContainer = null
 var _header_detail_label: Label = null
+var _detail_popup = null  # DetailPopup インスタンス（preload経由）
 
 # v0.2 HEADER 荳区ｮｵ雉・ｺ舌Λ繝吶Ν霎樊嶌
 var _res_labels: Dictionary = {}           # key=雉・ｺ仙錐, value=Label
@@ -453,7 +455,7 @@ func _setup_header_ui(vp: Vector2) -> void:
 	_status_food_label.add_theme_color_override("font_color", COLOR_WHEAT)
 	food_hbox.add_child(_status_food_label)
 
-	_soldiers_header_label = _make_header_metric("蜈ｵ0", COLOR_TROOP)
+	_soldiers_header_label = _make_header_metric("兵0", COLOR_TROOP)
 	row1.add_child(_soldiers_header_label)
 	_register_header_detail_target(_soldiers_header_label, "soldiers")
 
@@ -508,7 +510,7 @@ func _setup_header_ui(vp: Vector2) -> void:
 
 	# 貅雜ｳ蠎ｦ (x=456, w=120, h=28)
 	_status_sat_label = Label.new()
-	_status_sat_label.text = "貅雜ｳ蠎ｦ0(v0.3)"
+	_status_sat_label.text = "満足度0(v0.3)"
 	_status_sat_label.add_theme_font_size_override("font_size", 10)
 	_status_sat_label.add_theme_color_override("font_color", COLOR_SAT)
 	_status_sat_label.custom_minimum_size = Vector2(120, 0)
@@ -547,7 +549,7 @@ func _setup_header_ui(vp: Vector2) -> void:
 	_force_charge_turn_label.add_theme_color_override("font_color", COLOR_TEXT_DIM)
 	fc_hbox.add_child(_force_charge_turn_label)
 	_force_charge_warn_label = Label.new()
-	_force_charge_warn_label.text = "遯∵茶謗ｨ螂ｨ"
+	_force_charge_warn_label.text = "突撃注意"
 	_force_charge_warn_label.add_theme_font_size_override("font_size", 9)
 	_force_charge_warn_label.add_theme_color_override("font_color", COLOR_ORANGE)
 	_force_charge_warn_label.visible = false
@@ -557,6 +559,13 @@ func _setup_header_ui(vp: Vector2) -> void:
 	_ai_resource_label = Label.new()  # 髱櫁｡ｨ遉ｺ繝ｻ_process蜀・・蜿ら・繧ｨ繝ｩ繝ｼ蝗樣∩逕ｨ
 	_ai_resource_label.visible = false
 	_setup_header_detail_popup()
+	_setup_detail_popup()
+
+func _setup_detail_popup() -> void:
+	# 建物詳細ポップアップ初期化（要件定義書 REQUIREMENTS_SPRINT_8.md §6.6.3）
+	_detail_popup = DetailPopupScript.new()
+	_ui_layer.add_child(_detail_popup)
+	print("[EconMain] DetailPopup initialized")
 
 func _make_header_metric(text: String, color: Color) -> Label:
 	var label := Label.new()
@@ -772,7 +781,7 @@ func _setup_alloc_bar(parent: Control) -> void:
 
 	# 陦ｨ遉ｺ繝ｩ繝吶Ν・育ｨｼ蜒・5%/菴懈･ｭ25%・・
 	_alloc_label = Label.new()
-	_alloc_label.text = "遞ｼ75/菴・5"
+	_alloc_label.text = "稼75/作25"
 	_alloc_label.add_theme_font_size_override("font_size", 9)
 	_alloc_label.add_theme_color_override("font_color", COLOR_TEXT_DIM)
 	container.add_child(_alloc_label)
@@ -953,7 +962,7 @@ func _setup_deck_discard_block(parent: Control) -> void:
 	dp_back_border.add_theme_color_override("font_color", COLOR_ACCENT_GOLD)
 	dp_vb.add_child(dp_back_border)
 	_deck_count_label = Label.new()
-	_deck_count_label.text = "谿・3"
+	_deck_count_label.text = "残13"
 	_deck_count_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_deck_count_label.add_theme_font_size_override("font_size", 14)
 	_deck_count_label.add_theme_color_override("font_color", COLOR_TEXT)
@@ -1331,7 +1340,7 @@ func _add_difficulty_button(parent: Control, difficulty: String, label_text: Str
 	btn.add_theme_color_override("font_color", COLOR_TEXT)
 	btn.pressed.connect(func():
 		_game_session.set_initial_difficulty(difficulty, _economy)
-		_add_log("蛻晄悄髮｣譏灘ｺｦ: %s / 騾夊ｲｨ陬懈ｭ｣ %dG" % [difficulty, _game_session.current_battle_gold])
+		_add_log("初期難易度: %s / 通貨補正 %dG" % [difficulty, _game_session.current_battle_gold])
 		if _difficulty_dialog != null:
 			_difficulty_dialog.queue_free()
 			_difficulty_dialog = null
@@ -1422,18 +1431,24 @@ func _input(event: InputEvent) -> void:
 				b.connected_flag_id = f.flag_id
 				f.add_building(b.grid_pos)
 				f.queue_redraw()
-				_add_log("Building (%d,%d) 竊・Flag %d" % [b.grid_pos.x, b.grid_pos.y, f.flag_id])
+				_add_log("Building (%d,%d) -> Flag %d" % [b.grid_pos.x, b.grid_pos.y, f.flag_id])
 				_connecting_building = null
 				return
 		_connecting_building = null
 		return
-	# 蟒ｺ迚ｩ繧ｯ繝ｪ繝・け 竊・謗･邯壼・縺ｨ縺励※驕ｸ謚・
+	# 蟒ｺ迚ｩ繧ｯ繝ｪ繝・け 竊・謗･邯壼・縺ｨ縺励※驕ｸ謚槻 + 蟒ｺ迚ｩ隧ｳ邏ｰ繝昴ャ繝励い繝・・
 	if cell != Vector2i(-1, -1):
 		for b in _battle.player_buildings:
 			if b.is_alive and b.grid_pos == cell:
+				# 建物詳細ポップアップ表示（要件定義書 REQUIREMENTS_SPRINT_8.md §6.6.3）
+				if _detail_popup != null:
+					_detail_popup.show_building(b, get_global_mouse_position())
 				_connecting_building = b
 				_add_log("Select flag to connect (ESC to cancel)")
 				return
+	# 何もない場所クリックでDetailPopupを閉じる
+	if _detail_popup != null and _detail_popup.visible:
+		_detail_popup.close()
 	# 繧ｬ繝ｼ繝牙ｯｾ雎｡驕ｸ謚槭Δ繝ｼ繝・
 	if _guard_select_mode:
 		if cell != Vector2i(-1, -1):
@@ -1481,7 +1496,7 @@ func _input(event: InputEvent) -> void:
 		if b.grid_pos == cell and not b.is_built:
 			_battle.player_buildings.erase(b)
 			b.queue_free()
-			_add_log("蟒ｺ險ｭ繧ｭ繝｣繝ｳ繧ｻ繝ｫ")
+			_add_log("建設キャンセル")
 			return
 	# 繝ｦ繝九ャ繝磯∈謚・
 	if cell == Vector2i(-1, -1):
@@ -1541,7 +1556,7 @@ func _on_build_queue_instant_build_requested(building: EconBuilding) -> void:
 	if not _economy.can_afford(build_cost):
 		building._construction_ready = false
 		building.queue_redraw()
-		_add_log("雉・ｺ蝉ｸ崎ｶｳ: 蜊ｳ譎ょｻｺ險ｭ荳榊庄")
+		_add_log("資源不足: 即時建設不可")
 		return
 	_economy.currency -= cost_g
 	_economy.spend(build_cost)
@@ -1564,7 +1579,7 @@ func _on_build_queue_cancel_requested(building: EconBuilding) -> void:
 	if _battle != null:
 		_battle.player_buildings.erase(building)
 	_reindex_construction_queue()
-	_add_log("蟒ｺ險ｭ繧ｭ繝｣繝ｳ繧ｻ繝ｫ: (%d,%d)" % [building.grid_pos.x, building.grid_pos.y])
+	_add_log("建設キャンセル: (%d,%d)" % [building.grid_pos.x, building.grid_pos.y])
 	building.queue_free()
 
 func _on_build_queue_reorder_requested(building: EconBuilding, target_index: int) -> void:
@@ -1578,7 +1593,7 @@ func _on_build_queue_reorder_requested(building: EconBuilding, target_index: int
 	for i in range(queue.size()):
 		queue[i].set_meta("construction_order", i + 1)
 	_next_construction_order = queue.size() + 1
-	_add_log("蟒ｺ險ｭ繧ｭ繝･繝ｼ螟画峩: %d逡ｪ縺ｸ" % target_index)
+	_add_log("建設キュー変更: %d番へ" % target_index)
 
 func _calc_instant_build_cost(building: EconBuilding) -> int:
 	var required: float = float(EconBuilding.REQUIRED_CONSTRUCTION.get(int(building.building_type), 1.0))
@@ -1656,10 +1671,10 @@ func _on_reward_selected(card: Dictionary) -> void:
 	context["options"] = _reward_selection_ui.current_options.duplicate(true)
 	context["skipped"] = false
 	_reward_manager.record_reward_selection(context)
-	_add_log("蝣ｱ驟ｬ迯ｲ蠕・ %s" % str(card.get("name", card.get("card_id", "?"))))
+	_add_log("報酬獲得: %s" % str(card.get("name", card.get("card_id", "?"))))
 	if str(card.get("card_type", "")) == "land_card":
 		if _land_placement_controller.begin(card, _grid, _battle):
-			_add_log("蝨溷慍繧ｫ繝ｼ繝蛾・鄂ｮ繝｢繝ｼ繝・ 髫｣謗･譛ｪ蟒ｺ險ｭ蝨溷慍繧偵け繝ｪ繝・け")
+			_add_log("土地カード配置モード: 隣接未建設土地をクリック")
 			return
 	_show_next_reward()
 
@@ -1668,16 +1683,16 @@ func _on_reward_skipped(context: Dictionary) -> void:
 	record["selected"] = "SKIP"
 	record["skipped"] = true
 	_reward_manager.record_reward_selection(record)
-	_add_log("蝣ｱ驟ｬ繧ｹ繧ｭ繝・・")
+	_add_log("報酬スキップ")
 	_show_next_reward()
 
 func _on_land_card_placed(card: Dictionary, pos: Vector2i) -> void:
 	_game_session.record_land_card(card, pos)
-	_add_log("蝨溷慍繧ｫ繝ｼ繝蛾・鄂ｮ螳御ｺ・(%d,%d)" % [pos.x, pos.y])
+	_add_log("土地カード配置完了 (%d,%d)" % [pos.x, pos.y])
 	_show_next_reward()
 
 func _on_land_card_placement_failed(card: Dictionary) -> void:
-	_add_log("驟咲ｽｮ蜿ｯ閭ｽ縺ｪ蝨溷慍縺後↑縺・◆繧∝悄蝨ｰ繧ｫ繝ｼ繝蛾∈謚樔ｸ榊庄")
+	_add_log("配置可能な土地がないため土地カード選択不可")
 	_show_next_reward()
 
 func _on_immediate_reward_awarded(system: String, reward: Dictionary) -> void:
@@ -1949,7 +1964,7 @@ func _show_land_card_reward() -> void:
 	root.add_theme_constant_override("separation", 8)
 	panel.add_child(root)
 	var title := Label.new()
-	title.text = "繝ｩ繝ｳ繝峨き繝ｼ繝蛾・鄂ｮ"
+	title.text = "土地カード配置"
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	title.add_theme_font_size_override("font_size", 18)
 	root.add_child(title)
@@ -1965,10 +1980,10 @@ func _show_land_card_reward() -> void:
 		choices.add_child(_create_land_reward_choice(cards[i], placement_options[i], own_positions, occupied_positions))
 
 	var cancel_btn := Button.new()
-	cancel_btn.text = "繧ｭ繝｣繝ｳ繧ｻ繝ｫ"
+	cancel_btn.text = "キャンセル"
 	cancel_btn.custom_minimum_size = Vector2(120, 32)
 	cancel_btn.pressed.connect(func():
-		_add_log("蝨溷慍繧ｫ繝ｼ繝蛾・鄂ｮ繧偵せ繧ｭ繝・・")
+		_add_log("土地カード配置をスキップ")
 		if _land_reward_panel != null:
 			_land_reward_panel.queue_free()
 			_land_reward_panel = null
@@ -1979,10 +1994,10 @@ func _show_land_card_reward() -> void:
 func _create_land_reward_choice(card: Dictionary, pos: Vector2i, own_positions: Array, occupied_positions: Array) -> Control:
 	var btn := Button.new()
 	btn.custom_minimum_size = Vector2(190, 122)
-	btn.text = "%s\n%s\n%s\n驟咲ｽｮ" % [
+	btn.text = "%s\n%s\n%s\n配置" % [
 		_format_land_card_summary(card),
 		_format_land_panel_summary(pos),
-		"蠎ｧ讓・(%d,%d)" % [pos.x, pos.y],
+		"座標(%d,%d)" % [pos.x, pos.y],
 	]
 	btn.pressed.connect(func():
 		_place_selected_land_card(card, pos, own_positions, occupied_positions)
@@ -1992,12 +2007,12 @@ func _create_land_reward_choice(card: Dictionary, pos: Vector2i, own_positions: 
 func _format_land_card_summary(card: Dictionary) -> String:
 	var panel_data: Dictionary = card.get("panel_data", {})
 	var resources: Dictionary = panel_data.get("resources", {})
-	return "繧ｫ繝ｼ繝・ %s\n蜉ｹ譫懆ｳ・ｺ・ %s" % [str(card.get("land_subtype", "")), str(resources)]
+	return "カード: %s\n効果資源: %s" % [str(card.get("land_subtype", "")), str(resources)]
 
 func _format_land_panel_summary(pos: Vector2i) -> String:
 	var panel: Dictionary = _grid.get_panel_at(pos)
 	var resources: Dictionary = panel.get("resources", {})
-	return "譌｢蟄・ %s\n蝨ｰ蠖｢: %s / 繧ｿ繧ｰ: %s" % [
+	return "既存: %s\n地形: %s / タグ: %s" % [
 		str(resources),
 		str(panel.get("terrain_type", "grassland")),
 		str(panel.get("special_tag", "none")),
@@ -2006,11 +2021,11 @@ func _format_land_panel_summary(pos: Vector2i) -> String:
 func _place_selected_land_card(card: Dictionary, pos: Vector2i, own_positions: Array, occupied_positions: Array) -> void:
 	var placed: bool = _grid.place_land_card(card, pos, own_positions, occupied_positions)
 	if not placed:
-		_add_log("蝨溷慍繧ｫ繝ｼ繝蛾・鄂ｮ螟ｱ謨・(%d,%d)" % [pos.x, pos.y])
+		_add_log("土地カード配置失敗 (%d,%d)" % [pos.x, pos.y])
 		return
 	_grid.reveal_panels_around(pos, 3)
 	_grid.queue_redraw()
-	_add_log("蝨溷慍繧ｫ繝ｼ繝蛾・鄂ｮ (%d,%d)" % [pos.x, pos.y])
+	_add_log("土地カード配置 (%d,%d)" % [pos.x, pos.y])
 	if _land_reward_panel != null:
 		_land_reward_panel.queue_free()
 		_land_reward_panel = null
@@ -2206,7 +2221,7 @@ func _create_hand_card_node(card_data: Dictionary, card_idx: int) -> Control:
 	vbox.add_child(name_lbl)
 
 	var pop_lbl := Label.new()
-	pop_lbl.text = "莠ｺ蜿｣:%d" % card_data.get("population_required", 0)
+	pop_lbl.text = "人口:%d" % card_data.get("population_required", 0)
 	pop_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	pop_lbl.add_theme_font_size_override("font_size", 10)
 	pop_lbl.add_theme_color_override("font_color", COLOR_TEXT_DIM)
@@ -2215,12 +2230,12 @@ func _create_hand_card_node(card_data: Dictionary, card_idx: int) -> Control:
 	var cost_raw = card_data.get("cost")
 	var cost: Dictionary = cost_raw if cost_raw is Dictionary else {}
 	var cost_parts: Array = []
-	if cost.get("wood", 0) > 0: cost_parts.append("譛ｨ%d" % cost["wood"])
-	if cost.get("stone", 0) > 0: cost_parts.append("遏ｳ%d" % cost["stone"])
-	if cost.get("resin", 0) > 0: cost_parts.append("讓ｹ%d" % cost["resin"])
+	if cost.get("wood", 0) > 0: cost_parts.append("木%d" % cost["wood"])
+	if cost.get("stone", 0) > 0: cost_parts.append("石%d" % cost["stone"])
+	if cost.get("resin", 0) > 0: cost_parts.append("樹%d" % cost["resin"])
 	if cost.get("wheat", 0) > 0: cost_parts.append("小%d" % cost["wheat"])
 	if cost.get("iron", 0) > 0: cost_parts.append("鉄%d" % cost["iron"])
-	if cost.get("cotton", 0) > 0: cost_parts.append("邯ｿ%d" % cost["cotton"])
+	if cost.get("cotton", 0) > 0: cost_parts.append("綿%d" % cost["cotton"])
 	var cost_lbl := Label.new()
 	cost_lbl.text = " ".join(cost_parts) if not cost_parts.is_empty() else "Free"
 	cost_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -2241,7 +2256,7 @@ func _create_hand_card_node(card_data: Dictionary, card_idx: int) -> Control:
 	var captured_card: Dictionary = card_data
 	card_btn.pressed.connect(func():
 		if _battle.deck_manager != null and bool(_battle.deck_manager.force_charge_triggered):
-			_add_log("遯∵茶逋ｺ蜍穂ｸｭ: 蟒ｺ險ｭ蛛懈ｭ｢")
+			_add_log("突撃発動中: 建設停止")
 			return
 		var btype_str: String = captured_card.get("building_type", "")
 		_selected_card_btype = btype_str
@@ -2302,7 +2317,7 @@ func _on_hand_card_right_clicked(card_index: int) -> void:
 	# ログ記録
 	if _log_manager != null and _log_manager.has_method("log_event"):
 		_log_manager.log_event({
-			"type": "RELOAD",
+			"type": "HAND_CARD_REROLLED",
 			"time": _elapsed_time,
 			"discarded_card": discarded_card.get("id", ""),
 			"drawn_card": drawn_card.get("id", "") if not drawn_card.is_empty() else "none",
@@ -2543,7 +2558,7 @@ func _update_status_ui() -> void:
 	# ﾂｧ5.1 HEADER 繧ｹ繝・・繧ｿ繧ｹUI 豈弱ヵ繝ｬ繝ｼ繝譖ｴ譁ｰ・・0.2・・
 	# 貅雜ｳ蠎ｦ・域隼險・: 荳区ｮｵ繝ｩ繝吶Ν縺ｮ縺ｿ・・
 	if _status_sat_label != null:
-		_status_sat_label.text = "貅雜ｳ蠎ｦ%d(v0.3)" % _economy.satisfaction
+		_status_sat_label.text = "満足度%d(v0.3)" % _economy.satisfaction
 	# 蜈ｵ蜉・+ 蜈ｵ蜉帙ご繝ｼ繧ｸ 4谿ｵ髫取ｼ泌・・按ｧ3.5・・
 	var mil_power: float = _economy.military_power
 	if _troop_label != null:
@@ -2599,7 +2614,7 @@ func _update_status_ui() -> void:
 		var food_color := COLOR_RED if _economy.food < 5 else COLOR_WHEAT
 		_status_food_label.add_theme_color_override("font_color", food_color)
 	if _soldiers_header_label != null:
-		_soldiers_header_label.text = "蜈ｵ%d" % _economy.get_soldiers_count()
+		_soldiers_header_label.text = "兵%d" % _economy.get_soldiers_count()
 	if _units_header_label != null:
 		_units_header_label.text = "U%d" % _economy.get_unit_count()
 
@@ -2613,7 +2628,7 @@ func _trigger_unified_charge() -> void:
 		return
 	print("[EconMain] _trigger_unified_charge: activated")
 	_battle.trigger_early_charge()
-	_add_log("荳譁臥ｪ∵茶逋ｺ蜍・")
+	_add_log("一斉突撃発動!")
 	_charge_mode = true
 	for u in _battle.player_units:
 		if u.is_alive and u.is_idle:

@@ -63,7 +63,7 @@ func refresh() -> void:
 		child.queue_free()
 	_items.clear()
 	var sites := get_queue_buildings()
-	visible = not battle.grid.construction_sites.is_empty() if (battle != null and battle.grid != null) else false
+	visible = true
 	if _empty_label != null:
 		_empty_label.visible = sites.is_empty()
 	for i in range(mini(MAX_VISIBLE_ITEMS, sites.size())):

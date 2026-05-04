@@ -76,6 +76,12 @@ const VILLAGE_COTTON_INTERVAL := 5.0
 const VILLAGE_COTTON_AMOUNT := 1
 const VILLAGE_HARVESTER_INTERVAL := 30.0
 
+# SAWMILL/MINE タイマー駆動定数（要件定義書 REQUIREMENTS_SPRINT_7.md §5.7）
+const SAWMILL_PRODUCE_INTERVAL := 5.0
+const MINE_PRODUCE_INTERVAL := 5.0
+const SAWMILL_GAIN_BASE := 2  # 木材 +2 / 周期
+const MINE_GAIN_BASE := 2     # 石材 +2 / 周期
+
 # 徴兵兵舎用定数（バリアントシステム実装時に接続）
 # 要件定義書 req_econ_building_variants.md § 6 より
 const BARRACKS_CONSCRIPT_INTERVAL := 5.0   # 農村隣接時の徴兵兵舎間隔（ボーナス適用後）
@@ -233,9 +239,9 @@ func update(delta: float, economy: EconEconomy, buildings: Array = [], grid: Eco
 		BuildingType.BASE:
 			pass  # BASEは何も生産しない（ビルダー廃止）
 		BuildingType.SAWMILL:
-			pass  # パッシブ効果のみ（EconHarvester側で処理）
+			_update_sawmill(delta, economy)  # タイマー駆動（§5.7）
 		BuildingType.MINE:
-			pass  # パッシブ効果のみ
+			_update_mine(delta, economy)     # タイマー駆動（§5.7）
 		BuildingType.EQUIPMENT_SHOP:
 			pass  # 装備屋はパッシブバフのみ（要件定義書 req_econ_equipment_shop_mvp.md）
 		BuildingType.TRADE_POST:
@@ -332,6 +338,36 @@ func _update_village(delta: float, economy: EconEconomy) -> void:
 		economy.add_resource(EconGrid.ResourceType.COTTON, VILLAGE_COTTON_AMOUNT)
 
 	# ハーベスター生成は廃止（Village からの生成を削除）
+
+func _update_sawmill(delta: float, economy: EconEconomy) -> void:
+	# 森小屋: 5秒周期で木材+2（要件定義書 REQUIREMENTS_SPRINT_7.md §5.7）
+	var base_interval := SAWMILL_PRODUCE_INTERVAL
+	var interval := _get_effective_interval(base_interval, economy)
+	_produce_timer = _remap_timer_to_interval(_produce_timer, _produce_last_interval, interval)
+	_produce_last_interval = interval
+	_produce_timer += delta
+	if _produce_timer >= interval:
+		_produce_timer -= interval
+		var lv: int = fusion_rank
+		var lv_bonus: float = 1.0 + (lv - 1) * 0.25
+		var gain: int = roundi(SAWMILL_GAIN_BASE * lv_bonus)
+		economy.add_resource(EconGrid.ResourceType.WOOD, gain)
+		print("[EconBuilding] SAWMILL Lv%d 木材+%d" % [lv, gain])
+
+func _update_mine(delta: float, economy: EconEconomy) -> void:
+	# 採掘所: 5秒周期で石材+2（要件定義書 REQUIREMENTS_SPRINT_7.md §5.7）
+	var base_interval := MINE_PRODUCE_INTERVAL
+	var interval := _get_effective_interval(base_interval, economy)
+	_produce_timer = _remap_timer_to_interval(_produce_timer, _produce_last_interval, interval)
+	_produce_last_interval = interval
+	_produce_timer += delta
+	if _produce_timer >= interval:
+		_produce_timer -= interval
+		var lv: int = fusion_rank
+		var lv_bonus: float = 1.0 + (lv - 1) * 0.25
+		var gain: int = roundi(MINE_GAIN_BASE * lv_bonus)
+		economy.add_resource(EconGrid.ResourceType.STONE, gain)
+		print("[EconBuilding] MINE Lv%d 石材+%d" % [lv, gain])
 
 func _update_smithy(delta: float, economy: EconEconomy) -> void:
 	# 鍛冶屋: 稼働人口1を満たせば有効（パッシブ的に出撃時DPS補正を提供）
@@ -450,6 +486,8 @@ func get_timer_progress() -> float:
 				_timer_progress_ratio(_cotton_timer, _cotton_last_interval)
 			)
 		BuildingType.BARRACKS, BuildingType.FORTRESS, BuildingType.WORKSHOP:
+			return _timer_progress_ratio(_produce_timer, _produce_last_interval)
+		BuildingType.SAWMILL, BuildingType.MINE:
 			return _timer_progress_ratio(_produce_timer, _produce_last_interval)
 		_:
 			return 0.0
