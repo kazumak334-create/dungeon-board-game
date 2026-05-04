@@ -135,7 +135,7 @@ const COLOR_GOLD_COIN  := Color("#E0C060")  # 雉・≡繧ｳ繧､繝ｳ・域�
 const COLOR_ACCENT_GOLD_BRIGHT := Color("#D4B468")
 const COLOR_ORANGE := Color("#C77A2C")
 const COLOR_RED := Color("#9C3A2A")
-const FOOTER_H := 300.0
+const FOOTER_H := 180.0
 
 func _ready() -> void:
 	_game_session = GameSessionScript.new()
@@ -277,12 +277,7 @@ func _place_initial_village(is_player: bool) -> void:
 			village.position = _grid.hex_to_pixel(cell.x, cell.y)
 			village.is_built = true
 			if is_player:
-				village.unit_produced.connect(func(pos: Vector2i, utype: int):
-					if utype == -1:
-						_battle.spawn_player_harvester(Vector2i(pos.x, pos.y), _economy)
-					else:
-						_battle._on_unit_produced(pos, utype)
-				)
+				village.unit_produced.connect(_battle._on_unit_produced)
 				village.building_destroyed.connect(func(building: Node):
 					_battle._on_building_destroyed(building)
 				)
@@ -2413,7 +2408,16 @@ func _update_alloc_bar_ui() -> void:
 	if _alloc_label != null:
 		var work_pct: int = roundi(ratio * 100.0)
 		var ops_pct: int = 100 - work_pct
-		_alloc_label.text = "OPS %d%% %d / WORK %d%% %d" % [ops_pct, _economy.get_operation_labor(), work_pct, _economy.get_work_labor()]
+		var ops_labor: int = _economy.get_operation_labor()
+		var work_labor: int = _economy.get_work_labor()
+		_alloc_label.text = "OPS %d%% %d / WORK %d%% %d" % [ops_pct, ops_labor, work_pct, work_labor]
+		# 人手不足時: 1.0sサイクルsin波点滅（REQUIREMENTS_SPRINT_7.md §6.2）
+		var is_shortage: bool = (ops_labor <= 0 or work_labor <= 0)
+		if is_shortage:
+			var blink_alpha: float = 0.5 + 0.5 * sin(fmod(_elapsed_time, 1.0) * TAU)
+			_alloc_label.add_theme_color_override("font_color", Color(COLOR_RED.r, COLOR_RED.g, COLOR_RED.b, blink_alpha))
+		else:
+			_alloc_label.add_theme_color_override("font_color", COLOR_TEXT)
 
 func _update_population_ui() -> void:
 	# ﾂｧ5.5 莠ｺ蜿｣陦ｨ遉ｺUI 豈弱ヵ繝ｬ繝ｼ繝譖ｴ譁ｰ・・ull蝙具ｼ・

@@ -331,13 +331,7 @@ func _update_village(delta: float, economy: EconEconomy) -> void:
 		_cotton_timer -= cotton_interval
 		economy.add_resource(EconGrid.ResourceType.COTTON, VILLAGE_COTTON_AMOUNT)
 
-	var harvester_interval := _get_effective_interval(VILLAGE_HARVESTER_INTERVAL, economy)
-	_harvester_timer = _remap_timer_to_interval(_harvester_timer, _harvester_last_interval, harvester_interval)
-	_harvester_last_interval = harvester_interval
-	_harvester_timer += delta
-	if _harvester_timer >= harvester_interval:
-		_harvester_timer -= harvester_interval
-		unit_produced.emit(grid_pos, -1)
+	# ハーベスター生成は廃止（Village からの生成を削除）
 
 func _update_smithy(delta: float, economy: EconEconomy) -> void:
 	# 鍛冶屋: 稼働人口1を満たせば有効（パッシブ的に出撃時DPS補正を提供）
@@ -501,7 +495,9 @@ func _draw() -> void:
 	if is_built:
 		_draw_bottom_progress_mask(get_timer_progress(), Color(0.25, 0.9, 0.45, 0.25))
 	else:
+		# 建設中：底部プログレス + 建設リング描画
 		_draw_bottom_progress_mask(get_build_progress_ratio(), Color(0.25, 0.9, 0.45, 0.45))
+		_draw_construction_ring(build_progress, true)  # リング描画（進捗状態を反映）
 	draw_rect(Rect2(Vector2(-18, -18), Vector2(36, 36)), Color(1.0, 1.0, 1.0, alpha), false, 2.0)
 	if is_built:
 		var bar_w := 36.0
@@ -520,3 +516,44 @@ func _draw() -> void:
 	if not is_built and not _construction_ready:
 		draw_circle(Vector2(15, -22), 7.0, Color(0.9, 0.1, 0.1, 0.9))
 		draw_string(ThemeDB.fallback_font, Vector2(11, -16), "!", HORIZONTAL_ALIGNMENT_CENTER, -1, 13, Color.WHITE)
+
+func set_construction_progress(progress: float) -> void:
+	build_progress = clampf(progress, 0.0, 1.0)
+	queue_redraw()
+
+func _draw_construction_ring(progress: float, is_active: bool) -> void:
+	# 建設進捗リング描画（要件書 § 6.3）
+	# 位置: パネル中央上端（12px上）
+	# 外径28px / 内径22px / 線幅3px
+	# 進捗 0% → 0°、100% → 360°（時計回り）
+	if progress < 0.001:
+		return
+	var center := Vector2(0.0, -12.0)
+	var outer_radius := 14.0
+	var inner_radius := 11.0
+	var ring_color := Color(0.9, 0.7, 0.0, 1.0) if is_active else Color(0.6, 0.6, 0.6, 0.7)  # 金色 or 灰色
+	var angle_end := TAU * progress
+
+	# リング背景（薄い円）
+	draw_circle(center, outer_radius + 1.5, Color(0.3, 0.3, 0.3, 0.2))
+
+	# 進捗アークを複数の小三角形で描画（draw_arc は存在しないため手動実装）
+	var segments: int = maxi(int(progress * 32), 2)
+	for i in range(segments):
+		var angle1: float = (TAU / 32.0) * float(i)
+		var angle2: float = (TAU / 32.0) * float(i + 1)
+		angle2 = minf(angle2, angle_end)
+		if angle2 <= angle1:
+			break
+
+		var p1_outer := center + Vector2(cos(angle1), sin(angle1)) * outer_radius
+		var p2_outer := center + Vector2(cos(angle2), sin(angle2)) * outer_radius
+		var p1_inner := center + Vector2(cos(angle1), sin(angle1)) * inner_radius
+		var p2_inner := center + Vector2(cos(angle2), sin(angle2)) * inner_radius
+
+		draw_colored_polygon([p1_outer, p2_outer, p2_inner, p1_inner], ring_color)
+
+func get_construction_progress_for_drawing() -> float:
+	# 建設中の建物の進捗を取得（draw()時点で必要）
+	# 注：このメソッドは _process() 内で build_progress が更新されている前提
+	return build_progress if not is_built else 0.0

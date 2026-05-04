@@ -980,7 +980,19 @@ func _draw() -> void:
 				draw_colored_polygon(corners, Color(0.09, 0.08, 0.07, 0.40))
 				var ring_color := Color(0.70, 0.58, 0.28, 0.95) if bool(site.get("is_active", false)) else Color(0.54, 0.50, 0.44, 0.95)
 				var ring_progress: float = clampf(float(site.get("construction_progress", 0.0)), 0.0, 1.0)
-				draw_arc(center + Vector2(0.0, -12.0), 8.0, -PI * 0.5, -PI * 0.5 + TAU * ring_progress, 24, ring_color, 3.0)
+				draw_arc(center + Vector2(0.0, -12.0), 14.0, -PI * 0.5, -PI * 0.5 + TAU * ring_progress, 24, ring_color, 3.0)
+				# 建設順番号バッジ（左上）
+				var queue_list: Array = _get_construction_queue_sorted()
+				var queue_index := 0
+				for qi in range(queue_list.size()):
+					if queue_list[qi].get("panel_id", Vector2i(-1,-1)) == pos:
+						queue_index = qi + 1
+						break
+				if queue_index > 0:
+					var badge_pos := center + Vector2(-14.0, -26.0)
+					var badge_label: String = str(queue_index) if queue_index <= 5 else "..."
+					draw_circle(badge_pos, 9.0, Color(0.15, 0.14, 0.13, 0.8))
+					draw_string(ThemeDB.fallback_font, badge_pos + Vector2(-4.5, 4.0), badge_label, HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color(0.86, 0.76, 0.50))
 	# 鬆伜悄蠅・阜邱夲ｼ磯㍾隍・だ繝ｼ繝ｳ繧帝勁縺・◆邏皮ｲ九↑蜷・伜悄縺ｮ縺ｿ謠冗判・・
 	var pure_player: Dictionary = {}
 	for cell in highlight_cells:
@@ -990,7 +1002,7 @@ func _draw() -> void:
 	for cell in enemy_territory_cells:
 		if not highlight_cells.has(cell):
 			pure_enemy[cell] = true
-	_draw_territory_border(pure_player, Color(0.4, 0.8, 1.0))
+	_draw_territory_border(pure_player, Color(0.247, 0.412, 0.196))  # COLOR_WOOD相当
 	_draw_territory_border(pure_enemy, Color(1.0, 0.3, 0.3))
 	# Phase 3: BASE髟ｷ謚ｼ縺励Μ繝ｳ繧ｰ騾ｲ謐暦ｼ磯≡濶ｲ蠑ｧ・・
 	if base_longpress_cell != Vector2i(-1, -1) and base_longpress_progress > 0.0:
@@ -1047,3 +1059,10 @@ func _draw_territory_border(cells: Dictionary, color: Color) -> void:
 				var p1: Vector2 = corners[ep[1]]
 				draw_line(p0, p1, Color(color.r, color.g, color.b, 0.4), 6.0)
 				draw_line(p0, p1, Color(color.r, color.g, color.b, 0.9), 2.0)
+
+func _get_construction_queue_sorted() -> Array:
+	var sites: Array = []
+	for pos in construction_sites:
+		sites.append(construction_sites[pos])
+	sites.sort_custom(func(a, b): return a["started_at"] < b["started_at"])
+	return sites

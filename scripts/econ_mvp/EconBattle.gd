@@ -415,11 +415,8 @@ func _update_construction_progress(delta: float) -> void:
 			continue
 		var card: Dictionary = site.get("card", {})
 		building.unit_produced.connect(func(bpos: Vector2i, utype: int):
-			if utype == -1:
-				spawn_player_harvester(Vector2i(bpos.x, bpos.y), economy)
-			else:
-				spawn_player_unit(bpos.x, bpos.y, utype, false)
-				_on_unit_produced(bpos, utype)
+			spawn_player_unit(bpos.x, bpos.y, utype, false)
+			_on_unit_produced(bpos, utype)
 		)
 		building.building_destroyed.connect(func(destroyed: Node):
 			_on_building_destroyed(destroyed)

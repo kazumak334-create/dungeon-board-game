@@ -62,56 +62,67 @@ func refresh() -> void:
 	for child in _list.get_children():
 		child.queue_free()
 	_items.clear()
-	var buildings := get_queue_buildings()
-	visible = not buildings.is_empty()
+	var sites := get_queue_buildings()
+	visible = not battle.grid.construction_sites.is_empty() if (battle != null and battle.grid != null) else false
 	if _empty_label != null:
-		_empty_label.visible = buildings.is_empty()
-	for i in range(mini(MAX_VISIBLE_ITEMS, buildings.size())):
-		var building: EconBuilding = buildings[i]
-		var item := _create_item(building, i + 1)
+		_empty_label.visible = sites.is_empty()
+	for i in range(mini(MAX_VISIBLE_ITEMS, sites.size())):
+		var site: Dictionary = sites[i]
+		var item := _create_item(site, i + 1)
 		_list.add_child(item)
 		_items.append(item)
 
 func get_queue_buildings() -> Array:
-	if battle == null:
+	if battle == null or battle.grid == null:
 		return []
-	var buildings: Array = battle.player_buildings.filter(func(b):
-		return b is EconBuilding and b.is_alive and not b.is_built
-	)
-	buildings.sort_custom(func(a: EconBuilding, b: EconBuilding) -> bool:
-		return _get_order(a) < _get_order(b)
-	)
-	return buildings
+	var sites: Array = []
+	for pos in battle.grid.construction_sites:
+		sites.append(battle.grid.construction_sites[pos])
+	sites.sort_custom(func(a, b): return a["started_at"] < b["started_at"])
+	return sites
 
-func calc_instant_build_cost(building: EconBuilding) -> int:
-	if building == null:
-		return 0
-	var required: float = float(EconBuilding.REQUIRED_CONSTRUCTION.get(int(building.building_type), 1.0))
+func calc_instant_build_cost_from_site(site: Dictionary) -> int:
+	var btype: int = int(site.get("building_type", 0))
+	var required: float = float(EconBuilding.REQUIRED_CONSTRUCTION.get(btype, 1.0))
 	if required <= 0.0:
 		return 0
-	var remaining_labor: float = maxf(0.0, required - building.build_progress)
+	var progress: float = float(site.get("construction_progress", 0.0))
+	var remaining_labor: float = maxf(0.0, required - progress)
 	if remaining_labor <= 0.0:
 		return 0
 	return int(ceil(remaining_labor * float(LABOR_COST_PER_UNIT)))
 
-func _create_item(building: EconBuilding, index: int) -> Control:
+func _find_building_by_pos(pos: Vector2i) -> EconBuilding:
+	if battle == null:
+		return null
+	for b in battle.player_buildings:
+		if b is EconBuilding and not b.is_built and b.grid_pos == pos:
+			return b
+	return null
+
+func _create_item(site: Dictionary, index: int) -> Control:
 	var item := BuildQueueItem.new()
 	item.custom_minimum_size = Vector2(132.0, ITEM_HEIGHT)
-	item.building = building
+	var btype: int = int(site.get("building_type", 0))
+	var raw_progress: float = float(site.get("construction_progress", 0.0))
+	var required_time: float = float(site.get("construction_time", 1.0))
+	var progress: float = clampf(raw_progress / maxf(required_time, 1.0), 0.0, 1.0)
+	item.building = _find_building_by_pos(site.get("panel_id", Vector2i(-1, -1)))
 	item.queue_index = index
-	item.building_name = _get_building_name(int(building.building_type))
-	item.progress = building.get_build_progress_ratio()
-	item.cost_g = calc_instant_build_cost(building)
+	item.building_name = _get_building_name(btype)
+	item.progress = progress
+	item.cost_g = calc_instant_build_cost_from_site(site)
 	item.can_pay = economy != null and economy.currency >= item.cost_g
-	item.stopped = not building._construction_ready
+	item.stopped = not site.get("is_active", false)
 	item.gui_input.connect(func(event: InputEvent):
-		_on_item_gui_input(event, building, index)
+		_on_item_gui_input(event, site, index)
 	)
 	return item
 
-func _on_item_gui_input(event: InputEvent, building: EconBuilding, index: int) -> void:
+func _on_item_gui_input(event: InputEvent, site: Dictionary, index: int) -> void:
 	if event is InputEventMouseButton:
 		var mb := event as InputEventMouseButton
+		var building: EconBuilding = _find_building_by_pos(site.get("panel_id", Vector2i(-1, -1)))
 		if mb.button_index == MOUSE_BUTTON_LEFT:
 			if mb.pressed:
 				_drag_building = building
@@ -127,14 +138,9 @@ func _on_item_gui_input(event: InputEvent, building: EconBuilding, index: int) -
 				_dragging = false
 		elif mb.button_index == MOUSE_BUTTON_RIGHT and mb.pressed:
 			cancel_requested.emit(building)
-	elif event is InputEventMouseMotion and _drag_building == building:
+	elif event is InputEventMouseMotion and _drag_building != null:
 		if absf(get_global_mouse_position().y - _drag_start_y) >= 10.0:
 			_dragging = true
-
-func _get_order(building: EconBuilding) -> int:
-	if building.has_meta("construction_order"):
-		return int(building.get_meta("construction_order"))
-	return 0
 
 func _get_building_name(building_type: int) -> String:
 	var names: Dictionary = {

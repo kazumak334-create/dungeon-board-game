@@ -2,6 +2,21 @@
 
 ## [Unreleased]
 
+## 2026-05-04 fix: FOOTER_H 180px 復元・Village ハーベスター生成廃止・BuildQueueUI SSoT 切替・建設リング 14px + 番号バッジ
+
+### 変更内容
+- `scripts/econ_mvp/EconMain.gd` 行138: `FOOTER_H` 300.0 → 180.0
+- `scripts/econ_mvp/EconBuilding.gd` 行334-340: `_update_village()` 内ハーベスター生成ブロック削除
+- `scripts/econ_mvp/EconMain.gd` 行280-285: Village `unit_produced` シグナル接続から `utype==-1` 分岐削除
+- `scripts/econ_mvp/EconBattle.gd` 行417-423: `unit_produced` 接続から `utype==-1` 分岐削除
+- `scripts/econ_mvp/ui/BuildQueueUI.gd`: `get_queue_buildings()` / `_create_item()` / `refresh()` を `construction_sites` ベースに切替
+- `scripts/econ_mvp/EconGrid.gd` 行983: 建設リング半径 8.0 → 14.0
+- `scripts/econ_mvp/EconGrid.gd`: 建設順番号バッジ描画追加 + `_get_construction_queue_sorted()` ヘルパー追加
+
+### 検証
+- check_syntax.sh GDScript 構文チェック: パス
+- spawn_player_harvester 呼び出し元: 0件確認
+
 ## 2026-05-04 refactor: ADR-003 Construction 管理を EconBattle に統合
 
 ### 変更内容
