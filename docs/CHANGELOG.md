@@ -2,6 +2,61 @@
 
 ## [Unreleased]
 
+## 2026-05-04 ドキュメント整理（docs/ 238ファイル ACTIVE/ARCHIVE/DELETE 分類）
+
+### 整理内容
+- docs/archive/, docs/design/archive/, docs/econ/archive/, docs/tasks/archive/, docs/reference/archive/ 新設
+- ARCHIVE 移動: 旧 Phase 2-7 設計・旧スプリント記録・廃止済み個別 req_econ_* 等（計92ファイル）
+- DELETE 実行: テスト残骸・完全重複・STATUS:廃止済みファイル（計10ファイル）
+- CLAUDE.md 参照パス更新: deprecated 参照2件削除、SSoT を GAME_DESIGN_V0_2_MVP.md に統一
+- MEMORY.md 参照パス更新: Master Roadmap v1.0 → v1.3 に更新
+- architect.md / designer.md: GAME_DESIGN.md 参照 → GAME_DESIGN_V0_2_MVP.md に更新
+
+## 2026-05-04 Sprint 7: 初期デッキ・建築基盤 実装完了
+
+### 機能追加
+- 初期デッキ13枚構成（住宅3/農村2/森小屋2/採掘所2/食堂1/兵舎1/広場1/交換所1）
+- 建物カード使用フロー（配置→建設開始→進捗管理→完了）
+- 人手システム（総量計算: floor(人口×20%) / スライダーUI / 優先順位割当）
+- 建設進捗リング表示（BPB式・進捗0-360°マップ）
+- LogManager イベント記録（BUILDING_PLACED / BUILDING_PROGRESS_UPDATED / BUILDING_COMPLETED）
+
+### 完了条件
+- 要件定義書 § 7 の 30項目全て達成
+- 構文チェック: エラー0件
+- Checker 検証: 全項目OK
+
+### 実装者/検証者
+- 実装者: Implementer Agent (Haiku)
+- 検証者: Checker Agent (Haiku)
+
+---
+
+## 2026-05-04 Sprint 8: UI改善・建築キュー 実装完了
+
+### 機能追加/修正
+- フッターレイアウト 180px 固定化（ヘッダー・盤面・フッターサイズ恒久化）
+- 建築キューUI: データソース `player_buildings` → `construction_sites` SSoT化
+- 建設予定地視覚表現: リング外径 14px（要件適合）+ 建設順番号バッジ（①-⑤, "..."）
+- 村（Village）ハーベスター生成廃止（廃止済み v0.1 仕様の完全削除）
+
+### 品質改善
+- Planning Agent による設計レビュー実施（3秒ルール・核との整合性・KISS原則で4課題検証）
+- Architect による要件定義書修正（REQUIREMENTS_SPRINT_7/8.md に設計判断を反映）
+- Implementer による実装 + Checker による差し戻し修正 2回を含む完全検証
+
+### 完了条件
+- 要件定義書 §4.2 / §6 / §7 の仕様全て実装
+- 構文チェック: エラー0件
+- Checker 検証: 全4課題OK（差し戻し修正含む）
+
+### 実装者/検証者
+- 実装者: Implementer Agent (Haiku)
+- 検証者: Checker Agent (Haiku)
+- 設計レビュー: Planning Agent (Opus)
+
+---
+
 ## 2026-05-04 fix: FOOTER_H 180px 復元・Village ハーベスター生成廃止・BuildQueueUI SSoT 切替・建設リング 14px + 番号バッジ
 
 ### 変更内容

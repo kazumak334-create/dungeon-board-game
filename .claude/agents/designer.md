@@ -86,7 +86,7 @@ UI/UX企画作成（事前）・レビュー（事後）・改善指示
 ## 参照ファイル
 - docs/meta/ui_workflow.md: UI/UX実装ワークフロー
 - docs/meta/agents.md: Agent定義
-- docs/GAME_DESIGN.md: ゲーム設計
+- docs/GAME_DESIGN_V0_2_MVP.md: ゲーム設計（最新SSoT・docs/GAME_DESIGN.md は廃止）
 - scripts/MaterialSelect.gd: UIスタイル参考
 - docs/meta/ai_development_rules.md（UI/内部状態整合性チェック・テスト観点）
 

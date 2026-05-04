@@ -6,9 +6,13 @@
 参照Designer企画書: `docs/design/sprint7_designer_plan.md`
 統合先: `docs/requirements/REQUIREMENTS_V0_2_MVP.md`（Sprint 7 セクション）
 作成日: 2026-05-04
-更新日: 2026-05-04
+更新日: 2026-05-04（Design Review 反映：FOOTER_H 180px 固定化／VILLAGE ハーベスター生成廃止明記／建設リング外径 14px 修正）
 
 > 注意: 旧版 `docs/requirements/req_econ_initial_deck_sprint7.md`（11枚デッキ・2026-05-03 版）は本書で上書き完了後に廃止する。本書をSSoTとして扱うこと。
+>
+> **ADR-003（2026-05-04）採択**: Construction の所有者は `EconBattle` に変更。
+> §4.3（spawn_building シグネチャ）、§5.3（update_construction 呼び出し位置）、
+> §5.4（LogManager 記録位置）が改訂された。詳細は `docs/meta/adr/003_econ_construction_architecture.md` 参照。
 
 ---
 
@@ -123,9 +127,22 @@ const INITIAL_DECK_SPEC: Array = [
 
 > cost は既存 `EconBuilding.BUILD_COSTS` と整合させる。新規追加は `build_time / required_work_labor / required_operation_labor` の3フィールドのみ。
 
+#### 建物別効果仕様（VILLAGE 改訂）
+
+##### VILLAGE（農村）
+- **効果**: 「完成後、毎 5 秒ごとに小麦+2、コットン+1 を生産」
+- **ハーベスター生成**: **なし**（旧 v0.1 仕様の廃止）
+  - 旧実装から `harvester_timer` 関連ロジックを全削除
+  - `EconBuilding._update_village()` から `unit_produced.emit(grid_pos, -1)` を削除
+  - **理由**: 農村は「食料系土地からリソース取得」の単一責務に統一する。ハーベスター生成は別建物（後続Sprint）の責務に分離する
+  - 詳細削除手順は §5.6 を参照
+
 ### 4.3 建設予定地（F4）
 
-`EconGrid.gd` に新規 `Dictionary` を追加。
+> **ADR-003 採択（2026-05-04）により、`construction_sites` の所有者は `EconBattle` に変更。**
+> `EconGrid` は配置可能性判定（`get_buildable_cells_for_card()`）のみを担う。
+
+`EconBattle.gd` に新規 `Dictionary` を追加。
 
 ```gdscript
 # Vector2i → Dictionary
@@ -135,7 +152,8 @@ var construction_sites: Dictionary = {}
 # 各 entry の構造（KISS: 専用クラスを作らずDictionaryで保持）
 # {
 #   "panel_id": Vector2i,                      # 建設位置
-#   "building_type": EconBuilding.BuildingType,
+#   "btype": String,                           # 建物タイプ（EconBuilding.BuildingType の文字列名）
+#   "pos": Vector2i,                           # グリッド座標
 #   "card_id": String,                         # 使用カードID（除外/捨て札判定用）
 #   "is_special": bool,                        # 特殊建物フラグ
 #   "construction_time": float,                # 建設総時間（秒）
@@ -146,6 +164,29 @@ var construction_sites: Dictionary = {}
 #   "started_at": int,                         # 建設開始Tick（古い順優先用）
 # }
 ```
+
+#### spawn_building() 仕様（ADR-003）
+
+```gdscript
+# EconBattle.gd
+func spawn_building(site: Dictionary) -> EconBuilding
+```
+
+**site parameter structure**（上記 `construction_sites` の値と同一構造）:
+
+```gdscript
+{
+    "panel_id": int,          # 盤面上のセル位置（既存実装の panel_id 表現を踏襲）
+    "btype": String,          # 建物タイプ
+    "pos": Vector2i,          # グリッド座標
+    "is_under_construction": bool,
+    # ... その他 4.3 表中のフィールド
+}
+```
+
+> **設計理由**: 単一 Dictionary パラメータ採用により、Sprint 8 以降のフィールド追加で
+> シグネチャ変更が不要になる（ADR-003「理由 §2 型安全性・拡張性」）。
+> 旧シグネチャ `spawn_building(panel_id, btype, required_operation_labor)` は廃止。
 
 ### 4.4 人手データ（F7・F8）
 
@@ -204,17 +245,19 @@ func get_work_labor() -> int:
   - 通常建物: discard_pile へ移動
   - 特殊建物（交換所）: excluded へ移動
   ↓
-[8] _process 内で建設進捗更新
-  - EconGrid.update_construction(delta) を毎フレーム呼び出し
+[8] _process 内で建設進捗更新（ADR-003）
+  - EconMain._process() → EconBattle._update_construction_progress(delta) を毎フレーム呼び出し
+  - construction_sites の所有者は EconBattle（ADR-003）
   - 作業人手割当判定（5.2 参照）
   - 割当成功サイト: progress += delta / construction_time
   - 割当失敗サイト: progress 据え置き（停止）
+  - 進捗更新ごとに LogManager.log_event("BUILDING_PROGRESS_UPDATED") を記録
   ↓
-[9] progress >= 1.0 で建設完了
-  - construction_sites から削除
-  - EconGrid.spawn_building(panel_id, building_type) を呼ぶ
+[9] progress >= 1.0 で建設完了（ADR-003）
+  - construction_sites から該当 site を削除
+  - EconBattle.spawn_building(site) を呼ぶ（site Dictionary 単一引数）
   - 新 EconBuilding が is_built=true で生成され盤面に登録
-  - LogManager: BUILDING_COMPLETED イベント記録
+  - LogManager: BUILDING_COMPLETED イベント記録（EconBattle 内で発火）
   ↓
 [10] 稼働判定（5.3 参照）
   - 完成済み建物全体で稼働人手割当を再計算
@@ -224,10 +267,10 @@ func get_work_labor() -> int:
 
 ### 5.2 作業人手割当（F8・F9）
 
-毎フレーム以下を実行：
+毎フレーム以下を実行（ADR-003 により EconBattle 内で実行）：
 
 ```gdscript
-# EconGrid.update_construction(delta) 内
+# EconBattle._update_construction_progress(delta) 内
 func _allocate_work_labor() -> Array:
     # 1. 建設中サイトを「started_at 古い順」でソート（企画書 §7.7）
     var sorted_sites: Array = construction_sites.values()
@@ -286,18 +329,29 @@ func _allocate_operation_labor() -> Array:
 
 ### 5.4 進捗判定（F6・F12）
 
+> **ADR-003 採択（2026-05-04）により、進捗更新および完了処理は `EconBattle` 内で実行する。**
+> 進捗更新ごとに `BUILDING_PROGRESS_UPDATED` を記録し、完了時に `BUILDING_COMPLETED` を記録する。
+
 ```gdscript
-# EconGrid.update_construction(delta) 末尾
+# EconBattle._update_construction_progress(delta) 末尾
 for panel_id in construction_sites.keys().duplicate():
     var site = construction_sites[panel_id]
+
+    # 進捗更新と同時に PROGRESS_UPDATED を記録
+    LogManager.log_event({
+        "type": "BUILDING_PROGRESS_UPDATED",
+        "panel_id": [panel_id.x, panel_id.y],
+        "progress": site.construction_progress,
+    })
+
     if site.construction_progress >= 1.0:
         # 建設完了
-        var btype = site.building_type
+        var btype = site.btype
         var card_id = site.card_id
         var is_special = site.is_special
 
         construction_sites.erase(panel_id)
-        spawn_building(panel_id, btype, site.required_operation_labor)
+        spawn_building(site)  # ADR-003: 単一 Dictionary 引数
 
         # カード回収（疎結合: deck_manager のメソッド経由）
         if is_special:
@@ -312,6 +366,11 @@ for panel_id in construction_sites.keys().duplicate():
         })
 ```
 
+> **設計理由**: LogManager イベントを `EconBattle._update_construction_progress()` 内に
+> 集約することで、ADR-001 が定めた「ライフサイクルイベントは EconBattle が記録する」原則と
+> 整合する。`PROGRESS_UPDATED` と `COMPLETED` の発火順序も同一関数内で保証される
+> （ADR-003「理由 §4 イベント記録の一貫性」）。
+
 ### 5.5 交換所の効果（F12・企画書 §9）
 
 ```text
@@ -322,11 +381,45 @@ for panel_id in construction_sites.keys().duplicate():
 
 実装上、`EconBuilding.TRADE_POST._process` 内で `is_operating == true` の間のみ累計値を更新し、10到達ごとに `deck_manager.draw_card()` を呼ぶ。Sprint 7 では既存の交換所実装（`req_econ_exchange_building.md` 参照）を踏襲し、稼働判定（is_operating）のフックのみ追加する。
 
+### 5.6 廃止済み効果・コードの明示削除ルール
+
+Sprint 7 実装時、過去の v0.1 仕様で残存しているコードを明示的に削除する。
+
+#### VILLAGE ハーベスター生成の廃止
+
+**削除対象ファイル・処理**:
+
+1. `EconBuilding.gd` の `_update_village()` メソッド内で以下を削除:
+   ```gdscript
+   # 削除対象（旧 v0.1 残置）:
+   harvester_timer -= delta
+   if harvester_timer <= 0.0:
+       harvester_timer = HARVESTER_INTERVAL
+       unit_produced.emit(grid_pos, -1)  # ← ハーベスター生成シグナル（廃止）
+   ```
+   - 関連変数 `harvester_timer`、定数 `HARVESTER_INTERVAL` も削除
+
+2. `EconMain.gd:280-285` 付近の VILLAGE 専用ハーベスター接続を削除（`unit_produced` シグナル → ハーベスター生成ハンドラの接続部）
+
+3. `EconBattle.gd:417-422` 付近の `utype == -1` 分岐を削除（ハーベスター用ユニットタイプ判定）
+
+**実装完了後の確認コマンド**:
+```bash
+grep -n "unit_produced.emit.*-1" scripts/econ_mvp/*.gd && echo "❌ 残存あり" || echo "✅ 廃止確認"
+grep -n "harvester_timer\|HARVESTER_INTERVAL" scripts/econ_mvp/EconBuilding.gd && echo "❌ 残存あり" || echo "✅ 廃止確認"
+```
+
+> **設計判断**: VILLAGE は「小麦+コットン生産」のみの単一責務にする。ハーベスター生成は概念上独立したシステムであり、農村の責務として混在させない（KISS 原則）。
+
 ---
 
 ## 6. UI仕様（Designer企画 §10.3 確定事項に準拠）
 
 ### 6.1 フッター再レイアウト（F7・F11）
+
+**配置**: 画面下部、y=1100、**高さ=180px固定（FOOTER_H = 180.0）**
+
+**ブロック構成（左から右へ）**:
 
 | ブロック | 旧（既存） | 新（Sprint 7） |
 |---|---|---|
@@ -334,6 +427,13 @@ for panel_id in construction_sites.keys().duplicate():
 | **LABOR（新設）** | — | **x=700-860 / 160×180** |
 | BUILD（圧縮） | x=700-1120 / 420×180 | **x=860-1120 / 260×180** |
 | PLACE-ON-BOARD ヒント | x=1120-1280 / 160×180 | x=1120-1280 / 160×180（変更なし） |
+
+> **【重要・恒久ルール】**: ヘッダー・盤面・フッターの**サイズおよびY座標は以降変更禁止**。
+> - HEADER: y=0, h=80
+> - 盤面領域: y=80-1100
+> - **FOOTER: y=1100, h=180px固定**
+>
+> **完了条件**: `EconMain.gd` 内に `const FOOTER_H := 180.0` を定義し、180px を明確に指定する。フッター内ブロックの高さ合計が 180px を超えないこと。
 
 ### 6.2 LABOR ブロック仕様（F7）
 
@@ -367,20 +467,38 @@ for panel_id in construction_sites.keys().duplicate():
 | 状態 | パネル背景 | パネル枠 | 中央 | 下部装飾 |
 |---|---|---|---|---|
 | 未建設土地（資源開示済み） | 既存（資源色） | 既存 | 資源アイコン | なし |
-| 建設中・進行中 | 半透明マスク（COLOR_PANEL × α=0.4） | COLOR_ACCENT_GOLD 1px | 建設リング（COLOR_ACCENT_GOLD・直径28px） | なし |
+| 建設中・進行中 | 半透明マスク（COLOR_PANEL × α=0.4） | COLOR_ACCENT_GOLD 1px | 建設リング（COLOR_ACCENT_GOLD・**外径14px**） | なし |
 | 建設中・停止中（作業人手不足） | 同上 | 同上 | 建設リング（COLOR_TEXT_DIM 灰色） | なし |
 | 建設後・稼働中 | 既存（建物色・不透明） | 既存 | 建物アイコン | 稼働ドット（COLOR_WOOD・直径6px） |
 | 建設後・停止中（稼働人手不足） | 既存（α=0.7） | 既存 | 建物アイコン | 稼働ドット（COLOR_TEXT_DIM） |
 
-建設リング描画仕様:
-- 位置: パネル中央上端（パネル中心から上に12px）
-- 外径28px / 内径22px / 線幅3px
-- 進捗 0% → 0°、100% → 360°（時計回り・線形）
-- 描画API: `_draw()` + `draw_arc()`
-- リング背景: 薄い円（`COLOR_BORDER` 1px）
-- 進捗% テキスト表示: **なし**（KISS）
+#### 6.3.2 建設リング描画仕様
 
-稼働ドット描画仕様:
+**サイズ**: **外径14px（半径14px）**
+- 旧記述「直径28px」は冗長表記であり、正は **外径14px = 半径14px**
+- 旧実装で 8px の場合は要件不適合のため **14px に修正**（曖昧性排除）
+
+**色**: COLOR_ACCENT_GOLD（#C9A961）
+
+**位置**: パネル中央上端（パネル中心から上に 12px）
+
+**描画API**: `_draw()` + `draw_arc()`
+- 線幅 2px（旧 3px は外径 14px に対し過大のため 2px に統一）
+- 内径 = 外径 - 線幅×2 = 10px
+- リング背景: 薄い円（`COLOR_BORDER` 1px）
+
+**進捗表示**: 0°-360° を進捗 0%-100% にマップ（BPB式・時計回り・線形）
+  - 進捗 **0%**: リング線なし（パネルのみ・背景円のみ表示）
+  - 進捗 **1%-99%**: 該当角度のアークを描画（線幅 2px）
+  - 進捗 **100%**: 建設完了（リング消滅 → EconBuilding に遷移）
+
+**稼働状態**:
+  - 作業人手あり（`is_active=true`）: 金色リング（COLOR_ACCENT_GOLD）
+  - 作業人手不足（`is_active=false`）: 灰色リング（COLOR_TEXT_DIM）・進捗は停止
+
+**進捗% テキスト表示**: **なし**（KISS）
+
+#### 6.3.3 稼働ドット描画仕様
 - 位置: パネル中央下端から内側4px
 - 直径6px・`draw_circle()`
 
@@ -476,8 +594,8 @@ Sprint 9 と同じ規則を流用（プレイヤーの学習コスト削減）�
 | `data/cards_econ.json` | 建物カード8種に `build_time / required_work_labor / required_operation_labor` 追加・交換所に `category: "special"` 確認 | +30行 |
 | `scripts/econ_mvp/EconDeckManager.gd` | `INITIAL_DECK_SPEC` 定数追加・`exclude_card(card_id) / discard_card(card_id)` 確認/追加 | +30行 |
 | `scripts/econ_mvp/EconEconomy.gd` | `get_total_labor() / get_operation_labor() / get_work_labor()` 追加 | +20行 |
-| `scripts/econ_mvp/EconGrid.gd` | `construction_sites` 辞書 + `start_construction() / update_construction(delta) / spawn_building() / get_buildable_cells_for_card()` 追加 | +120行 |
-| `scripts/econ_mvp/EconBattle.gd` | `_allocate_operation_labor()` 追加・既存タイマー前段に `is_operating` ガード | +60行 |
+| `scripts/econ_mvp/EconGrid.gd` | `get_buildable_cells_for_card()` 追加（配置可能性判定のみ・ADR-003） | +40行 |
+| `scripts/econ_mvp/EconBattle.gd` | `construction_sites` 辞書 + `start_construction() / _update_construction_progress(delta) / spawn_building(site) / _allocate_work_labor() / _allocate_operation_labor()` 追加・既存タイマー前段に `is_operating` ガード（ADR-003） | +180行 |
 | `scripts/econ_mvp/EconBuilding.gd` | `is_operating` 変数追加・`_process_*` 関数先頭ガード追加・`_draw_construction_ring()` / `_draw_operation_dot()` 追加 | +50行 |
 | `scripts/econ_mvp/EconMain.gd` | LABOR ブロック描画・BUILDブロック圧縮・建設予定地モードのクリックハンドラ | +180行 |
 | `scripts/econ_mvp/EconUI.gd` | 配置可能マスハイライト・人手不足警告点滅 | +40行 |
@@ -546,3 +664,5 @@ Sprint 9 と同じ規則を流用（プレイヤーの学習コスト削減）�
 - 設計判断基準: `docs/design/design_principles.md`
 - 用語: `docs/design/glossary.md`
 - 核となる体験: `CLAUDE.md`「盤面を設計して、介入を仕込んで、答え合わせを観戦する」
+- ADR-001（EconBattle スポーン一元化）: `docs/meta/adr/001_econ_spawn_centralized.md`
+- ADR-003（Econ Construction Architecture Centralization）: `docs/meta/adr/003_econ_construction_architecture.md`

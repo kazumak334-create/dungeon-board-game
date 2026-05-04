@@ -317,16 +317,14 @@
 - `docs/design/design_principles.md`：設計判断基準（カード設計・レビュー時必読）
 - `docs/design/glossary.md`：用語定義（盤面構造・トリガー・効果種類）
 - `docs/design/terminology_inconsistencies.md`：用語統一状況（同義語・未定義項目）
-- `docs/design/pve_wave_pending_issues.md`：PvEウェーブシステム残論点（未確定仕様・11項目）
-- `docs/design/pve_wave_compatibility_check.md`：継続ウェーブ型転換による既存設計整合性チェック（現行実装報告）
 - `CLAUDE.md`：このファイル（常に最優先）
 
 ---
 
 ## Single Source of Truth
 
-- 設計文書：docs/GAME_DESIGN.md のみを参照すること
-- 廃止済み設計はGAME_DESIGN.mdの廃止リストを確認すること
+- 設計文書：docs/GAME_DESIGN_V0_2_MVP.md のみを参照すること（docs/GAME_DESIGN.md は廃止）
+- 廃止済み設計はGAME_DESIGN_V0_2_MVP.mdの廃止リストを確認すること
 
 ## Agent起動ルール
 

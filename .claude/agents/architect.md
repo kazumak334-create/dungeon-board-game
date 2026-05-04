@@ -103,7 +103,7 @@ grep -n "archive/" docs/requirements/REQUIREMENTS_SPRINT_{N}.md || echo "✅ OK"
 参照が見つかった場合、修正完了まで進まない。
 
 ## 参照
-- docs/GAME_DESIGN.md
+- docs/GAME_DESIGN_V0_2_MVP.md（最新SSoT・docs/GAME_DESIGN.md は廃止）
 - scripts/UIFactory.gd（UI要件の場合）
 - scripts/既存ファイル（実装対象の確認）
 - docs/meta/ai_development_rules.md（PlanGate・テスト観点・ログ設計）

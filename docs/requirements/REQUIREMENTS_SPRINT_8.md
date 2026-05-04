@@ -7,7 +7,7 @@
 参照Sprint 7要件: `docs/requirements/REQUIREMENTS_SPRINT_7.md`（前提・未実装含む）
 統合先: `docs/requirements/REQUIREMENTS_V0_2_MVP.md`（Sprint 8 セクション）
 作成日: 2026-05-04
-更新日: 2026-05-04（Designer改訂反映：キュー項目56px化／y=100-520／BPB式キュー進捗／工数単価×残工数方式の整合確認）
+更新日: 2026-05-04（Design Review 反映：建設キュー データソース SSoT 明示／FOOTER 高さ 180px 制約明記／F7 建設順番号バッジ仕様格上げ）
 
 > 本書は Sprint 7 の建設フロー（建設予定地・建設進捗・人手スライダー）の上に、UI・ログ・デバッグ機能を載せる。Sprint 7 の実装が前提となるため、共通データ構造（`EconGrid.construction_sites`、`EconEconomy.get_total_labor()` 等）は Sprint 7 要件定義書を参照する。
 
@@ -124,25 +124,49 @@ const EFFECT_FLASH_DURATION_SEC := 0.20
 
 > 既存タイマー値（例: `_diner_timer`、`_village_wheat_timer` 等）と発動間隔（例: `DINER_INTERVAL`）を組み合わせて `effect_progress_rate = clamp(1.0 - timer / interval, 0.0, 1.0)` で更新する。新タイマーは作らない。
 
-### 4.2 建設キュー順序（F6）
+### 4.2 建設キュー UI データソース（F6）
 
-専用クラスは作らない。Sprint 7 の `EconGrid.construction_sites` を `started_at` 昇順でソートして取得する。
+**SSoT（Single Source of Truth）**: `EconBattle.grid.construction_sites: Dictionary`
+
+Sprint 7・ADR-003 により、`construction_sites` は `EconBattle` が所有する Construction 状態の唯一のデータソース。
+建設キュー UI は **必ずこの SSoT を参照** し、他のデータ（例: `EconBattle.player_buildings`）から建設中の建物を取得してはならない。
+
+**取得ロジック**:
 
 ```gdscript
-# EconGrid.gd（Sprint 7 で実装済みの想定）に追加
-func get_build_queue_order() -> Array:
-    var sorted: Array = construction_sites.values()
-    sorted.sort_custom(func(a, b): return a.started_at < b.started_at)
-    return sorted
+# BuildQueueUI.gd
+func get_queue_buildings() -> Array:
+    # SSoT は EconBattle.grid.construction_sites（ADR-003）
+    var sites: Array = battle.grid.construction_sites.values()
+    # started_at 昇順でソート（古い順 = キュー順）
+    sites.sort_custom(func(a, b): return a["started_at"] < b["started_at"])
+    return sites
 
 # キュー順番号（1 始まり）を取得
 func get_queue_index(panel_id: Vector2i) -> int:
-    var sorted: Array = get_build_queue_order()
+    var sorted: Array = get_queue_buildings()
     for i in range(sorted.size()):
         if sorted[i].panel_id == panel_id:
             return i + 1
     return -1
 ```
+
+**禁止**:
+- `battle.player_buildings` から建設中の建物を取得すること（`is_built==false` 等のフィルタ含む）
+- `construction_sites` の Dictionary を直接 mutate すること（疎結合違反）
+
+**理由**: ADR-003 に基づき、`construction_sites` が「Construction 状態」の SSoT。`player_buildings` は完成済み建物の SSoT であり、責務を混在させない。
+
+**完了条件**: `BuildQueueUI.gd` の `get_queue_buildings()` が `battle.grid.construction_sites` ベースで動作し、`player_buildings` を参照しないこと（grep で確認）。
+
+> **EconGrid 補助関数（Sprint 7 由来）**:
+>
+> ```gdscript
+> # EconGrid.gd には公開ゲッターのみ提供
+> func get_build_queue_order() -> Array:
+>     return EconBattle.instance.get_queue_buildings()  # SSoT 参照を統一
+> ```
+> （実装上、`BuildQueueUI` から直接 `battle.grid.construction_sites` にアクセス可。`EconGrid.get_build_queue_order()` は後方互換用ラッパー）
 
 ### 4.3 建設キュー順入れ替え（F8）
 
@@ -532,13 +556,33 @@ func format_population(value: int) -> String:
 | 背景 | COLOR_BG（α=0.95） |
 | 枠 | COLOR_BORDER 1px |
 
-### 6.3 建設予定地番号バッジ（F7）
+### 6.3 建設予定地番号バッジ（F7・格上げ仕様）
 
-| 状態 | バッジ表現 |
-|---|---|
-| 通常（進行中） | 直径 18px・背景 COLOR_BG・枠 COLOR_ACCENT_GOLD 1px・番号 11px Bold COLOR_TEXT |
-| 停止中 | 番号 COLOR_TEXT_DIM・枠 COLOR_TEXT_DIM |
-| 選択中（ホバー） | 枠 COLOR_ACCENT_GOLD 2px |
+**仕様**: 建設予定地パネル**左上**（パネル相対座標 x+4, y+4）に直径 **18px** の番号バッジを表示。
+
+**配置数・順序**: 建築キューに表示されている順番（① ② ③ ④ ⑤）。
+6項目以上の場合、**⑥以降は "..." で表示**（盤面の視覚的混雑を避けるため）。
+
+**色仕様**:
+
+| 要素 | 通常（進行中） | 停止中 | ホバー |
+|---|---|---|---|
+| 背景 | `Color(0.15, 0.14, 0.13, 0.8)` | 同左 | 同左 |
+| 枠 | `COLOR_ACCENT_GOLD` 1px | `COLOR_TEXT_DIM` 1px | `COLOR_ACCENT_GOLD` 2px |
+| 数字 | `COLOR_TEXT` 11px Bold | `COLOR_TEXT_DIM` | `COLOR_TEXT` |
+| サイズ | 直径 18px | 同左 | 同左 |
+
+**関連表示**:
+盤面の建設進捗リング + BuildQueueUI 左側 アイコン + バッジの**三者で「キュー順 = 建設優先度」を視覚的に伝える**。
+- BuildQueueUI 上の番号（①②③...）と盤面バッジ番号は完全に対応する
+- キュー並び替え（F8）時は盤面バッジも同フレーム内で再採番される
+
+**完了条件 C15（拡充）**:
+- [ ] 建設予定地ごとに順番バッジ（直径 18px）が表示できる
+- [ ] BuildQueueUI の順番（①②③...）と盤面バッジ番号が完全対応する
+- [ ] 6項目以上のキュー時、⑥以降の盤面バッジは "..." で表示される
+- [ ] バッジ位置がパネル左上（相対 x+4, y+4）に固定されている
+- [ ] キュー並び替え（F8）時、盤面バッジが同フレーム内で再採番される
 
 ### 6.4 BPB 式 効果進捗 Overlay 表現（F11）
 
@@ -629,15 +673,32 @@ func format_population(value: int) -> String:
 
 > 建設中ポップアップは作らない。建設中状態は建設キュー＋盤面表示で完結する。
 
-### 6.7 デバッグツールパネル（F15）
+### 6.7 デバッグツールパネル（F15・開発環境のみ）
+
+**条件**: `DEBUG_MODE = true`（ゲーム内トグルキー: [`'`]）
+
+**サイズ**: 320×180（BUILD ブロック領域と共用）
+
+**配置**: FOOTER 内（x=240, y=1100-1280）
 
 | 項目 | 値 |
 |---|---|
-| 配置 | FOOTER 右端 (320×180) |
+| 配置 | FOOTER 内 (x=240, y=1100-1280, 320×180)（BUILD と共用） |
 | ヘッダー | "— DEBUG TOOLS —" 14px Bold |
 | ボタンサイズ | 各 60×24px |
 | ボタン配置 | 4 列 × 4 行（§5.7 のボタン全 14 個＋ログトグル 1 個） |
 | 表示制御 | `DEBUG_MODE` フラグで本番ビルド時に非表示 |
+
+> **【重要】FOOTER 高さ 180px 維持制約**:
+>
+> - FOOTER 全体の高さは **180px で固定**（Sprint 7 §6.1 で定義された恒久ルール）
+> - `DEBUG_MODE = true` 時は BUILD HAND の領域を上書き表示する（高さ 180px 内に収まる）
+> - `DEBUG_MODE = false` 時は非表示（本番ビルドでは BUILD HAND が表示される）
+> - デバッグパネルは絶対に FOOTER 高さ（y=1100-1280 の 180px 範囲）を超えてはならない
+>
+> **完了条件**:
+> - `DEBUG_MODE` 切替時、FOOTER の Y 範囲が 1100-1280 を超えない
+> - `grep -n "FOOTER_H" scripts/econ_mvp/EconMain.gd` で 180.0 が定数定義されていることを確認
 
 ### 6.8 デバッグログオーバーレイ（F16）
 
@@ -687,7 +748,7 @@ func format_population(value: int) -> String:
 ### 7.3 建設キュー
 - [ ] C13: 盤面左側 (140×420、x=0, y=100-520) に建設キュー UI を表示できる。HEADER 下端と FOOTER 上端それぞれに 20px の余白がある（F6）
 - [ ] C14: キュー項目（高さ 56px）に建設順番号・建物アイコン・建物名・BPB 式進捗 Overlay・コスト/停止理由を表示できる。5項目までスクロールなし、6項目以上はスクロール
-- [ ] C15: 建設予定地パネル左上に建設順番号バッジを表示できる（F7）
+- [ ] C15: 建設予定地パネル左上（相対 x+4, y+4）に直径 18px の建設順番号バッジが表示できる。BuildQueueUI 順番と完全対応し、6項目以上は "..." 表示（F7・§6.3 参照）
 - [ ] C16: キュー項目ドラッグで順番を入れ替えられる（10px 閾値）（F8）
 - [ ] C17: キュー順変更時に建設予定地番号も即時更新される
 - [ ] C18: 作業人手の割当優先順位が建設キュー順（`started_at` 昇順）に従う

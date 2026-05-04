@@ -345,3 +345,163 @@ done
    - このプロセスを厳格に遵守
    - Architect が廃止マーク追記を自動実行
    - Codex request は REQUIREMENTS_SPRINT_{N} 引用を必須チェック
+
+---
+
+## ドキュメント分類ポリシー（2026-05-04 確立）
+
+### 背景
+
+docs/ 配下に 238 ファイルが蓄積し、ACTIVE / ARCHIVE / 削除候補の判別が困難になった。
+本ポリシーは「迷わない管理体系」を確立するための分類基準・配置ルール・自動チェックを定義する。
+
+詳細な分類結果と Haiku への物理移動指示は `docs/document_organization_plan.md` を参照。
+
+### 分類定義
+
+| 分類 | 配置 | 用途 |
+|---|---|---|
+| **ACTIVE** | `docs/` 配下の通常パス | 現在進行中の Sprint・SSoT・最新仕様。日次参照可 |
+| **ARCHIVE** | `docs/archive/` 等の archive サブフォルダ | 廃止済み・旧Phase の参考資料。**参照禁止**。Git 履歴として保持 |
+| **DELETE** | （存在しない） | 役割完了したテスト残骸・完全重複。git rm で削除 |
+
+### 分類判定基準
+
+#### ACTIVE と判定する条件（いずれかを満たす）
+1. 現Sprint（直近2Sprint以内）の SSoT 文書である
+2. CLAUDE.md / MEMORY.md / 全Agent必読リストで参照指定されている
+3. ロードマップ最新版（master_roadmap_*_最新.md）である
+4. 設計判断の根拠となる philosophy / principles / glossary 系である
+5. 現役で使用中のツール・ワークフロー定義である
+
+#### ARCHIVE と判定する条件（いずれかを満たす）
+1. STATUS:廃止 が明記されている
+2. SSoT に統合済みで個別ファイルは参考のみとなっている
+3. 完了済み Sprint / 過去 Phase の記録である
+4. 同一機能の新版が別パスに存在する（旧版扱い）
+5. 将来検討（future/）・参考資料（research/）である
+
+#### DELETE と判定する条件（全て満たす）
+1. テスト用・確認用に作成され役割を完了している
+2. 別ファイルと完全重複している（バイト一致または内容同一）
+3. STATUS:廃止 明記かつ統合先が確実に存在する
+4. Git 履歴で復元可能であり、心理的安全性がある
+
+### 拡張フォルダ構成
+
+```
+docs/
+├── meta/                              # ACTIVE: 開発ルール・プロセス
+│   ├── document_management.md         # SSoT 管理ルール
+│   ├── agents.md                      # Agent 定義
+│   └── adr/                           # ACTIVE: 採択済み設計判断
+├── design/                            # ACTIVE: 現Sprint設計 + ACTIVE 設計原則
+│   ├── design_principles.md
+│   ├── glossary.md
+│   ├── sprint{N}_designer_plan.md
+│   └── archive/ (新設)                # ARCHIVE: 旧Phase 2-7 設計群
+├── requirements/
+│   ├── REQUIREMENTS_SPRINT_{N}.md     # ACTIVE
+│   └── archive/                       # ARCHIVE
+├── tasks/
+│   ├── codex_request_sprint{N}.md     # ACTIVE
+│   └── archive/                       # ARCHIVE
+├── econ/
+│   ├── sprint_progress.md             # ACTIVE 進捗
+│   ├── phase_1_checklist.md           # ACTIVE 完了基準
+│   ├── sprint_plan_econ_mvp_v0_2_unified_v{最新}.md  # ACTIVE
+│   ├── design_sprint{現役N}_*.md      # ACTIVE: 現Sprint設計
+│   └── archive/ (新設)                # ARCHIVE: 完了 Sprint 設計
+├── archive/                           # ARCHIVE: 旧 v0.1 全般
+├── research/                          # ARCHIVE: 参考資料
+├── future/                            # ARCHIVE: 将来検討
+└── reference/                         # 一部 ACTIVE（personas / godot4 リファレンス）
+                                       # 一部 ARCHIVE（旧Phase 2-3 画面リファレンス）
+```
+
+### 新ファイル作成時の判定フロー
+
+```
+新ファイル作成依頼
+   ↓
+このファイルは「現Sprint で日次参照されるか？」
+   ├── YES → ACTIVE（通常パス配置）
+   └── NO  → そもそも作るべきか？
+              ├── 一時的・テスト用 → 作らない or 作っても1セッションで削除
+              └── 長期参考になる   → ARCHIVE 直行（最初から archive/ へ）
+```
+
+**禁止事項:**
+- 既存 SSoT があるのに新ファイルを作成する
+- 「将来のために」と先取りで設計ファイルを作成する
+- テスト用ファイルを `docs/tasks/codex_*_test.md` のような形で残す
+
+### ファイル廃止時の手順（必須）
+
+```
+1. ファイル先頭に追記:
+   STATUS: 廃止（→ <新ファイルパス>）
+   廃止日: YYYY-MM-DD
+   廃止理由: <1行>
+
+2. 物理移動:
+   git mv <old_path> <archive_path>
+
+3. document_management.md § 廃止対象ファイル に追記
+   （日付・元パス・移動先・理由）
+
+4. CLAUDE.md / MEMORY.md / Agent定義 から該当 path 参照を削除
+
+5. check_syntax.sh の廃止参照チェックに追加
+```
+
+### 自動チェック（check_syntax.sh への追加案）
+
+既存の Codex 依頼ファイル参照チェックに加え、以下を追加：
+
+```bash
+# ARCHIVE フォルダ参照チェック（実装ファイル・新規Codex依頼用）
+for active_file in docs/requirements/REQUIREMENTS_SPRINT_*.md \
+                   docs/tasks/codex_request_sprint*.md \
+                   docs/design/sprint*_designer_plan.md; do
+  if grep -qE "/archive/|docs/archive/" "$active_file"; then
+    echo "❌ FATAL: $active_file が ARCHIVE フォルダを参照しています"
+    exit 1
+  fi
+done
+
+# 命名規則チェック（新規 req_ ファイル禁止）
+new_req_files=$(git diff --cached --name-only --diff-filter=A | \
+                grep -E "^docs/(requirements|design|meta)/req_[^/]+\.md$" || true)
+if [ -n "$new_req_files" ]; then
+  echo "❌ FATAL: 新規 req_*.md ファイルは作成禁止"
+  echo "対象: $new_req_files"
+  echo "REQUIREMENTS_SPRINT_{N}.md を直接編集してください"
+  exit 1
+fi
+```
+
+### 重複ファイル検出（定期実行）
+
+```bash
+# 同名ファイル検出（archive と active で重複）
+find docs/ -name "*.md" -not -path "*/archive/*" | while read f; do
+  base=$(basename "$f")
+  arch=$(find docs/ -path "*/archive/*" -name "$base" -print -quit)
+  if [ -n "$arch" ]; then
+    if diff -q "$f" "$arch" > /dev/null 2>&1; then
+      echo "DUPLICATE: $f === $arch（完全一致・削除候補）"
+    else
+      echo "CONFLICT: $f vs $arch（差分あり・廃止マーク確認）"
+    fi
+  fi
+done
+```
+
+### 整理実施履歴
+
+| 日付 | 実施内容 | 対象数 | 担当 |
+|---|---|---:|---|
+| 2026-05-04 | 初回整理（旧req_econ_*.md 26ファイル archive 化） | 26 | Architect/CEO |
+| 2026-05-04 | 全docs分類（ACTIVE/ARCHIVE/DELETE 体系確立） | 238 | Researcher（企画フェーズ） |
+| TBD | 物理移動実施（document_organization_plan.md に基づく） | TBD | Haiku（次フェーズ） |

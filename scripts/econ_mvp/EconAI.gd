@@ -136,7 +136,5 @@ func update(delta: float) -> void:
 
 
 func on_unit_produced(pos: Vector2i, utype: int) -> void:
-	if utype == -1:
-		_battle.spawn_enemy_harvester(pos, economy)
-	elif ENEMY_COMBAT_UNITS_ENABLED:
+	if ENEMY_COMBAT_UNITS_ENABLED:
 		_battle.spawn_enemy_unit(utype, pos)

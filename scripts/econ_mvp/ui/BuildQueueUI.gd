@@ -1,9 +1,9 @@
 class_name BuildQueueUI
 extends PanelContainer
 
-signal instant_build_requested(building: EconBuilding)
-signal cancel_requested(building: EconBuilding)
-signal reorder_requested(building: EconBuilding, target_index: int)
+signal instant_build_requested(site: Dictionary)
+signal cancel_requested(site: Dictionary)
+signal reorder_requested(site: Dictionary, target_index: int)
 
 const LABOR_COST_PER_UNIT := 5
 const ITEM_HEIGHT := 56.0
@@ -14,7 +14,7 @@ var economy: EconEconomy = null
 
 var _list: VBoxContainer = null
 var _empty_label: Label = null
-var _drag_building: EconBuilding = null
+var _drag_building: Dictionary = {}
 var _drag_start_y: float = 0.0
 var _dragging := false
 var _items: Array = []
@@ -92,13 +92,12 @@ func calc_instant_build_cost_from_site(site: Dictionary) -> int:
 		return 0
 	return int(ceil(remaining_labor * float(LABOR_COST_PER_UNIT)))
 
-func _find_building_by_pos(pos: Vector2i) -> EconBuilding:
-	if battle == null:
-		return null
-	for b in battle.player_buildings:
-		if b is EconBuilding and not b.is_built and b.grid_pos == pos:
-			return b
-	return null
+func _find_construction_site_by_pos(pos: Vector2i) -> Dictionary:
+	if battle == null or battle.grid == null:
+		return {}
+	if battle.grid.construction_sites.has(pos):
+		return battle.grid.construction_sites[pos]
+	return {}
 
 func _create_item(site: Dictionary, index: int) -> Control:
 	var item := BuildQueueItem.new()
@@ -107,7 +106,7 @@ func _create_item(site: Dictionary, index: int) -> Control:
 	var raw_progress: float = float(site.get("construction_progress", 0.0))
 	var required_time: float = float(site.get("construction_time", 1.0))
 	var progress: float = clampf(raw_progress / maxf(required_time, 1.0), 0.0, 1.0)
-	item.building = _find_building_by_pos(site.get("panel_id", Vector2i(-1, -1)))
+	item.building = _find_construction_site_by_pos(site.get("panel_id", Vector2i(-1, -1)))
 	item.queue_index = index
 	item.building_name = _get_building_name(btype)
 	item.progress = progress
@@ -122,7 +121,7 @@ func _create_item(site: Dictionary, index: int) -> Control:
 func _on_item_gui_input(event: InputEvent, site: Dictionary, index: int) -> void:
 	if event is InputEventMouseButton:
 		var mb := event as InputEventMouseButton
-		var building: EconBuilding = _find_building_by_pos(site.get("panel_id", Vector2i(-1, -1)))
+		var building: Dictionary = _find_construction_site_by_pos(site.get("panel_id", Vector2i(-1, -1)))
 		if mb.button_index == MOUSE_BUTTON_LEFT:
 			if mb.pressed:
 				_drag_building = building
@@ -134,11 +133,11 @@ func _on_item_gui_input(event: InputEvent, site: Dictionary, index: int) -> void
 					reorder_requested.emit(building, target_index)
 				elif _drag_building == building:
 					instant_build_requested.emit(building)
-				_drag_building = null
+				_drag_building = {}
 				_dragging = false
 		elif mb.button_index == MOUSE_BUTTON_RIGHT and mb.pressed:
 			cancel_requested.emit(building)
-	elif event is InputEventMouseMotion and _drag_building != null:
+	elif event is InputEventMouseMotion and not _drag_building.is_empty():
 		if absf(get_global_mouse_position().y - _drag_start_y) >= 10.0:
 			_dragging = true
 
@@ -165,7 +164,7 @@ func _get_building_name(building_type: int) -> String:
 class BuildQueueItem:
 	extends PanelContainer
 
-	var building: EconBuilding = null
+	var building: Dictionary = {}
 	var queue_index := 0
 	var building_name := ""
 	var progress := 0.0
