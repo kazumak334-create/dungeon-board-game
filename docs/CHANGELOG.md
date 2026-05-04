@@ -2,6 +2,21 @@
 
 ## [Unreleased]
 
+## 2026-05-04 Drawゲージ更新修正 + 手札リロール機能実装
+
+### 修正内容
+- EconMain.gd 1775行: `_update_draw_gauge_ui(delta)` 呼び出しがコメントと同一行になっていたバグを修正（Drawゲージが更新されなかった原因）
+
+### 機能追加
+- EconDeckManager.gd: `reload_timer`（float）/ `RELOAD_COOLDOWN_SEC`（5.0秒定数）追加（37-38行）
+- EconDeckManager.gd: `update(delta)` にリロードクールタイムデクリメント追加（84-87行）
+- EconMain.gd: `_reload_gauge_bar` / `_reload_gauge_bg` / `_reload_gauge_label` 変数追加（83-85行）
+- EconMain.gd: Draw ゲージ直下に Reload ゲージ UI 追加（1031-1059行）
+- EconMain.gd: `_update_reload_gauge_ui()` メソッド追加（2391-2406行）
+- EconMain.gd: `_on_hand_card_right_clicked(card_index)` メソッド追加（2278-2311行）
+- EconMain.gd: 手札カードの右クリック gui_input 接続追加（2265-2274行）
+- LogManager: `"RELOAD"` イベントタイプで `_reload_count` カウント（既存対応済み）
+
 ## 2026-05-04 UI品質修正3件
 
 ### 修正内容

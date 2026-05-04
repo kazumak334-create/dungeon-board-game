@@ -80,6 +80,9 @@ var _hand_right_arrow: Button = null       # 笆ｶ遏｢蜊ｰ
 var _draw_gauge_bar: ColorRect = null      # 繝峨Ο繝ｼ繧ｲ繝ｼ繧ｸ繝舌・
 var _draw_gauge_bg: ColorRect = null       # 繝峨Ο繝ｼ繧ｲ繝ｼ繧ｸ閭梧勹
 var _draw_gauge_label: Label = null        # 繝峨Ο繝ｼ繧ｲ繝ｼ繧ｸ繧ｵ繝悶ユ繧ｭ繧ｹ繝・
+var _reload_gauge_bar: ColorRect = null    # リロードゲージバー（§2.2.3）
+var _reload_gauge_bg: ColorRect = null     # リロードゲージ背景（§2.2.3）
+var _reload_gauge_label: Label = null      # リロードゲージサブテキスト（§2.2.3）
 var _force_charge_segs: Array = []         # 蠑ｷ蛻ｶ遯∵茶繧ｲ繝ｼ繧ｸ繧ｻ繧ｰ繝｡繝ｳ繝暗・0
 var _force_charge_turn_label: Label = null  # N/10 陦ｨ遉ｺ
 var _force_charge_warn_label: Label = null  # 遯∵茶貅門ｙ謗ｨ螂ｨ繝ｩ繝吶Ν
@@ -1026,6 +1029,35 @@ func _setup_hand_center_block(parent: Control) -> void:
 	_draw_gauge_label.add_theme_color_override("font_color", COLOR_TEXT_DIM)
 	dg_row.add_child(_draw_gauge_label)
 
+	# Reloadゲージ（§2.2.3）：Drawゲージ直下
+	var rg_row := HBoxContainer.new()
+	rg_row.custom_minimum_size = Vector2(0, 20)
+	rg_row.add_theme_constant_override("separation", 4)
+	center_block.add_child(rg_row)
+	var rg_spacer := Control.new()
+	rg_spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	rg_row.add_child(rg_spacer)
+	var rg_lbl_static := Label.new()
+	rg_lbl_static.text = "Reload"
+	rg_lbl_static.add_theme_font_size_override("font_size", 9)
+	rg_lbl_static.add_theme_color_override("font_color", COLOR_TEXT_DIM)
+	rg_row.add_child(rg_lbl_static)
+	var rg_bar_bg := ColorRect.new()
+	rg_bar_bg.custom_minimum_size = Vector2(140, 10)
+	rg_bar_bg.color = COLOR_PANEL
+	rg_row.add_child(rg_bar_bg)
+	_reload_gauge_bg = rg_bar_bg
+	_reload_gauge_bar = ColorRect.new()
+	_reload_gauge_bar.set_anchors_and_offsets_preset(Control.PRESET_LEFT_WIDE)
+	_reload_gauge_bar.size = Vector2(0, 10)
+	_reload_gauge_bar.color = COLOR_ACCENT_GOLD
+	rg_bar_bg.add_child(_reload_gauge_bar)
+	_reload_gauge_label = Label.new()
+	_reload_gauge_label.text = ""
+	_reload_gauge_label.add_theme_font_size_override("font_size", 9)
+	_reload_gauge_label.add_theme_color_override("font_color", COLOR_TEXT_DIM)
+	rg_row.add_child(_reload_gauge_label)
+
 	# 遏｢蜊ｰ+繧ｫ繝ｼ繝芽｡・
 	var hand_row := HBoxContainer.new()
 	hand_row.size_flags_vertical = Control.SIZE_EXPAND_FILL
@@ -1772,7 +1804,9 @@ func _process(delta: float) -> void:
 	_update_buildable_highlight()
 	# v0.2 繧ｹ繝・・繧ｿ繧ｹUI譖ｴ譁ｰ・按ｧ5.1・・
 	_update_status_ui()
-	# 繝峨Ο繝ｼ繝ｻ繧ｲ繝ｼ繧ｸ繝ｻ莠ｺ蜿｣UI譖ｴ譁ｰ・按ｧ5 pull蝙具ｼ・	_update_draw_gauge_ui(delta)
+	# 繝峨Ο繝ｼ繝ｻ繧ｲ繝ｼ繧ｸ繝ｻ莠ｺ蜿｣UI譖ｴ譁ｰ・按ｧ5 pull蝙具ｼ・
+	_update_draw_gauge_ui(delta)
+	_update_reload_gauge_ui()
 	_update_force_charge_gauge_ui(delta)
 	_update_population_ui()
 	_update_alloc_bar_ui()
@@ -2228,7 +2262,53 @@ func _create_hand_card_node(card_data: Dictionary, card_idx: int) -> Control:
 			_pop_preview_label.visible = false
 	)
 
+	# 右クリックでリロール（§2.2.3 / §3.2）
+	var captured_idx: int = card_idx
+	card_btn.gui_input.connect(func(event: InputEvent):
+		if not (event is InputEventMouseButton):
+			return
+		var mb := event as InputEventMouseButton
+		if mb.button_index != MOUSE_BUTTON_RIGHT or not mb.pressed:
+			return
+		_on_hand_card_right_clicked(captured_idx)
+	)
+
 	return card_btn
+
+func _on_hand_card_right_clicked(card_index: int) -> void:
+	# §2.2.3 / §3.2 手札カードリロール（右クリック）
+	if _battle.deck_manager == null:
+		return
+	if _battle.deck_manager.reload_timer > 0.0:
+		print("[EconMain] _on_hand_card_right_clicked: cooldown remaining=%.1f" % _battle.deck_manager.reload_timer)
+		return
+	var hand_size: int = int(_battle.deck_manager.hand.size())
+	if card_index < 0 or card_index >= hand_size:
+		print("[EconMain] _on_hand_card_right_clicked: invalid index=%d" % card_index)
+		return
+	var discarded_card: Dictionary = _battle.deck_manager.hand[card_index]
+	# discard に移動
+	_battle.deck_manager.hand.remove_at(card_index)
+	_battle.deck_manager.discard_pile.append(discarded_card)
+	print("[EconMain] _on_hand_card_right_clicked: discarded '%s'" % discarded_card.get("name", "?"))
+	# 1枚ドロー
+	var drawn_card: Dictionary = {}
+	if not _battle.deck_manager.deck.is_empty():
+		drawn_card = _battle.deck_manager.deck.pop_front()
+		_battle.deck_manager.hand.append(drawn_card)
+		print("[EconMain] _on_hand_card_right_clicked: drew '%s'" % drawn_card.get("name", "?"))
+	# クールタイム開始
+	_battle.deck_manager.reload_timer = _battle.deck_manager.RELOAD_COOLDOWN_SEC
+	# ログ記録
+	if _log_manager != null and _log_manager.has_method("log_event"):
+		_log_manager.log_event({
+			"type": "RELOAD",
+			"time": _elapsed_time,
+			"discarded_card": discarded_card.get("id", ""),
+			"drawn_card": drawn_card.get("id", "") if not drawn_card.is_empty() else "none",
+		})
+	# UI更新
+	_refresh_hand_ui()
 
 func _get_card_state(card_data: Dictionary) -> String:
 	# ﾂｧ5.2.3 迥ｶ諷区ｱｺ螳壹ヤ繝ｪ繝ｼ・亥━蜈磯・ｽ埼剄鬆・ｼ・
@@ -2307,6 +2387,23 @@ func _update_draw_gauge_ui(delta: float) -> void:
 	_draw_gauge_bar.size = Vector2(bg_w * progress, _draw_gauge_bg.size.y)
 	_draw_gauge_bar.color = bar_color
 	_draw_gauge_label.text = sub_text
+
+func _update_reload_gauge_ui() -> void:
+	# §2.2.3 リロードゲージUI 毎フレーム更新
+	if _reload_gauge_bar == null or _battle.deck_manager == null:
+		return
+	var reload_timer_val: float = float(_battle.deck_manager.reload_timer)
+	var reload_max: float = float(_battle.deck_manager.RELOAD_COOLDOWN_SEC)
+	var progress: float = clampf(1.0 - (reload_timer_val / reload_max), 0.0, 1.0)
+	var bg_w: float = _reload_gauge_bg.size.x if _reload_gauge_bg.size.x > 0.0 else 140.0
+	_reload_gauge_bar.size = Vector2(bg_w * progress, _reload_gauge_bg.size.y)
+	# クールタイム中は残り秒数表示、完了時は "Ready"
+	if reload_timer_val > 0.0:
+		_reload_gauge_bar.color = Color(0.75, 0.58, 0.28)
+		_reload_gauge_label.text = "%.1fs" % reload_timer_val
+	else:
+		_reload_gauge_bar.color = COLOR_ACCENT_GOLD
+		_reload_gauge_label.text = "Ready"
 
 func _update_force_charge_gauge_ui(delta: float) -> void:
 	# ﾂｧ5.2 蠑ｷ蛻ｶ遯∵茶繧ｲ繝ｼ繧ｸUI 豈弱ヵ繝ｬ繝ｼ繝譖ｴ譁ｰ

@@ -33,6 +33,10 @@ var pending_draws: int = 0
 var force_charge_triggered: bool = false
 var battle_elapsed_sec: float = 0.0
 
+# リロードクールタイム（§2.2.3）
+var reload_timer: float = 0.0
+const RELOAD_COOLDOWN_SEC: float = 5.0
+
 var draw_callback: Callable       # UI通知（カード飛来Tween発火）
 var battle: EconBattle = null     # 親バトル参照
 
@@ -75,6 +79,12 @@ func update(delta: float) -> void:
 	if current_turn > _last_processed_turn:
 		_last_processed_turn = current_turn
 		_on_turn_elapsed()
+
+	# リロードクールタイム更新（§2.2.3）
+	if reload_timer > 0.0:
+		reload_timer -= delta
+		if reload_timer < 0.0:
+			reload_timer = 0.0
 
 	# draw_gauge_value 更新（手札MAX保留中はゲージ100%停止）
 	if pending_draws > 0:
