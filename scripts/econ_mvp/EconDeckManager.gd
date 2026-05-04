@@ -138,6 +138,15 @@ func exclude_card_at(idx: int) -> Dictionary:
 	print("[EconDeckManager] exclude_card_at: '%s', hand=%d, excluded=%d" % [card.get("name", "?"), hand.size(), excluded.size()])
 	return card
 
+func remove_card_at(idx: int) -> Dictionary:
+	if idx < 0 or idx >= hand.size():
+		print("[EconDeckManager] remove_card_at: invalid idx=%d" % idx)
+		return {}
+	var card: Dictionary = hand[idx]
+	hand.remove_at(idx)
+	print("[EconDeckManager] remove_card_at: '%s', hand=%d" % [card.get("name", "?"), hand.size()])
+	return card
+
 func play_card(card_idx: int) -> Dictionary:
 	# §8.1.2 play_card: hand から remove、exclude_card を呼び、カードを返す
 	if card_idx < 0 or card_idx >= hand.size():

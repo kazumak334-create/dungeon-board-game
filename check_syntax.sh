@@ -75,5 +75,38 @@ for pattern in "${COUPLING_PATTERNS[@]}"; do
   done
 done
 
+echo ""
+echo "=== Deprecated file reference check ==="
+
+# Codex request ファイルが archive/ フォルダのファイルを参照していないか確認
+ARCHIVE_REFS=0
+for req_file in docs/tasks/codex_request_sprint*.md; do
+  if [ -f "$req_file" ]; then
+    # archive フォルダのパスを参照しているか確認
+    if grep -q "archive/" "$req_file" 2>/dev/null; then
+      echo "❌ FATAL: $req_file に廃止ファイル参照が含まれています:"
+      grep -n "archive/" "$req_file"
+      ARCHIVE_REFS=$((ARCHIVE_REFS + 1))
+    fi
+
+    # 旧 req_econ_* ファイルを直接参照しているか確認
+    if grep -qE "req_econ_|req_economy_|req_enemyless_|req_battle_|req_buff_|req_dead_|req_material_|req_mvp_|req_skill_|req_support_" "$req_file" 2>/dev/null; then
+      echo "❌ WARNING: $req_file に個別要件ファイル参照の可能性:"
+      grep -n -E "req_econ_|req_economy_|req_enemyless_|req_battle_|req_buff_|req_dead_|req_material_|req_mvp_|req_skill_|req_support_" "$req_file"
+      ARCHIVE_REFS=$((ARCHIVE_REFS + 1))
+    fi
+  fi
+done
+
+if [ "$ARCHIVE_REFS" -gt 0 ]; then
+  echo ""
+  echo "❌ FAILED: $ARCHIVE_REFS 件の廃止ファイル参照エラーが見つかりました"
+  echo "   REQUIREMENTS_SPRINT_*.md から引用してください"
+  exit 1
+fi
+
+echo "✓ 廃止ファイル参照チェックパス"
+
+echo ""
 echo "=== 完了 ==="
 exit 0

@@ -23,7 +23,7 @@ var iron: int = 0
 var cotton: int = 0
 
 # v0.2 resource fields
-var resources: Dictionary = {"wood": 5, "stone": 5, "resin": 5, "food": 30, "iron": 5, "cotton": 5}
+var resources: Dictionary = {"wood": 5, "stone": 5, "resin": 5, "food": 30, "wheat": 30, "iron": 5, "cotton": 5}
 var special_resources: Dictionary = {"sulfur": false}
 var food: int = INITIAL_FOOD
 var satisfaction: int = 60    # ﾂｧ2.4.3: 蟷ｸ遖丞ｺｦ蛻晄悄蛟､60
@@ -535,7 +535,7 @@ func initialize_v0_2() -> void:
 	military_power = 0.0
 	currency = INITIAL_CURRENCY
 	food = INITIAL_FOOD
-	resources = {"wood": 5, "stone": 5, "resin": 5, "food": INITIAL_FOOD, "iron": 5, "cotton": 5}  # ﾂｧ2.4.1
+	resources = {"wood": 5, "stone": 5, "resin": 5, "food": INITIAL_FOOD, "wheat": INITIAL_FOOD, "iron": 5, "cotton": 5}  # ﾂｧ2.4.1
 	special_resources = {"sulfur": false}
 	wood = 5
 	stone = 5

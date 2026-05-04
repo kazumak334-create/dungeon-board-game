@@ -298,6 +298,38 @@ A: codex_request_sprint{N}.md。ただし、その根拠は REQUIREMENTS_SPRINT_
 
 ---
 
+## 自動検査ルール（check_syntax.sh に統合）
+
+### Codex 依頼の検査
+
+`check_syntax.sh` に以下の検査を追加（2026-05-04実施済み）：
+
+```bash
+# 廃止ファイル参照チェック
+for req_file in docs/tasks/codex_request_sprint*.md; do
+  if grep -q "archive/" "$req_file"; then
+    echo "❌ FATAL: $req_file に廃止ファイル参照"
+    exit 1
+  fi
+  if grep -qE "req_econ_|req_economy_|req_enemyless_" "$req_file"; then
+    echo "❌ WARNING: 個別要件ファイル参照"
+    exit 1
+  fi
+done
+```
+
+**実行タイミング：**
+- Codex 依頼ファイル作成後
+- git commit 前
+- Codex dispatch 前
+
+**失敗時の対応：**
+- 廃止ファイル参照を削除
+- `REQUIREMENTS_SPRINT_{N}.md` からの直接引用に置き換え
+- 修正後に check_syntax.sh を再実行
+
+---
+
 ## 次のアクション
 
 1. **即座（今セッション内）:** 

@@ -6,6 +6,24 @@
 
 ---
 
+## ⚠️ 参照禁止ファイル（絶対に参照しないこと）
+
+**以下のファイルは廃止済みです。これらを参照した場合、実装が拒否されます。**
+
+| 禁止ファイル | 理由 | 代替ファイル |
+|----------|------|----------|
+| `docs/requirements/archive/req_econ_initial_deck_sprint7.md` | 旧版（11枚デッキ） | `docs/requirements/REQUIREMENTS_SPRINT_7.md` |
+| `docs/requirements/archive/req_econ_card_placement_flow.md` | 旧版・個別要件 | `docs/requirements/REQUIREMENTS_SPRINT_7.md` |
+| `docs/requirements/archive/req_econ_parameter_architecture.md` | 旧版・個別要件 | `docs/requirements/REQUIREMENTS_SPRINT_7.md` |
+| その他 `docs/requirements/archive/req_*` | 全て廃止済み | `docs/requirements/REQUIREMENTS_SPRINT_7.md` |
+
+**参照すべき最新ファイル（SSoT）：**
+- ✅ `docs/requirements/REQUIREMENTS_SPRINT_7.md`（メインの要件定義書）
+- ✅ `docs/design/sprint7_designer_plan.md`（UI/UX企画書）
+- ✅ `docs/sprint7_initial_deck_building_base_final.md`（企画書原本）
+
+---
+
 ## 実装指示プロンプト
 
 ```

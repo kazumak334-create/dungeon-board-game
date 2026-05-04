@@ -1,4 +1,4 @@
-class_name EconBattle
+﻿class_name EconBattle
 extends Node
 
 const EconChestScript := preload("res://scripts/econ_mvp/EconChest.gd")
@@ -20,12 +20,12 @@ var _construction_queue: Array = []
 var ai: EconAI = null
 
 var is_running: bool = false
-var player_flags: Array = []   # EconRallyFlag の配列
+var player_flags: Array = []   # EconRallyFlag 縺ｮ驟榊・
 var _game_over: bool = false
 var _enemy_base_breakthrough_ids: Dictionary = {}
 
-# 要件定義書 req_econ_draw_hand_circulation.md §8.2
-var deck_manager = null  # EconDeckManager（型推論省略）
+# 隕∽ｻｶ螳夂ｾｩ譖ｸ req_econ_draw_hand_circulation.md ﾂｧ8.2
+var deck_manager = null
 var reward_manager = null
 var chests: Array = []
 
@@ -44,7 +44,7 @@ func start() -> void:
 	log_message.emit("Battle started!")
 
 func setup_deck(initial_deck: Array, on_draw: Callable) -> void:
-	# §8.2 EconBattle への追加
+	# ﾂｧ8.2 EconBattle 縺ｸ縺ｮ霑ｽ蜉
 	var dm_script = load("res://scripts/econ_mvp/EconDeckManager.gd")
 	deck_manager = dm_script.new()
 	add_child(deck_manager)
@@ -52,61 +52,80 @@ func setup_deck(initial_deck: Array, on_draw: Callable) -> void:
 	print("[EconBattle] setup_deck: deck_manager initialized")
 
 func play_card_and_build(card_idx: int, target_cell: Vector2i) -> bool:
-	# §4.4.3 / §8.2 カード使用→建物配置エントリポイント（v0.2 改訂・資源即時消費）
 	if deck_manager == null:
 		return false
-	# 強制突撃後は建設停止（§9.6）
 	if deck_manager.force_charge_triggered:
 		return false
 	if card_idx < 0 or card_idx >= deck_manager.hand.size():
 		return false
 	var card: Dictionary = deck_manager.hand[card_idx]
-	# 配置チェック（§4.4.2）
 	if not _check_placement_valid(card, target_cell):
 		return false
-	# ① 資源即時消費（§4.4.3 ステップ1）
+	var btype: int = _get_building_type_from_card(card)
+	if btype < 0:
+		return false
 	if economy != null:
 		economy.consume_resources(card)
-	# ② 手札から除外（§4.4.3 ステップ2）
-	deck_manager.exclude_card_at(card_idx)
-	# ③ 盤面に建物生成・登録（§4.4.3 ステップ3）
-	var building := _create_building_from_card(card, target_cell)
-	if building == null:
+	var used_card: Dictionary = deck_manager.remove_card_at(card_idx)
+	if used_card.is_empty():
 		return false
-	register_player_building(building)
-	# 人口更新（§8.6）
-	if economy != null:
-		economy.population_used += card.get("population_required", 0)
-		var pop_supply: int = card.get("population_supply", 0)
-		if pop_supply > 0:
-			economy.population_cap += pop_supply
+	if grid == null or not grid.start_construction(target_cell, btype, used_card, Time.get_ticks_msec()):
+		return false
+	_log_event({
+		"type": "BUILDING_PLACED",
+		"panel_id": [target_cell.x, target_cell.y],
+		"building_type": btype,
+		"card_id": str(used_card.get("id", "")),
+	})
 	log_message.emit("Card played: %s at (%d,%d)" % [card.get("name", "?"), target_cell.x, target_cell.y])
 	return true
 
 func _check_placement_valid(card: Dictionary, target_cell: Vector2i) -> bool:
-	# §4.4.2 配置時4条件チェック
-	# 条件1: 資源充足
+	# ﾂｧ4.4.2 驟咲ｽｮ譎・譚｡莉ｶ繝√ぉ繝・け
+	# 譚｡莉ｶ1: 雉・ｺ仙・雜ｳ
 	if economy != null and not economy.can_afford_card(card):
 		log_message.emit("Resource insufficient for %s" % card.get("name", "?"))
 		return false
-	# 条件2: 人口充足
+	# 譚｡莉ｶ2: 莠ｺ蜿｣蜈・ｶｳ
 	if economy != null:
 		var pop_req: int = card.get("population_required", 0)
 		if economy.population_used + pop_req > economy.population_cap:
 			log_message.emit("Population cap exceeded")
 			return false
-	# 条件3: 配置先有効チェック（グリッド内かつ占有なし）
+	# 譚｡莉ｶ3: 驟咲ｽｮ蜈域怏蜉ｹ繝√ぉ繝・け・医げ繝ｪ繝・ラ蜀・°縺､蜊譛峨↑縺暦ｼ・
 	if grid != null and not grid.is_valid_cell(target_cell.x, target_cell.y):
 		return false
 	for b in player_buildings:
 		if b.grid_pos == target_cell and b.is_alive:
 			log_message.emit("Cell occupied at (%d,%d)" % [target_cell.x, target_cell.y])
 			return false
-	# 条件4: 強制突撃前（呼出元でチェック済み）
+	var occupied: Dictionary = {}
+	for b in player_buildings:
+		if b.is_alive:
+			occupied[b.grid_pos] = true
+	for h in player_harvesters:
+		if h.is_alive:
+			occupied[h.grid_pos] = true
+	var own_positions: Array = []
+	for b in player_buildings:
+		if b.is_alive and b.is_built:
+			own_positions.append(b.grid_pos)
+	if grid != null and not grid.can_place_construction_site(target_cell, own_positions, occupied):
+		log_message.emit("Cannot place construction site at (%d,%d)" % [target_cell.x, target_cell.y])
+		return false
+	# 譚｡莉ｶ4: 蠑ｷ蛻ｶ遯∵茶蜑搾ｼ亥他蜃ｺ蜈・〒繝√ぉ繝・け貂医∩・・
 	return true
 
+func _get_building_type_from_card(card: Dictionary) -> int:
+	var building := _create_building_from_card(card, Vector2i(0, 0))
+	if building == null:
+		return -1
+	var btype: int = int(building.building_type)
+	building.queue_free()
+	return btype
+
 func _create_building_from_card(card: Dictionary, target_cell: Vector2i) -> EconBuilding:
-	# カードから建物を生成する
+	# 繧ｫ繝ｼ繝峨°繧牙ｻｺ迚ｩ繧堤函謌舌☆繧・
 	var btype_str: String = card.get("building_type", "")
 	var btype_map: Dictionary = {
 		"BARRACKS": EconBuilding.BuildingType.BARRACKS,
@@ -117,8 +136,8 @@ func _create_building_from_card(card: Dictionary, target_cell: Vector2i) -> Econ
 		"MINE": EconBuilding.BuildingType.MINE,
 		"EQUIPMENT_SHOP": EconBuilding.BuildingType.EQUIPMENT_SHOP,
 		"TRADE_POST": EconBuilding.BuildingType.TRADE_POST,
-		"LIBRARY": EconBuilding.BuildingType.TRADE_POST,  # v0.1 仮マッピング
-		"MARKET": EconBuilding.BuildingType.TRADE_POST,   # v0.1 仮マッピング
+		"LIBRARY": EconBuilding.BuildingType.TRADE_POST,  # v0.1 莉ｮ繝槭ャ繝斐Φ繧ｰ
+		"MARKET": EconBuilding.BuildingType.TRADE_POST,   # v0.1 莉ｮ繝槭ャ繝斐Φ繧ｰ
 		"HOUSE": EconBuilding.BuildingType.HOUSE,
 		"PLAZA": EconBuilding.BuildingType.PLAZA,
 		"WOOD_EXTRACTOR": EconBuilding.BuildingType.SAWMILL,
@@ -136,20 +155,21 @@ func _create_building_from_card(card: Dictionary, target_cell: Vector2i) -> Econ
 	var btype: int = btype_map[btype_str]
 	var b := EconBuilding.new()
 	b.setup(btype, target_cell, true)
+	b.required_operation_labor = int(card.get("required_operation_labor", card.get("population_required", 0)))
 	b.position = grid.hex_to_pixel(target_cell.x, target_cell.y)
-	# HP をカードから設定
+	# HP 繧偵き繝ｼ繝峨°繧芽ｨｭ螳・
 	var hp_val: float = float(card.get("hp", 100))
 	b.hp = hp_val
 	b.max_hp = hp_val
 	b.building_destroyed.connect(func(building: Node):
 		_on_building_destroyed(building)
-		# 建物破壊時の人口更新（§8.5）
+		# 蟒ｺ迚ｩ遐ｴ螢頑凾縺ｮ莠ｺ蜿｣譖ｴ譁ｰ・按ｧ8.5・・
 		if economy != null:
 			var pop_req: int = card.get("population_required", 0)
 			economy.population_used -= pop_req
 			var pop_supply: int = card.get("population_supply", 0)
 			if pop_supply > 0:
-				# HOUSE破壊時は calculate_population_cap() で再計算する（§2.7.1 Lv別効果対応）
+				# HOUSE遐ｴ螢頑凾縺ｯ calculate_population_cap() 縺ｧ蜀崎ｨ育ｮ励☆繧具ｼ按ｧ2.7.1 Lv蛻･蜉ｹ譫懷ｯｾ蠢懶ｼ・
 				economy.population_cap = economy.calculate_population_cap()
 				print("[EconBattle] HOUSE destroyed: population_cap recalculated -> ", economy.population_cap)
 				_resolve_population_overflow()
@@ -157,14 +177,14 @@ func _create_building_from_card(card: Dictionary, target_cell: Vector2i) -> Econ
 	return b
 
 func _resolve_population_overflow() -> void:
-	# §8.5.1 住居破壊時の建物停止アルゴリズム
+	# ﾂｧ8.5.1 菴丞ｱ・ｴ螢頑凾縺ｮ蟒ｺ迚ｩ蛛懈ｭ｢繧｢繝ｫ繧ｴ繝ｪ繧ｺ繝
 	if economy == null:
 		return
 	while economy.population_used > economy.population_cap:
 		var active_buildings: Array = player_buildings.filter(func(b): return b.is_alive and b.is_built and not b.has_meta("stopped"))
 		if active_buildings.is_empty():
 			break
-		# 必要人口の大きい順→建設順（LIFO）でソート
+		# 蠢・ｦ∽ｺｺ蜿｣縺ｮ螟ｧ縺阪＞鬆・・蟒ｺ險ｭ鬆・ｼ・IFO・峨〒繧ｽ繝ｼ繝・
 		active_buildings.sort_custom(func(a, b_node):
 			var a_pop: int = a.get_meta("population_required") if a.has_meta("population_required") else 0
 			var b_pop: int = b_node.get_meta("population_required") if b_node.has_meta("population_required") else 0
@@ -181,18 +201,18 @@ func _resolve_population_overflow() -> void:
 		print("[EconBattle] _resolve_population_overflow: stopped building at (%d,%d)" % [target.grid_pos.x, target.grid_pos.y])
 
 func trigger_early_charge() -> void:
-	# §4.6.1 / §8.2 早期突撃のエントリポイント（unitize_military_powerはDeckManager経由で実行）
+	# ﾂｧ4.6.1 / ﾂｧ8.2 譌ｩ譛溽ｪ∵茶縺ｮ繧ｨ繝ｳ繝医Μ繝昴う繝ｳ繝茨ｼ・nitize_military_power縺ｯDeckManager邨檎罰縺ｧ螳溯｡鯉ｼ・
 	if deck_manager != null:
 		deck_manager.trigger_force_charge()
 	log_message.emit("Early charge triggered!")
 
 func unitize_military_power() -> int:
-	# §4.7.3 / §8.2 兵力→ユニット変換（突撃時のみ呼出・旗倒し単独では呼ばない）
+	# ﾂｧ4.7.3 / ﾂｧ8.2 蜈ｵ蜉帚・繝ｦ繝九ャ繝亥､画鋤・育ｪ∵茶譎ゅ・縺ｿ蜻ｼ蜃ｺ繝ｻ譌怜偵＠蜊倡峡縺ｧ縺ｯ蜻ｼ縺ｰ縺ｪ縺・ｼ・
 	if economy == null:
 		return 0
 	var raw_unit_count: int = int(floor(economy.military_power))
 	var unit_count: int = mini(raw_unit_count, economy.get_max_chargeable_units())
-	economy.military_power -= float(unit_count)  # 小数部を残す
+	economy.military_power -= float(unit_count)  # 蟆乗焚驛ｨ繧呈ｮ九☆
 	if unit_count <= 0:
 		print("[EconBattle] unitize_military_power skipped: power=%d max_chargeable=%d" % [raw_unit_count, economy.get_max_chargeable_units()])
 		return 0
@@ -231,13 +251,13 @@ func _get_player_base() -> EconBuilding:
 	return null
 
 func _spawn_units_from_barracks(unit_count: int) -> void:
-	# §4.7.3 兵舎セルから均等分散出現
+	# ﾂｧ4.7.3 蜈ｵ闊弱そ繝ｫ縺九ｉ蝮・ｭ牙・謨｣蜃ｺ迴ｾ
 	var barracks_cells: Array = []
 	for b in player_buildings:
 		if b.building_type == EconBuilding.BuildingType.BARRACKS and b.is_alive and b.is_built:
 			barracks_cells.append(b.grid_pos)
 	if barracks_cells.size() == 0:
-		# 兵舎なし → BASE位置からスポーン
+		# 蜈ｵ闊弱↑縺・竊・BASE菴咲ｽｮ縺九ｉ繧ｹ繝昴・繝ｳ
 		for b in player_buildings:
 			if b.building_type == EconBuilding.BuildingType.BASE and b.is_alive:
 				barracks_cells.append(b.grid_pos)
@@ -250,52 +270,86 @@ func _spawn_units_from_barracks(unit_count: int) -> void:
 		var cell: Vector2i = barracks_cells[i]
 		var n: int = per_cell + (1 if i < remainder else 0)
 		for _j in range(n):
-			spawn_player_unit(cell.x, cell.y, 0, true)  # 突撃モードで出現
+			spawn_player_unit(cell.x, cell.y, 0, true)  # 遯∵茶繝｢繝ｼ繝峨〒蜃ｺ迴ｾ
 	print("[EconBattle] _spawn_units_from_barracks: %d units from %d barracks" % [unit_count, barracks_cells.size()])
 
 func _accumulate_barracks_power(delta: float) -> void:
-	# §4.7.2 / §8.2 兵舎の兵力蓄積（EconBattle.update内で呼出）
+	# ﾂｧ4.7.2 / ﾂｧ8.2 蜈ｵ闊弱・蜈ｵ蜉幄塘遨搾ｼ・conBattle.update蜀・〒蜻ｼ蜃ｺ・・
 	if economy == null:
 		return
 	var active_count: int = 0
 	for b in player_buildings:
-		if b.building_type == EconBuilding.BuildingType.BARRACKS and b.is_alive and b.is_built:
+		if b.building_type == EconBuilding.BuildingType.BARRACKS and b.is_alive and b.is_built and b.is_operating:
 			active_count += 1
 	if active_count > 0:
 		economy.accumulate_military_power(delta, active_count)
 
+func _allocate_operation_labor() -> void:
+	if economy == null:
+		return
+	var sorted_buildings: Array = player_buildings.filter(func(b): return b.is_alive and b.is_built)
+	sorted_buildings.sort_custom(func(a: EconBuilding, b: EconBuilding) -> bool:
+		var ap: int = _get_operation_priority(a)
+		var bp: int = _get_operation_priority(b)
+		if ap == bp:
+			return a.grid_pos.x < b.grid_pos.x if a.grid_pos.y == b.grid_pos.y else a.grid_pos.y < b.grid_pos.y
+		return ap < bp
+	)
+	var pool: int = economy.get_operation_labor()
+	for building in sorted_buildings:
+		var need: int = max(0, int(building.required_operation_labor))
+		if need <= 0:
+			building.set_operating(true)
+		elif pool >= need:
+			pool -= need
+			building.set_operating(true)
+		else:
+			building.set_operating(false)
+
+func _get_operation_priority(building: EconBuilding) -> int:
+	match building.building_type:
+		EconBuilding.BuildingType.VILLAGE, EconBuilding.BuildingType.DINER, EconBuilding.BuildingType.MILL:
+			return 0
+		EconBuilding.BuildingType.SAWMILL, EconBuilding.BuildingType.MINE, EconBuilding.BuildingType.TRADE_POST, EconBuilding.BuildingType.EXCHANGE:
+			return 1
+		EconBuilding.BuildingType.BARRACKS, EconBuilding.BuildingType.FORTRESS, EconBuilding.BuildingType.WORKSHOP, EconBuilding.BuildingType.SMITHY, EconBuilding.BuildingType.WATCHTOWER:
+			return 2
+		EconBuilding.BuildingType.PLAZA:
+			return 3
+		_:
+			return 4
+
 func update(delta: float) -> void:
 	if not is_running or _game_over:
 		return
-	# ドローマネージャー更新（§8.2）
 	if deck_manager != null:
 		deck_manager.update(delta)
 		deck_manager.try_resolve_pending_draws()
-	# 兵舎の兵力蓄積（v0.2 §4.7.2）
+	# 蜈ｵ闊弱・蜈ｵ蜉幄塘遨搾ｼ・0.2 ﾂｧ4.7.2・・
+	_allocate_operation_labor()
 	_accumulate_barracks_power(delta)
-	# 強制突撃ゲージ満タン時の自動ユニット化（§9.1 ターン10）
+	# 蠑ｷ蛻ｶ遯∵茶繧ｲ繝ｼ繧ｸ貅繧ｿ繝ｳ譎ゅ・閾ｪ蜍輔Θ繝九ャ繝亥喧・按ｧ9.1 繧ｿ繝ｼ繝ｳ10・・
 	if deck_manager != null and deck_manager.force_charge_triggered and economy != null:
 		if floor(economy.military_power) > 0.0:
-			pass  # unitize_military_power は trigger_force_charge 経由で呼ばれる
-	# 経済更新（小麦消費）
+			pass  # unitize_military_power 縺ｯ trigger_force_charge 邨檎罰縺ｧ蜻ｼ縺ｰ繧後ｋ
 	var total_units: int = player_units.size()
 	economy.update(delta, total_units)
 	_update_milestone_progress()
 	_update_construction_progress(delta)
-	# ハーベスター更新
+	# 繝上・繝吶せ繧ｿ繝ｼ譖ｴ譁ｰ
 	var all_movable: Array = player_units + player_harvesters + enemy_units
 	var alive_harvester_count: int = player_harvesters.filter(func(h): return h.is_alive).size()
 	for h in player_harvesters:
 		if h.is_alive:
 			h.update(delta, grid, all_movable, enemy_units, player_buildings, alive_harvester_count)
-	# 建物更新（プレイヤー側のみ）
+	# 蟒ｺ迚ｩ譖ｴ譁ｰ・医・繝ｬ繧､繝､繝ｼ蛛ｴ縺ｮ縺ｿ・・
 	for b in player_buildings:
 		if b.is_alive:
 			b.update(delta, economy, player_buildings, grid)
-	# AI更新
+	# AI譖ｴ譁ｰ
 	if ai != null:
 		ai.update(delta)
-	# 戦闘ユニット更新
+	# 謌ｦ髣倥Θ繝九ャ繝域峩譁ｰ
 	var all_units: Array = player_units + enemy_units
 	for u in player_units:
 		if u.is_alive:
@@ -304,57 +358,56 @@ func update(delta: float) -> void:
 	for u in enemy_units:
 		if u.is_alive:
 			u.update(delta, player_units, player_buildings, player_harvesters, grid, all_units, ai.economy if ai != null else null)
-	# 重なりカウント更新
+	# 驥阪↑繧翫き繧ｦ繝ｳ繝域峩譁ｰ
 	_check_enemy_base_breakthroughs()
 	_update_stack_counts()
-	# 死亡処理
+	# 豁ｻ莠｡蜃ｦ逅・
 	_remove_dead()
-	# 勝敗判定
 	_check_victory()
 
 func _update_construction_progress(delta: float) -> void:
-	if economy == null:
+	if grid == null or economy == null:
 		return
-	var targets: Array = player_buildings.filter(func(b): return b.is_alive and not b.is_built)
-	if targets.is_empty():
-		return
-	targets.sort_custom(func(a, b):
-		var a_order: int = a.get_meta("construction_order") if a.has_meta("construction_order") else 0
-		var b_order: int = b.get_meta("construction_order") if b.has_meta("construction_order") else 0
-		return a_order < b_order
-	)
-	var target: EconBuilding = targets[0]
-	var cost: Dictionary = EconBuilding.BUILD_COSTS.get(int(target.building_type), {})
-	target._construction_ready = economy.can_afford(cost)
-	if not target._construction_ready:
-		target.queue_redraw()
-		return
-	var construction_power: float = max(0.0, float(economy.get_building_population()) / 25.0)
-	if construction_power <= 0.0:
-		return
-	target.build_progress += construction_power * delta
-	var required: float = EconBuilding.REQUIRED_CONSTRUCTION.get(int(target.building_type), 5.0)
-	if target.build_progress < required:
-		target.queue_redraw()
-		return
-	target.build_progress = required
-	economy.spend(cost)
-	target.is_built = true
-	target._construction_ready = true
-	if target.building_type == EconBuilding.BuildingType.HOUSE:
-		economy.population_cap = economy.calculate_population_cap()
-	if grid != null:
-		grid.reveal_panels_around(target.grid_pos)
-	print("[EconBattle] Building completed at (%d,%d)" % [target.grid_pos.x, target.grid_pos.y])
-	_on_building_constructed(target)
-	target.queue_redraw()
+	var completed_sites: Array = grid.update_construction(delta, economy)
+	for site in completed_sites:
+		var building: EconBuilding = grid.spawn_building(site)
+		if building == null:
+			continue
+		var card: Dictionary = site.get("card", {})
+		building.unit_produced.connect(func(pos: Vector2i, utype: int):
+			if utype == -1:
+				spawn_player_harvester(Vector2i(pos.x, pos.y), economy)
+			else:
+				spawn_player_unit(pos.x, pos.y, utype, false)
+				_on_unit_produced(pos, utype)
+		)
+		building.building_destroyed.connect(func(destroyed: Node):
+			_on_building_destroyed(destroyed)
+		)
+		register_player_building(building)
+		if building.building_type == EconBuilding.BuildingType.HOUSE:
+			economy.population_cap = economy.calculate_population_cap()
+		grid.reveal_panels_around(building.grid_pos)
+		if deck_manager != null:
+			if bool(site.get("is_special", false)):
+				deck_manager.exclude_card(card)
+			else:
+				deck_manager.discard_card(card)
+		_log_event({
+			"type": "BUILDING_COMPLETED",
+			"panel_id": [building.grid_pos.x, building.grid_pos.y],
+			"building_type": int(building.building_type),
+			"card_id": str(site.get("card_id", "")),
+		})
+		_on_building_constructed(building)
+		building.queue_redraw()
 
 func _remove_dead() -> void:
 	player_units = player_units.filter(func(u): return u.is_alive)
 	player_harvesters = player_harvesters.filter(func(h): return h.is_alive)
 	enemy_units = enemy_units.filter(func(u): return u.is_alive)
 	enemy_harvesters = enemy_harvesters.filter(func(h): return h.is_alive)
-	# 死亡後にharvester_indexを再採番
+	# 豁ｻ莠｡蠕後↓harvester_index繧貞・謗｡逡ｪ
 	for i in range(player_harvesters.size()):
 		player_harvesters[i].harvester_index = i
 	for i in range(enemy_harvesters.size()):
@@ -401,11 +454,11 @@ func spawn_player_harvester(pos: Vector2i, economy: EconEconomy) -> void:
 	# Harvester spawn log removed (v0.2: left-side harvester UI deleted)
 
 func add_building_to_queue(_b: EconBuilding) -> void:
-	pass  # ビルダー方式に移行済み。ビルダーが自動的に未建設建物を担当する
+	pass  # 繝薙Ν繝繝ｼ譁ｹ蠑上↓遘ｻ陦梧ｸ医∩縲ゅン繝ｫ繝繝ｼ縺瑚・蜍慕噪縺ｫ譛ｪ蟒ｺ險ｭ蟒ｺ迚ｩ繧呈球蠖薙☆繧・
 func spawn_enemy_unit(utype: int, pos: Vector2i) -> void:
 	var unit := EconUnit.create(utype, EconUnit.Side.ENEMY, pos.x, pos.y)
 	unit.position = grid.hex_to_pixel(pos.x, pos.y)
-	unit.is_idle = true  # 敵ユニットも初期はアイドリング
+	unit.is_idle = true  # 謨ｵ繝ｦ繝九ャ繝医ｂ蛻晄悄縺ｯ繧｢繧､繝峨Μ繝ｳ繧ｰ
 	unit._spawn_building_pos = pos
 	enemy_units.append(unit)
 	grid.add_child(unit)
@@ -430,6 +483,15 @@ func register_player_building(b: EconBuilding) -> void:
 	if economy != null:
 		economy.buildings = player_buildings
 
+func _log_event(data: Dictionary) -> void:
+	var log_manager: Object = get_node_or_null("/root/LogManager")
+	if log_manager == null:
+		var scene := get_tree().current_scene
+		if scene != null:
+			log_manager = scene.get("_log_manager")
+	if log_manager != null and log_manager.has_method("log_event"):
+		log_manager.log_event(data)
+
 func _update_stack_counts() -> void:
 	var counts: Dictionary = {}
 	for u in player_units + enemy_units:
@@ -449,8 +511,8 @@ func _get_unit_rally_pos(u: EconUnit) -> Vector2i:
 					return f.grid_pos
 	return Vector2i(-1, -1)
 
-# 融合ランク再計算（建設完了・死亡時に呼び出し）
-# 要件定義書 req_econ_equipment_shop_mvp.md § 4.2 より
+# 陞榊粋繝ｩ繝ｳ繧ｯ蜀崎ｨ育ｮ暦ｼ亥ｻｺ險ｭ螳御ｺ・・豁ｻ莠｡譎ゅ↓蜻ｼ縺ｳ蜃ｺ縺暦ｼ・
+# 隕∽ｻｶ螳夂ｾｩ譖ｸ req_econ_equipment_shop_mvp.md ﾂｧ 4.2 繧医ｊ
 func _recalc_fusion_clusters() -> void:
 	var equip_types: Array = [
 		EconBuilding.BuildingType.EQUIPMENT_SHOP,
@@ -461,7 +523,7 @@ func _recalc_fusion_clusters() -> void:
 		if visited.has(b0): continue
 		if not b0.is_alive or not b0.is_built: continue
 		if not (b0.building_type in equip_types): continue
-		# BFS: 同種かつ hex_distance==1 で連結
+		# BFS: 蜷檎ｨｮ縺九▽ hex_distance==1 縺ｧ騾｣邨・
 		var cluster: Array = []
 		var queue: Array = [b0]
 		visited[b0] = true
@@ -482,13 +544,13 @@ func _recalc_fusion_clusters() -> void:
 			b.queue_redraw()
 		next_cluster_id += 1
 
-# ユニット生成時の装備屋バフ適用
-# 要件定義書 req_econ_equipment_shop_mvp.md § 4.3 より
+# 繝ｦ繝九ャ繝育函謌先凾縺ｮ陬・ｙ螻九ヰ繝暮←逕ｨ
+# 隕∽ｻｶ螳夂ｾｩ譖ｸ req_econ_equipment_shop_mvp.md ﾂｧ 4.3 繧医ｊ
 func _apply_equipment_buffs(unit: EconUnit, source_building_pos: Vector2i) -> void:
 	var equip_types: Array = [
 		EconBuilding.BuildingType.EQUIPMENT_SHOP,
 	]
-	# 隣接装備屋のうち最大 fusion_rank を選定（二重適用回避）
+	# 髫｣謗･陬・ｙ螻九・縺・■譛螟ｧ fusion_rank 繧帝∈螳夲ｼ井ｺ碁㍾驕ｩ逕ｨ蝗樣∩・・
 	var best: EconBuilding = null
 	for b in player_buildings:
 		if not b.is_alive or not b.is_built: continue
@@ -496,14 +558,14 @@ func _apply_equipment_buffs(unit: EconUnit, source_building_pos: Vector2i) -> vo
 		if not (b.building_type in equip_types): continue
 		if best == null or b.fusion_rank > best.fusion_rank:
 			best = b
-	# 適用（疎結合: メソッド経由）
+	# 驕ｩ逕ｨ・育鮪邨仙粋: 繝｡繧ｽ繝・ラ邨檎罰・・
 	if best != null:
 		unit.apply_equipment_buff(int(unit.unit_type), best.fusion_rank)
 
-# ユニット生成時の鍛冶屋バフ適用
-# 要件定義書 req_econ_smithy_building.md § 5.3 より
+# 繝ｦ繝九ャ繝育函謌先凾縺ｮ骰帛・螻九ヰ繝暮←逕ｨ
+# 隕∽ｻｶ螳夂ｾｩ譖ｸ req_econ_smithy_building.md ﾂｧ 5.3 繧医ｊ
 func _apply_smithy_buff(unit: EconUnit, source_building_pos: Vector2i) -> void:
-	# 隣接鍛冶屋のうち最大 smithy_level を選定（重複適用回避）
+	# 髫｣謗･骰帛・螻九・縺・■譛螟ｧ smithy_level 繧帝∈螳夲ｼ磯㍾隍・←逕ｨ蝗樣∩・・
 	var best_rank: int = 0
 	for b in player_buildings:
 		if not b.is_alive or not b.is_built:
@@ -515,19 +577,19 @@ func _apply_smithy_buff(unit: EconUnit, source_building_pos: Vector2i) -> void:
 		var rank: int = b.smithy_level
 		if rank > best_rank:
 			best_rank = rank
-	# 適用（疎結合: メソッド経由）
+	# 驕ｩ逕ｨ・育鮪邨仙粋: 繝｡繧ｽ繝・ラ邨檎罰・・
 	if best_rank > 0:
 		unit.apply_smithy_buff(best_rank)
 
-# ハーベスター harvested シグナル受信時のルーティング
-# 要件定義書 req_econ_unit_production_harvester.md § 2.3 より
+# 繝上・繝吶せ繧ｿ繝ｼ harvested 繧ｷ繧ｰ繝翫Ν蜿嶺ｿ｡譎ゅ・繝ｫ繝ｼ繝・ぅ繝ｳ繧ｰ
+# 隕∽ｻｶ螳夂ｾｩ譖ｸ req_econ_unit_production_harvester.md ﾂｧ 2.3 繧医ｊ
 func _on_harvested(rtype: int) -> void:
 	_route_harvested_resource(rtype)
 
-# ユニット生成時の装備屋・鍛冶屋バフ適用
-# 要件定義書 req_econ_equipment_shop_mvp.md § 3.1 / req_econ_smithy_building.md § 5.3 より
+# 繝ｦ繝九ャ繝育函謌先凾縺ｮ陬・ｙ螻九・骰帛・螻九ヰ繝暮←逕ｨ
+# 隕∽ｻｶ螳夂ｾｩ譖ｸ req_econ_equipment_shop_mvp.md ﾂｧ 3.1 / req_econ_smithy_building.md ﾂｧ 5.3 繧医ｊ
 func _on_unit_produced(pos: Vector2i, unit_type: int) -> void:
-	# unit_type: 0=突, 1=守, 2=崩, -1=harvester（ハーベスター生成時は処理しない）
+	# unit_type: 0=遯・ 1=螳・ 2=蟠ｩ, -1=harvester・医ワ繝ｼ繝吶せ繧ｿ繝ｼ逕滓・譎ゅ・蜃ｦ逅・＠縺ｪ縺・ｼ・
 	if unit_type < 0:
 		return
 	if not player_units.size() > 0:
@@ -537,7 +599,6 @@ func _on_unit_produced(pos: Vector2i, unit_type: int) -> void:
 	_apply_smithy_buff(unit, pos)
 
 func _on_building_constructed(building: EconBuilding) -> void:
-	# 装備屋建設完了時に融合ランク再計算（要件定義書 req_econ_equipment_shop_mvp.md § 4.4）
 	if building.building_type == EconBuilding.BuildingType.EQUIPMENT_SHOP:
 		_recalc_fusion_clusters()
 	_try_acquire_adjacent_chests(building)
@@ -619,7 +680,7 @@ func _count_placed_land_cards() -> int:
 	return count
 
 func _on_building_destroyed(building: EconBuilding) -> void:
-	# 装備屋死亡時に融合ランク再計算（要件定義書 req_econ_equipment_shop_mvp.md § 4.4）
+	# 陬・ｙ螻区ｭｻ莠｡譎ゅ↓陞榊粋繝ｩ繝ｳ繧ｯ蜀崎ｨ育ｮ暦ｼ郁ｦ∽ｻｶ螳夂ｾｩ譖ｸ req_econ_equipment_shop_mvp.md ﾂｧ 4.4・・
 	if building.building_type == EconBuilding.BuildingType.EQUIPMENT_SHOP:
 		_recalc_fusion_clusters()
 
@@ -637,25 +698,25 @@ func _route_harvested_resource(rtype: int) -> void:
 			btype = EconBuilding.BuildingType.WORKSHOP
 			key = "resin"
 		_:
-			# WHEAT / IRON / COTTON 等は既存通り economy に直接追加
+			# WHEAT / IRON / COTTON 遲峨・譌｢蟄倬壹ｊ economy 縺ｫ逶ｴ謗･霑ｽ蜉
 			economy.add_resource(rtype, 1)
 			return
-	# 該当タイプの建物のうち、在庫に空きがある最寄りを選定
+	# 隧ｲ蠖薙ち繧､繝励・蟒ｺ迚ｩ縺ｮ縺・■縲∝惠蠎ｫ縺ｫ遨ｺ縺阪′縺ゅｋ譛蟇・ｊ繧帝∈螳・
 	var best: EconBuilding = null
 	var best_priority: int = 0
 	for b in player_buildings:
 		if not b.is_alive or not b.is_built: continue
 		if b.building_type != btype: continue
 		if b.stockpile.get(key, 0) >= EconBuilding.STOCKPILE_CAP: continue
-		# 集中建設モードの優先度を流用 + 在庫が少ない順を優先
+		# 髮・ｸｭ蟒ｺ險ｭ繝｢繝ｼ繝峨・蜆ｪ蜈亥ｺｦ繧呈ｵ∫畑 + 蝨ｨ蠎ｫ縺悟ｰ代↑縺・・ｒ蜆ｪ蜈・
 		var priority: int = b.build_priority * 100 + (EconBuilding.STOCKPILE_CAP - b.stockpile.get(key, 0))
 		if best == null or priority > best_priority:
 			best = b
 			best_priority = priority
 	if best != null:
 		if not best.add_stock(key, 1):
-			# 満杯の場合のフォールバック
+			# 貅譚ｯ縺ｮ蝣ｴ蜷医・繝輔か繝ｼ繝ｫ繝舌ャ繧ｯ
 			economy.add_resource(rtype, 1)
 	else:
-		# 全建物満杯 or 該当建物なし → 既存通り economy にフォールバック
+		# 蜈ｨ蟒ｺ迚ｩ貅譚ｯ or 隧ｲ蠖灘ｻｺ迚ｩ縺ｪ縺・竊・譌｢蟄倬壹ｊ economy 縺ｫ繝輔か繝ｼ繝ｫ繝舌ャ繧ｯ
 		economy.add_resource(rtype, 1)
