@@ -2,6 +2,13 @@
 
 ## [Unreleased]
 
+## 2026-05-04 UI品質修正3件
+
+### 修正内容
+- project.godot: デフォルトフォントを PixelMplus10-Regular.ttf (uid://bx3qlhx7hrtey) に設定（日本語文字化け対応）
+- EconMain.gd 行2120: 手札カードサイズ 48px → 96px に拡大
+- BuildQueueUI.gd 行26: BuildキューUI幅 140px → 100px に削減（盤面重複防止）
+
 ## 2026-05-04 ドキュメント整理（docs/ 238ファイル ACTIVE/ARCHIVE/DELETE 分類）
 
 ### 整理内容

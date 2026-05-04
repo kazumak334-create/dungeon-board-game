@@ -47,6 +47,11 @@ enabled=PackedStringArray("res://addons/claude_mcp/plugin.cfg")
 2d/default_linear_damp=0
 2d/default_angular_damp=0
 
+[gui]
+
+theme/custom_font="uid://bx3qlhx7hrtey"
+theme/custom_font_size=14
+
 [rendering]
 
 renderer/rendering_method="gl_compatibility"

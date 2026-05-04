@@ -23,7 +23,7 @@ func setup(new_battle: EconBattle, new_economy: EconEconomy) -> void:
 	battle = new_battle
 	economy = new_economy
 	position = Vector2(0.0, 100.0)
-	custom_minimum_size = Vector2(140.0, 420.0)
+	custom_minimum_size = Vector2(100.0, 420.0)
 	size = custom_minimum_size
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	var panel_style := StyleBoxFlat.new()

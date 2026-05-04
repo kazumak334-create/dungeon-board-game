@@ -2117,7 +2117,7 @@ func _refresh_hand_ui() -> void:
 func _create_hand_card_node(card_data: Dictionary, card_idx: int) -> Control:
 	# ﾂｧ4.2.1 謇区惆繧ｫ繝ｼ繝・譫壹・繝弱・繝峨ｒ逕滓・・・0ﾃ・6px繝ｻ謾ｹ險・ 邵ｮ蟆擾ｼ・
 	var card_btn := Button.new()
-	card_btn.custom_minimum_size = Vector2(48, 140)
+	card_btn.custom_minimum_size = Vector2(96, 140)
 	card_btn.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 
 	# 迥ｶ諷句愛螳夲ｼ按ｧ5.3.2 6迥ｶ諷九・蜆ｪ蜈磯・ｽ阪メ繧ｧ繝・け・・
