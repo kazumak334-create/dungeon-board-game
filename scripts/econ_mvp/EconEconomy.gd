@@ -1,19 +1,22 @@
-﻿class_name EconEconomy
+class_name EconEconomy
 extends Node
+
+# TRADE_POST: リソース消費時に通知するシグナル（REQUIREMENTS_CARD_EFFECTS §3.5）
+signal resource_consumed(resource_type: String, amount: int)
 
 const ROLE_BUILD := 10
 const ROLE_TRADE := 11
 
-# v0.2 螳壽焚・按ｧ13.6 繝代Λ繝｡繝ｼ繧ｿ蛹厄ｼ・
+
 const BASE_POPULATION_CAP: int = 100  # Sprint 3: initial population cap
 const POPULATION_INITIAL: float = 50.0
 const POPULATION_MIN_INITIAL: float = 10.0
 const POPULATION_GROWTH_CONFIRM_UNIT: int = 10
 const MOBILIZATION_BASE_RATE: float = 0.08
-const HOUSE_POP_CAP_LV1: int = 10  # ﾂｧ2.7.1: 菴丞ｱ・v1縺ｮ莠ｺ蜿｣荳企剞萓帷ｵｦ驥・
+const HOUSE_POP_CAP_LV1: int = 10
 const BARRACKS_POWER_PER_SEC: float = 0.2  # 莉ｮ蛟､・按ｧ4.7.2・・
-const INITIAL_FOOD: int = 30              # ﾂｧ7.3
-const INITIAL_CURRENCY: int = 100        # ﾂｧ7.3
+const INITIAL_FOOD: int = 30
+const INITIAL_CURRENCY: int = 100
 
 var wood: int = 0
 var stone: int = 0
@@ -26,32 +29,32 @@ var cotton: int = 0
 var resources: Dictionary = {"wood": 5, "stone": 5, "resin": 5, "food": 30, "wheat": 30, "iron": 5, "cotton": 5}
 var special_resources: Dictionary = {"sulfur": false}
 var food: int = INITIAL_FOOD
-var satisfaction: int = 60    # ﾂｧ2.4.3: 蟷ｸ遖丞ｺｦ蛻晄悄蛟､60
-var military_power: float = 0.0  # 蜈ｵ蜉幢ｼ按ｧ4.7.2・・
+var satisfaction: int = 60
+var military_power: float = 0.0
 
-# 隕∽ｻｶ螳夂ｾｩ譖ｸ req_econ_draw_hand_circulation.md ﾂｧ7.4
+
 var currency: int = INITIAL_CURRENCY
 var population_used: int = 0
 var population_cap: float = float(BASE_POPULATION_CAP)
 
-# === Sprint 1: 驛ｽ蟶ゅせ繝・・繧ｿ繧ｹ蝓ｺ逶､ ===
+
 var population_float: float = POPULATION_INITIAL
 var population_min: float = POPULATION_MIN_INITIAL
 var food_value: int = INITIAL_FOOD
-var satisfaction_value: float = 60.0  # 貅雜ｳ蛟､・・-100%・・
-var satisfaction_slope: float = 0.0   # 貅雜ｳ蛟､蛯ｾ縺搾ｼ・/遘抵ｼ・
-var satisfaction_stage: String = "satisfied"  # 貅雜ｳ蠎ｦ谿ｵ髫・
+var satisfaction_value: float = 60.0
+var satisfaction_slope: float = 0.0
+var satisfaction_stage: String = "satisfied"
 var building_satisfaction_modifier: float = 0.0
 var building_efficiency_modifier: float = 0.0  # building interval efficiency modifier
-var food_shortage_count: int = 0    # 鬟滓侭荳崎ｶｳ繧ｫ繧ｦ繝ｳ繝・
+var food_shortage_count: int = 0
 var growth_blocked: bool = false
 var unit_count: int = 0
 
-# ﾂｧ2.4.2 莠ｺ蜿｣驟榊・豈皮紫・・.0 ~ 1.0 (繧ｹ繝翫ャ繝・ 0.25 / 0.50 / 0.75)
-# alloc_work_ratio = 0.25 竊・遞ｼ蜒・5%, 菴懈･ｭ25%・亥・譛溷､・・
+
+
 var alloc_work_ratio: float = 0.30
 
-# 繝上・繝吶せ繧ｿ繝ｼ蜑ｲ繧雁ｽ薙※莠ｺ謨ｰ・育峩謗･莠ｺ謨ｰ謖・ｮ夲ｼ・
+
 var target_count: Dictionary = {
 	EconGrid.ResourceType.WOOD: 1,
 	EconGrid.ResourceType.STONE: 1,
@@ -68,20 +71,20 @@ const WHEAT_PER_UNIT := 0.5
 
 var _wheat_timer: float = 0.0
 
-# ﾂｧ6.2 5遘偵ユ繧｣繝・け蜃ｦ逅・ｼ・EQUIREMENTS_V0_2_MVP.md ﾂｧ6.2・・
-# 蜻ｼ縺ｳ蜃ｺ縺怜・・哘conBattle.update() 竊・economy.update(delta, total_units)
-# 5遘偵＃縺ｨ縺ｫEconBattle蛛ｴ縺ｧtick繧堤匱轣ｫ縺吶ｋ諠ｳ螳壹よ悽繝｡繧ｽ繝・ラ縺ｯ豈弱ヵ繝ｬ繝ｼ繝蜻ｼ縺ｰ繧後ｋ縺・
-# 蜀・Κ繧ｿ繧､繝槭・縺ｧ5遘偵＃縺ｨ縺ｫ蜃ｦ逅・☆繧具ｼ域里蟄倥・_wheat_timer縺ｨ蜷梧ｧ矩・・
+
+
+
+
 var _tick_timer: float = 0.0
 const TICK_INTERVAL: float = 5.0
 var _tick_index: int = 0
 
-# 螟夜Κ縺九ｉ蟒ｺ迚ｩ繝ｪ繧ｹ繝医ｒ蜿励￠蜿悶ｋ縺溘ａ縺ｮ繝輔ぅ繝ｼ繝ｫ繝会ｼ・conBattle縺後そ繝・ヨ縺吶ｋ・・
+
 var buildings: Array = []
 
 func update(delta: float, total_unit_count: int) -> void:
 	unit_count = total_unit_count
-	# ---- 豈弱ヵ繝ｬ繝ｼ繝蜃ｦ逅・ｼ・print 3/4・・----
+
 	update_satisfaction(delta)
 	update_population(delta)
 
@@ -98,11 +101,11 @@ func update(delta: float, total_unit_count: int) -> void:
 	_log_population_change_event(_pop_breakdown)
 	_log_satisfaction_slope_event(_breakdown)
 
-	# ---- Step 1: 雉・ｺ千函逕｣・医い繧ｯ繝・ぅ繝門ｻｺ迚ｩ縺ｮ逕溽肇・可ｧ6.2-1 ----
+
 	for b in buildings:
 		if not b.is_alive or not b.is_built:
 			continue
-		var lv: int = b.fusion_rank  # fusion_rank 縺・Lv1/2/3 縺ｫ蟇ｾ蠢・
+		var lv: int = b.fusion_rank
 		var lv_bonus: float = 1.0 + (lv - 1) * 0.25  # Lv1=1.0, Lv2=1.25, Lv3=1.5
 		match b.building_type:
 			# SAWMILL/MINE は EconBuilding._update_sawmill/_update_mine() でタイマー駆動（§5.7）
@@ -110,34 +113,34 @@ func update(delta: float, total_unit_count: int) -> void:
 				var gain: int = roundi(1.0 * lv_bonus)
 				resin += gain
 				resources["resin"] = resin
-				print("[EconEconomy] WORKSHOP Lv%d 讓ｹ閼・%d" % [lv, gain])
+				print("[EconEconomy] WORKSHOP Lv%d resin +%d" % [lv, gain])
 			EconBuilding.BuildingType.VILLAGE:
-				# VILLAGE縺ｮ鬟滓侭逕溽肇縺ｯEconBuilding._update_village()蛛ｴ縺ｧ蜃ｦ逅・ｸ医∩
-				# 縺薙％縺ｧ縺ｯ莠碁㍾險井ｸ翫＠縺ｪ縺・
+
+
 				pass
 
-	# ---- Step 2: 蜈ｵ闊守函謌撰ｼ按ｧ6.2-2 / ﾂｧ2.5.2・・---
+
 	var mil_mod: float = get_happiness_military_modifier()
 	for b in buildings:
 		if not b.is_alive or not b.is_built:
 			continue
 		if b.building_type != EconBuilding.BuildingType.BARRACKS:
 			continue
-		# 遞ｼ蜒堺ｺｺ蜿｣=1縺ｮ繝√ぉ繝・け・育ｰ｡逡･: population_used縺・莉･荳翫≠繧後・遞ｼ蜒榊庄縺ｨ縺吶ｋ・・
+
 		if population_used < 1:
-			print("[EconEconomy] 蜈ｵ闊・ 遞ｼ蜒堺ｺｺ蜿｣荳崎ｶｳ pop_used=%d, 逕滓・繧ｹ繧ｭ繝・・" % population_used)
+			print("[EconEconomy] BARRACKS skipped: insufficient operation labor pop_used=%d" % population_used)
 			continue
 		var lv: int = b.fusion_rank
 		var base_gain: int = lv + 1  # Lv1=+2, Lv2=+3, Lv3=+4
 		var actual_gain: float = float(base_gain) * mil_mod
 		military_power += actual_gain
-		print("[EconEconomy] BARRACKS Lv%d 蜈ｵ蜉・%.1f (mil_mod=%.2f)" % [lv, actual_gain, mil_mod])
+		print("[EconEconomy] BARRACKS Lv%d military +%.1f (mil_mod=%.2f)" % [lv, actual_gain, mil_mod])
 
-	# ---- Step 3: 莠ｺ蜿｣邯ｭ謖∝・逅・ｼ按ｧ6.2-3 / req_econ_food_system_sprint2.md ﾂｧ3・・---
+
 	_consume_food_maintenance()
 
-	# ---- Step 4: 蟷ｸ遖丞ｺｦ譖ｴ譁ｰ・按ｧ6.2-4 / ﾂｧ2.4.3・・---
-	# 4-1: 蠎・ｴ(PLAZA)縺ｫ繧医ｋ蟷ｸ遖丈ｾ帷ｵｦ
+
+
 	var plaza_supply: int = 0
 	for b in buildings:
 		if not b.is_alive or not b.is_built:
@@ -145,34 +148,34 @@ func update(delta: float, total_unit_count: int) -> void:
 		if b.building_type != EconBuilding.BuildingType.PLAZA:
 			continue
 		var lv: int = b.fusion_rank  # Lv1=+1, Lv2=+2, Lv3=+3
-		var base_supply: int = lv  # Lv1竊・, Lv2竊・, Lv3竊・・按ｧ2.7.1・・
-		# 髫｣謗･菴丞ｱ・・繝ｼ繝翫せ・夐團謗･HOUSE繧呈焚縺医※+1/莉ｶ
+		var base_supply: int = lv
+
 		var adj_houses: int = _count_adjacent_houses(b, buildings)
 		plaza_supply += base_supply + adj_houses
 		print("[EconEconomy] PLAZA Lv%d happiness_supply+%d adjacent_houses=%d" % [lv, base_supply + adj_houses, adj_houses])
 
-	# 4-2: 莠ｺ蜿｣雋闕ｷ・壻ｺｺ蜿｣10莠ｺ縺斐→縺ｫ蟷ｸ遖丞ｺｦ-1・按ｧ2.4.3・・
+
 	var pop_load: int = population_used / 10
 
-	# 4-3: 蟷ｸ遖丞ｺｦ譖ｴ譁ｰ
+
 	satisfaction += plaza_supply - pop_load
 	satisfaction = clampi(satisfaction, 0, 100)
-	print("[EconEconomy] 蟷ｸ遖丞ｺｦ譖ｴ譁ｰ plaza_supply=+%d pop_load=-%d sat=%d state=%s" % [plaza_supply, pop_load, satisfaction, get_happiness_state()])
+	print("[EconEconomy] happiness update plaza_supply=+%d pop_load=-%d sat=%d state=%s" % [plaza_supply, pop_load, satisfaction, get_happiness_state()])
 
 	# ---- Step 5: 髦ｲ陦帶侠轤ｹ蝗槫ｾｩ・按ｧ6.2-5・・---
-	# WATCHTOWER 縺ｯ迴ｾ蝨ｨEconBuilding enum縺ｫ蟄伜惠縺励↑縺・◆繧√せ繧ｭ繝・・
-	# TODO: WATCHTOWER螳溯｣・凾縺ｫ髦ｲ螢？P蝗槫ｾｩ蜃ｦ逅・ｒ霑ｽ蜉
 
-	# ---- Step 6: 莠ｺ蜿｣驟榊・蜀崎ｨ育ｮ暦ｼ按ｧ6.2-6 / ﾂｧ2.4.2・・---
-	# alloc_work_ratio = 菴懈･ｭ莠ｺ蜿｣縺ｮ蜑ｲ蜷茨ｼ・.25/0.50/0.75・・
+
+
+
+
 	population_used = get_working_population()
-	print("[EconEconomy] 莠ｺ蜿｣驟榊・蜀崎ｨ育ｮ・alloc_work_ratio=%.2f working=%d building=%d cap=%d" % [alloc_work_ratio, get_working_population(), get_building_population(), population_cap])
+	print("[EconEconomy] labor allocation updated alloc_work_ratio=%.2f working=%d building=%d cap=%d" % [alloc_work_ratio, get_working_population(), get_building_population(), population_cap])
 
-# ﾂｧ2.4.2 遞ｼ蜒堺ｺｺ蜿｣ = population_cap ﾃ・(1 - alloc_work_ratio)
+
 func get_working_population() -> int:
 	return int(population_cap * (1.0 - alloc_work_ratio))
 
-# ﾂｧ2.4.2 菴懈･ｭ莠ｺ蜿｣ = population_cap ﾃ・alloc_work_ratio
+
 func get_building_population() -> int:
 	return int(population_cap * alloc_work_ratio)
 
@@ -185,7 +188,7 @@ func get_operation_labor() -> int:
 func get_work_labor() -> int:
 	return get_total_labor() - get_operation_labor()
 
-# ﾂｧ2.4.2 繧ｹ繝翫ャ繝玲ｩ滓ｧ具ｼ壽怙繧りｿ代＞ 0.25 / 0.50 / 0.75 縺ｫ荳ｸ繧√ｋ
+
 func snap_alloc_ratio(target_ratio: float) -> float:
 	var snap_values: Array = []
 	for i in range(0, 11):
@@ -199,14 +202,14 @@ func snap_alloc_ratio(target_ratio: float) -> float:
 			closest = snap_val
 	return closest
 
-# ﾂｧ2.4.2 驟榊・螟画峩繝｡繧ｽ繝・ラ・亥､画峩CT: 縺ｪ縺・/ 縺・▽縺ｧ繧ょ､画峩蜿ｯ・・
-# 谺｡縺ｮ5遘稚ick縺ｧ population_used 縺ｫ蜿肴丐縺輔ｌ繧・
+
+
 func set_alloc_work_ratio(ratio: float) -> void:
 	alloc_work_ratio = snap_alloc_ratio(ratio)
 	print("[EconEconomy] alloc_ratio: %.2f working: %d building: %d" % [alloc_work_ratio, get_working_population(), get_building_population()])
 
-# 蟷ｸ遖丞ｺｦ迥ｶ諷九ｒ霑斐☆・亥ｾ梧婿莠呈鋤繝ｩ繝・ヱ繝ｼ・・谿ｵ髫・竊・5谿ｵ髫弱・繝・ヴ繝ｳ繧ｰ・・
-# Sprint 4: satisfaction_value 繝吶・繧ｹ縺ｮ get_satisfaction_stage() 縺ｫ遘ｻ陦・
+
+
 func get_happiness_state() -> String:
 	var s: String = get_satisfaction_stage()
 	match s:
@@ -216,9 +219,9 @@ func get_happiness_state() -> String:
 		"declining": return "danger"
 	return "normal"
 
-# === Sprint 1: 貅雜ｳ蠎ｦ谿ｵ髫主愛螳・===
+
 func get_satisfaction_stage() -> String:
-	"""貅雜ｳ蛟､縺九ｉ5谿ｵ髫弱・谿ｵ髫弱く繝ｼ繧定ｿ斐☆"""
+	"""Return the satisfaction stage from the current satisfaction value."""
 	if satisfaction_value < 20.0:
 		return "declining"
 	elif satisfaction_value < 40.0:
@@ -274,7 +277,7 @@ func get_building_efficiency_modifier(stage: String = "") -> float:
 		_:
 			return 0.0
 
-# === Sprint 1: 陦ｨ遉ｺ莠ｺ蜿｣縺ｮ險育ｮ・===
+
 func get_display_population() -> int:
 	return max(1, int(floor(population_float)))
 
@@ -326,8 +329,8 @@ func log_satisfaction_stage_change(old_stage: String, new_stage: String) -> void
 		"satisfaction": satisfaction_value,
 	})
 
-# 蠎・ｴ縺ｮ髫｣謗･HOUSE繧偵き繧ｦ繝ｳ繝医☆繧具ｼ按ｧ2.7.1 蠎・ｴLv蛻･蜉ｹ譫懊・髫｣謗･菴丞ｱ・1/莉ｶ・・
-# 蜻ｼ縺ｳ蜃ｺ縺怜・・嗽pdate() Step 4
+
+
 func _count_adjacent_houses(plaza: EconBuilding, all_buildings: Array) -> int:
 	var count: int = 0
 	for b in all_buildings:
@@ -335,7 +338,7 @@ func _count_adjacent_houses(plaza: EconBuilding, all_buildings: Array) -> int:
 			continue
 		if b.building_type != EconBuilding.BuildingType.HOUSE:
 			continue
-		# 繝倥ャ繧ｯ繧ｹ繧ｰ繝ｪ繝・ラ髫｣謗･・郁ｷ晞屬=1・峨メ繧ｧ繝・け
+
 		var pos_plaza: Vector2i = plaza.grid_pos
 		var pos_house: Vector2i = b.grid_pos
 		var dist: int = _hex_distance(pos_plaza, pos_house)
@@ -343,7 +346,7 @@ func _count_adjacent_houses(plaza: EconBuilding, all_buildings: Array) -> int:
 			count += 1
 	return count
 
-# 繝倥ャ繧ｯ繧ｹ霍晞屬險育ｮ暦ｼ・ffset蠎ｧ讓咏ｳｻ・会ｼ・conGrid.hex_distance縺ｨ蜷檎ｭ峨Ο繧ｸ繝・け・・
+
 func _hex_distance(a: Vector2i, b: Vector2i) -> int:
 	var ax := a.x - (a.y - (a.y & 1)) / 2
 	var az := a.y
@@ -353,13 +356,13 @@ func _hex_distance(a: Vector2i, b: Vector2i) -> int:
 	var by_ := -bx - bz
 	return maxi(maxi(absi(ax - bx), absi(ay - by_)), absi(az - bz))
 
-# 蟷ｸ遖丞ｺｦ縺ｫ繧医ｋ逕溽肇陬懈ｭ｣菫よ焚・按ｧ2.4.3・・
+
 # "high"/"normal": 1.0 / "dissatisfied": 0.9 / "danger": 0.75
 func get_happiness_production_modifier() -> float:
 	push_warning("[EconEconomy] get_happiness_production_modifier is deprecated. Use building interval efficiency instead.")
 	return 1.0 + get_building_efficiency_modifier()
 
-# 蟷ｸ遖丞ｺｦ縺ｫ繧医ｋ蜈ｵ蜉帷函謌占｣懈ｭ｣菫よ焚・按ｧ2.5.3・・
+
 # "high": 1.1 / "normal"/"dissatisfied": 1.0 / "danger": 0.8
 func get_happiness_military_modifier() -> float:
 	return get_military_gain_modifier()
@@ -406,7 +409,7 @@ func add_wheat(amount: int) -> void:
 
 func add_food(amount: int) -> void:
 	food_value += amount
-	food = food_value  # 蠕梧婿莠呈鋤
+	food = food_value
 	resources["food"] = food_value
 	print("[EconEconomy] food_value +%d (current: %d)" % [amount, food_value])
 
@@ -435,10 +438,10 @@ func _consume_food_maintenance() -> void:
 		food_shortage_count += 1
 		print("[EconEconomy] food shortage: consumed=%d shortage_count=%d" % [consumed, food_shortage_count])
 
-# 謗｡謗伜・縺ｮ雉・ｺ舌ち繧､繝励ｒ豎ｺ螳夲ｼ・arget_count 縺九ｉ蜑ｲ繧雁ｽ薙※繝ｪ繧ｹ繝医ｒ逕滓・縺励※繝ｩ繧ｦ繝ｳ繝峨Ο繝薙Φ・・
-# ROLE_BUILD / ROLE_TRADE 繧ょ性繧√◆繝ｪ繧ｹ繝医°繧芽ｿ斐☆
+
+
 func get_harvest_target_for(idx: int, total: int) -> int:
-	# target_count 縺九ｉ蜑ｲ繧雁ｽ薙※繝ｪ繧ｹ繝医ｒ逕滓・・郁ｳ・ｺ・+ 蠖ｹ蜑ｲ・・
+
 	var assignment: Array = []
 	var all_keys: Array = [
 		EconGrid.ResourceType.WOOD,
@@ -454,27 +457,41 @@ func get_harvest_target_for(idx: int, total: int) -> int:
 		var count: int = target_count.get(key, 0)
 		for _i in range(count):
 			assignment.append(key)
-	# 蜈ｨtarget_count縺・縺ｮ蝣ｴ蜷医・WOOD縺ｫ繝輔か繝ｼ繝ｫ繝舌ャ繧ｯ
+
 	if assignment.is_empty():
 		return EconGrid.ResourceType.WOOD
-	# total 繧剃ｽｿ縺｣縺溷ｮ牙・縺ｪ繧､繝ｳ繝・ャ繧ｯ繧ｹ
+
 	var safe_total: int = total if total > 0 else 1
 	return assignment[idx % min(assignment.size(), safe_total)]
 
 func get_display_text() -> String:
 	return "Wood:%d Stone:%d Resin:%d Wheat:%d Iron:%d Cotton:%d" % [wood, stone, resin, wheat, iron, cotton]
 
-# v0.2 譁ｰ隕擾ｼ壹き繝ｼ繝蛾・鄂ｮ譎ゅ・雉・ｺ先ｶ郁ｲｻ・按ｧ8.3・・
+
 func consume_resources(card: Dictionary) -> void:
 	var cost: Dictionary = card.get("cost", {})
 	for resource_key in cost.keys():
 		if resources.has(resource_key):
 			resources[resource_key] -= cost[resource_key]
-			# 蠕梧婿莠呈鋤・壽里蟄倥ヵ繧｣繝ｼ繝ｫ繝峨→resources繧貞酔譛・
+
 			_sync_resource_field(resource_key)
 	print("[EconEconomy] consume_resources: %s" % str(cost))
 
-# v0.2 譁ｰ隕擾ｼ夊ｳ・ｺ仙・雜ｳ繝√ぉ繝・け・按ｧ8.3・・
+# 単一リソース消費（REQUIREMENTS_CARD_EFFECTS §3.4 DINER用）
+# String引数でリソース種別を指定、消費成功なら true を返す
+# 消費成功時は resource_consumed シグナルを発行（TRADE_POST カウンター追跡用）
+func consume_resource(resource_type: String, amount: int) -> bool:
+	if not resources.has(resource_type):
+		return false
+	if resources[resource_type] < amount:
+		return false
+	resources[resource_type] -= amount
+	_sync_resource_field(resource_type)
+	print("[EconEconomy] consume_resource: %s -%d (残: %d)" % [resource_type, amount, resources[resource_type]])
+	resource_consumed.emit(resource_type, amount)
+	return true
+
+
 func can_afford_card(card: Dictionary) -> bool:
 	var cost: Dictionary = card.get("cost", {})
 	for resource_key in cost.keys():
@@ -487,23 +504,23 @@ func can_afford_card(card: Dictionary) -> bool:
 			return false
 	return true
 
-# v0.2 譁ｰ隕擾ｼ壼・蜉幄塘遨搾ｼ按ｧ4.7.2・・
+
 func accumulate_military_power(delta: float, active_barracks_count: int) -> void:
 	military_power += BARRACKS_POWER_PER_SEC * float(active_barracks_count) * delta
 
-# v0.2 譁ｰ隕擾ｼ嗷esources霎樊嶌縺ｨ繝輔ぅ繝ｼ繝ｫ繝峨ｒ蜷梧悄縺吶ｋ蜀・Κ繝｡繧ｽ繝・ラ
+
 func _sync_resource_field(resource_key: String) -> void:
 	match resource_key:
 		"wood": wood = resources.get("wood", 0)
 		"stone": stone = resources.get("stone", 0)
 		"resin": resin = resources.get("resin", 0)
 		"food": food = resources.get("food", 0)
-		"wheat": wheat = resources.get("wheat", 0)  # 蠕梧婿莠呈鋤・・conUnit.gd蜿ら・縺ｮ縺溘ａ谿句ｭ假ｼ・
+		"wheat": wheat = resources.get("wheat", 0)
 		"iron": iron = resources.get("iron", 0)
 		"cotton": cotton = resources.get("cotton", 0)
 
-# ﾂｧ2.7.1 菴丞ｱ・HOUSE)縺ｮLv蛻･莠ｺ蜿｣荳企剞萓帷ｵｦ驥擾ｼ・v1=+10, Lv2=+15, Lv3=+20・・
-# 蟒ｺ迚ｩ繝ｪ繧ｹ繝医ｒ襍ｰ譟ｻ縺励※BASE縺ｮ50 + 蜷ЗOUSE縺ｮLv蛻･蜉ｹ譫懊ｒ蜷育ｮ励☆繧・
+
+
 func calculate_population_cap() -> int:
 	var cap: int = BASE_POPULATION_CAP
 	for b in buildings:
@@ -517,26 +534,26 @@ func calculate_population_cap() -> int:
 	print("[EconEconomy] calculate_population_cap: ", cap)
 	return cap
 
-# v0.2 譁ｰ隕擾ｼ壼・譛溷喧・按ｧ9.1・・
+
 func initialize_v0_2() -> void:
-	# HOUSE 繧貞性繧蛻晄悄蟒ｺ迚ｩ繧定・・縺励※ population_cap 繧貞・險育ｮ励☆繧具ｼ按ｧ2.7.1・・
+
 	population_cap = calculate_population_cap()
 	population_used = 0
-	satisfaction = 60  # ﾂｧ2.4.3
+	satisfaction = 60
 	military_power = 0.0
 	currency = INITIAL_CURRENCY
 	food = INITIAL_FOOD
-	resources = {"wood": 5, "stone": 5, "resin": 5, "food": INITIAL_FOOD, "wheat": INITIAL_FOOD, "iron": 5, "cotton": 5}  # ﾂｧ2.4.1
+	resources = {"wood": 5, "stone": 5, "resin": 5, "food": INITIAL_FOOD, "wheat": INITIAL_FOOD, "iron": 5, "cotton": 5}
 	special_resources = {"sulfur": false}
 	wood = 5
 	stone = 5
 	resin = 5
-	wheat = INITIAL_FOOD  # 蠕梧婿莠呈鋤・哘conUnit.gd 縺・economy.wheat 繧貞盾辣ｧ縺吶ｋ縺溘ａ food 縺ｨ蜷梧悄
+	wheat = INITIAL_FOOD
 	food = INITIAL_FOOD
 	iron = 5
 	cotton = 5
 	print("[EconEconomy] initialize_v0_2: resources=%s, currency=%d, food=%d, pop_cap=%d" % [str(resources), currency, food, population_cap])
-	# === Sprint 1: 驛ｽ蟶ゅせ繝・・繧ｿ繧ｹ蛻晄悄蛹・===
+
 	population_float = POPULATION_INITIAL
 	food_value = INITIAL_FOOD
 	satisfaction_value = 60.0
@@ -547,7 +564,7 @@ func initialize_v0_2() -> void:
 	food_shortage_count = 0
 	growth_blocked = false
 	unit_count = 0
-	# === Sprint 1: 繝・ヰ繝・げ蜃ｺ蜉・===
+
 	print("[EconEconomy] CityStatus init: pop=%.2f food=%d sat=%.1f stage=%s" % [population_float, food_value, satisfaction_value, get_satisfaction_stage()])
 	print("[EconEconomy] 満足度システム初期化完了")
 
@@ -691,7 +708,7 @@ func _apply_population_loss(reason: String, loss: int) -> void:
 	print("[EconEconomy] POP_LOSS reason=%s loss=%d pop %.2f -> %.2f" % [reason, loss, before, population_float])
 	_log_pop_loss_event(reason, loss, before, population_float)
 
-# === Sprint 4: 莠ｺ蜿｣隕乗ｨ｡蠖ｱ髻ｿ・・eq_econ_satisfaction_sprint4.md ﾂｧ4・・===
+
 func _get_population_scale_influence() -> float:
 	var pop: int = int(floor(population_float))
 	if pop <= 50: return 0.02
@@ -702,7 +719,7 @@ func _get_population_scale_influence() -> float:
 	if pop <= 1000: return -0.14
 	return -0.18
 
-# === Sprint 4: 莠ｺ蜿｣螟牙喧驥丞ｽｱ髻ｿ・・eq_econ_satisfaction_sprint4.md ﾂｧ5・・===
+
 func _get_population_growth_influence() -> float:
 	var growth_rate: float = _calculate_population_growth_rate()
 	var growth_per_sec: float = max(0.0, population_float * growth_rate)
@@ -710,7 +727,7 @@ func _get_population_growth_influence() -> float:
 		return 0.0
 	return growth_per_sec * -0.2
 
-# === Sprint 4: 蟒ｺ遽臥黄貅雜ｳ蠎ｦ蠖ｱ髻ｿ・・eq_econ_satisfaction_sprint4.md ﾂｧ6・・===
+
 func set_building_satisfaction_modifier(modifier: float) -> void:
 	building_satisfaction_modifier = modifier
 
@@ -720,11 +737,11 @@ func add_building_satisfaction_influence(modifier: float) -> void:
 func _get_building_satisfaction_influence(_blds: Array) -> float:
 	return building_satisfaction_modifier
 
-# === Sprint 4: 鬟滓侭荳崎ｶｳ繝壹リ繝ｫ繝・ぅ・・eq_econ_satisfaction_sprint4.md ﾂｧ7・・===
+
 func _get_food_shortage_penalty() -> float:
 	return float(food_shortage_count) * 0.50
 
-# === Sprint 4: 貅雜ｳ蛟､蛯ｾ縺榊粋邂暦ｼ・eq_econ_satisfaction_sprint4.md ﾂｧ2・・===
+
 func _calculate_satisfaction_slope(blds: Array) -> float:
 	return (0.03
 		+ _get_population_scale_influence()
@@ -732,7 +749,7 @@ func _calculate_satisfaction_slope(blds: Array) -> float:
 		+ _get_building_satisfaction_influence(blds)
 		- _get_food_shortage_penalty())
 
-# === Sprint 4: 貅雜ｳ蛟､蛯ｾ縺榊・險ｳ・医Ο繧ｰ逕ｨ・会ｼ・eq_econ_satisfaction_sprint4.md ﾂｧ9・・===
+
 func _get_satisfaction_slope_breakdown(blds: Array) -> Dictionary:
 	return {
 		"base": 0.03,
@@ -794,7 +811,7 @@ func _log_pop_loss_event(reason: String, loss: int, before: float, after: float)
 		"stage": get_satisfaction_stage(),
 	})
 
-# === Sprint 4: 繝ｪ繧｢繝ｫ繧ｿ繧､繝貅雜ｳ蛟､譖ｴ譁ｰ・・eq_econ_satisfaction_sprint4.md ﾂｧ10・・===
+
 func update_satisfaction(delta: float) -> void:
 	var old_stage: String = satisfaction_stage
 	satisfaction_slope = _calculate_satisfaction_slope(buildings)
@@ -802,5 +819,5 @@ func update_satisfaction(delta: float) -> void:
 	satisfaction_stage = get_satisfaction_stage()
 	if old_stage != "" and old_stage != satisfaction_stage:
 		log_satisfaction_stage_change(old_stage, satisfaction_stage)
-	satisfaction = int(satisfaction_value)  # 蠕梧婿莠呈鋤
+	satisfaction = int(satisfaction_value)
 	building_efficiency_modifier = get_building_efficiency_modifier()

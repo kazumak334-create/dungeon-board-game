@@ -2,6 +2,13 @@
 
 ## [Unreleased]
 
+## 2026-05-04 建物効果システム4件変更（REQUIREMENTS_CARD_EFFECTS §1.1・§3.3・§3.4・§3.5）
+
+### 変更内容
+- scripts/econ_mvp/EconBuilding.gd: VILLAGE/SAWMILL/MINE を2.5秒周期・パネルリソース参照に変更（旧: 固定値5秒）。DINER を小麦5消費→食料値+10に変更（旧: 小麦1消費→食料値+2）。TRADE_POST に `_resource_counter` フィールドと `add_trade_post_resource_count()` メソッドを追加。`_cotton_timer / _cotton_last_interval` フィールドを削除
+- scripts/econ_mvp/EconEconomy.gd: `consume_resource(resource_type: String, amount: int) -> bool` メソッドを新規追加。`resource_consumed` シグナルを追加（消費成功時に発行）
+- scripts/econ_mvp/EconBattle.gd: `_on_building_completed_plaza_notify()` を追加（PLAZA建設完了時 幸福度+1 + 周辺PLAZA幸福度+1通知）。`_on_resource_consumed()` シグナルハンドラを追加（TRADE_POSTカウンター加算）。`setup()` で `economy.resource_consumed` シグナルに接続
+
 ## 2026-05-04 Sprint 7/8 実装: 資源カード追加・SAWMILL/MINEタイマー駆動化・DetailPopup・BuildQueueUI常時表示
 
 ### 実装内容

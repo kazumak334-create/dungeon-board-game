@@ -70,17 +70,12 @@ const FORTRESS_PRODUCE_INTERVAL := 20.0
 const FORTRESS_PRODUCE_COST := 3    # stone
 const WORKSHOP_PRODUCE_INTERVAL := 20.0
 const WORKSHOP_PRODUCE_COST := 3    # resin
-const VILLAGE_WHEAT_INTERVAL := 5.0
-const VILLAGE_WHEAT_AMOUNT := 2
-const VILLAGE_COTTON_INTERVAL := 5.0
-const VILLAGE_COTTON_AMOUNT := 1
-const VILLAGE_HARVESTER_INTERVAL := 30.0
+const VILLAGE_INTERVAL := 2.5   # 2.5秒ごとにパネルリソース獲得（REQUIREMENTS_CARD_EFFECTS §1.1）
+const VILLAGE_HARVESTER_INTERVAL := 30.0  # 廃止済み（参照のみ残存）
 
-# SAWMILL/MINE タイマー駆動定数（要件定義書 REQUIREMENTS_SPRINT_7.md §5.7）
-const SAWMILL_PRODUCE_INTERVAL := 5.0
-const MINE_PRODUCE_INTERVAL := 5.0
-const SAWMILL_GAIN_BASE := 2  # 木材 +2 / 周期
-const MINE_GAIN_BASE := 2     # 石材 +2 / 周期
+# SAWMILL/MINE タイマー駆動定数（要件定義書 REQUIREMENTS_CARD_EFFECTS.md §1.1）
+const SAWMILL_PRODUCE_INTERVAL := 2.5   # 2.5秒ごとにパネル木材数を獲得
+const MINE_PRODUCE_INTERVAL := 2.5      # 2.5秒ごとにパネル石材数を獲得
 
 # 徴兵兵舎用定数（バリアントシステム実装時に接続）
 # 要件定義書 req_econ_building_variants.md § 6 より
@@ -100,9 +95,8 @@ const WATCHTOWER_REPAIR_AMOUNT_LV3 := 15 # Lv3 防壁回復量
 
 # 食堂（DINER）定数（要件定義書 req_econ_food_system_sprint2.md §1）
 const DINER_INTERVAL := 5.0
-const DINER_WHEAT_COST := 1
-const DINER_FOOD_GAIN := 2
-const DINER_FOOD_GAIN_SPICE := 3  # 香辛料タグ上（TODO: パネルリソース実装時に有効化）
+const DINER_WHEAT_COST := 5    # 小麦5消費（REQUIREMENTS_CARD_EFFECTS §1.1）
+const DINER_FOOD_GAIN := 10    # 食料値+10（REQUIREMENTS_CARD_EFFECTS §1.1）
 
 # 製粉所（MILL）定数（要件定義書 req_econ_food_system_sprint2.md §2）
 const MILL_INTERVAL := 5.0
@@ -150,14 +144,13 @@ var fusion_cluster_id: int = -1     # 同種クラスタの ID（-1=未計算）
 
 var _produce_timer: float = 0.0
 var _harvester_timer: float = 0.0
-var _cotton_timer: float = 0.0
 var _diner_timer: float = 0.0
 var _mill_timer: float = 0.0
 var _produce_last_interval: float = 0.0
 var _harvester_last_interval: float = 0.0
-var _cotton_last_interval: float = 0.0
 var _diner_last_interval: float = 0.0
 var _mill_last_interval: float = 0.0
+var _resource_counter: int = 0  # TRADE_POST: 累計消費カウンター（10到達で1ドロー）
 var _resource_ready: bool = true  # 生産コストが払えるか（!表示用）
 var _construction_ready: bool = true  # 建設コストが払えるか（建設中!表示用）
 var _placement_bonus_active: bool = false  # 配置ボーナス有効フラグ
@@ -235,13 +228,13 @@ func update(delta: float, economy: EconEconomy, buildings: Array = [], grid: Eco
 		BuildingType.WORKSHOP:
 			_update_workshop(delta, economy)
 		BuildingType.VILLAGE:
-			_update_village(delta, economy)
+			_update_village(delta, economy, grid)
 		BuildingType.BASE:
 			pass  # BASEは何も生産しない（ビルダー廃止）
 		BuildingType.SAWMILL:
-			_update_sawmill(delta, economy)  # タイマー駆動（§5.7）
+			_update_sawmill(delta, economy, grid)  # 2.5秒周期・パネル参照（REQUIREMENTS_CARD_EFFECTS §1.1）
 		BuildingType.MINE:
-			_update_mine(delta, economy)     # タイマー駆動（§5.7）
+			_update_mine(delta, economy, grid)     # 2.5秒周期・パネル参照（REQUIREMENTS_CARD_EFFECTS §1.1）
 		BuildingType.EQUIPMENT_SHOP:
 			pass  # 装備屋はパッシブバフのみ（要件定義書 req_econ_equipment_shop_mvp.md）
 		BuildingType.TRADE_POST:
@@ -320,54 +313,56 @@ func _update_workshop(delta: float, economy: EconEconomy) -> void:
 		_produce_timer -= interval
 		unit_produced.emit(grid_pos, 2)
 
-func _update_village(delta: float, economy: EconEconomy) -> void:
-	var wheat_interval := _get_effective_interval(VILLAGE_WHEAT_INTERVAL, economy)
-	_produce_timer = _remap_timer_to_interval(_produce_timer, _produce_last_interval, wheat_interval)
-	_produce_last_interval = wheat_interval
-	_produce_timer += delta
-	if _produce_timer >= wheat_interval:
-		_produce_timer -= wheat_interval
-		economy.add_wheat(VILLAGE_WHEAT_AMOUNT)
-
-	var cotton_interval := _get_effective_interval(VILLAGE_COTTON_INTERVAL, economy)
-	_cotton_timer = _remap_timer_to_interval(_cotton_timer, _cotton_last_interval, cotton_interval)
-	_cotton_last_interval = cotton_interval
-	_cotton_timer += delta
-	if _cotton_timer >= cotton_interval:
-		_cotton_timer -= cotton_interval
-		economy.add_resource(EconGrid.ResourceType.COTTON, VILLAGE_COTTON_AMOUNT)
-
-	# ハーベスター生成は廃止（Village からの生成を削除）
-
-func _update_sawmill(delta: float, economy: EconEconomy) -> void:
-	# 森小屋: 5秒周期で木材+2（要件定義書 REQUIREMENTS_SPRINT_7.md §5.7）
-	var base_interval := SAWMILL_PRODUCE_INTERVAL
-	var interval := _get_effective_interval(base_interval, economy)
+func _update_village(delta: float, economy: EconEconomy, grid: EconGrid = null) -> void:
+	# 農場: 2.5秒ごとにパネルの麦数+綿数を獲得（REQUIREMENTS_CARD_EFFECTS §1.1）
+	var interval := _get_effective_interval(VILLAGE_INTERVAL, economy)
 	_produce_timer = _remap_timer_to_interval(_produce_timer, _produce_last_interval, interval)
 	_produce_last_interval = interval
 	_produce_timer += delta
 	if _produce_timer >= interval:
 		_produce_timer -= interval
-		var lv: int = fusion_rank
-		var lv_bonus: float = 1.0 + (lv - 1) * 0.25
-		var gain: int = roundi(SAWMILL_GAIN_BASE * lv_bonus)
-		economy.add_resource(EconGrid.ResourceType.WOOD, gain)
-		print("[EconBuilding] SAWMILL Lv%d 木材+%d" % [lv, gain])
+		if grid != null:
+			var panel: Dictionary = grid.get_panel_at(grid_pos)
+			var panel_resources: Dictionary = panel.get("resources", {})
+			var wheat_gain: int = int(panel_resources.get("wheat", 0))
+			var cotton_gain: int = int(panel_resources.get("cotton", 0))
+			if wheat_gain > 0:
+				economy.add_wheat(wheat_gain)
+			if cotton_gain > 0:
+				economy.add_resource(EconGrid.ResourceType.COTTON, cotton_gain)
+			print("[EconBuilding] VILLAGE: 麦+%d 綿+%d (pos=%s)" % [wheat_gain, cotton_gain, str(grid_pos)])
 
-func _update_mine(delta: float, economy: EconEconomy) -> void:
-	# 採掘所: 5秒周期で石材+2（要件定義書 REQUIREMENTS_SPRINT_7.md §5.7）
-	var base_interval := MINE_PRODUCE_INTERVAL
-	var interval := _get_effective_interval(base_interval, economy)
+func _update_sawmill(delta: float, economy: EconEconomy, grid: EconGrid = null) -> void:
+	# 製材所: 2.5秒周期でパネルの木材数を獲得（REQUIREMENTS_CARD_EFFECTS §1.1）
+	var interval := _get_effective_interval(SAWMILL_PRODUCE_INTERVAL, economy)
 	_produce_timer = _remap_timer_to_interval(_produce_timer, _produce_last_interval, interval)
 	_produce_last_interval = interval
 	_produce_timer += delta
 	if _produce_timer >= interval:
 		_produce_timer -= interval
-		var lv: int = fusion_rank
-		var lv_bonus: float = 1.0 + (lv - 1) * 0.25
-		var gain: int = roundi(MINE_GAIN_BASE * lv_bonus)
-		economy.add_resource(EconGrid.ResourceType.STONE, gain)
-		print("[EconBuilding] MINE Lv%d 石材+%d" % [lv, gain])
+		if grid != null:
+			var panel: Dictionary = grid.get_panel_at(grid_pos)
+			var panel_resources: Dictionary = panel.get("resources", {})
+			var gain: int = int(panel_resources.get("wood", 0))
+			if gain > 0:
+				economy.add_resource(EconGrid.ResourceType.WOOD, gain)
+			print("[EconBuilding] SAWMILL 木材+%d (pos=%s)" % [gain, str(grid_pos)])
+
+func _update_mine(delta: float, economy: EconEconomy, grid: EconGrid = null) -> void:
+	# 採石場: 2.5秒周期でパネルの石材数を獲得（REQUIREMENTS_CARD_EFFECTS §1.1）
+	var interval := _get_effective_interval(MINE_PRODUCE_INTERVAL, economy)
+	_produce_timer = _remap_timer_to_interval(_produce_timer, _produce_last_interval, interval)
+	_produce_last_interval = interval
+	_produce_timer += delta
+	if _produce_timer >= interval:
+		_produce_timer -= interval
+		if grid != null:
+			var panel: Dictionary = grid.get_panel_at(grid_pos)
+			var panel_resources: Dictionary = panel.get("resources", {})
+			var gain: int = int(panel_resources.get("stone", 0))
+			if gain > 0:
+				economy.add_resource(EconGrid.ResourceType.STONE, gain)
+			print("[EconBuilding] MINE 石材+%d (pos=%s)" % [gain, str(grid_pos)])
 
 func _update_smithy(delta: float, economy: EconEconomy) -> void:
 	# 鍛冶屋: 稼働人口1を満たせば有効（パッシブ的に出撃時DPS補正を提供）
@@ -400,7 +395,7 @@ func _update_watchtower(delta: float, economy: EconEconomy) -> void:
 		pass
 
 func _update_diner(delta: float, economy: EconEconomy, grid: EconGrid = null) -> void:
-	# 食堂：5秒ごとに小麦1消費→食料値+2（要件定義書 req_econ_food_system_sprint2.md §1）
+	# 食堂：5秒ごとに小麦5消費→食料値+10（REQUIREMENTS_CARD_EFFECTS §1.1・§3.4）
 	var interval := _get_effective_interval(DINER_INTERVAL, economy)
 	_diner_timer = _remap_timer_to_interval(_diner_timer, _diner_last_interval, interval)
 	_diner_last_interval = interval
@@ -413,19 +408,16 @@ func _update_diner(delta: float, economy: EconEconomy, grid: EconGrid = null) ->
 		return
 	_diner_timer -= interval
 
-	# 小麦消費
-	economy.wheat -= DINER_WHEAT_COST
-	economy.resources["wheat"] = economy.wheat
-
-	var has_spice: bool = grid != null and grid.has_spice_tag(grid_pos)
-	var gain: int = DINER_FOOD_GAIN_SPICE if has_spice else DINER_FOOD_GAIN
-	economy.food_value += gain
-	economy.food = economy.food_value  # 後方互換
-	economy.resources["food"] = economy.food_value
-	print("[EconBuilding] DINER: 小麦-1 食料値+%d (food_value=%d)%s" % [
-		gain,
+	# consume_resource 経由で小麦5消費（REQUIREMENTS_CARD_EFFECTS §3.4）
+	var consumed: bool = economy.consume_resource("wheat", DINER_WHEAT_COST)
+	if not consumed:
+		_resource_ready = false
+		return
+	economy.add_food(DINER_FOOD_GAIN)
+	print("[EconBuilding] DINER: 小麦-%d 食料値+%d (food_value=%d)" % [
+		DINER_WHEAT_COST,
+		DINER_FOOD_GAIN,
 		economy.food_value,
-		" [spice tag bonus]" if has_spice else "",
 	])
 
 func _update_mill(delta: float, economy: EconEconomy, grid: EconGrid = null) -> void:
@@ -481,10 +473,7 @@ func get_timer_progress() -> float:
 		BuildingType.MILL:
 			return _timer_progress_ratio(_mill_timer, _mill_last_interval)
 		BuildingType.VILLAGE:
-			return maxf(
-				_timer_progress_ratio(_produce_timer, _produce_last_interval),
-				_timer_progress_ratio(_cotton_timer, _cotton_last_interval)
-			)
+			return _timer_progress_ratio(_produce_timer, _produce_last_interval)
 		BuildingType.BARRACKS, BuildingType.FORTRESS, BuildingType.WORKSHOP:
 			return _timer_progress_ratio(_produce_timer, _produce_last_interval)
 		BuildingType.SAWMILL, BuildingType.MINE:
@@ -595,3 +584,19 @@ func get_construction_progress_for_drawing() -> float:
 	# 建設中の建物の進捗を取得（draw()時点で必要）
 	# 注：このメソッドは _process() 内で build_progress が更新されている前提
 	return build_progress if not is_built else 0.0
+
+# TRADE_POST: パネル資源消費カウンター加算（REQUIREMENTS_CARD_EFFECTS §3.5）
+# EconEconomy.consume_resource() / consume_resources() 呼び出し後に EconBattle が呼ぶ
+# amount: 消費量、deck_manager: 10到達時のドロー発動用
+func add_trade_post_resource_count(amount: int, deck_manager) -> void:
+	if building_type != BuildingType.TRADE_POST:
+		return
+	if not is_operating:
+		return
+	_resource_counter += amount
+	print("[EconBuilding] TRADE_POST カウンター +%d → %d (pos=%s)" % [amount, _resource_counter, str(grid_pos)])
+	while _resource_counter >= 10:
+		_resource_counter -= 10
+		if deck_manager != null:
+			deck_manager.draw_card()
+			print("[EconBuilding] TRADE_POST: カウンター10到達 → 1ドロー (pos=%s)" % str(grid_pos))
