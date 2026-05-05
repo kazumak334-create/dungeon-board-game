@@ -397,11 +397,11 @@ func _build_header_detail_text(key: String) -> String:
 				_economy.get_satisfaction_stage(), _economy.satisfaction_value]
 		"military":
 			return "Power\nCurrent: %d\nRaw: %.2f" % [
-				_economy.get_military_units(), _economy.military_power]
+				int(floor(_economy.military_power)), _economy.military_power]
 		"gold":
 			return "Gold\nCurrent: %dG" % _economy.currency
 		"soldiers":
-			return "Soldiers\nCurrent: %d" % _economy.get_soldiers_count()
+			return "Soldiers\nCurrent: %d" % int(floor(_economy.military_power / 5.0))
 		"units":
 			return "Units\nCurrent: %d" % _economy.get_unit_count()
 		_:
@@ -467,7 +467,7 @@ func _update_status_ui() -> void:
 		var food_color := COLOR_RED if _economy.food < 5 else COLOR_WHEAT
 		_status_food_label.add_theme_color_override("font_color", food_color)
 	if _soldiers_header_label != null:
-		_soldiers_header_label.text = "兵%d" % _economy.get_soldiers_count()
+		_soldiers_header_label.text = "兵%d" % int(floor(_economy.military_power / 5.0))
 	if _units_header_label != null:
 		_units_header_label.text = "隊%d" % _economy.get_unit_count()
 

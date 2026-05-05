@@ -439,8 +439,6 @@ func spawn_player_unit(col: int, row: int, unit_type: int, charge_mode: bool = f
 	var names := ["Attacker", "Tank", "Breaker"]
 	log_message.emit("%s produced at (%d,%d)" % [names[unit_type], col, row])
 
-func add_building_to_queue(_b: EconBuilding) -> void:
-	pass
 func spawn_enemy_unit(utype: int, pos: Vector2i) -> void:
 	var unit := EconUnit.create(utype, EconUnit.Side.ENEMY, pos.x, pos.y)
 	unit.position = grid.hex_to_pixel(pos.x, pos.y)

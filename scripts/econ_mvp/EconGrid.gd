@@ -416,18 +416,6 @@ func get_adjacent_empty_cells(pos: Vector2i) -> Array:
 			adjacent.append(check_pos)
 	return adjacent
 
-# Deprecated: land card placement uses get_land_card_placement_options().
-func get_all_placeable_cells_for_land() -> Array:
-	var placeable: Array = []
-	var checked: Dictionary = {}
-	for pos in land_panels.keys():
-		var adjacent: Array = get_adjacent_empty_cells(pos)
-		for adj_pos in adjacent:
-			if not checked.has(adj_pos):
-				placeable.append(adj_pos)
-				checked[adj_pos] = true
-	return placeable
-
 func get_adjacent_empty_land_cells_for_player(own_building_positions: Array, occupied_positions: Array = []) -> Array:
 	var result: Array = []
 	var occupied: Dictionary = {}

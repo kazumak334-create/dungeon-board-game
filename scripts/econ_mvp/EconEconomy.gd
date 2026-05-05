@@ -240,15 +240,6 @@ func get_display_population() -> int:
 func get_food_value() -> int:
 	return food_value
 
-func get_military_units() -> int:
-	return int(floor(military_power))
-
-func get_soldiers_count() -> int:
-	return int(floor(military_power / 5.0))
-
-func get_soldier_count() -> int:
-	return get_soldiers_count()
-
 func get_unit_count() -> int:
 	return unit_count
 
@@ -350,26 +341,6 @@ func add_resource(rtype: int, amount: int = 1) -> void:
 	if key != "" and resources.has(key):
 		resources[key] += amount
 		_sync_resource_field(key)
-
-func can_afford(costs: Dictionary) -> bool:
-	if costs.has("sulfur"):
-		push_warning("[EconEconomy] stackable sulfur cost is deprecated. Use resin or special_resources.")
-		return false
-	if costs.get("wood", 0) > wood:
-		return false
-	if costs.get("stone", 0) > stone:
-		return false
-	if costs.get("resin", 0) > resin:
-		return false
-	if costs.get("wheat", 0) > wheat:
-		return false
-	return true
-
-func spend(costs: Dictionary) -> void:
-	wood -= costs.get("wood", 0)
-	stone -= costs.get("stone", 0)
-	resin -= costs.get("resin", 0)
-	wheat -= costs.get("wheat", 0)
 
 func has_special_resource(key: String) -> bool:
 	return bool(special_resources.get(key, false))

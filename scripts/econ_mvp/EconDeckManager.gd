@@ -221,6 +221,10 @@ func trigger_force_charge() -> void:
 			f.is_assault_mode = true
 			f.queue_redraw()
 
+func start_reload_cooldown() -> void:
+	reload_timer = RELOAD_COOLDOWN_SEC
+	print("[EconDeckManager] reload_cooldown started: %.1f sec" % RELOAD_COOLDOWN_SEC)
+
 func refresh_hand_ui() -> void:
 	# §8.1.2 refresh_hand_ui（draw_callback でも代替可）
 	if draw_callback.is_valid():

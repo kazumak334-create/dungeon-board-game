@@ -2,6 +2,17 @@
 
 ## [Unreleased]
 
+## 2026-05-06 DEADCODE削除・HARDCODE定数化・COUPLING修正
+
+### 変更内容
+- scripts/econ_mvp/EconBattle.gd: `add_building_to_queue`（passのみ・呼び出し元なし）を削除
+- scripts/econ_mvp/EconGrid.gd: `get_all_placeable_cells_for_land`（Deprecated・呼び出し元なし）を削除
+- scripts/econ_mvp/EconEconomy.gd: `can_afford`/`spend`/`get_soldiers_count`/`get_soldier_count`/`get_military_units` 削除（移行済み・呼び出し元なし）
+- scripts/econ_mvp/EconMain.gd: `_place_initial_village`/`_create_control_panel`/`_get_wheat_eval` 削除（呼び出し元なし）、`_input` 内 `return` 直後の到達不能ブロック削除、`HAND_DISPLAY_COUNT` 定数追加（5を定数化）、`start_reload_cooldown()` 経由でクールタイム設定
+- scripts/econ_mvp/EconBuilding.gd: `EXCHANGE_TICK_INTERVAL`/`EXCHANGE_DRAW_THRESHOLD` 定数追加し `_update_exchange` 内リテラルを置換、`MILITARY_TICK_INTERVAL`/`BARRACKS_POWER_PER_TICK`/`BARRACKS_FOOD_COST_PER_TICK`/`FORTRESS_POWER_PER_TICK`/`WORKSHOP_POWER_PER_TICK` 定数追加し各 `_update_*` 内リテラルを置換
+- scripts/econ_mvp/EconDeckManager.gd: `start_reload_cooldown()` メソッド追加（疎結合化）
+- scripts/econ_mvp/ui/HeaderUI.gd: `get_soldiers_count()`/`get_military_units()` 呼び出しをインライン計算に置換
+
 ## 2026-05-06 人手システム（建設人員・稼働人員）排除
 
 ### 変更内容

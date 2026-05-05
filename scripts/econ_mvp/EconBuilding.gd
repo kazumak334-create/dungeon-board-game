@@ -69,6 +69,17 @@ const FORTRESS_PRODUCE_INTERVAL := 20.0
 const FORTRESS_PRODUCE_COST := 3    # stone
 const WORKSHOP_PRODUCE_INTERVAL := 20.0
 const WORKSHOP_PRODUCE_COST := 3    # resin
+
+# 5秒tick定数（BARRACKS/FORTRESS/WORKSHOP の _update 関数共通tick間隔）
+const MILITARY_TICK_INTERVAL: float = 5.0
+# BARRACKS tick加算基準値（隣接ボーナスは別途計算）
+const BARRACKS_POWER_PER_TICK: float = 1.0
+# BARRACKS tick食料消費量
+const BARRACKS_FOOD_COST_PER_TICK: int = 2
+# FORTRESS tick加算量
+const FORTRESS_POWER_PER_TICK: float = 2.0
+# WORKSHOP tick加算量
+const WORKSHOP_POWER_PER_TICK: float = 1.5
 const VILLAGE_INTERVAL := 2.5   # 2.5秒ごとにパネルリソース獲得（REQUIREMENTS_CARD_EFFECTS §1.1）
 
 # SAWMILL/MINE タイマー駆動定数（要件定義書 REQUIREMENTS_CARD_EFFECTS.md §1.1）
@@ -104,6 +115,10 @@ const MILL_WHEAT_GAIN := 2
 const MILL_WHEAT_GAIN_BOOST := 3  # 小麦値3以上パネル上（TODO: パネルリソース実装時に有効化）
 const EFFECTIVE_INTERVAL_MIN := 2.0
 const EFFECTIVE_INTERVAL_MAX := 15.0
+
+# 交換所（EXCHANGE）定数
+const EXCHANGE_TICK_INTERVAL: float = 2.5
+const EXCHANGE_DRAW_THRESHOLD: float = 10.0
 
 # ビルダーシステム
 static var REQUIRED_CONSTRUCTION: Dictionary = {
@@ -269,11 +284,11 @@ func _remap_timer_to_interval(timer: float, last_interval: float, new_interval: 
 	return progress * new_interval
 
 func _update_barracks(delta: float, economy: EconEconomy, buildings: Array = [], grid: EconGrid = null) -> void:
-	# §2.5.2: 5秒tickで兵力+1加算。unit_producedはemitしない
+	# §2.5.2: MILITARY_TICK_INTERVALごとに兵力+BARRACKS_POWER_PER_TICK加算。unit_producedはemitしない
 	_resource_ready = true
 	_produce_timer += delta
-	if _produce_timer >= 5.0:
-		_produce_timer -= 5.0
+	if _produce_timer >= MILITARY_TICK_INTERVAL:
+		_produce_timer -= MILITARY_TICK_INTERVAL
 		if economy != null:
 			var adjacent_barracks: int = 0
 			if grid != null:
@@ -283,29 +298,29 @@ func _update_barracks(delta: float, economy: EconEconomy, buildings: Array = [],
 					if b.building_type == BuildingType.BARRACKS and grid.hex_distance(grid_pos, b.grid_pos) == 1:
 						adjacent_barracks += 1
 			var bonus: float = float(adjacent_barracks / 2)
-			economy.military_power += 1.0 + bonus
-			economy.food_value -= 2
+			economy.military_power += BARRACKS_POWER_PER_TICK + bonus
+			economy.food_value -= BARRACKS_FOOD_COST_PER_TICK
 			print("[EconBuilding] BARRACKS: 食料消費 food_value=%d" % economy.food_value)
 		_flash_timer = 0.5
 
 func _update_fortress(delta: float, economy: EconEconomy) -> void:
-	# 5秒tickで兵力+2加算。unit_producedはemitしない
+	# MILITARY_TICK_INTERVALごとに兵力+FORTRESS_POWER_PER_TICK加算。unit_producedはemitしない
 	_resource_ready = true
 	_produce_timer += delta
-	if _produce_timer >= 5.0:
-		_produce_timer -= 5.0
+	if _produce_timer >= MILITARY_TICK_INTERVAL:
+		_produce_timer -= MILITARY_TICK_INTERVAL
 		if economy != null:
-			economy.military_power += 2.0
+			economy.military_power += FORTRESS_POWER_PER_TICK
 		_flash_timer = 0.5
 
 func _update_workshop(delta: float, economy: EconEconomy) -> void:
-	# 5秒tickで兵力+1.5加算。unit_producedはemitしない
+	# MILITARY_TICK_INTERVALごとに兵力+WORKSHOP_POWER_PER_TICK加算。unit_producedはemitしない
 	_resource_ready = true
 	_produce_timer += delta
-	if _produce_timer >= 5.0:
-		_produce_timer -= 5.0
+	if _produce_timer >= MILITARY_TICK_INTERVAL:
+		_produce_timer -= MILITARY_TICK_INTERVAL
 		if economy != null:
-			economy.military_power += 1.5
+			economy.military_power += WORKSHOP_POWER_PER_TICK
 		_flash_timer = 0.5
 
 func _update_village(delta: float, economy: EconEconomy, grid: EconGrid = null) -> void:
@@ -455,8 +470,8 @@ func _update_mill(delta: float, economy: EconEconomy, grid: EconGrid = null) -> 
 	])
 
 func _update_exchange(delta: float, economy: EconEconomy, grid: EconGrid = null) -> void:
-	# 交換所: 2.5秒ごとにパネルのリソース合計を累積 → 累積10ごとに1ドロー
-	var interval: float = _get_effective_interval(2.5, economy)
+	# 交換所: EXCHANGE_TICK_INTERVALごとにパネルのリソース合計を累積 → EXCHANGE_DRAW_THRESHOLDごとに1ドロー
+	var interval: float = _get_effective_interval(EXCHANGE_TICK_INTERVAL, economy)
 	_produce_timer = _remap_timer_to_interval(_produce_timer, _produce_last_interval, interval)
 	_produce_last_interval = interval
 	_produce_timer += delta
@@ -488,9 +503,9 @@ func _update_exchange(delta: float, economy: EconEconomy, grid: EconGrid = null)
 	if total_res <= 0.0:
 		total_res = 1.0
 	_exchange_resource_accum += total_res
-	# 累積10ごとに1ドロー
-	while _exchange_resource_accum >= 10.0:
-		_exchange_resource_accum -= 10.0
+	# EXCHANGE_DRAW_THRESHOLDごとに1ドロー
+	while _exchange_resource_accum >= EXCHANGE_DRAW_THRESHOLD:
+		_exchange_resource_accum -= EXCHANGE_DRAW_THRESHOLD
 		draw_card_requested.emit()
 		print("[EconBuilding] EXCHANGE: draw triggered (pos=%s, accum_after=%.1f)" % [str(grid_pos), _exchange_resource_accum])
 

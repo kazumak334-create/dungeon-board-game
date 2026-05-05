@@ -23,6 +23,7 @@ var _difficulty_dialog: Control = null
 var _log_lines: Array = []
 const MAX_LOG_LINES := 10
 const LABOR_COST_PER_UNIT := 5
+const HAND_DISPLAY_COUNT: int = 5
 const EconUIScript := preload("res://scripts/econ_mvp/EconUI.gd")
 const BuildQueueUIScript := preload("res://scripts/econ_mvp/ui/BuildQueueUI.gd")
 const DetailPopupScript := preload("res://scripts/econ_mvp/ui/DetailPopup.gd")
@@ -264,51 +265,6 @@ func _setup_initial_entities() -> void:
 	)
 	_battle.register_player_building(player_base)
 
-func _place_initial_village(is_player: bool) -> void:
-
-	var zone_cols: Array = range(0, 8) if is_player else range(18, 26)
-	for col in zone_cols:
-		for row in range(_grid.ROWS):
-			var cell := Vector2i(col, row)
-
-			if _grid.get_resource_type(cell) != EconGrid.ResourceType.NONE:
-				continue
-			if _grid.is_mountain(cell):
-				continue
-
-			var occupied := false
-			var check_buildings: Array = _battle.player_buildings if is_player else _battle.enemy_buildings
-			for b in check_buildings:
-				if b.grid_pos == cell:
-					occupied = true
-					break
-			if occupied:
-				continue
-
-			var has_wheat := false
-			for nb in _grid.get_neighbors(col, row):
-				if _grid.get_resource_type(nb) == EconGrid.ResourceType.WHEAT:
-					has_wheat = true
-					break
-			if not has_wheat:
-				continue
-			# 驟咲ｽｮ
-			var village := EconBuilding.new()
-			village.setup(EconBuilding.BuildingType.VILLAGE, cell, is_player)
-			village.position = _grid.hex_to_pixel(cell.x, cell.y)
-			village.is_built = true
-			if is_player:
-				village.unit_produced.connect(_battle._on_unit_produced)
-				village.building_destroyed.connect(func(building: Node):
-					_battle._on_building_destroyed(building)
-				)
-				_battle.register_player_building(village)
-			else:
-				village.unit_produced.connect(_ai.on_unit_produced)
-				_battle.register_enemy_building(village)
-			_add_log("Initial Village at (%d,%d)" % [cell.x, cell.y])
-			return
-
 func _setup_ui(vp: Vector2) -> void:
 	_ui_layer = CanvasLayer.new()
 	add_child(_ui_layer)
@@ -468,108 +424,6 @@ func _setup_detail_popup() -> void:
 	_ui_layer.add_child(_detail_popup)
 	print("[EconMain] DetailPopup initialized")
 
-
-func _create_control_panel() -> Control:
-	var scroll := ScrollContainer.new()
-	scroll.custom_minimum_size = Vector2(260, 0)
-	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	var vbox := VBoxContainer.new()
-	vbox.custom_minimum_size = Vector2(250, 0)
-	scroll.add_child(vbox)
-	# Bulk order
-	var bulk_title := Label.new()
-	bulk_title.text = "-- Bulk / Priority --"
-	vbox.add_child(bulk_title)
-	var bulk_hbox := HBoxContainer.new()
-	vbox.add_child(bulk_hbox)
-	var btn_bulk_atk := Button.new()
-	btn_bulk_atk.text = "All: Units"
-	btn_bulk_atk.pressed.connect(func():
-		for u in _battle.player_units:
-			u.order = EconUnit.OrderType.ATTACK_UNITS
-			u.guard_target = null
-	)
-	bulk_hbox.add_child(btn_bulk_atk)
-	# Target Priority
-	var tp_label := Label.new()
-	tp_label.text = "Priority: Default"
-	vbox.add_child(tp_label)
-	var tp_hbox := HBoxContainer.new()
-	vbox.add_child(tp_hbox)
-	var tp_names := ["Default", "Front", "Economy"]
-	for i in range(3):
-		var btn := Button.new()
-		btn.text = tp_names[i]
-		var captured_i: int = i
-		btn.pressed.connect(func():
-			_target_priority = captured_i
-			tp_label.text = "Priority: " + tp_names[captured_i]
-			for u in _battle.player_units:
-				u.target_priority = captured_i
-		)
-		tp_hbox.add_child(btn)
-	# Start
-	var start_sep := HSeparator.new()
-	start_sep.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	vbox.add_child(start_sep)
-	var btn_start := Button.new()
-	btn_start.text = "Start Battle"
-	btn_start.pressed.connect(_on_start_pressed)
-	vbox.add_child(btn_start)
-	# Terrain
-	var terrain_sep := HSeparator.new()
-	terrain_sep.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	vbox.add_child(terrain_sep)
-	var m_hbox := HBoxContainer.new()
-	vbox.add_child(m_hbox)
-	var m_label := Label.new()
-	m_label.text = "Mtn:"
-	m_hbox.add_child(m_label)
-	var m_slider := HSlider.new()
-	m_slider.min_value = 0
-	m_slider.max_value = 80
-	m_slider.value = 35
-	m_slider.custom_minimum_size = Vector2(80, 20)
-	m_hbox.add_child(m_slider)
-	var m_val_label := Label.new()
-	m_val_label.text = "35%"
-	m_hbox.add_child(m_val_label)
-	var d_hbox := HBoxContainer.new()
-	vbox.add_child(d_hbox)
-	var d_label := Label.new()
-	d_label.text = "Dst:"
-	d_hbox.add_child(d_label)
-	var d_slider := HSlider.new()
-	d_slider.min_value = 0
-	d_slider.max_value = 80
-	d_slider.value = 25
-	d_slider.custom_minimum_size = Vector2(80, 20)
-	d_hbox.add_child(d_slider)
-	var d_val_label := Label.new()
-	d_val_label.text = "25%"
-	d_hbox.add_child(d_val_label)
-	var p_label := Label.new()
-	p_label.text = "Pln: 40%"
-	vbox.add_child(p_label)
-	m_slider.value_changed.connect(func(v: float):
-		m_val_label.text = "%d%%" % int(v)
-		if int(v) + int(d_slider.value) > 100:
-			d_slider.value = 100 - int(v)
-		p_label.text = "Pln: %d%%" % (100 - int(m_slider.value) - int(d_slider.value))
-	)
-	d_slider.value_changed.connect(func(v: float):
-		d_val_label.text = "%d%%" % int(v)
-		if int(m_slider.value) + int(v) > 100:
-			m_slider.value = 100 - int(v)
-		p_label.text = "Pln: %d%%" % (100 - int(m_slider.value) - int(d_slider.value))
-	)
-	var btn_regen := Button.new()
-	btn_regen.text = "Regen Map"
-	btn_regen.pressed.connect(func():
-		_grid.generate_terrain(int(m_slider.value), int(d_slider.value))
-	)
-	vbox.add_child(btn_regen)
-	return scroll
 
 func _on_start_pressed() -> void:
 	if _is_running:
@@ -748,23 +602,6 @@ func _input(event: InputEvent) -> void:
 	if _land_placement_controller != null and _land_placement_controller.active:
 		if cell != Vector2i(-1, -1):
 			_land_placement_controller.handle_cell_click(cell)
-		return
-
-		for f in _flags:
-			if f.grid_pos == cell:
-				var b := _connecting_building
-				if b.connected_flag_id >= 0:
-					for old_f in _flags:
-						if old_f.flag_id == b.connected_flag_id:
-							old_f.remove_building(b.grid_pos)
-							old_f.queue_redraw()
-				b.connected_flag_id = f.flag_id
-				f.add_building(b.grid_pos)
-				f.queue_redraw()
-				_add_log("Building (%d,%d) -> Flag %d" % [b.grid_pos.x, b.grid_pos.y, f.flag_id])
-				_connecting_building = null
-				return
-		_connecting_building = null
 		return
 
 	if cell != Vector2i(-1, -1):
@@ -1099,30 +936,6 @@ func _pixel_to_hex(local_pos: Vector2) -> Vector2i:
 				best_dist = d
 				best_cell = Vector2i(col, row)
 	return best_cell
-
-func _get_wheat_eval() -> Dictionary:
-	var village_count: int = 0
-	for b in _battle.player_buildings:
-		if b.is_alive and b.is_built and b.building_type == EconBuilding.BuildingType.VILLAGE:
-			village_count += 1
-
-	var unit_count: int = _battle.player_units.filter(func(u): return u.is_alive).size()
-	var income: float = village_count * 0.4
-	var cost: float = unit_count * 0.1
-	var net: float = income - cost
-	var rating: String
-	var color: Color
-	if net >= 0.2:
-		rating = "OK"
-		color = Color.LIME_GREEN
-	elif net >= 0.0:
-		rating = "笆ｳ 驕ｩ豁｣"
-		color = Color.YELLOW
-	else:
-		rating = "NG"
-		color = Color(1.0, 0.35, 0.35)
-	var text: String = "Farm: %s  %+.1f/s\n(village%d, unit%d)" % [rating, net, village_count, unit_count]
-	return {"text": text, "color": color}
 
 func _process(delta: float) -> void:
 	_elapsed_time += delta
@@ -1519,7 +1332,7 @@ func _on_hand_scroll_right() -> void:
 	if _battle.deck_manager == null:
 		return
 	var hand_size: int = int(_battle.deck_manager.hand.size())
-	if _hand_scroll_offset + 6 < hand_size:
+	if _hand_scroll_offset + HAND_DISPLAY_COUNT < hand_size:
 		_hand_scroll_offset += 1
 		_refresh_hand_ui()
 
@@ -1527,8 +1340,8 @@ func _refresh_hand_ui() -> void:
 	if _footer_ui == null or _battle.deck_manager == null:
 		return
 	var hand_size: int = int(_battle.deck_manager.hand.size())
-	_hand_scroll_offset = clampi(_hand_scroll_offset, 0, max(0, hand_size - 5))
-	var display_count: int = mini(5, hand_size - _hand_scroll_offset)
+	_hand_scroll_offset = clampi(_hand_scroll_offset, 0, max(0, hand_size - HAND_DISPLAY_COUNT))
+	var display_count: int = mini(HAND_DISPLAY_COUNT, hand_size - _hand_scroll_offset)
 	var card_nodes: Array = []
 	for i in range(display_count):
 		var actual_idx: int = _hand_scroll_offset + i
@@ -1741,7 +1554,7 @@ func _on_hand_card_right_clicked(card_index: int) -> void:
 	else:
 		print("[EconMain] _on_hand_card_right_clicked: deck and discard both empty, no draw")
 	# クールタイム開始
-	_battle.deck_manager.reload_timer = _battle.deck_manager.RELOAD_COOLDOWN_SEC
+	_battle.deck_manager.start_reload_cooldown()
 	# ログ記録
 	if _log_manager != null and _log_manager.has_method("log_event"):
 		_log_manager.log_event({
