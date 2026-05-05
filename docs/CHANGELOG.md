@@ -2,6 +2,20 @@
 
 ## [Unreleased]
 
+## 2026-05-06 自律改善ループ導入（スキルファイル・AIログ基盤）
+
+### 変更内容
+- `.claude/skills/inspect-first/SKILL.md` 新規作成（実装前の現物確認手順）
+- `.claude/skills/implement-with-verification/SKILL.md` 新規作成（検証付き実装手順）
+- `.claude/skills/regression-guard/SKILL.md` 新規作成（再発防止チェック）
+- `.claude/skills/update-lessons/SKILL.md` 新規作成（指摘時のLESSONS_LEARNED更新手順）
+- `.claude/skills/autonomous-improvement-loop/SKILL.md` 新規作成（全ステップ統合ループ）
+- `docs/ai/LESSONS_LEARNED.md` 新規作成（過去の指摘・禁止事項記録）
+- `docs/ai/TASK_LOG.md` 新規作成（非軽微タスクの作業ログ）
+- `docs/ai/VERIFICATION_LOG.md` 新規作成（検証コマンドと結果の記録）
+- `docs/ai/OPEN_ISSUES.md` 新規作成（未解決事項の追跡）
+- `CLAUDE.md` 末尾に自律改善ループセクション追記
+
 ## 2026-05-06 DEADCODE削除・HARDCODE定数化・COUPLING修正
 
 ### 変更内容

@@ -571,3 +571,34 @@ bash check_syntax.sh
 - UIの見た目・Tweenアニメーションのテスト
 - シグナルの発火順序テスト
 - 「テストが通ったから正しい」という判断
+
+---
+
+## 自律改善ループ（2026-05-06追加）
+
+### 実装前の必須読み込み
+非軽微な実装・バグ修正・レビュー・設計確認を行う前に、必ず以下を読む：
+- `docs/ai/LESSONS_LEARNED.md`（過去の指摘・禁止事項・再発リスク）
+
+### FACT / INFERENCE / UNKNOWN 分類の義務
+現状分析を報告する際は必ず以下の形式で分類する：
+- FACT: ファイルを読んで確認した事実
+- INFERENCE: 確認した事実から推論した内容
+- UNKNOWN: 未確認事項
+
+「たぶん」「おそらく」「のはず」を根拠に実装・断定することを禁止する。
+
+### ログ更新義務
+非軽微なタスク完了後は以下を更新する：
+- `docs/ai/TASK_LOG.md`：作業内容と結果
+- `docs/ai/VERIFICATION_LOG.md`：検証コマンドと結果
+- 未解決事項がある場合は `docs/ai/OPEN_ISSUES.md` にも追記
+- ユーザーから指摘を受けた場合は即座に `docs/ai/LESSONS_LEARNED.md` に追記
+
+### スキルファイル
+`.claude/skills/` に以下のスキルを配置済み：
+- `inspect-first/SKILL.md` — 実装前の現物確認手順
+- `implement-with-verification/SKILL.md` — 検証付き実装手順
+- `regression-guard/SKILL.md` — 再発防止チェック
+- `update-lessons/SKILL.md` — 指摘された時のLESSONS_LEARNED更新手順
+- `autonomous-improvement-loop/SKILL.md` — 全ステップ統合ループ
