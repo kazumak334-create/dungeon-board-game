@@ -2,6 +2,38 @@
 
 ## [Unreleased]
 
+## 2026-05-05 Sprint 9リファクタリング: EconMain.gdヘッダー/フッターUI分離
+
+### 変更内容
+- scripts/econ_mvp/ui/HeaderUI.gd: 新規作成（EconMain.gdからヘッダーUI処理を分離）
+  - setup(economy, vp) / get_panel() / refresh(delta, ai_economy) / refresh_force_charge_with_turn(turn, blink_timer)
+  - 移植関数: _setup_pop_header/_setup_troop_header/_setup_gold_header/_setup_alloc_bar/_setup_header_detail_popup/_register_detail_target/_show_header_detail/_build_header_detail_text/_make_header_metric
+  - 更新関数: _update_res_labels/_update_status_ui/_update_population_ui/_update_alloc_bar_ui/_on_alloc_bar_input/_apply_alloc_from_mouse
+- scripts/econ_mvp/ui/FooterUI.gd: 新規作成（EconMain.gdからフッターUI処理を分離）
+  - setup(vp) / get_footer() / set_hand_cards(nodes) / update_hand_arrows() / update_deck_discard_counts() / refresh_draw_gauge() / refresh_reload_gauge() / trigger_draw_flash()
+  - 移植関数: _setup_deck_discard_block/_setup_hand_center_block/_setup_event_block
+- scripts/econ_mvp/EconMain.gd: ヘッダー/フッター関連の旧コード削除（2951行→1999行、約952行削減）
+  - preload追加: HeaderUIScript / FooterUIScript
+  - _setup_ui()でHeaderUI/FooterUIをインスタンス化してCanvasLayerに追加
+  - _process()でHeaderUI.refresh() / FooterUI.refresh_draw_gauge() / refresh_reload_gauge()を呼ぶように変更
+
+### 理由
+- EconMain.gdのサイズ削減・保守性向上
+- ズーム時にヘッダー/フッターが盤面と被る問題の構造的解消（CanvasLayer上のUIを独立管理）
+
+## 2026-05-04 Sprint 9 仕様変更：資源カード廃止、初期リソース増加
+
+### 変更内容
+- data/cards_econ.json: `resource_cards` セクションを廃止（card_resource_wood / card_resource_stone 削除）
+- scripts/econ_mvp/EconDeckManager.gd: INITIAL_DECK から resource cards（木材×2, 石材×2）を削除。初期デッキ17枚 → 13枚に縮小
+- scripts/econ_mvp/EconMain.gd: INITIAL_DECK から resource cards を削除
+- scripts/econ_mvp/EconEconomy.gd L548-549: 初期リソース WOOD/STONE を 5 → 30 に変更
+- scripts/econ_mvp/EconMain.gd: `_on_hand_card_double_clicked()` 関数、`_resource_key_to_enum()` 関数、ダブルクリックハンドラを削除（資源カード廃止に伴い）
+
+### 理由
+- 都市成長テストプレイ向けゲームバランス調整：初期リソース供給をカード頼みから固定値に変更
+- スプリント計画更新：Sprint 11-31の追加スプリント計画を roadmap.md に記載
+
 ## 2026-05-04 建物効果システム4件変更（REQUIREMENTS_CARD_EFFECTS §1.1・§3.3・§3.4・§3.5）
 
 ### 変更内容
