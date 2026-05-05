@@ -1202,9 +1202,18 @@ func _update_territory_highlight() -> void:
 	_grid.resource_highlight_type = EconGrid.ResourceType.NONE
 	_grid.land_highlight_cells.clear()
 
-	for pos in _grid.land_panels:
-		if _grid.land_panels[pos].get("revealed", false):
-			_grid.highlight_cells[pos] = true
+	for pb in _battle.player_buildings:
+		if not pb.is_alive:
+			continue
+		if not pb.is_built:
+			continue
+		for row in range(EconGrid.ROWS):
+			for col in range(_grid.get_col_count(row)):
+				var cell := Vector2i(col, row)
+				if _grid.is_mountain(cell):
+					continue
+				if _grid.hex_distance(cell, pb.grid_pos) <= 3:
+					_grid.highlight_cells[cell] = true
 
 	_grid.enemy_territory_cells.clear()
 	for eb in _battle.enemy_buildings:

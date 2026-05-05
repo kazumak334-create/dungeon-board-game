@@ -67,13 +67,19 @@ func play_card_and_build(card_idx: int, target_cell: Vector2i) -> bool:
 	var btype: int = _get_building_type_from_card(card)
 	if btype < 0:
 		return false
-	if economy != null:
-		economy.consume_resources(card)
 	var used_card: Dictionary = deck_manager.remove_card_at(card_idx)
 	if used_card.is_empty():
 		return false
+	# 変更1: カード使用時に資源チェック・即時消費（足りない場合はawaiting）
+	var resources_ok := economy != null and economy.can_afford_card(used_card)
+	if resources_ok and economy != null:
+		economy.consume_resources(used_card)
 	if grid == null or not grid.start_construction(target_cell, btype, used_card, Time.get_ticks_msec()):
 		return false
+	if not resources_ok and grid.construction_sites.has(target_cell):
+		grid.construction_sites[target_cell]["awaiting_resources"] = true
+		grid.construction_sites[target_cell]["is_active"] = false
+		log_message.emit("資源不足: %s を待機中" % used_card.get("name", "建物"))
 	_log_event({
 		"type": "BUILDING_PLACED",
 		"panel_id": [target_cell.x, target_cell.y],
@@ -81,14 +87,16 @@ func play_card_and_build(card_idx: int, target_cell: Vector2i) -> bool:
 		"card_id": str(used_card.get("id", "")),
 	})
 	log_message.emit("Card played: %s at (%d,%d)" % [card.get("name", "?"), target_cell.x, target_cell.y])
+	# HOUSE建設予約時に1枚ドロー（§ HOUSE card effect）
+	if btype == EconBuilding.BuildingType.HOUSE:
+		deck_manager.draw_card()
+		log_message.emit("HOUSE effect: drew 1 card")
 	return true
 
 func _check_placement_valid(card: Dictionary, target_cell: Vector2i) -> bool:
+	print("[EconBattle._check_placement_valid] card=%s, target_cell=(%d,%d)" % [card.get("name", "?"), target_cell.x, target_cell.y])
 
-
-	if economy != null and not economy.can_afford_card(card):
-		log_message.emit("Resource insufficient for %s" % card.get("name", "?"))
-		return false
+	# 資源不足でも建設予約は可能（デッドロック防止）
 
 	if economy != null:
 		var pop_req: int = card.get("population_required", 0)
@@ -110,12 +118,21 @@ func _check_placement_valid(card: Dictionary, target_cell: Vector2i) -> bool:
 		if h.is_alive:
 			occupied[h.grid_pos] = true
 	var own_positions: Array = []
+	if grid != null:
+		own_positions.append(grid.BASE_INITIAL_POS)  # Base を仮想建物として扱う
 	for b in player_buildings:
 		if b.is_alive and b.is_built:
 			own_positions.append(b.grid_pos)
-	if grid != null and not grid.can_place_construction_site(target_cell, own_positions, occupied):
-		log_message.emit("Cannot place construction site at (%d,%d)" % [target_cell.x, target_cell.y])
-		return false
+	if grid != null:
+		var panel: Dictionary = grid.get_panel_at(target_cell)
+		var revealed: bool = panel.get("revealed", false)
+		var category: String = panel.get("category", "unknown")
+		print("[EconBattle._check_placement_valid] target=(%d,%d), category=%s, revealed=%s, panel_resources=%s" % [target_cell.x, target_cell.y, category, revealed, str(panel.get("resources", {}))])
+		var can_place: bool = grid.can_place_construction_site(target_cell, own_positions, occupied)
+		print("[EconBattle._check_placement_valid] grid.can_place_construction_site()=%s" % can_place)
+		if not can_place:
+			log_message.emit("Cannot place construction site at (%d,%d)" % [target_cell.x, target_cell.y])
+			return false
 
 	return true
 
@@ -143,6 +160,7 @@ func _create_building_from_card(card: Dictionary, target_cell: Vector2i) -> Econ
 		"MARKET": EconBuilding.BuildingType.TRADE_POST,
 		"HOUSE": EconBuilding.BuildingType.HOUSE,
 		"PLAZA": EconBuilding.BuildingType.PLAZA,
+		"EXCHANGE": EconBuilding.BuildingType.EXCHANGE,
 		"WOOD_EXTRACTOR": EconBuilding.BuildingType.SAWMILL,
 		"STONE_EXTRACTOR": EconBuilding.BuildingType.MINE,
 		"RESIN_EXTRACTOR": EconBuilding.BuildingType.MINE,
@@ -356,8 +374,7 @@ func update(delta: float) -> void:
 	var all_units: Array = player_units + enemy_units
 	for u in player_units:
 		if u.is_alive:
-			var unit_rally := _get_unit_rally_pos(u)
-			u.update(delta, enemy_units, enemy_buildings, enemy_harvesters, grid, all_units, economy, unit_rally)
+			u.update(delta, enemy_units, enemy_buildings, enemy_harvesters, grid, all_units, economy)
 	for u in enemy_units:
 		if u.is_alive:
 			u.update(delta, player_units, player_buildings, player_harvesters, grid, all_units, ai.economy if ai != null else null)
@@ -370,6 +387,8 @@ func update(delta: float) -> void:
 
 func _allocate_work_labor() -> Array:
 	# ADR-003: EconBattle が作業人手割当を所有する
+	# 戻り値: [active_sites: Array, pool_for_lead: int]
+	# pool_for_lead = lead_posに割り当てる総work_laborプール
 	var sorted_sites: Array = grid.construction_sites.values()
 	sorted_sites.sort_custom(func(a: Dictionary, b: Dictionary) -> bool:
 		return int(a.get("started_at", 0)) < int(b.get("started_at", 0))
@@ -381,25 +400,56 @@ func _allocate_work_labor() -> Array:
 		if pool >= need:
 			pool -= need
 			active_sites.append(site)
-	return active_sites
+	# 直列建設: 残りプールをlead_posに全集中
+	var pool_for_lead: int = economy.get_work_labor()
+	return [active_sites, pool_for_lead]
 
 func _update_construction_progress(delta: float) -> void:
 	# ADR-003: construction 管理は EconBattle が単一責務所有者
 	if grid == null or economy == null:
 		return
-	var active_sites: Array = _allocate_work_labor()
-	var active_lookup: Dictionary = {}
+
+	# 変更1: awaiting_resources チェック（資源が揃ったら建設開始）
+	for pos in grid.construction_sites.keys():
+		var site: Dictionary = grid.construction_sites[pos]
+		if not site.get("awaiting_resources", false):
+			continue
+		var waiting_card: Dictionary = site.get("card", {})
+		if economy != null and economy.can_afford_card(waiting_card):
+			economy.consume_resources(waiting_card)
+			grid.construction_sites[pos]["awaiting_resources"] = false
+			grid.construction_sites[pos]["is_active"] = true
+			log_message.emit("資源確保: %s の建設開始" % waiting_card.get("name", "建物"))
+
+	# 変更2: 直列建設（started_at 最古の1サイトのみ進捗・全work_laborを集中）
+	var alloc_result: Array = _allocate_work_labor()
+	var active_sites: Array = alloc_result[0]
+	var pool_for_lead: int = alloc_result[1]
+	# awaiting中のサイトは除外してソート
+	var buildable_sites: Array = []
 	for site in active_sites:
-		active_lookup[site.get("panel_id", Vector2i(-1, -1))] = true
+		if not site.get("awaiting_resources", false):
+			buildable_sites.append(site)
+	buildable_sites.sort_custom(func(a: Dictionary, b: Dictionary) -> bool:
+		return int(a.get("started_at", 0)) < int(b.get("started_at", 0))
+	)
+	var lead_pos: Vector2i = Vector2i(-1, -1)
+	if buildable_sites.size() > 0:
+		lead_pos = buildable_sites[0].get("panel_id", Vector2i(-1, -1))
 
 	var completed_panel_ids: Array = []
 	for pos in grid.construction_sites.keys():
 		var site: Dictionary = grid.construction_sites[pos]
-		var is_active: bool = active_lookup.has(pos)
+		var is_awaiting: bool = site.get("awaiting_resources", false)
+		# キュー1番のみ進捗（直列建設）
+		var is_active: bool = (pos == lead_pos) and not is_awaiting
 		site["is_active"] = is_active
 		if is_active:
-			var build_time: float = max(0.001, float(site.get("construction_time", 1.0)))
-			site["construction_progress"] = min(1.0, float(site.get("construction_progress", 0.0)) + delta / build_time)
+			# worker数を反映した進捗計算（pool_for_lead / required_work_units）
+			var required_work_units: float = max(0.001, float(site.get("required_work_labor", 1.0)))
+			var allocated_work: float = max(1.0, float(pool_for_lead))
+			site["construction_progress"] = min(1.0, float(site.get("construction_progress", 0.0)) + delta * allocated_work / required_work_units)
+			print("[EconBattle] type=construction_progress pos=(%d,%d) pool=%d required=%.1f progress=%.3f" % [pos.x, pos.y, pool_for_lead, required_work_units, float(site.get("construction_progress", 0.0))])
 		grid.construction_sites[pos] = site
 		_log_event({
 			"type": "BUILDING_PROGRESS_UPDATED",
@@ -412,11 +462,12 @@ func _update_construction_progress(delta: float) -> void:
 
 	for pos in completed_panel_ids:
 		var site: Dictionary = grid.construction_sites[pos].duplicate(true)
+		var card: Dictionary = site.get("card", {})
+
 		grid.construction_sites.erase(pos)
 		var building: EconBuilding = grid.spawn_building(site)
 		if building == null:
 			continue
-		var card: Dictionary = site.get("card", {})
 		building.unit_produced.connect(func(bpos: Vector2i, utype: int):
 			spawn_player_unit(bpos.x, bpos.y, utype, false)
 			_on_unit_produced(bpos, utype)
@@ -511,7 +562,7 @@ func spawn_enemy_harvester(pos: Vector2i, economy: EconEconomy) -> void:
 	h.grid_pos = pos
 	h.economy = economy
 	h.position = grid.hex_to_pixel(pos.x, pos.y)
-	h.harvested.connect(func(rtype): economy.add_resource(rtype))
+	h.harvested.connect(func(rtype): economy.add_resource(rtype, 1))
 	h.harvester_index = enemy_harvesters.size()
 	enemy_harvesters.append(h)
 	grid.add_child(h)
@@ -525,6 +576,15 @@ func register_player_building(b: EconBuilding) -> void:
 	grid.add_child(b)
 	if economy != null:
 		economy.buildings = player_buildings
+	if b.building_type == EconBuilding.BuildingType.EXCHANGE:
+		b.draw_card_requested.connect(_on_exchange_draw_requested)
+
+func _on_exchange_draw_requested() -> void:
+	if deck_manager == null:
+		return
+	deck_manager.draw_card()
+	log_message.emit("交換所: リソース累積10達成、1ドロー")
+	print("[EconBattle] EXCHANGE: draw_card called")
 
 func _log_event(data: Dictionary) -> void:
 	var log_manager: Object = get_node_or_null("/root/LogManager")
@@ -627,7 +687,7 @@ func _apply_smithy_buff(unit: EconUnit, source_building_pos: Vector2i) -> void:
 
 
 func _on_harvested(rtype: int) -> void:
-	_route_harvested_resource(rtype)
+	economy.add_resource(rtype, 1)
 
 
 
@@ -645,6 +705,28 @@ func _on_building_constructed(building: EconBuilding) -> void:
 	if building.building_type == EconBuilding.BuildingType.EQUIPMENT_SHOP:
 		_recalc_fusion_clusters()
 	_try_acquire_adjacent_chests(building)
+	# 自拠点初期効果: BASE以外の完成建物が5棟ごとに1ドロー
+	_check_building_milestone_draw()
+
+# 自拠点初期効果: BASE以外の完成建物が5棟ごとに1ドロー
+func _check_building_milestone_draw() -> void:
+	if deck_manager == null:
+		return
+	var count: int = 0
+	for b in player_buildings:
+		if b.is_alive and b.is_built and b.building_type != EconBuilding.BuildingType.BASE:
+			count += 1
+	print("[EconBattle] building_milestone_draw: non-BASE built count=%d" % count)
+	if count > 0 and count % 5 == 0:
+		deck_manager.draw_card()
+		log_message.emit("建物5棟効果: 1ドロー (count=%d)" % count)
+		print("[EconBattle] building_milestone_draw: drew 1 card at count=%d" % count)
+	# BASEのmilestone_progressを更新（5棟サイクル内の進捗をBPBで表示）
+	var progress_in_cycle: float = float(count % 5) / 5.0
+	for b in player_buildings:
+		if b.is_alive and b.building_type == EconBuilding.BuildingType.BASE:
+			b.milestone_progress = progress_in_cycle
+			break
 
 # PLAZA パッシブ効果 + 周辺PLAZA幸福度通知（REQUIREMENTS_CARD_EFFECTS §3.3）
 # 呼び出しタイミング: 建物完成直後（_update_construction_progress 内）
@@ -664,8 +746,13 @@ func _on_building_completed_plaza_notify(building: EconBuilding) -> void:
 			if pb.building_type != EconBuilding.BuildingType.PLAZA:
 				continue
 			if pb.grid_pos == neighbor_pos:
-				economy.add_building_satisfaction_influence(1.0)
-				print("[EconBattle] 周辺PLAZA幸福度+1: PLAZA pos=%s 完成建物 pos=%s" % [str(pb.grid_pos), str(building.grid_pos)])
+				# 上限チェック: _plaza_satisfaction_bonus が7未満のときのみ加算（REQUIREMENTS_CARD_EFFECTS §3.3 最大+7）
+				if pb._plaza_satisfaction_bonus < 7:
+					pb._plaza_satisfaction_bonus += 1
+					economy.add_building_satisfaction_influence(1.0)
+					print("[EconBattle] 周辺PLAZA幸福度+1: PLAZA pos=%s 完成建物 pos=%s (bonus=%d)" % [str(pb.grid_pos), str(building.grid_pos), pb._plaza_satisfaction_bonus])
+				else:
+					print("[EconBattle] 周辺PLAZA幸福度上限到達: PLAZA pos=%s (bonus=%d/7)" % [str(pb.grid_pos), pb._plaza_satisfaction_bonus])
 				break
 
 # TRADE_POST: economy.resource_consumed シグナルハンドラ（REQUIREMENTS_CARD_EFFECTS §3.5）
@@ -759,40 +846,3 @@ func _on_building_destroyed(building: EconBuilding) -> void:
 
 	if building.building_type == EconBuilding.BuildingType.EQUIPMENT_SHOP:
 		_recalc_fusion_clusters()
-
-func _route_harvested_resource(rtype: int) -> void:
-	var btype: int = -1
-	var key: String = ""
-	match rtype:
-		EconGrid.ResourceType.WOOD:
-			btype = EconBuilding.BuildingType.BARRACKS
-			key = "wood"
-		EconGrid.ResourceType.STONE:
-			btype = EconBuilding.BuildingType.FORTRESS
-			key = "stone"
-		EconGrid.ResourceType.RESIN:
-			btype = EconBuilding.BuildingType.WORKSHOP
-			key = "resin"
-		_:
-
-			economy.add_resource(rtype, 1)
-			return
-
-	var best: EconBuilding = null
-	var best_priority: int = 0
-	for b in player_buildings:
-		if not b.is_alive or not b.is_built: continue
-		if b.building_type != btype: continue
-		if b.stockpile.get(key, 0) >= EconBuilding.STOCKPILE_CAP: continue
-
-		var priority: int = b.build_priority * 100 + (EconBuilding.STOCKPILE_CAP - b.stockpile.get(key, 0))
-		if best == null or priority > best_priority:
-			best = b
-			best_priority = priority
-	if best != null:
-		if not best.add_stock(key, 1):
-
-			economy.add_resource(rtype, 1)
-	else:
-
-		economy.add_resource(rtype, 1)

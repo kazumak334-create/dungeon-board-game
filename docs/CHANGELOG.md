@@ -2,6 +2,14 @@
 
 ## [Unreleased]
 
+## 2026-05-05 5棟ドロー進捗表示をHeaderUIゲージからBASEパネルBPBへ移行
+
+### 変更内容
+- scripts/econ_mvp/ui/HeaderUI.gd: `_milestone_bar`/`_milestone_label`変数・`_build_milestone_block()`・`_update_milestone_bar()`を削除。`_battle`変数・`setup()`の`battle`引数を削除。`refresh()`から`_update_milestone_bar()`呼び出しを削除
+- scripts/econ_mvp/EconMain.gd: `_header_ui.setup(_economy, vp, _battle)` → `_header_ui.setup(_economy, vp)` に変更
+- scripts/econ_mvp/EconBuilding.gd: `milestone_progress: float = 0.0`フィールド追加。`_draw()`にBASEかつ`is_built`の場合`milestone_progress`で`_draw_construction_ring`を呼ぶ処理を追加（製材所と同スタイルの弧状BPB）
+- scripts/econ_mvp/EconBattle.gd: `_check_building_milestone_draw()`にBASEの`milestone_progress`更新処理を追加（`count % 5 / 5.0`で0→1サイクル）
+
 ## 2026-05-05 バグ修正3件: 数値なしパネル表示・金枠表示範囲・建設工数2倍
 
 ### 変更内容

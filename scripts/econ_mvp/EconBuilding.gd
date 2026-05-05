@@ -133,6 +133,7 @@ static var REQUIRED_CONSTRUCTION: Dictionary = {
 
 var build_progress: float = 0.0
 var build_priority: int = 0  # 集中建設モードでの優先度（大きいほど優先）
+var milestone_progress: float = 0.0  # 0.0〜1.0（BASEの5棟進捗BPB用）
 
 
 # 装備屋融合ランク（要件定義書 req_econ_equipment_shop_mvp.md）
@@ -146,6 +147,7 @@ var _produce_last_interval: float = 0.0
 var _diner_last_interval: float = 0.0
 var _mill_last_interval: float = 0.0
 var _resource_counter: int = 0  # TRADE_POST: 累計消費カウンター（10到達で1ドロー）
+var _exchange_resource_accum: float = 0.0  # EXCHANGE: 累積リソース量（10ごとに1ドロー）
 var _resource_ready: bool = true  # 生産コストが払えるか（!表示用）
 var _construction_ready: bool = true  # 建設コストが払えるか（建設中!表示用）
 var _placement_bonus_active: bool = false  # 配置ボーナス有効フラグ
@@ -159,6 +161,7 @@ var _flash_timer: float = 0.0  # 発動時発光演出タイマー（秒）
 signal unit_produced(pos: Vector2i, unit_type: int)  # unit_type: 0=突,1=守,2=崩
 signal base_destroyed(is_player: bool)
 signal building_destroyed(building: Node)  # 装備屋破壊時の融合ランク再計算用
+signal draw_card_requested()  # EXCHANGE: リソース累積10ごとに1ドロー
 
 func setup(btype: BuildingType, pos: Vector2i, player_side: bool) -> void:
 	building_type = btype
@@ -242,7 +245,9 @@ func update(delta: float, economy: EconEconomy, buildings: Array = [], grid: Eco
 			pass  # 幸福度供給はEconEconomy.update() Step 4で処理（§2.4.3）
 		BuildingType.HOUSE:
 			pass  # パッシブ：人口上限供給はEconEconomy側で処理（§2.4.2）
-		BuildingType.EXCHANGE, BuildingType.LIBRARY, BuildingType.LIBRARY_ADV, BuildingType.MUSEUM, BuildingType.ART_GALLERY:
+		BuildingType.EXCHANGE:
+			_update_exchange(delta, economy, grid)
+		BuildingType.LIBRARY, BuildingType.LIBRARY_ADV, BuildingType.MUSEUM, BuildingType.ART_GALLERY:
 			pass  # 次期MVPで効果設計
 		BuildingType.SMITHY:
 			_update_smithy(delta, economy)
@@ -434,6 +439,46 @@ func _update_mill(delta: float, economy: EconEconomy, grid: EconGrid = null) -> 
 		" [high-yield panel bonus]" if has_high_yield_wheat else "",
 	])
 
+func _update_exchange(delta: float, economy: EconEconomy, grid: EconGrid = null) -> void:
+	# 交換所: 2.5秒ごとにパネルのリソース合計を累積 → 累積10ごとに1ドロー
+	var interval: float = _get_effective_interval(2.5, economy)
+	_produce_timer = _remap_timer_to_interval(_produce_timer, _produce_last_interval, interval)
+	_produce_last_interval = interval
+	_produce_timer += delta
+	if _produce_timer < interval:
+		return
+	_produce_timer -= interval
+	_resource_ready = true
+	_flash_timer = 0.5
+	# パネルの全リソース合計を取得して累積
+	var total_res: float = 0.0
+	if grid != null:
+		var panel: Dictionary = grid.get_panel_at(grid_pos)
+		var res: Dictionary = panel.get("resources", {})
+		for v in res.values():
+			total_res += float(v)
+		# リソースを経済に追加（SAWMILLと同様に各リソースを加算）
+		var rtype_map: Dictionary = {
+			"wood": EconGrid.ResourceType.WOOD,
+			"stone": EconGrid.ResourceType.STONE,
+			"resin": EconGrid.ResourceType.RESIN,
+			"wheat": EconGrid.ResourceType.WHEAT,
+			"iron": EconGrid.ResourceType.IRON,
+			"cotton": EconGrid.ResourceType.COTTON,
+		}
+		for rkey in res:
+			var gain: int = int(res[rkey])
+			if gain > 0 and rtype_map.has(rkey):
+				economy.add_resource(rtype_map[rkey], gain)
+	if total_res <= 0.0:
+		total_res = 1.0
+	_exchange_resource_accum += total_res
+	# 累積10ごとに1ドロー
+	while _exchange_resource_accum >= 10.0:
+		_exchange_resource_accum -= 10.0
+		draw_card_requested.emit()
+		print("[EconBuilding] EXCHANGE: draw triggered (pos=%s, accum_after=%.1f)" % [str(grid_pos), _exchange_resource_accum])
+
 func take_damage(amount: float) -> void:
 	hp -= amount
 	if hp <= 0.0:
@@ -527,6 +572,9 @@ func _draw() -> void:
 		var abbr := _get_building_abbr()
 		if abbr != "":
 			draw_string(ThemeDB.fallback_font, Vector2(-5, 5), abbr, HORIZONTAL_ALIGNMENT_CENTER, -1, 11, Color(1.0, 1.0, 1.0, 0.85))
+	# BASEの場合: 5棟進捗をリングBPBで表示（_draw_construction_ring と同スタイル）
+	if is_built and building_type == BuildingType.BASE and milestone_progress > 0.0:
+		_draw_construction_ring(milestone_progress, false)
 	# 建設中かつ建設コスト不足 → 右上に「!」
 	if not is_built and not _construction_ready:
 		draw_circle(Vector2(15, -22), 7.0, Color(0.9, 0.1, 0.1, 0.9))
