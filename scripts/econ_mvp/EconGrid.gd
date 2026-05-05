@@ -1,11 +1,11 @@
-﻿class_name EconGrid
+class_name EconGrid
 extends Node2D
 
 const HEX_SIZE := 24.0
 const COLS := 26
 const ROWS := 13
 const MAX_STACK: int = 3
-const BASE_INITIAL_POS := Vector2i(2, 7)
+const BASE_INITIAL_POS := Vector2i(1, 6)
 const LAND_RESOURCE_TYPES := ["wood", "resin", "stone", "iron", "wheat", "cotton"]
 const LAND_TERRAIN_TYPES := ["grassland", "forest", "rocky", "desert", "wetland", "wasteland"]
 
@@ -17,20 +17,21 @@ var resource_cells: Dictionary = {}
 var land_panels: Dictionary = {}
 var base_panel_data: Dictionary = {}
 var seed_value: int = 42
-var tile_cells: Dictionary = {}   # Vector2i 竊・TileType
-var mountain_ratio: int = 35
+var tile_cells: Dictionary = {}
+var mountain_ratio: int = 0
 var desert_ratio: int = 25
 var _land_rng := RandomNumberGenerator.new()
 
-# 蟒ｺ險ｭ蜿ｯ閭ｽ繧ｨ繝ｪ繧｢繝上う繝ｩ繧､繝茨ｼ・conMain縺後そ繝・ヨ縺吶ｋ・・
+
 var highlight_cells: Dictionary = {}  # Vector2i -> true
-var enemy_territory_cells: Dictionary = {}  # Vector2i -> true・域雰鬆伜悄繧ｻ繝・ヨ・・
-var fill_cells: Dictionary = {}  # Vector2i -> true・亥ｻｺ險ｭ繝｢繝ｼ繝画凾縺ｮ縺ｿ蝪励ｊ縺､縺ｶ縺怜ｯｾ雎｡繧ｻ繝ｫ・・
-var resource_highlight_type: int = 0  # ResourceType蛟､・・=NONE・峨ょｻｺ險ｭ繝｢繝ｼ繝画凾縺ｫ蟇ｾ蠢懆ｳ・ｺ舌ち繧､繝ｫ繧呈棧邱壼ｼｷ隱ｿ
+var enemy_territory_cells: Dictionary = {}
+var fill_cells: Dictionary = {}
+var resource_highlight_type: int = 0
+var land_highlight_cells: Dictionary = {}  # Vector2i -> true (土地参照型建物選択時のパネル強調)
 var construction_sites: Dictionary = {}
 
-# Phase 3: BASE髟ｷ謚ｼ縺励Μ繝ｳ繧ｰ騾ｲ謐暦ｼ・conMain縺後そ繝・ヨ縺吶ｋ・・
-var base_longpress_cell: Vector2i = Vector2i(-1, -1)  # -1,-1縺ｪ繧臥┌蜉ｹ
+
+var base_longpress_cell: Vector2i = Vector2i(-1, -1)
 var base_longpress_progress: float = 0.0  # 0.0縲・.0
 
 func _ready() -> void:
@@ -41,12 +42,12 @@ func _init_resource_cells() -> void:
 	resource_cells.clear()
 	tile_cells.clear()
 
-	# --- 蜈ｨ繧ｻ繝ｫ繧・PLAIN 縺ｧ蛻晄悄蛹・---
+
 	for row in range(ROWS):
 		for col in range(get_col_count(row)):
 			tile_cells[Vector2i(col, row)] = TileType.PLAIN
 
-	# --- 閾ｪ髯｣繧ｻ繝ｫ・・ol 0-7・峨ｒ蜿朱寔縺励※繧ｷ繝｣繝・ヵ繝ｫ ---
+
 	var player_cells: Array = []
 	for col in range(0, 8):
 		for row in range(ROWS):
@@ -59,7 +60,7 @@ func _init_resource_cells() -> void:
 		var tmp: Vector2i = player_cells[i]
 		player_cells[i] = player_cells[j]
 		player_cells[j] = tmp
-	# 閾ｪ髯｣蜈磯ｭ4繝槭せ縺ｫWOOD縲∵ｬ｡4縺ｫSTONE縲∵ｬ｡4縺ｫRESIN縲∵ｬ｡2縺ｫWHEAT
+
 	for i in range(4):
 		resource_cells[player_cells[i]] = ResourceType.WOOD
 	for i in range(4, 8):
@@ -68,7 +69,7 @@ func _init_resource_cells() -> void:
 		resource_cells[player_cells[i]] = ResourceType.RESIN
 	for i in range(12, 14):
 		resource_cells[player_cells[i]] = ResourceType.WHEAT
-	# IRONﾃ・ 繧貞ｾ悟・・・ol 5-7・峨°繧蛾∈縺ｶ
+
 	var player_back: Array = []
 	for c in range(5, 8):
 		for r in range(ROWS):
@@ -84,7 +85,7 @@ func _init_resource_cells() -> void:
 	if player_back.size() >= 2:
 		resource_cells[player_back[0]] = ResourceType.IRON
 		resource_cells[player_back[1]] = ResourceType.IRON
-	# COTTONﾃ・ 繧呈ｮ九ｊ縺ｮ繧ｻ繝ｫ縺九ｉ繝ｩ繝ｳ繝繝驕ｸ謚・
+
 	var player_remain: Array = []
 	for pc in player_cells:
 		if not resource_cells.has(pc):
@@ -99,7 +100,7 @@ func _init_resource_cells() -> void:
 		resource_cells[player_remain[0]] = ResourceType.COTTON
 		resource_cells[player_remain[1]] = ResourceType.COTTON
 
-	# --- 謨ｵ髯｣繧ｻ繝ｫ・・ol 18-25・峨ｒ蜿朱寔縺励※繧ｷ繝｣繝・ヵ繝ｫ ---
+
 	var enemy_cells: Array = []
 	for col in range(18, 26):
 		for row in range(ROWS):
@@ -110,7 +111,7 @@ func _init_resource_cells() -> void:
 		var tmp: Vector2i = enemy_cells[i]
 		enemy_cells[i] = enemy_cells[j]
 		enemy_cells[j] = tmp
-	# 謨ｵ髯｣蜈磯ｭ4繝槭せ縺ｫWOOD縲∵ｬ｡4縺ｫSTONE縲∵ｬ｡4縺ｫRESIN縲∵ｬ｡2縺ｫWHEAT
+
 	for i in range(4):
 		resource_cells[enemy_cells[i]] = ResourceType.WOOD
 	for i in range(4, 8):
@@ -119,7 +120,7 @@ func _init_resource_cells() -> void:
 		resource_cells[enemy_cells[i]] = ResourceType.RESIN
 	for i in range(12, 14):
 		resource_cells[enemy_cells[i]] = ResourceType.WHEAT
-	# 謨ｵ髯｣ IRONﾃ・ 繧貞ｾ悟・・・ol 20-22・峨°繧蛾∈縺ｶ
+
 	var enemy_back: Array = []
 	for c in range(20, 23):
 		for r in range(ROWS):
@@ -135,7 +136,7 @@ func _init_resource_cells() -> void:
 	if enemy_back.size() >= 2:
 		resource_cells[enemy_back[0]] = ResourceType.IRON
 		resource_cells[enemy_back[1]] = ResourceType.IRON
-	# 謨ｵ髯｣ COTTONﾃ・ 繧呈ｮ九ｊ縺ｮ繧ｻ繝ｫ縺九ｉ繝ｩ繝ｳ繝繝驕ｸ謚・
+
 	var enemy_remain: Array = []
 	for ec in enemy_cells:
 		if not resource_cells.has(ec):
@@ -150,7 +151,7 @@ func _init_resource_cells() -> void:
 		resource_cells[enemy_remain[0]] = ResourceType.COTTON
 		resource_cells[enemy_remain[1]] = ResourceType.COTTON
 
-	# --- 蝨ｰ蠖｢繧堤函謌・---
+
 	generate_terrain(mountain_ratio, desert_ratio)
 
 func calculate_distance_band(pos: Vector2i, base_pos: Vector2i = BASE_INITIAL_POS) -> String:
@@ -196,7 +197,6 @@ func apply_initial_guarantee(panels: Array) -> void:
 		{"resource": "wood", "category": "single"},
 		{"resource": "stone", "category": "single"},
 		{"resource": "wheat", "category": "single"},
-		{"resource": "", "category": "composite"},
 	]
 	var used_positions: Dictionary = {}
 	for spec in guarantee_specs:
@@ -205,14 +205,8 @@ func apply_initial_guarantee(panels: Array) -> void:
 			push_warning("[EconGrid] initial guarantee skipped: no near panel available")
 			continue
 		var pos: Vector2i = panels[target_index].get("pos", Vector2i(-1, -1))
-		var panel: Dictionary
-		if spec["category"] == "composite":
-			panel = generate_composite_resource_panel(pos)
-			if panel["resources"].size() < 2:
-				panel["resources"] = {"wood": 2, "stone": 2}
-		else:
-			panel = generate_single_resource_panel(pos, str(spec["resource"]))
-			panel["resources"][str(spec["resource"])] = maxi(2, int(panel["resources"].get(str(spec["resource"]), 0)))
+		var panel: Dictionary = generate_single_resource_panel(pos, str(spec["resource"]))
+		panel["resources"][str(spec["resource"])] = maxi(2, int(panel["resources"].get(str(spec["resource"]), 0)))
 		panels[target_index] = panel
 		land_panels[pos] = panel
 		used_positions[pos] = true
@@ -232,20 +226,17 @@ func generate_initial_land_panels() -> Array:
 	for row in range(ROWS):
 		for col in range(COLS):
 			var pos := Vector2i(col, row)
-			if pos == BASE_INITIAL_POS:
+			if is_mountain(pos):
 				continue
 			var panel: Dictionary
-			if _land_rng.randf() < 0.25:
-				panel = generate_composite_resource_panel(pos)
-			else:
-				panel = generate_single_resource_panel(pos)
+			panel = generate_single_resource_panel(pos)
 			panels.append(panel)
 			land_panels[pos] = panel
 			_log_land_panel_gen(pos, panel)
 	apply_initial_guarantee(panels)
-	# Sprint 1: 閾ｪ諡轤ｹ縺九ｉ霍晞屬3莉･蜀・・繝代ロ繝ｫ繧帝幕遉ｺ・・eq_econ_city_status_sprint1.md ﾂｧ4.2・・
+
 	apply_initial_reveal(panels, BASE_INITIAL_POS)
-	print("[EconGrid] land panels generated: panels=%d base=%s total_cells=%d" % [panels.size(), str(BASE_INITIAL_POS), panels.size() + 1])
+	print("[EconGrid] land panels generated: panels=%d" % panels.size())
 	return panels
 
 func _build_land_panel(pos: Vector2i, resources: Dictionary, category: String, distance_band: String) -> Dictionary:
@@ -260,7 +251,7 @@ func _build_land_panel(pos: Vector2i, resources: Dictionary, category: String, d
 	}
 
 func _generate_special_tag() -> String:
-	return "spice" if _land_rng.randf() < 0.08 else "none"
+	return "spice" if _land_rng.randf() < 0.04 else "none"
 
 func _generate_land_terrain_type() -> String:
 	return LAND_TERRAIN_TYPES[_land_rng.randi_range(0, LAND_TERRAIN_TYPES.size() - 1)]
@@ -275,44 +266,53 @@ func _find_near_panel_index_for_guarantee(panels: Array, used_positions: Diction
 			return i
 	return -1
 
-# Sprint 1: 繧ｲ繝ｼ繝髢句ｧ区凾縺ｮ蛻晄悄髢狗､ｺ蜃ｦ逅・ｼ・eq_econ_city_status_sprint1.md ﾂｧ4.2・・
-# base_pos縺九ｉ霍晞屬3莉･蜀・・蜈ｨ繝代ロ繝ｫ繧・revealed=true 縺ｫ險ｭ螳壹☆繧・
+
+
 func apply_initial_reveal(panels: Array, base_pos: Vector2i) -> void:
 	var reveal_count: int = 0
 	for panel in panels:
 		var pos: Vector2i = panel.get("pos", Vector2i(-1, -1))
-		var dist: int = absi(pos.x - base_pos.x) + absi(pos.y - base_pos.y)
+		var dist: int = hex_distance(pos, base_pos)
 		if dist <= 3:
 			panel["revealed"] = true
 			land_panels[pos]["revealed"] = true
 			reveal_count += 1
 	print("[EconGrid] apply_initial_reveal: revealed=%d panels (dist<=3 from %s)" % [reveal_count, str(base_pos)])
+	var composite_count: int = 0
+	var unrevealed_composite_count: int = 0
+	for pos in land_panels.keys():
+		var p: Dictionary = land_panels[pos]
+		if p.get("category", "") == "composite":
+			composite_count += 1
+			if not p.get("revealed", false):
+				unrevealed_composite_count += 1
+	print("[EconGrid] apply_initial_reveal: composite panels total=%d, unrevealed=%d" % [composite_count, unrevealed_composite_count])
 
-# Sprint 1: 蟒ｺ迚ｩ驟咲ｽｮ蠕後↓蜻ｨ霎ｺ繝代ロ繝ｫ繧帝幕遉ｺ縺吶ｋ・・eq_econ_city_status_sprint1.md ﾂｧ4.3・・
-# building_pos縺九ｉ霍晞屬radius莉･蜀・・蜈ｨ繝代ロ繝ｫ繧池evealed=true縺ｫ險ｭ螳夲ｼ井ｸ蠎ｦtrue縺ｫ縺ｪ縺｣縺溘ｉ荳榊庄騾・ｼ・
+
+
 func reveal_panels_around(building_pos: Vector2i, radius: int = 3) -> void:
 	var reveal_count: int = 0
 	for pos in land_panels.keys():
 		var panel: Dictionary = land_panels[pos]
 		if panel.get("revealed", false):
 			continue
-		var dist: int = absi(pos.x - building_pos.x) + absi(pos.y - building_pos.y)
+		var dist: int = hex_distance(pos, building_pos)
 		if dist <= radius:
 			land_panels[pos]["revealed"] = true
 			reveal_count += 1
 	if reveal_count > 0:
 		print("[EconGrid] reveal_panels_around: revealed=%d new panels (dist<=%d from %s)" % [reveal_count, radius, str(building_pos)])
 
-# Sprint 1: 蟒ｺ迚ｩ驟咲ｽｮ蜿ｯ蜷ｦ蛻､螳夲ｼ・eq_econ_city_status_sprint1.md ﾂｧ4.3・・
-# 譚｡莉ｶ1: 驟咲ｽｮ蜈医ヱ繝阪Ν縺・revealed=true
-# 譚｡莉ｶ2: 閾ｪ蟒ｺ迚ｩ・・wn_building_positions・峨↓4譁ｹ蜷鷹團謗･縺励※縺・ｋ
+
+
+
 func can_place_building(target_pos: Vector2i, own_building_positions: Array) -> bool:
 	var panel: Dictionary = get_panel_at(target_pos)
 	if not panel.get("revealed", false):
-		print("[EconGrid] can_place_building: 譛ｪ髢狗､ｺ繝代ロ繝ｫ縺ｮ縺溘ａ驟咲ｽｮ荳榊庄 pos=%s" % str(target_pos))
+		print("[EconGrid] can_place_building: unrevealed panel pos=%s" % str(target_pos))
 		return false
 	if not is_adjacent_to_own_building(target_pos, own_building_positions):
-		print("[EconGrid] can_place_building: 閾ｪ蟒ｺ迚ｩ縺ｫ髫｣謗･縺励※縺・↑縺・◆繧・・鄂ｮ荳榊庄 pos=%s" % str(target_pos))
+		print("[EconGrid] can_place_building: not adjacent to own building pos=%s" % str(target_pos))
 		return false
 	if construction_sites.has(target_pos):
 		return false
@@ -336,8 +336,6 @@ func can_place_construction_site(target_pos: Vector2i, own_building_positions: A
 		return false
 	if target_pos == BASE_INITIAL_POS:
 		return false
-	if is_mountain(target_pos):
-		return false
 	if not land_panels.has(target_pos):
 		return false
 	var panel: Dictionary = land_panels.get(target_pos, {})
@@ -360,10 +358,9 @@ func start_construction(panel_id: Vector2i, building_type: int, card: Dictionary
 		"card": card.duplicate(true),
 		"card_id": str(card.get("id", "")),
 		"is_special": str(card.get("category", card.get("type", ""))) == "special",
-		"construction_time": float(card.get("build_time", card.get("required_work", 5.0))),
+		"construction_time": 3.0 if str(card.get("category", card.get("type", ""))) == "special" else 1.0,
 		"construction_progress": 0.0,
-		"required_work_labor": int(card.get("required_work_labor", 1)),
-		"required_operation_labor": int(card.get("required_operation_labor", card.get("population_required", 0))),
+		"required_work_labor": 1,
 		"is_under_construction": true,
 		"is_active": false,
 		"started_at": started_at,
@@ -377,19 +374,17 @@ func spawn_building(site: Dictionary) -> EconBuilding:
 	var building := EconBuilding.new()
 	building.setup(int(site.get("building_type", EconBuilding.BuildingType.HOUSE)), panel_id, true)
 	building.is_built = true
-	building.required_operation_labor = int(site.get("required_operation_labor", 0))
 	# 完成直前の build_progress で微フェード表現（不要ならコメント化）
 	building.build_progress = 0.99
 	building.position = hex_to_pixel(panel_id.x, panel_id.y)
 	return building
 
-# Sprint 1: 閾ｪ蟒ｺ迚ｩ髫｣謗･蛻､螳夲ｼ・譁ｹ蜷托ｼ・
+
 func is_adjacent_to_own_building(target_pos: Vector2i, own_building_positions: Array) -> bool:
-	var dirs: Array = [Vector2i(0, -1), Vector2i(0, 1), Vector2i(-1, 0), Vector2i(1, 0)]
 	for own_pos in own_building_positions:
-		for dir in dirs:
-			if target_pos == own_pos + dir:
-				return true
+		var neighbors: Array = get_neighbors(own_pos.x, own_pos.y)
+		if target_pos in neighbors:
+			return true
 	return false
 
 func get_resource_type(pos: Vector2i) -> ResourceType:
@@ -411,7 +406,7 @@ func has_spice_tag(pos: Vector2i) -> bool:
 func is_within_bounds(pos: Vector2i) -> bool:
 	return is_valid_cell(pos.x, pos.y)
 
-# Deprecated: 蝨溷慍繧ｫ繝ｼ繝牙ｱ驟ｬ縺ｯ譌｢蟄倥ヱ繝阪Ν荳頑嶌縺榊梛縺ｸ遘ｻ陦後＠縺溘◆繧∽ｽｿ逕ｨ縺励↑縺・・
+
 func get_adjacent_empty_cells(pos: Vector2i) -> Array:
 	var adjacent: Array = []
 	var directions := [Vector2i(0, -1), Vector2i(0, 1), Vector2i(-1, 0), Vector2i(1, 0)]
@@ -570,12 +565,12 @@ func generate_terrain(p_mountain_ratio: int, p_desert_ratio: int) -> void:
 	mountain_ratio = p_mountain_ratio
 	desert_ratio = p_desert_ratio
 
-	# 蝨ｰ蠖｢繝ｪ繧ｻ繝・ヨ・・esource_cells 縺ｯ邯ｭ謖・ｼ・
+
 	for row in range(ROWS):
 		for col in range(get_col_count(row)):
 			tile_cells[Vector2i(col, row)] = TileType.PLAIN
 
-	# 荳ｭ螟ｮ繧ｾ繝ｼ繝ｳ・・ol 8-17・峨↓螻ｱ蟯ｳ繝ｻ遐よｼ繧帝・鄂ｮ
+
 	var center_cells: Array = []
 	for col in range(8, 18):
 		for row in range(ROWS):
@@ -583,7 +578,7 @@ func generate_terrain(p_mountain_ratio: int, p_desert_ratio: int) -> void:
 
 	var rng := RandomNumberGenerator.new()
 	rng.seed = seed_value + 2
-	# Fisher-Yates 繧ｷ繝｣繝・ヵ繝ｫ
+
 	for i in range(center_cells.size() - 1, 0, -1):
 		var j := rng.randi_range(0, i)
 		var tmp: Vector2i = center_cells[i]
@@ -599,17 +594,17 @@ func generate_terrain(p_mountain_ratio: int, p_desert_ratio: int) -> void:
 	for i in range(m_count, m_count + d_count):
 		tile_cells[center_cells[i]] = TileType.DESERT
 
-	# 邨瑚ｷｯ菫晁ｨｼ: row3竊池ow8 縺ｮ BFS 縺碁壹ｋ縺ｾ縺ｧ螻ｱ蟯ｳ繧帝勁蜴ｻ
+
 	_ensure_passable_path()
 	queue_redraw()
 
 func _ensure_passable_path() -> void:
 	while true:
-		# col 7 縺ｮ荳ｭ螟ｮ陦後°繧・col 18 縺ｾ縺ｧ蛻ｰ驕斐〒縺阪ｋ縺狗｢ｺ隱・
+
 		var mid_row := ROWS / 2
 		if _bfs_can_reach_col(Vector2i(7, mid_row), 18):
 			return
-		# 蛻ｰ驕斐〒縺阪↑縺・竊・荳ｭ螟ｮ繧ｾ繝ｼ繝ｳ縺ｮ螻ｱ蟯ｳ繧・縺､髯､蜴ｻ
+
 		var removed := false
 		for col in range(8, 18):
 			var mid := ROWS / 2
@@ -622,7 +617,7 @@ func _ensure_passable_path() -> void:
 			if removed:
 				break
 		if not removed:
-			return  # 髯､蜴ｻ縺ｧ縺阪ｋ螻ｱ蟯ｳ縺後↑縺・
+			return
 
 func _bfs_can_reach_col(start: Vector2i, target_col: int) -> bool:
 	var queue: Array = [start]
@@ -929,7 +924,7 @@ func _draw() -> void:
 					draw_colored_polygon(corners, Color8(80, 65, 55))
 				ResourceType.COTTON:
 					draw_colored_polygon(corners, Color8(240, 235, 220))
-			# TileType 謠冗判・・esource 縺ｪ縺励そ繝ｫ縺ｮ縺ｿ・・
+
 			var ttype: TileType = get_tile_type(pos)
 			if rtype == ResourceType.NONE:
 				match ttype:
@@ -947,16 +942,24 @@ func _draw() -> void:
 				var panel: Dictionary = land_panels[pos]
 				_draw_land_panel_fill(center, corners, panel)
 				var resources: Dictionary = panel.get("resources", {})
+				if resources.is_empty():
+					resources = panel.get("land_card_resources", {})
 				var special_tag: String = str(panel.get("special_tag", "none"))
 				var resource_list: Array = resources.keys()
 				if highlight_cells.has(pos) and resource_list.size() > 0:
 					_draw_resource_icons(center, resource_list, resources)
 				if highlight_cells.has(pos) and special_tag == "spice":
 					_draw_spice_tag_mark(center)
-			# 蟒ｺ險ｭ蜿ｯ閭ｽ繝上う繝ｩ繧､繝茨ｼ・ivilization繧ｹ繧ｿ繧､繝ｫ縲∝ｻｺ險ｭ繝｢繝ｼ繝画凾縺ｮ縺ｿ蝪励ｊ縺､縺ｶ縺暦ｼ・
+
 			if fill_cells.has(pos):
 				draw_colored_polygon(corners, Color(0.3, 0.6, 1.0, 0.20))
-			# 雉・ｺ舌ち繧､繝ｫ蠑ｷ隱ｿ譫邱夲ｼ亥ｻｺ險ｭ繝｢繝ｼ繝画凾縺ｮ縺ｿ・・
+
+			if land_highlight_cells.has(pos):
+				draw_colored_polygon(corners, Color(1.0, 0.8, 0.0, 0.18))
+				var lhc := corners.duplicate()
+				lhc.append(corners[0])
+				draw_polyline(lhc, Color(1.0, 0.70, 0.0, 0.85), 2.5)
+
 			if resource_highlight_type != ResourceType.NONE and rtype == resource_highlight_type:
 				var res_color_map: Dictionary = {
 					ResourceType.WOOD:   Color(1.0, 0.5, 0.0, 0.9),
@@ -980,6 +983,8 @@ func _draw() -> void:
 				draw_colored_polygon(corners, Color(0.09, 0.08, 0.07, 0.40))
 				var ring_color := Color(0.70, 0.58, 0.28, 0.95) if bool(site.get("is_active", false)) else Color(0.54, 0.50, 0.44, 0.95)
 				var ring_progress: float = clampf(float(site.get("construction_progress", 0.0)), 0.0, 1.0)
+				# バックグラウンドring: 建設中サイトは進捗0でも全円表示（EXCHANGE等progress=0でも視認可能に）
+				draw_arc(center + Vector2(0.0, -12.0), 14.0, -PI * 0.5, -PI * 0.5 + TAU, 24, Color(0.30, 0.28, 0.25, 0.50), 3.0)
 				draw_arc(center + Vector2(0.0, -12.0), 14.0, -PI * 0.5, -PI * 0.5 + TAU * ring_progress, 24, ring_color, 3.0)
 				# 建設順番号バッジ（左上）
 				var queue_list: Array = _get_construction_queue_sorted()
@@ -993,7 +998,12 @@ func _draw() -> void:
 					var badge_label: String = str(queue_index) if queue_index <= 5 else "..."
 					draw_circle(badge_pos, 9.0, Color(0.15, 0.14, 0.13, 0.8))
 					draw_string(ThemeDB.fallback_font, badge_pos + Vector2(-4.5, 4.0), badge_label, HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color(0.86, 0.76, 0.50))
-	# 鬆伜悄蠅・阜邱夲ｼ磯㍾隍・だ繝ｼ繝ｳ繧帝勁縺・◆邏皮ｲ九↑蜷・伜悄縺ｮ縺ｿ謠冗判・・
+
+	# 建設予定地ゴースト表示
+	for pos in construction_sites:
+		var center: Vector2 = hex_to_pixel(pos.x, pos.y)
+		draw_rect(Rect2(center + Vector2(-14, -14), Vector2(28, 28)), Color(0.7, 0.7, 0.7, 0.35))
+
 	var pure_player: Dictionary = {}
 	for cell in highlight_cells:
 		if not enemy_territory_cells.has(cell):
@@ -1004,7 +1014,7 @@ func _draw() -> void:
 			pure_enemy[cell] = true
 	_draw_territory_border(pure_player, Color(0.247, 0.412, 0.196))  # COLOR_WOOD相当
 	_draw_territory_border(pure_enemy, Color(1.0, 0.3, 0.3))
-	# Phase 3: BASE髟ｷ謚ｼ縺励Μ繝ｳ繧ｰ騾ｲ謐暦ｼ磯≡濶ｲ蠑ｧ・・
+
 	if base_longpress_cell != Vector2i(-1, -1) and base_longpress_progress > 0.0:
 		var ring_center := hex_to_pixel(base_longpress_cell.x, base_longpress_cell.y)
 		var ring_radius := HEX_SIZE * 1.2
@@ -1016,34 +1026,34 @@ func _draw() -> void:
 			var frac := float(i) / float(segments)
 			if frac * TAU > angle_end:
 				break
-			var a := -PI * 0.5 + frac * TAU  # 12譎よ婿蜷代せ繧ｿ繝ｼ繝・
+			var a := -PI * 0.5 + frac * TAU
 			pts.append(ring_center + Vector2(cos(a), sin(a)) * ring_radius)
 		if pts.size() >= 2:
 			draw_polyline(pts, ring_color, 4.0)
 
 
-# 鬆伜悄蠅・阜邱壹ｒ謠冗判縺吶ｋ・医・繝ｬ繧､繝､繝ｼ繝ｻ謨ｵ蜈ｱ騾壽ｱ守畑・・
+
 func _draw_territory_border(cells: Dictionary, color: Color) -> void:
 	if cells.is_empty():
 		return
 	var edge_pairs := [[0, 1], [1, 2], [2, 3], [3, 4], [4, 5], [5, 0]]
-	# edge_pairs[i] 縺ｫ蟇ｾ蠢懊☆繧矩團謗･繧ｻ繝ｫ譁ｹ蜷托ｼ・orners angle_deg=60*i-30 蝓ｺ貅厄ｼ・
-	# i=0:[0,1]=RIGHT, i=1:[1,2]=荳句承, i=2:[2,3]=荳句ｷｦ, i=3:[3,4]=LEFT, i=4:[4,5]=荳雁ｷｦ, i=5:[5,0]=荳雁承
+
+
 	var dirs_even := [
 		Vector2i(1, 0),    # RIGHT
-		Vector2i(0, 1),    # 荳句承・・ven・・
-		Vector2i(-1, 1),   # 荳句ｷｦ・・ven・・
+		Vector2i(0, 1),
+		Vector2i(-1, 1),
 		Vector2i(-1, 0),   # LEFT
-		Vector2i(-1, -1),  # 荳雁ｷｦ・・ven・・
-		Vector2i(0, -1),   # 荳雁承・・ven・・
+		Vector2i(-1, -1),
+		Vector2i(0, -1),
 	]
 	var dirs_odd := [
 		Vector2i(1, 0),    # RIGHT
-		Vector2i(1, 1),    # 荳句承・・dd・・
-		Vector2i(0, 1),    # 荳句ｷｦ・・dd・・
+		Vector2i(1, 1),
+		Vector2i(0, 1),
 		Vector2i(-1, 0),   # LEFT
-		Vector2i(0, -1),   # 荳雁ｷｦ・・dd・・
-		Vector2i(1, -1),   # 荳雁承・・dd・・
+		Vector2i(0, -1),
+		Vector2i(1, -1),
 	]
 	for pos in cells:
 		var col: int = pos.x

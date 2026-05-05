@@ -6,11 +6,11 @@ signal resource_consumed(resource_type: String, amount: int)
 
 
 const BASE_POPULATION_CAP: int = 100  # Sprint 3: initial population cap
-const POPULATION_INITIAL: float = 100.0
+const POPULATION_INITIAL: float = 50.0
 const POPULATION_MIN_INITIAL: float = 10.0
 const POPULATION_GROWTH_CONFIRM_UNIT: int = 10
 const MOBILIZATION_BASE_RATE: float = 0.08
-const HOUSE_POP_CAP_LV1: int = 10
+const HOUSE_POP_CAP_LV1: int = 20
 const BARRACKS_POWER_PER_SEC: float = 0.2  # 莉ｮ蛟､・按ｧ4.7.2・・
 
 # === 人口増加ドライバー係数（REQUIREMENTS_POPULATION_DRIVER.md §3.1） ===
@@ -43,7 +43,6 @@ var military_power: float = 0.0
 
 
 var currency: int = INITIAL_CURRENCY
-var population_used: int = 0
 var population_cap: float = float(BASE_POPULATION_CAP)
 
 
@@ -58,7 +57,7 @@ var building_efficiency_modifier: float = 0.0  # building interval efficiency mo
 var food_shortage_count: int = 0
 var growth_blocked: bool = false
 var unit_count: int = 0
-var _pop_history: Array[int] = []  # 5秒ごとの population_used スナップショット（直近30秒=最大6件）
+var _pop_history: Array[int] = []  # 5秒ごとの population_float スナップショット（直近30秒=最大6件）
 
 
 
@@ -96,10 +95,10 @@ func update(delta: float, total_unit_count: int) -> void:
 	_tick_index += 1
 	var _breakdown: Dictionary = _get_satisfaction_thought_breakdown(buildings)
 	var _pop_breakdown: Dictionary = _get_population_change_breakdown()
-	_pop_history.append(population_used)
+	_pop_history.append(int(population_float))
 	if _pop_history.size() > 6:
 		_pop_history.pop_front()
-	print("[EconEconomy] type=tick tick=%d pop=%d food=%d sat=%d mil=%.1f" % [_tick_index, population_used, food, satisfaction, military_power])
+	print("[EconEconomy] type=tick tick=%d pop=%.1f food=%d sat=%d mil=%.1f" % [_tick_index, population_float, food, satisfaction, military_power])
 	print("[EconEconomy] type=satisfaction sat=%.1f target=%.1f stage=%s breakdown=%s" % [satisfaction_value, satisfaction_target, satisfaction_stage, str(_breakdown)])
 	_log_population_change_event(_pop_breakdown)
 	_log_satisfaction_thought_event(_breakdown)
@@ -116,7 +115,6 @@ func update(delta: float, total_unit_count: int) -> void:
 				var gain: int = roundi(1.0 * lv_bonus)
 				resin += gain
 				resources["resin"] = resin
-				print("[EconEconomy] type=resource_gain building=WORKSHOP lv=%d resource=resin amount=%d" % [lv, gain])
 			EconBuilding.BuildingType.VILLAGE:
 
 
@@ -130,14 +128,10 @@ func update(delta: float, total_unit_count: int) -> void:
 		if b.building_type != EconBuilding.BuildingType.BARRACKS:
 			continue
 
-		if population_used < 1:
-			print("[EconEconomy] type=building_tick building=BARRACKS active=false stop_reason=operation_labor_shortage pop_used=%d" % population_used)
-			continue
 		var lv: int = b.fusion_rank
 		var base_gain: int = lv + 1  # Lv1=+2, Lv2=+3, Lv3=+4
 		var actual_gain: float = float(base_gain) * mil_mod
 		military_power += actual_gain
-		print("[EconEconomy] type=military building=BARRACKS lv=%d gain=%.1f mil_mod=%.2f" % [lv, actual_gain, mil_mod])
 
 
 	_consume_food_maintenance()
@@ -148,25 +142,8 @@ func update(delta: float, total_unit_count: int) -> void:
 
 
 
-	population_used = get_working_population()
-	print("[EconEconomy] type=labor_allocation alloc_work_ratio=%.2f working=%d building=%d cap=%d" % [alloc_work_ratio, get_working_population(), get_building_population(), population_cap])
 
 
-func get_working_population() -> int:
-	return int(population_cap * (1.0 - alloc_work_ratio))
-
-
-func get_building_population() -> int:
-	return int(population_cap * alloc_work_ratio)
-
-func get_total_labor() -> int:
-	return int(floor(get_display_population() * 0.20))
-
-func get_operation_labor() -> int:
-	return int(floor(float(get_total_labor()) * (1.0 - alloc_work_ratio)))
-
-func get_work_labor() -> int:
-	return get_total_labor() - get_operation_labor()
 
 
 func snap_alloc_ratio(target_ratio: float) -> float:
@@ -186,7 +163,7 @@ func snap_alloc_ratio(target_ratio: float) -> float:
 
 func set_alloc_work_ratio(ratio: float) -> void:
 	alloc_work_ratio = snap_alloc_ratio(ratio)
-	print("[EconEconomy] type=labor_allocation_set alloc_work_ratio=%.2f working=%d building=%d" % [alloc_work_ratio, get_working_population(), get_building_population()])
+	print("[EconEconomy] type=labor_allocation_set alloc_work_ratio=%.2f" % alloc_work_ratio)
 
 
 
@@ -408,10 +385,9 @@ func add_food(amount: int) -> void:
 	food_value += amount
 	food = food_value
 	resources["food"] = food_value
-	print("[EconEconomy] type=food_gain amount=%d current=%d" % [amount, food_value])
 
 func _get_maintenance_food_cost() -> int:
-	return max(1, int(ceil(population_float / 5.0)))
+	return max(1, int(ceil(population_float / 3.0)))
 
 func _sync_food_value() -> void:
 	food = food_value
@@ -427,7 +403,6 @@ func _consume_food_maintenance() -> void:
 		food_value -= maintenance_cost
 		food_shortage_count = max(0, food_shortage_count - 1)
 		_sync_food_value()
-		print("[EconEconomy] type=food_maintenance amount=-%d food_value=%d shortage=%d" % [maintenance_cost, food_value, food_shortage_count])
 	else:
 		var consumed: int = food_value
 		food_value = 0
@@ -501,18 +476,15 @@ func calculate_population_cap() -> int:
 			continue
 		if b.building_type != EconBuilding.BuildingType.HOUSE:
 			continue
-		var lv_bonus: Array = [10, 15, 20]  # Lv1, Lv2, Lv3・按ｧ2.7.1・・
+		var lv_bonus: Array = [HOUSE_POP_CAP_LV1, HOUSE_POP_CAP_LV1 + 5, HOUSE_POP_CAP_LV1 + 10]  # Lv1=20, Lv2=25, Lv3=30
 		var rank: int = clampi(b.fusion_rank - 1, 0, 2)
 		cap += lv_bonus[rank]
-	print("[EconEconomy] type=population_cap cap=%d" % cap)
 	return cap
 
 
 func initialize_v0_2() -> void:
 
 	population_cap = calculate_population_cap()
-	population_used = get_working_population()
-	print("[EconEconomy] type=initialize_v0_2 population_used_init=%d (get_working_population)" % population_used)
 	satisfaction = 60
 	military_power = 0.0
 	currency = INITIAL_CURRENCY
@@ -796,25 +768,26 @@ func _calculate_satisfaction_target(blds: Array) -> float:
 
 func _get_satisfaction_thought_breakdown(blds: Array) -> Dictionary:
 	# §10.2: Thought内訳辞書（ログ・UI用）
-	var food_thought: float = 10.0 if food >= population_used else -20.0
+	var population_int: int = int(population_float)
+	var food_thought: float = 10.0 if food >= population_int else -20.0
 
 	var house_cap: int = int(calculate_population_cap())
-	var overcrowd_thought: float = -10.0 if population_used > house_cap else 0.0
+	var overcrowd_thought: float = -10.0 if population_int > house_cap else 0.0
 
 	var city_load_thought: float = 0.0
-	if population_used <= 99:
+	if population_int <= 99:
 		city_load_thought = 5.0
-	elif population_used <= 299:
+	elif population_int <= 299:
 		city_load_thought = 3.0
-	elif population_used <= 599:
+	elif population_int <= 599:
 		city_load_thought = 0.0
-	elif population_used <= 999:
+	elif population_int <= 999:
 		city_load_thought = -10.0
 	else:
 		city_load_thought = -15.0
 
 	var rapid_growth_thought: float = 0.0
-	if _pop_history.size() >= 6 and population_used - _pop_history[0] >= 10:
+	if _pop_history.size() >= 6 and population_int - _pop_history[0] >= 10:
 		rapid_growth_thought = -10.0
 
 	var conscript_thought: float = 0.0

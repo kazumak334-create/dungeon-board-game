@@ -35,16 +35,6 @@ const LandCardPlacementControllerScript := preload("res://scripts/econ_mvp/LandC
 const ZoomControllerScript := preload("res://scripts/econ_mvp/ui/ZoomController.gd")
 const HeaderUIScript := preload("res://scripts/econ_mvp/ui/HeaderUI.gd")
 const FooterUIScript := preload("res://scripts/econ_mvp/ui/FooterUI.gd")
-const INITIAL_DECK: Array = [
-	{"id": "card_house", "count": 3},
-	{"id": "card_village", "count": 2},
-	{"id": "card_wood_extractor", "count": 2},
-	{"id": "card_stone_extractor", "count": 2},
-	{"id": "card_diner", "count": 1},
-	{"id": "card_barracks", "count": 1},
-	{"id": "card_plaza", "count": 1},
-	{"id": "card_trade_post", "count": 1},
-]
 
 var _is_running: bool = false
 var _selected_unit: EconUnit = null
@@ -816,7 +806,9 @@ func _input(event: InputEvent) -> void:
 			return
 		if not _grid.is_valid_cell(cell.x, cell.y):
 			return
-		print("[EconMain._input] card=%s, cell=(%d,%d), check=building_occupied" % [_selected_card_btype, cell.x, cell.y])
+		if _battle.grid != null and _battle.grid.construction_sites.has(cell):
+			_add_log("Cell under construction")
+			return
 		for b in _battle.player_buildings:
 			if b.grid_pos == cell:
 				print("[EconMain._input] card=%s, cell=(%d,%d), check=building_occupied FAILED" % [_selected_card_btype, cell.x, cell.y])
@@ -870,6 +862,8 @@ func _place_building_from_card(cell: Vector2i, btype_str: String) -> void:
 	var success: bool = _battle.play_card_and_build(_selected_card_idx, cell)
 	if not success:
 		_add_log("Cannot place: %s" % card.get("name", btype_str))
+		_selected_card_idx = -1
+		_selected_card_btype = ""
 		return
 	_add_log("%s construction started at (%d,%d)" % [card.get("name", btype_str), cell.x, cell.y])
 	_selected_card_idx = -1
@@ -1465,7 +1459,7 @@ func _generate_land_card(subtype: String) -> Dictionary:
 
 
 
-func _build_initial_deck(all_cards_array: Array) -> Array:
+func _build_initial_deck(all_cards_array: Array, deck_spec: Array) -> Array:
 	var card_by_id: Dictionary = {}
 	for card in all_cards_array:
 		if not (card is Dictionary):
@@ -1476,7 +1470,7 @@ func _build_initial_deck(all_cards_array: Array) -> Array:
 		card_by_id[card_id] = card
 
 	var deck: Array = []
-	for entry in INITIAL_DECK:
+	for entry in deck_spec:
 		var card_id: String = str(entry.get("id", ""))
 		var count: int = int(entry.get("count", 0))
 		if not card_by_id.has(card_id):
@@ -1499,14 +1493,16 @@ func _setup_deck_manager() -> void:
 	if not (parsed is Dictionary) or not parsed.has("cards"):
 		_add_log("[DeckManager] cards_econ.json parse error")
 		return
-	var initial_deck: Array = _build_initial_deck(parsed["cards"])
+	if not parsed.has("INITIAL_DECK"):
+		_add_log("[DeckManager] INITIAL_DECK not found in cards_econ.json")
+		return
+	var initial_deck: Array = _build_initial_deck(parsed["cards"], parsed["INITIAL_DECK"])
 
 	_battle.setup_deck(initial_deck, _on_card_drawn)
 	print("[EconMain] _setup_deck_manager: %d cards loaded" % initial_deck.size())
 
 func _on_card_drawn(card: Dictionary) -> void:
 
-	print("[EconMain] _on_card_drawn: %s" % card.get("name", "?"))
 	_refresh_hand_ui()
 
 	if _footer_ui != null:
@@ -1655,13 +1651,6 @@ func _create_hand_card_node(card_data: Dictionary, card_idx: int, in_queue: bool
 	name_lbl.add_theme_color_override("font_color", COLOR_TEXT)
 	vbox.add_child(name_lbl)
 
-	var pop_lbl := Label.new()
-	pop_lbl.text = "人口:%d" % card_data.get("population_required", 0)
-	pop_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	pop_lbl.add_theme_font_size_override("font_size", 10)
-	pop_lbl.add_theme_color_override("font_color", COLOR_TEXT_DIM)
-	vbox.add_child(pop_lbl)
-
 	var cost_raw = card_data.get("cost")
 	var cost: Dictionary = cost_raw if cost_raw is Dictionary else {}
 	var cost_parts: Array = []
@@ -1720,6 +1709,7 @@ func _create_hand_card_node(card_data: Dictionary, card_idx: int, in_queue: bool
 		var mb := event as InputEventMouseButton
 		if mb.button_index != MOUSE_BUTTON_RIGHT or not mb.pressed:
 			return
+		card_btn.accept_event()
 		_on_hand_card_right_clicked(captured_idx)
 	)
 
@@ -1736,17 +1726,20 @@ func _on_hand_card_right_clicked(card_index: int) -> void:
 	if card_index < 0 or card_index >= hand_size:
 		print("[EconMain] _on_hand_card_right_clicked: invalid index=%d" % card_index)
 		return
-	var discarded_card: Dictionary = _battle.deck_manager.hand[card_index]
-	# discard に移動
-	_battle.deck_manager.hand.remove_at(card_index)
-	_battle.deck_manager.discard_pile.append(discarded_card)
+	# 右クリック時は選択をキャンセル（手札順序変化による誤選択防止）
+	_selected_card_idx = -1
+	_selected_card_btype = ""
+	# インデックス指定削除（discard_card_at は hand.remove_at を使うため内容比較なし）
+	var discarded_card: Dictionary = _battle.deck_manager.discard_card_at(card_index)
+	if discarded_card.is_empty():
+		return
 	print("[EconMain] _on_hand_card_right_clicked: discarded '%s'" % discarded_card.get("name", "?"))
-	# 1枚ドロー
-	var drawn_card: Dictionary = {}
-	if not _battle.deck_manager.deck.is_empty():
-		drawn_card = _battle.deck_manager.deck.pop_front()
-		_battle.deck_manager.hand.append(drawn_card)
+	# DeckManager 経由でドロー（deck 空なら discard を reshuffle してドロー）
+	var drawn_card: Dictionary = _battle.deck_manager.draw_card()
+	if not drawn_card.is_empty():
 		print("[EconMain] _on_hand_card_right_clicked: drew '%s'" % drawn_card.get("name", "?"))
+	else:
+		print("[EconMain] _on_hand_card_right_clicked: deck and discard both empty, no draw")
 	# クールタイム開始
 	_battle.deck_manager.reload_timer = _battle.deck_manager.RELOAD_COOLDOWN_SEC
 	# ログ記録
@@ -1767,10 +1760,6 @@ func _get_card_state(card_data: Dictionary) -> String:
 	var cost_raw = card_data.get("cost")
 	var cost: Dictionary = cost_raw if cost_raw is Dictionary else {}
 	var eco := _economy
-
-	var pop_req: int = card_data.get("population_required", 0)
-	if eco.population_used + pop_req > eco.population_cap:
-		return "pop_short"
 
 	for res_key in cost.keys():
 		if cost.get(res_key, 0) > eco.resources.get(res_key, 0):

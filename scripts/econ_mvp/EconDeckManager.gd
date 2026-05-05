@@ -7,19 +7,9 @@ extends Node
 const TURN_DURATION_SEC: float = 30.0
 const MAX_TURNS: int = 10
 const HAND_MAX_SIZE: int = 8  # ★ v0.2 改訂（5→8）
-const INITIAL_HAND_SIZE: int = 5
+const INITIAL_HAND_SIZE: int = 6
 const LIBRARY_CD_SEC: float = 5.0
 const LIBRARY_DRAW_COST_CURRENCY: int = 1
-const INITIAL_DECK_SPEC: Array = [
-	{"id": "card_house", "count": 3},
-	{"id": "card_village", "count": 2},
-	{"id": "card_wood_extractor", "count": 2},
-	{"id": "card_stone_extractor", "count": 2},
-	{"id": "card_diner", "count": 1},
-	{"id": "card_barracks", "count": 1},
-	{"id": "card_plaza", "count": 1},
-	{"id": "card_trade_post", "count": 1},
-]
 
 # 状態（§7.2）
 var deck: Array = []           # Array[Dictionary]（Card）
@@ -104,9 +94,14 @@ func _on_turn_elapsed() -> void:
 
 func draw_card() -> Dictionary:
 	# §8.1.3 draw_card
-	# 山札枯渇チェック（§9.5）
+	# 山札枯渇時は捨て札をリシャッフルして補充
+	if deck.is_empty() and not discard_pile.is_empty():
+		deck = discard_pile.duplicate()
+		deck.shuffle()
+		discard_pile.clear()
+		print("[EconDeckManager] draw_card: reshuffled %d cards from discard into deck" % deck.size())
 	if deck.is_empty():
-		print("[EconDeckManager] draw_card: deck empty, skip")
+		print("[EconDeckManager] draw_card: deck and discard both empty, skip")
 		draw_gauge_value = 0.0
 		return {}
 	# 手札MAX保留（§4.3）
@@ -148,6 +143,22 @@ func exclude_card_at(idx: int) -> Dictionary:
 	print("[EconDeckManager] exclude_card_at: '%s', hand=%d, excluded=%d" % [card.get("name", "?"), hand.size(), excluded.size()])
 	return card
 
+func discard_card_at(idx: int) -> Dictionary:
+	# インデックス指定で手札から捨て札へ（内容比較なし・正確削除）
+	if idx < 0 or idx >= hand.size():
+		print("[EconDeckManager] discard_card_at: invalid idx=%d" % idx)
+		return {}
+	var card: Dictionary = hand[idx]
+	hand.remove_at(idx)
+	discard_pile.append(card)
+	print("[EconDeckManager] discard_card_at: '%s', hand=%d, discard=%d" % [card.get("name", "?"), hand.size(), discard_pile.size()])
+	return card
+
+func add_to_discard(card: Dictionary) -> void:
+	# hand操作なしで直接捨て札へ（建設完了時の二重削除防止）
+	discard_pile.append(card)
+	print("[EconDeckManager] add_to_discard: '%s', discard_count=%d" % [card.get("name", "?"), discard_pile.size()])
+
 func remove_card_at(idx: int) -> Dictionary:
 	if idx < 0 or idx >= hand.size():
 		print("[EconDeckManager] remove_card_at: invalid idx=%d" % idx)
@@ -186,9 +197,9 @@ func try_resolve_pending_draws() -> void:
 		return
 	if hand.size() >= HAND_MAX_SIZE:
 		return
-	if deck.is_empty():
+	if deck.is_empty() and discard_pile.is_empty():
 		pending_draws = 0
-		print("[EconDeckManager] try_resolve_pending_draws: deck empty, clear pending")
+		print("[EconDeckManager] try_resolve_pending_draws: deck and discard both empty, clear pending")
 		return
 	pending_draws -= 1
 	print("[EconDeckManager] try_resolve_pending_draws: resolve pending, remaining=%d" % pending_draws)
@@ -235,7 +246,6 @@ func get_econ_state_snapshot() -> Dictionary:
 		"food": eco.food if eco != null else 0,
 		"satisfaction": eco.satisfaction if eco != null else 0,
 		"military_power": eco.military_power if eco != null else 0.0,
-		"population_used": eco.population_used if eco != null else 0,
 		"population_cap": eco.population_cap if eco != null else 0,
 		"resources": eco.resources.duplicate() if eco != null else {},
 	}

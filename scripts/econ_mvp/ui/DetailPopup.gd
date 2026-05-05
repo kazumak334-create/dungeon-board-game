@@ -13,7 +13,7 @@ const BUILDING_NAME_JP: Dictionary = {
 	EconBuilding.BuildingType.VILLAGE:   "農村",
 	EconBuilding.BuildingType.BASE:      "拠点",
 	EconBuilding.BuildingType.SAWMILL:   "森小屋",
-	EconBuilding.BuildingType.MINE:      "採掘所",
+	EconBuilding.BuildingType.MINE:      "採掘場",
 	EconBuilding.BuildingType.EQUIPMENT_SHOP: "装備屋",
 	EconBuilding.BuildingType.TRADE_POST: "交換所",
 	EconBuilding.BuildingType.WALL:      "防壁",
@@ -130,11 +130,6 @@ func _rebuild_building_content(building: EconBuilding) -> void:
 
 	# M: 効果
 	_add_row("効果", _get_effect_text(btype, building.fusion_rank))
-
-	# O: 必要稼働人手（パッシブ以外）
-	if building.required_operation_labor > 0:
-		_add_separator()
-		_add_row("必要稼働人手", str(building.required_operation_labor))
 
 func _get_category_text(building: EconBuilding) -> String:
 	# building_type から分類を判定

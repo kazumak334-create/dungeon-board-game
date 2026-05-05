@@ -8,7 +8,6 @@ var grid_pos: Vector2i
 var is_alive: bool = true
 var is_built: bool = false
 var is_operating: bool = true
-var required_operation_labor: int = 0
 var hp: float = 100.0
 var max_hp: float = 100.0
 var is_player_side: bool = true
@@ -79,7 +78,7 @@ const MINE_PRODUCE_INTERVAL := 2.5      # 2.5秒ごとにパネル石材数を�
 # 徴兵兵舎用定数（バリアントシステム実装時に接続）
 # 要件定義書 req_econ_building_variants.md § 6 より
 const BARRACKS_CONSCRIPT_INTERVAL := 5.0   # 農村隣接時の徴兵兵舎間隔（ボーナス適用後）
-const BARRACKS_CONSCRIPT_WHEAT_COST := 2   # 徴兵兵舎のWheat消費
+const BARRACKS_CONSCRIPT_WHEAT_COST := 6   # 徴兵兵舎のWheat消費
 
 # 鍛冶屋：隣接兵舎DPS補正（要件定義書 req_econ_smithy_building.md §3）
 const SMITHY_DPS_MULT_LV1 := 1.10  # +10%
@@ -222,7 +221,7 @@ func update(delta: float, economy: EconEconomy, buildings: Array = [], grid: Eco
 		check_placement_bonus(buildings, grid)
 	match building_type:
 		BuildingType.BARRACKS:
-			_update_barracks(delta, economy)
+			_update_barracks(delta, economy, buildings, grid)
 		BuildingType.FORTRESS:
 			_update_fortress(delta, economy)
 		BuildingType.WORKSHOP:
@@ -269,14 +268,24 @@ func _remap_timer_to_interval(timer: float, last_interval: float, new_interval: 
 	var progress: float = clampf(timer / last_interval, 0.0, 1.0)
 	return progress * new_interval
 
-func _update_barracks(delta: float, economy: EconEconomy) -> void:
+func _update_barracks(delta: float, economy: EconEconomy, buildings: Array = [], grid: EconGrid = null) -> void:
 	# §2.5.2: 5秒tickで兵力+1加算。unit_producedはemitしない
 	_resource_ready = true
 	_produce_timer += delta
 	if _produce_timer >= 5.0:
 		_produce_timer -= 5.0
 		if economy != null:
-			economy.military_power += 1.0
+			var adjacent_barracks: int = 0
+			if grid != null:
+				for b in buildings:
+					if b == self or not b.is_alive or not b.is_built:
+						continue
+					if b.building_type == BuildingType.BARRACKS and grid.hex_distance(grid_pos, b.grid_pos) == 1:
+						adjacent_barracks += 1
+			var bonus: float = float(adjacent_barracks / 2)
+			economy.military_power += 1.0 + bonus
+			economy.food_value -= 2
+			print("[EconBuilding] BARRACKS: 食料消費 food_value=%d" % economy.food_value)
 		_flash_timer = 0.5
 
 func _update_fortress(delta: float, economy: EconEconomy) -> void:
@@ -333,6 +342,9 @@ func _update_sawmill(delta: float, economy: EconEconomy, grid: EconGrid = null) 
 			var gain: int = int(panel_resources.get("wood", 0))
 			if gain > 0:
 				economy.add_resource(EconGrid.ResourceType.WOOD, gain)
+			var resin_gain: int = int(panel_resources.get("resin", 0))
+			if resin_gain > 0:
+				economy.add_resource(EconGrid.ResourceType.RESIN, resin_gain)
 			print("[EconBuilding] SAWMILL 木材+%d (pos=%s)" % [gain, str(grid_pos)])
 		_flash_timer = 0.5
 
@@ -350,6 +362,9 @@ func _update_mine(delta: float, economy: EconEconomy, grid: EconGrid = null) -> 
 			var gain: int = int(panel_resources.get("stone", 0))
 			if gain > 0:
 				economy.add_resource(EconGrid.ResourceType.STONE, gain)
+			var iron_gain: int = int(panel_resources.get("iron", 0))
+			if iron_gain > 0:
+				economy.add_resource(EconGrid.ResourceType.IRON, iron_gain)
 			print("[EconBuilding] MINE 石材+%d (pos=%s)" % [gain, str(grid_pos)])
 		_flash_timer = 0.5
 
@@ -510,6 +525,8 @@ func get_timer_progress() -> float:
 			return _timer_progress_ratio(_produce_timer, _produce_last_interval)
 		BuildingType.SAWMILL, BuildingType.MINE:
 			return _timer_progress_ratio(_produce_timer, _produce_last_interval)
+		BuildingType.TRADE_POST:
+			return clampf(float(_resource_counter) / 10.0, 0.0, 1.0)
 		_:
 			return 0.0
 
@@ -572,9 +589,9 @@ func _draw() -> void:
 		var abbr := _get_building_abbr()
 		if abbr != "":
 			draw_string(ThemeDB.fallback_font, Vector2(-5, 5), abbr, HORIZONTAL_ALIGNMENT_CENTER, -1, 11, Color(1.0, 1.0, 1.0, 0.85))
-	# BASEの場合: 5棟進捗をリングBPBで表示（_draw_construction_ring と同スタイル）
+	# BASEの場合: 5棟進捗を20%刻みボトムゲージで表示（棟数÷5）
 	if is_built and building_type == BuildingType.BASE and milestone_progress > 0.0:
-		_draw_construction_ring(milestone_progress, false)
+		_draw_bottom_progress_mask(milestone_progress, Color(0.25, 0.9, 0.45, 0.25))
 	# 建設中かつ建設コスト不足 → 右上に「!」
 	if not is_built and not _construction_ready:
 		draw_circle(Vector2(15, -22), 7.0, Color(0.9, 0.1, 0.1, 0.9))

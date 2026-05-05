@@ -42,7 +42,7 @@ const COLOR_TEXT_DIM   := Color("#8A8070")
 const COLOR_ACCENT_GOLD := Color("#B49448")
 const COLOR_WOOD       := Color("#3F6932")
 const COLOR_STONE      := Color("#5D5650")
-const COLOR_RESIN      := Color("#9A8A3C")
+const COLOR_RESIN      := Color("#8FD17A")
 const COLOR_WHEAT      := Color("#A9924F")
 const COLOR_POP        := Color("#5D8FB8")
 const COLOR_SAT        := Color("#B89AC7")
@@ -138,7 +138,7 @@ func _build_header(vp: Vector2) -> void:
 	row1.add_child(food_hbox)
 	_register_detail_target(food_hbox, "food")
 	var food_icon := Label.new()
-	food_icon.text = "Fd"
+	food_icon.text = "食料"
 	food_icon.add_theme_font_size_override("font_size", 10)
 	food_icon.add_theme_color_override("font_color", COLOR_WHEAT)
 	food_hbox.add_child(food_icon)
@@ -147,10 +147,10 @@ func _build_header(vp: Vector2) -> void:
 	_status_food_label.add_theme_font_size_override("font_size", 11)
 	_status_food_label.add_theme_color_override("font_color", COLOR_WHEAT)
 	food_hbox.add_child(_status_food_label)
-	_soldiers_header_label = _make_header_metric("S0", COLOR_TROOP)
+	_soldiers_header_label = _make_header_metric("兵0", COLOR_TROOP)
 	row1.add_child(_soldiers_header_label)
 	_register_detail_target(_soldiers_header_label, "soldiers")
-	_units_header_label = _make_header_metric("U0", COLOR_TEXT)
+	_units_header_label = _make_header_metric("隊0", COLOR_TEXT)
 	row1.add_child(_units_header_label)
 	_register_detail_target(_units_header_label, "units")
 	var ctrl_spacer := Control.new()
@@ -162,7 +162,7 @@ func _build_header(vp: Vector2) -> void:
 	row2.add_theme_constant_override("separation", 2)
 	hdr_vbox.add_child(row2)
 	var res_keys   := ["wood", "stone", "resin", "wheat", "iron", "cotton"]
-	var res_icons  := ["W", "S", "R", "Wh", "I", "C"]
+	var res_icons  := ["木", "石", "樹脂", "麦", "鉄", "綿"]
 	var res_colors := [COLOR_WOOD, COLOR_STONE, COLOR_RESIN, COLOR_WHEAT, COLOR_STONE, COLOR_TEXT]
 	_res_labels = {}
 	for ri in range(res_keys.size()):
@@ -323,7 +323,7 @@ func _setup_alloc_bar(parent: Control) -> void:
 	container.add_theme_constant_override("separation", 2)
 	parent.add_child(container)
 	var icon_lbl := Label.new()
-	icon_lbl.text = "Alloc"
+	icon_lbl.text = "配分"
 	icon_lbl.add_theme_font_size_override("font_size", 10)
 	icon_lbl.add_theme_color_override("font_color", COLOR_TEXT_DIM)
 	container.add_child(icon_lbl)
@@ -387,8 +387,8 @@ func _build_header_detail_text(key: String) -> String:
 	match key:
 		"population":
 			var next_pop: int = _economy.get_next_population_milestone()
-			return "Population\nCap: %d\nUsed: %d\nNext: %dk" % [
-				_economy.population_cap, _economy.population_used, next_pop]
+			return "Population\nCap: %d\nCurrent: %d\nNext: %dk" % [
+				_economy.population_cap, _economy.get_display_population(), next_pop]
 		"food":
 			return "Food\nCurrent: %d\nShortage: %d" % [
 				_economy.get_food_value(), _economy.food_shortage_count]
@@ -418,7 +418,7 @@ func _update_status_ui() -> void:
 	if _economy == null:
 		return
 	if _status_sat_label != null:
-		_status_sat_label.text = "Sat%d" % _economy.satisfaction
+		_status_sat_label.text = "満足%d" % _economy.satisfaction
 	var mil_power: float = _economy.military_power
 	if _troop_label != null:
 		_troop_label.text = "%d" % int(floor(mil_power))
@@ -463,22 +463,22 @@ func _update_status_ui() -> void:
 		var cur_color := COLOR_TEXT_DIM if _economy.currency <= 0 else COLOR_GOLD_COIN
 		_gold_label.add_theme_color_override("font_color", cur_color)
 	if _status_food_label != null:
-		_status_food_label.text = "Fd%d" % _economy.food
+		_status_food_label.text = "食%d" % _economy.food
 		var food_color := COLOR_RED if _economy.food < 5 else COLOR_WHEAT
 		_status_food_label.add_theme_color_override("font_color", food_color)
 	if _soldiers_header_label != null:
-		_soldiers_header_label.text = "S%d" % _economy.get_soldiers_count()
+		_soldiers_header_label.text = "兵%d" % _economy.get_soldiers_count()
 	if _units_header_label != null:
-		_units_header_label.text = "U%d" % _economy.get_unit_count()
+		_units_header_label.text = "隊%d" % _economy.get_unit_count()
 
 func _update_population_ui() -> void:
 	if _pop_gauge_bar == null or _pop_label == null or _economy == null:
 		return
-	var pop_used: int = _economy.population_used
+	var pop_current: int = _economy.get_display_population()
 	var pop_cap: int = _economy.population_cap
 	if pop_cap <= 0:
 		return
-	var ratio: float = float(pop_used) / float(pop_cap)
+	var ratio: float = float(pop_current) / float(pop_cap)
 	var pbg_w: float = _pop_gauge_bar.get_parent().size.x if _pop_gauge_bar.get_parent() != null and _pop_gauge_bar.get_parent().size.x > 0.0 else 80.0
 	_pop_gauge_bar.size = Vector2(pbg_w * clampf(ratio, 0.0, 1.0), _pop_gauge_bar.size.y)
 	if ratio >= 1.0:
@@ -490,7 +490,7 @@ func _update_population_ui() -> void:
 	else:
 		_pop_gauge_bar.color = COLOR_WOOD
 		_pop_label.add_theme_color_override("font_color", COLOR_TEXT)
-	_pop_label.text = "%d/%d" % [pop_used, pop_cap]
+	_pop_label.text = "%d/%d" % [pop_current, pop_cap]
 
 func _update_alloc_bar_ui() -> void:
 	if _alloc_bar_bg == null or _alloc_bar_work == null or _alloc_handle == null or _economy == null:
@@ -505,17 +505,7 @@ func _update_alloc_bar_ui() -> void:
 	_alloc_handle.position = Vector2(work_x - 1.0, 0.0)
 	_alloc_handle.size = Vector2(2.0, _alloc_bar_bg.size.y)
 	if _alloc_label != null:
-		var work_pct: int = roundi(ratio * 100.0)
-		var ops_pct: int = 100 - work_pct
-		var ops_labor: int = _economy.get_operation_labor()
-		var work_labor: int = _economy.get_work_labor()
-		_alloc_label.text = "OPS %d%% %d / WORK %d%% %d" % [ops_pct, ops_labor, work_pct, work_labor]
-		var is_shortage: bool = (ops_labor <= 0 or work_labor <= 0)
-		if is_shortage:
-			var blink_alpha: float = 0.5 + 0.5 * sin(fmod(_elapsed_time, 1.0) * TAU)
-			_alloc_label.add_theme_color_override("font_color", Color(COLOR_RED.r, COLOR_RED.g, COLOR_RED.b, blink_alpha))
-		else:
-			_alloc_label.add_theme_color_override("font_color", COLOR_TEXT)
+		_alloc_label.text = ""
 
 func _on_alloc_bar_input(event: InputEvent) -> void:
 	if _alloc_bar_bg == null:

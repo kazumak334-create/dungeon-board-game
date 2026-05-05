@@ -2,6 +2,20 @@
 
 ## [Unreleased]
 
+## 2026-05-06 人手システム（建設人員・稼働人員）排除
+
+### 変更内容
+- scripts/econ_mvp/EconEconomy.gd: `population_used`変数削除、`get_working_population()`/`get_building_population()`/`get_total_labor()`/`get_operation_labor()`/`get_work_labor()`関数削除、`_get_satisfaction_thought_breakdown()`内の`population_used`参照を`int(population_float)`に置換、`initialize_v0_2()`内の`population_used`初期化2行削除
+- scripts/econ_mvp/EconBattle.gd: `_check_placement_valid()`内人口チェックブロック削除、`_create_building_from_card()`内`required_operation_labor`代入削除、HOUSE破壊コールバック内`population_used`操作削除、`_resolve_population_overflow()`/`_allocate_operation_labor()`/`_get_operation_priority()`関数削除、`update()`内`_allocate_operation_labor()`呼び出し削除、`_allocate_work_labor()`を全サイト自動アクティブに単純化、`_log_event`から`required_work_labor`エントリ削除
+- scripts/econ_mvp/EconBuilding.gd: `required_operation_labor`フィールド削除
+- scripts/econ_mvp/EconMain.gd: `pop_lbl`（人口表示ラベル）削除、`_get_card_state()`内人口チェックブロック削除
+- scripts/econ_mvp/EconGrid.gd: `start_construction()`の`required_operation_labor`エントリ削除、`spawn_building()`の`required_operation_labor`代入削除
+- scripts/econ_mvp/EconDeckManager.gd: ログの`population_used`エントリ削除
+- scripts/econ_mvp/ui/BuildQueueUI.gd: `get_building_population()`呼び出し削除、ワーカーラベル表示を空文字に変更
+- scripts/econ_mvp/ui/DetailPopup.gd: 必要稼働人手表示ブロック削除
+- scripts/econ_mvp/ui/HeaderUI.gd: `population_used`参照を`get_display_population()`に置換、`get_operation_labor()`/`get_work_labor()`呼び出し削除
+- data/cards_econ.json: 全カードから`population_required`/`required_work_labor`/`required_operation_labor`フィールド削除（`population_supply`は保持）
+
 ## 2026-05-05 EconHarvester関連コード完全除去
 
 ### 変更内容

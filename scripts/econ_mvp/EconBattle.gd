@@ -96,11 +96,6 @@ func _check_placement_valid(card: Dictionary, target_cell: Vector2i) -> bool:
 
 	# 資源不足でも建設予約は可能（デッドロック防止）
 
-	if economy != null:
-		var pop_req: int = card.get("population_required", 0)
-		if economy.population_used + pop_req > economy.population_cap:
-			log_message.emit("Population cap exceeded")
-			return false
 
 	if grid != null and not grid.is_valid_cell(target_cell.x, target_cell.y):
 		return false
@@ -171,7 +166,6 @@ func _create_building_from_card(card: Dictionary, target_cell: Vector2i) -> Econ
 	var btype: int = btype_map[btype_str]
 	var b := EconBuilding.new()
 	b.setup(btype, target_cell, true)
-	b.required_operation_labor = int(card.get("required_operation_labor", card.get("population_required", 0)))
 	b.position = grid.hex_to_pixel(target_cell.x, target_cell.y)
 
 	var hp_val: float = float(card.get("hp", 100))
@@ -181,40 +175,13 @@ func _create_building_from_card(card: Dictionary, target_cell: Vector2i) -> Econ
 		_on_building_destroyed(building)
 
 		if economy != null:
-			var pop_req: int = card.get("population_required", 0)
-			economy.population_used -= pop_req
 			var pop_supply: int = card.get("population_supply", 0)
 			if pop_supply > 0:
-
 				economy.population_cap = economy.calculate_population_cap()
 				print("[EconBattle] HOUSE destroyed: population_cap recalculated -> ", economy.population_cap)
-				_resolve_population_overflow()
 	)
 	return b
 
-func _resolve_population_overflow() -> void:
-
-	if economy == null:
-		return
-	while economy.population_used > economy.population_cap:
-		var active_buildings: Array = player_buildings.filter(func(b): return b.is_alive and b.is_built and not b.has_meta("stopped"))
-		if active_buildings.is_empty():
-			break
-
-		active_buildings.sort_custom(func(a, b_node):
-			var a_pop: int = a.get_meta("population_required") if a.has_meta("population_required") else 0
-			var b_pop: int = b_node.get_meta("population_required") if b_node.has_meta("population_required") else 0
-			if a_pop != b_pop:
-				return a_pop > b_pop
-			var a_ord: int = a.get_meta("construction_order") if a.has_meta("construction_order") else 0
-			var b_ord: int = b_node.get_meta("construction_order") if b_node.has_meta("construction_order") else 0
-			return a_ord > b_ord
-		)
-		var target: EconBuilding = active_buildings[0]
-		target.set_meta("stopped", true)
-		var pop_req: int = target.get_meta("population_required") if target.has_meta("population_required") else 0
-		economy.population_used -= pop_req
-		print("[EconBattle] _resolve_population_overflow: stopped building at (%d,%d)" % [target.grid_pos.x, target.grid_pos.y])
 
 func trigger_early_charge() -> void:
 
@@ -300,40 +267,7 @@ func _accumulate_barracks_power(delta: float) -> void:
 	if active_count > 0:
 		economy.accumulate_military_power(delta, active_count)
 
-func _allocate_operation_labor() -> void:
-	if economy == null:
-		return
-	var sorted_buildings: Array = player_buildings.filter(func(b): return b.is_alive and b.is_built)
-	sorted_buildings.sort_custom(func(a: EconBuilding, b: EconBuilding) -> bool:
-		var ap: int = _get_operation_priority(a)
-		var bp: int = _get_operation_priority(b)
-		if ap == bp:
-			return a.grid_pos.x < b.grid_pos.x if a.grid_pos.y == b.grid_pos.y else a.grid_pos.y < b.grid_pos.y
-		return ap < bp
-	)
-	var pool: int = economy.get_operation_labor()
-	for building in sorted_buildings:
-		var need: int = max(0, int(building.required_operation_labor))
-		if need <= 0:
-			building.set_operating(true)
-		elif pool >= need:
-			pool -= need
-			building.set_operating(true)
-		else:
-			building.set_operating(false)
 
-func _get_operation_priority(building: EconBuilding) -> int:
-	match building.building_type:
-		EconBuilding.BuildingType.VILLAGE, EconBuilding.BuildingType.DINER, EconBuilding.BuildingType.MILL:
-			return 0
-		EconBuilding.BuildingType.SAWMILL, EconBuilding.BuildingType.MINE, EconBuilding.BuildingType.TRADE_POST, EconBuilding.BuildingType.EXCHANGE:
-			return 1
-		EconBuilding.BuildingType.BARRACKS, EconBuilding.BuildingType.FORTRESS, EconBuilding.BuildingType.WORKSHOP, EconBuilding.BuildingType.SMITHY, EconBuilding.BuildingType.WATCHTOWER:
-			return 2
-		EconBuilding.BuildingType.PLAZA:
-			return 3
-		_:
-			return 4
 
 func update(delta: float) -> void:
 	if not is_running or _game_over:
@@ -342,7 +276,6 @@ func update(delta: float) -> void:
 		deck_manager.update(delta)
 		deck_manager.try_resolve_pending_draws()
 
-	_allocate_operation_labor()
 	_accumulate_barracks_power(delta)
 
 	if deck_manager != null and deck_manager.force_charge_triggered and economy != null:
@@ -375,23 +308,15 @@ func update(delta: float) -> void:
 	_check_victory()
 
 func _allocate_work_labor() -> Array:
-	# ADR-003: EconBattle が作業人手割当を所有する
+	# ADR-003: EconBattle が作業人手割当を所有する（人手システム廃止・全サイト自動アクティブ）
 	# 戻り値: [active_sites: Array, pool_for_lead: int]
-	# pool_for_lead = lead_posに割り当てる総work_laborプール
 	var sorted_sites: Array = grid.construction_sites.values()
 	sorted_sites.sort_custom(func(a: Dictionary, b: Dictionary) -> bool:
 		return int(a.get("started_at", 0)) < int(b.get("started_at", 0))
 	)
-	var pool: int = economy.get_work_labor()
-	var active_sites: Array = []
-	for site in sorted_sites:
-		var need: int = int(site.get("required_work_labor", 1))
-		if pool >= need:
-			pool -= need
-			active_sites.append(site)
-	# 直列建設: 残りプールをlead_posに全集中
-	var pool_for_lead: int = economy.get_work_labor()
-	return [active_sites, pool_for_lead]
+	# 人手チェック不要: コストが足りる限り全サイト自動アクティブ
+	var active_sites: Array = sorted_sites.duplicate()
+	return [active_sites, 0]
 
 func _update_construction_progress(delta: float) -> void:
 	# ADR-003: construction 管理は EconBattle が単一責務所有者
@@ -413,7 +338,6 @@ func _update_construction_progress(delta: float) -> void:
 	# 変更2: 直列建設（started_at 最古の1サイトのみ進捗・全work_laborを集中）
 	var alloc_result: Array = _allocate_work_labor()
 	var active_sites: Array = alloc_result[0]
-	var pool_for_lead: int = alloc_result[1]
 	# awaiting中のサイトは除外してソート
 	var buildable_sites: Array = []
 	for site in active_sites:
@@ -443,7 +367,6 @@ func _update_construction_progress(delta: float) -> void:
 			"type": "BUILDING_PROGRESS_UPDATED",
 			"panel_id": [pos.x, pos.y],
 			"progress": float(site.get("construction_progress", 0.0)),
-			"required_work_labor": int(site.get("required_work_labor", 1)),
 		})
 		if float(site.get("construction_progress", 0.0)) >= 1.0:
 			completed_panel_ids.append(pos)
@@ -469,9 +392,9 @@ func _update_construction_progress(delta: float) -> void:
 		grid.reveal_panels_around(building.grid_pos)
 		if deck_manager != null:
 			if bool(site.get("is_special", false)):
-				deck_manager.exclude_card(card)
+				pass  # special は除外済み（remove_card_at 完了）
 			else:
-				deck_manager.discard_card(card)
+				deck_manager.add_to_discard(card)
 		_log_event({
 			"type": "BUILDING_COMPLETED",
 			"panel_id": [building.grid_pos.x, building.grid_pos.y],
