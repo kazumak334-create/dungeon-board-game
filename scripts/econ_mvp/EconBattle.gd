@@ -9,8 +9,6 @@ signal chest_acquired(result: Dictionary)
 
 var player_units: Array = []
 var enemy_units: Array = []
-var player_harvesters: Array = []
-var enemy_harvesters: Array = []
 var player_buildings: Array = []
 var enemy_buildings: Array = []
 
@@ -114,9 +112,6 @@ func _check_placement_valid(card: Dictionary, target_cell: Vector2i) -> bool:
 	for b in player_buildings:
 		if b.is_alive:
 			occupied[b.grid_pos] = true
-	for h in player_harvesters:
-		if h.is_alive:
-			occupied[h.grid_pos] = true
 	var own_positions: Array = []
 	if grid != null:
 		own_positions.append(grid.BASE_INITIAL_POS)  # Base を仮想建物として扱う
@@ -358,12 +353,6 @@ func update(delta: float) -> void:
 	_update_milestone_progress()
 	_update_construction_progress(delta)
 
-	var all_movable: Array = player_units + player_harvesters + enemy_units
-	var alive_harvester_count: int = player_harvesters.filter(func(h): return h.is_alive).size()
-	for h in player_harvesters:
-		if h.is_alive:
-			h.update(delta, grid, all_movable, enemy_units, player_buildings, alive_harvester_count)
-
 	for b in player_buildings:
 		if b.is_alive:
 			b.update(delta, economy, player_buildings, grid)
@@ -374,10 +363,10 @@ func update(delta: float) -> void:
 	var all_units: Array = player_units + enemy_units
 	for u in player_units:
 		if u.is_alive:
-			u.update(delta, enemy_units, enemy_buildings, enemy_harvesters, grid, all_units, economy)
+			u.update(delta, enemy_units, enemy_buildings, grid, all_units, economy)
 	for u in enemy_units:
 		if u.is_alive:
-			u.update(delta, player_units, player_buildings, player_harvesters, grid, all_units, ai.economy if ai != null else null)
+			u.update(delta, player_units, player_buildings, grid, all_units, ai.economy if ai != null else null)
 
 	_check_enemy_base_breakthroughs()
 	_update_stack_counts()
@@ -445,11 +434,10 @@ func _update_construction_progress(delta: float) -> void:
 		var is_active: bool = (pos == lead_pos) and not is_awaiting
 		site["is_active"] = is_active
 		if is_active:
-			# worker数を反映した進捗計算（pool_for_lead / required_work_units）
-			var required_work_units: float = max(0.001, float(site.get("required_work_labor", 1.0)))
-			var allocated_work: float = max(1.0, float(pool_for_lead))
-			site["construction_progress"] = min(1.0, float(site.get("construction_progress", 0.0)) + delta * allocated_work / required_work_units)
-			print("[EconBattle] type=construction_progress pos=(%d,%d) pool=%d required=%.1f progress=%.3f" % [pos.x, pos.y, pool_for_lead, required_work_units, float(site.get("construction_progress", 0.0))])
+			# 時間ベース進捗計算（通常1s・特殊3s）
+			var construction_time: float = max(0.1, float(site.get("construction_time", 1.0)))
+			site["construction_progress"] = min(1.0, float(site.get("construction_progress", 0.0)) + delta / construction_time)
+			print("[EconBattle] type=construction_progress pos=(%d,%d) time=%.1f progress=%.3f" % [pos.x, pos.y, construction_time, float(site.get("construction_progress", 0.0))])
 		grid.construction_sites[pos] = site
 		_log_event({
 			"type": "BUILDING_PROGRESS_UPDATED",
@@ -498,14 +486,7 @@ func _update_construction_progress(delta: float) -> void:
 
 func _remove_dead() -> void:
 	player_units = player_units.filter(func(u): return u.is_alive)
-	player_harvesters = player_harvesters.filter(func(h): return h.is_alive)
 	enemy_units = enemy_units.filter(func(u): return u.is_alive)
-	enemy_harvesters = enemy_harvesters.filter(func(h): return h.is_alive)
-
-	for i in range(player_harvesters.size()):
-		player_harvesters[i].harvester_index = i
-	for i in range(enemy_harvesters.size()):
-		enemy_harvesters[i].harvester_index = i
 
 func _check_victory() -> void:
 	if _game_over:
@@ -535,18 +516,6 @@ func spawn_player_unit(col: int, row: int, unit_type: int, charge_mode: bool = f
 	var names := ["Attacker", "Tank", "Breaker"]
 	log_message.emit("%s produced at (%d,%d)" % [names[unit_type], col, row])
 
-func spawn_player_harvester(pos: Vector2i, economy: EconEconomy) -> void:
-	var h := EconHarvester.new()
-	h.grid_pos = pos
-	h.economy = economy
-	h.battle = self
-	h.position = grid.hex_to_pixel(pos.x, pos.y)
-	h.harvested.connect(_on_harvested)
-	h.harvester_index = player_harvesters.size()
-	player_harvesters.append(h)
-	grid.add_child(h)
-	# Harvester spawn log removed (v0.2: left-side harvester UI deleted)
-
 func add_building_to_queue(_b: EconBuilding) -> void:
 	pass
 func spawn_enemy_unit(utype: int, pos: Vector2i) -> void:
@@ -556,16 +525,6 @@ func spawn_enemy_unit(utype: int, pos: Vector2i) -> void:
 	unit._spawn_building_pos = pos
 	enemy_units.append(unit)
 	grid.add_child(unit)
-
-func spawn_enemy_harvester(pos: Vector2i, economy: EconEconomy) -> void:
-	var h := EconHarvester.new()
-	h.grid_pos = pos
-	h.economy = economy
-	h.position = grid.hex_to_pixel(pos.x, pos.y)
-	h.harvested.connect(func(rtype): economy.add_resource(rtype, 1))
-	h.harvester_index = enemy_harvesters.size()
-	enemy_harvesters.append(h)
-	grid.add_child(h)
 
 func register_enemy_building(b: EconBuilding) -> void:
 	enemy_buildings.append(b)
@@ -719,8 +678,9 @@ func _check_building_milestone_draw() -> void:
 	print("[EconBattle] building_milestone_draw: non-BASE built count=%d" % count)
 	if count > 0 and count % 5 == 0:
 		deck_manager.draw_card()
-		log_message.emit("建物5棟効果: 1ドロー (count=%d)" % count)
-		print("[EconBattle] building_milestone_draw: drew 1 card at count=%d" % count)
+		deck_manager.draw_card()
+		log_message.emit("建物5棟効果: 2ドロー (count=%d)" % count)
+		print("[EconBattle] building_milestone_draw: drew 2 cards at count=%d" % count)
 	# BASEのmilestone_progressを更新（5棟サイクル内の進捗をBPBで表示）
 	var progress_in_cycle: float = float(count % 5) / 5.0
 	for b in player_buildings:

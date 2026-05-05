@@ -2,6 +2,16 @@
 
 ## [Unreleased]
 
+## 2026-05-05 EconHarvester関連コード完全除去
+
+### 変更内容
+- scripts/econ_mvp/EconHarvester.gd: ファイル削除
+- scripts/econ_mvp/EconBattle.gd: `player_harvesters`/`enemy_harvesters`配列変数削除、`spawn_player_harvester()`/`spawn_enemy_harvester()`関数削除、ハーベスター占有チェック・updateループ・_remove_dead内フィルタ・harvester_index再振り番を削除。`EconUnit.update()`呼び出しから`enemy_harvesters`/`player_harvesters`引数を除去
+- scripts/econ_mvp/EconUnit.gd: `OrderType.ATTACK_HARVESTERS`をenumから削除、`update()`シグネチャから`enemy_harvesters: Array`引数を除去、`_select_target()`からハーベスター引数・ATTACK_HARVESTERSブロック・ハーベスタースコア評価ループを削除
+- scripts/econ_mvp/EconAI.gd: `economy.target_count`代入を削除、診断ログからharv件数を削除、敵ハーベスター更新ループを削除
+- scripts/econ_mvp/EconMain.gd: カード配置時のharvester占有チェックを削除、`_get_occupied_positions()`のharvester座標追加を削除、ATTACK_HARVESTERSボタン（個別・一括）を削除
+- scripts/econ_mvp/EconEconomy.gd: `ROLE_BUILD`/`ROLE_TRADE`定数を削除、`target_count`辞書変数を削除、`get_harvest_target_for()`関数を削除
+
 ## 2026-05-05 5棟ドロー進捗表示をHeaderUIゲージからBASEパネルBPBへ移行
 
 ### 変更内容

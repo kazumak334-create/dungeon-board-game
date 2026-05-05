@@ -17,13 +17,6 @@ func setup(grid: EconGrid, battle: EconBattle) -> void:
 	_battle = battle
 	# 敵専用Economy
 	economy = EconEconomy.new()
-	economy.target_count = {
-		EconGrid.ResourceType.WOOD: 1,
-		EconGrid.ResourceType.STONE: 1,
-		EconGrid.ResourceType.RESIN: 1,
-		EconGrid.ResourceType.WHEAT: 1,
-	}
-
 	add_child(economy)
 	# ビルドオーダー（固定）
 	_build_plan = [
@@ -115,20 +108,14 @@ func update(delta: float) -> void:
 	_diag_timer += delta
 	if _diag_timer >= 20.0:
 		_diag_timer = 0.0
-		var alive_h: int = _battle.enemy_harvesters.filter(func(h): return h.is_alive).size()
 		var q_names := ["Barracks","Fortress","Workshop","Village","Base"]
 		var q_info: String = "empty"
 		if _construction_queue.size() > 0:
 			var nb: EconBuilding = _construction_queue[0]
 			var cost: Dictionary = EconBuilding.BUILD_COSTS.get(int(nb.building_type), {})
 			q_info = "%s(cost:%s)" % [q_names[int(nb.building_type)], str(cost)]
-		_battle.log_message.emit("AI diag: W%d St%d Re%d | harv:%d | next:%s" % [
-			economy.wood, economy.stone, economy.resin, alive_h, q_info])
-	# 敵ハーベスター更新
-	var all_movable: Array = _battle.player_units + _battle.player_harvesters + _battle.enemy_units + _battle.enemy_harvesters
-	for h in _battle.enemy_harvesters:
-		if h.is_alive:
-			h.update(delta, _grid, all_movable, _battle.player_units)
+		_battle.log_message.emit("AI diag: W%d St%d Re%d | next:%s" % [
+			economy.wood, economy.stone, economy.resin, q_info])
 	# 敵建物更新
 	for b in _battle.enemy_buildings:
 		if b.is_alive:

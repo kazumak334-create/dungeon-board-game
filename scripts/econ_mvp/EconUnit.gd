@@ -3,7 +3,7 @@ extends Node2D
 
 enum UnitType { ATTACKER, TANK, BREAKER }
 enum Side { PLAYER, ENEMY }
-enum OrderType { ATTACK_UNITS, ATTACK_HARVESTERS, GUARD }
+enum OrderType { ATTACK_UNITS, GUARD }
 
 signal unit_killed(unit_type: int, side: int, pos: Vector2i)
 
@@ -36,6 +36,8 @@ var _hunger_timer: float = 0.0
 
 var stack_count: int = 1
 var is_selected: bool = false
+var is_idle: bool = true
+var _spawn_building_pos: Vector2i = Vector2i(-1, -1)
 
 var _unit_color: Color
 var _grid_ref: EconGrid = null
@@ -70,7 +72,7 @@ static func create(utype: int, s: int, col: int, row: int) -> EconUnit:
 	unit._unit_color = stats["color"]
 	return unit
 
-func update(delta: float, enemies: Array, enemy_buildings: Array, enemy_harvesters: Array, grid: EconGrid, all_units: Array, economy: EconEconomy = null) -> void:
+func update(delta: float, enemies: Array, enemy_buildings: Array, grid: EconGrid, all_units: Array, economy: EconEconomy = null) -> void:
 	if not is_alive:
 		return
 	_grid_ref = grid
@@ -100,7 +102,7 @@ func update(delta: float, enemies: Array, enemy_buildings: Array, enemy_harveste
 		_attack_flash_timer -= delta
 		queue_redraw()
 	if target_node == null or not _is_target_alive(target_node):
-		_select_target(enemies, enemy_harvesters, enemy_buildings, grid)
+		_select_target(enemies, enemy_buildings, grid)
 	# GUARDモード: guard_targetへ移動（近くにいれば通常攻撃AI）
 	if order == OrderType.GUARD and guard_target != null and _is_target_alive(guard_target):
 		if guard_target.get("grid_pos") != null:
@@ -130,7 +132,7 @@ func _is_target_alive(t: Node) -> bool:
 		return false
 	return t.is_alive
 
-func _select_target(enemies: Array, harvesters: Array, buildings: Array, grid: EconGrid) -> void:
+func _select_target(enemies: Array, buildings: Array, grid: EconGrid) -> void:
 	# GUARDモード: guard_target が生きていればターゲットなし（移動のみ）
 	if order == OrderType.GUARD:
 		if guard_target != null and _is_target_alive(guard_target):
@@ -140,27 +142,13 @@ func _select_target(enemies: Array, harvesters: Array, buildings: Array, grid: E
 			# guard_target消滅 → デフォルトに戻す
 			order = OrderType.ATTACK_UNITS
 			guard_target = null
-	# ATTACK_HARVESTERS: ハーベスター優先
-	if order == OrderType.ATTACK_HARVESTERS:
-		target_node = null
-		var best_dist := INF
-		for h in harvesters:
-			if not _is_target_alive(h) or h.get("grid_pos") == null:
-				continue
-			var d: float = grid.hex_distance(grid_pos, h.grid_pos)
-			if d < best_dist:
-				best_dist = d
-				target_node = h
-		if target_node != null:
-			return
-		# ハーベスターなければ通常ロジックにフォールスルー
-	# ATTACK_UNITS (デフォルト) + フォールスルー
+	# ATTACK_UNITS (デフォルト)
 	# 優先度テーブル: target_priority 0=標準, 1=前線制圧, 2=経済破壊
-	# prio_table[target_priority] = [base_prio, production_bldg_prio, unit_prio, noncombat_prio]
+	# prio_table[target_priority] = [base_prio, production_bldg_prio, unit_prio]
 	var prio_table: Array = [
-		[0, 1, 2, 3],  # 0=標準: BASE>建物>ユニット>非戦闘
-		[2, 1, 0, 3],  # 1=前線制圧: ユニット>建物>BASE>非戦闘
-		[1, 0, 2, 3],  # 2=経済破壊: 建物>BASE>ユニット>非戦闘
+		[0, 1, 2],  # 0=標準: BASE>建物>ユニット
+		[2, 1, 0],  # 1=前線制圧: ユニット>建物>BASE
+		[1, 0, 2],  # 2=経済破壊: 建物>BASE>ユニット
 	]
 	var tp: int = clampi(target_priority, 0, prio_table.size() - 1)
 	var prios: Array = prio_table[tp]
@@ -179,16 +167,6 @@ func _select_target(enemies: Array, harvesters: Array, buildings: Array, grid: E
 		if score < best_score:
 			best_score = score
 			best_node = e
-	# 敵非戦闘員（ハーベスター）
-	for h in harvesters:
-		if not _is_target_alive(h) or h.get("grid_pos") == null:
-			continue
-		var d: int = grid.hex_distance(grid_pos, h.grid_pos)
-		var in_range: bool = (d <= attack_range and d >= min_range)
-		var score: int = prios[3] * 1000 + d + (-10000 if in_range else 0)
-		if score < best_score:
-			best_score = score
-			best_node = h
 	# 敵建物（BASE／生産建物を分類）
 	for b in buildings:
 		if not _is_target_alive(b) or b.get("grid_pos") == null:

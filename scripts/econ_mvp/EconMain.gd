@@ -414,14 +414,6 @@ func _setup_ui(vp: Vector2) -> void:
 			_selected_unit.guard_target = null
 	)
 	order_vbox.add_child(btn_atk)
-	var btn_harv := Button.new()
-	btn_harv.text = "Target Harvesters"
-	btn_harv.pressed.connect(func():
-		if _selected_unit and _selected_unit.is_alive:
-			_selected_unit.order = EconUnit.OrderType.ATTACK_HARVESTERS
-			_selected_unit.guard_target = null
-	)
-	order_vbox.add_child(btn_harv)
 	var btn_guard := Button.new()
 	btn_guard.text = "Guard..."
 	btn_guard.pressed.connect(func():
@@ -508,14 +500,6 @@ func _create_control_panel() -> Control:
 			u.guard_target = null
 	)
 	bulk_hbox.add_child(btn_bulk_atk)
-	var btn_bulk_harv := Button.new()
-	btn_bulk_harv.text = "All: Harvesters"
-	btn_bulk_harv.pressed.connect(func():
-		for u in _battle.player_units:
-			u.order = EconUnit.OrderType.ATTACK_HARVESTERS
-			u.guard_target = null
-	)
-	bulk_hbox.add_child(btn_bulk_harv)
 	# Target Priority
 	var tp_label := Label.new()
 	tp_label.text = "Priority: Default"
@@ -832,12 +816,6 @@ func _input(event: InputEvent) -> void:
 			return
 		if not _grid.is_valid_cell(cell.x, cell.y):
 			return
-		print("[EconMain._input] card=%s, cell=(%d,%d), check=harvester_occupied" % [_selected_card_btype, cell.x, cell.y])
-		for h in _battle.player_harvesters:
-			if h.grid_pos == cell:
-				print("[EconMain._input] card=%s, cell=(%d,%d), check=harvester_occupied FAILED" % [_selected_card_btype, cell.x, cell.y])
-				_add_log("Cell occupied by harvester")
-				return
 		print("[EconMain._input] card=%s, cell=(%d,%d), check=building_occupied" % [_selected_card_btype, cell.x, cell.y])
 		for b in _battle.player_buildings:
 			if b.grid_pos == cell:
@@ -1286,9 +1264,6 @@ func _get_occupied_positions() -> Array:
 	for b in _battle.player_buildings:
 		if b.is_alive:
 			positions.append(b.grid_pos)
-	for h in _battle.player_harvesters:
-		if h.is_alive:
-			positions.append(h.grid_pos)
 	return positions
 
 func _place_flag(pos: Vector2i) -> void:
