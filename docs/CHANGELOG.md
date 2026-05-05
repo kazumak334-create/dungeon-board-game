@@ -2,6 +2,31 @@
 
 ## [Unreleased]
 
+## 2026-05-05 バグ修正3件: 数値なしパネル表示・金枠表示範囲・建設工数2倍
+
+### 変更内容
+- scripts/econ_mvp/EconMain.gd _update_territory_highlight(): player_buildingsループを削除し、revealed=trueの全パネルをhighlight_cellsに追加（建物から距離3超でも数値が表示されないバグ修正）
+- scripts/econ_mvp/EconMain.gd _update_buildable_highlight(): buildable_setによるフィルターを追加、建築可能セルのみ金枠表示（建てられない場所も金枠になるバグ修正）
+- scripts/econ_mvp/EconBuilding.gd REQUIRED_CONSTRUCTION: 全値をさらに2倍に変更（20→40, 32→64, 10→20, 16→32, 24→48, 12→24）
+
+### 変更前→変更後（REQUIRED_CONSTRUCTION）
+- 0 BARRACKS: 20 → 40
+- 1 FORTRESS: 32 → 64
+- 2 WORKSHOP: 32 → 64
+- 3 VILLAGE: 20 → 40
+- 5 SAWMILL: 10 → 20
+- 6 MINE: 16 → 32
+- 7 EQUIPMENT_SHOP: 24 → 48
+- 8 TRADE_POST: 20 → 40
+- 10 PLAZA: 20 → 40
+- 11 HOUSE: 12 → 24
+- 12 EXCHANGE: 20 → 40
+- 13-16 LIBRARY/MUSEUM/ART_GALLERY: 20 → 40
+- 17 SMITHY: 24 → 48
+- 18 WATCHTOWER: 32 → 64
+- 19 DINER: 20 → 40
+- 20 MILL: 20 → 40
+
 ## 2026-05-05 Sprint 9リファクタリング: EconMain.gdヘッダー/フッターUI分離
 
 ### 変更内容

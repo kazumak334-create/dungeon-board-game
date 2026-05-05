@@ -617,7 +617,8 @@ func _start_battle_after_difficulty() -> void:
 	_battle.start()
 	_zoom_ctrl._set_zoom_level(1)       # Lv1 at battle start
 	_zoom_ctrl._focus_player_base()     # focus player base
-	_status_label.text = "Battle running..."
+	if _status_label != null:
+		_status_label.text = "Battle running..."
 
 func _show_initial_difficulty_dialog() -> void:
 	if _difficulty_dialog != null:
@@ -990,7 +991,8 @@ func _reindex_construction_queue() -> void:
 	_next_construction_order = queue.size() + 1
 
 func _on_battle_ended(player_won: bool) -> void:
-	_status_label.text = "Victory!" if player_won else "Defeat..."
+	if _status_label != null:
+		_status_label.text = "Victory!" if player_won else "Defeat..."
 	_add_log("Victory!" if player_won else "Defeat!")
 	if _milestone_window != null:
 		_milestone_window.visible = false
@@ -1200,18 +1202,9 @@ func _update_territory_highlight() -> void:
 	_grid.resource_highlight_type = EconGrid.ResourceType.NONE
 	_grid.land_highlight_cells.clear()
 
-	for pb in _battle.player_buildings:
-		if not pb.is_alive:
-			continue
-		if not pb.is_built:
-			continue
-		for row in range(EconGrid.ROWS):
-			for col in range(_grid.get_col_count(row)):
-				var cell := Vector2i(col, row)
-				if _grid.is_mountain(cell):
-					continue
-				if _grid.hex_distance(cell, pb.grid_pos) <= 3:
-					_grid.highlight_cells[cell] = true
+	for pos in _grid.land_panels:
+		if _grid.land_panels[pos].get("revealed", false):
+			_grid.highlight_cells[pos] = true
 
 	_grid.enemy_territory_cells.clear()
 	for eb in _battle.enemy_buildings:
@@ -1238,12 +1231,17 @@ func _update_buildable_highlight() -> void:
 	for cell in options:
 		_grid.fill_cells[cell] = true
 
-	# 土地参照型建物: 対象リソースを持つ revealed パネルを強調
+	# 土地参照型建物: 対象リソースを持つ revealed かつ建築可能パネルを強調
 	var land_resource_keys: Array = _get_land_resource_keys_for_card(card)
 	if not land_resource_keys.is_empty():
+		var buildable_set: Dictionary = {}
+		for cell in options:
+			buildable_set[cell] = true
 		for pos in _grid.land_panels.keys():
 			var panel: Dictionary = _grid.land_panels[pos]
 			if not panel.get("revealed", false):
+				continue
+			if not buildable_set.has(pos):
 				continue
 			var resources: Dictionary = panel.get("resources", {})
 			for rkey in land_resource_keys:
